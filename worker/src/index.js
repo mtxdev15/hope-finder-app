@@ -22,6 +22,7 @@ export default {
         'Content-Type': 'application/json',
         'x-api-key': env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body,
     });
