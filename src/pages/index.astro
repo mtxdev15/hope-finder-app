@@ -141,7 +141,6 @@ Return ONLY valid JSON in this exact structure:
     const data = await response.json();
     const raw = data.content[0].text;
     const cleaned = raw.replace(/```json|```/g, '').trim();
-    console.log('[callClaude] raw response text:', raw);
     try {
       return JSON.parse(cleaned);
     } catch (parseErr) {
