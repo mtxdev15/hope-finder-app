@@ -39,15 +39,16 @@ Jeff will drive traffic through his **Podcast** and **YouTube Channel**. The too
 
 | Layer | Tool | Status |
 |---|---|---|
-| Framework | Astro | To set up |
-| Styling | Tailwind CSS | To set up |
-| AI Assistant | Claude Code (CLI) | To install |
+| Framework | Astro | Live ✓ |
+| Styling | Tailwind CSS | Live ✓ |
+| AI Assistant | Claude Code (CLI) | Ready ✓ |
 | IDE | VS Code | Ready ✓ |
 | AI Engine | Anthropic Claude (claude-sonnet-4-5) | Integrated ✓ |
-| API Security | Cloudflare Workers (serverless proxy) | To build |
-| Hosting | Cloudflare Pages | To set up |
+| API Security | Cloudflare Workers (serverless proxy) | Live ✓ |
+| Worker URL | hope-finder-worker.thinktoro.workers.dev | Live ✓ |
+| Hosting | Cloudflare Pages | Live ✓ |
 | Domain | declareandbelieve.com via Cloudflare | Registered ✓ |
-| Version Control | GitHub (declareandbelieve repo) | Ready ✓ |
+| Version Control | GitHub (hope-finder-app) | Ready ✓ |
 | Database | Supabase (PostgreSQL) | V2 |
 | Auth | Supabase Auth | V2 |
 | Bible API | YouVersion (pending approval) | Applied / waiting |
@@ -91,15 +92,15 @@ Same rule applies to all future API keys (YouVersion, Google, etc.)
 - [x] Crisis banner with 988 lifeline
 - [x] Copy / Share / Save actions
 - [x] SEO / AEO / GEO meta tags
-- [ ] Install Claude Code CLI
-- [ ] Initialize Astro project with Tailwind CSS
-- [ ] Convert HTML to Astro components
-- [ ] Build Cloudflare Worker as secure API proxy
-- [ ] Set up Cloudflare Pages — connect to GitHub
-- [ ] Connect declareandbelieve.com domain
-- [ ] Design and add logo
-- [ ] Test end-to-end on mobile
-- [ ] Launch
+- [x] Install Claude Code CLI
+- [x] Initialize Astro project with Tailwind CSS
+- [x] Convert HTML to Astro components
+- [x] Build Cloudflare Worker as secure API proxy
+- [x] Set up Cloudflare Pages — connect to GitHub
+- [x] Connect declareandbelieve.com domain
+- [x] Design and add logo
+- [x] Test end-to-end on mobile
+- [x] Launch
 
 **Version 1 is done when:** A stranger can go to declareandbelieve.com, describe their struggle, and receive God's Word — with zero errors and zero exposed API keys.
 
