@@ -131,7 +131,7 @@ Return ONLY valid JSON in this exact structure:
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 4096,
-        system: systemPrompt,
+        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
@@ -141,7 +141,14 @@ Return ONLY valid JSON in this exact structure:
     const data = await response.json();
     const raw = data.content[0].text;
     const cleaned = raw.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleaned);
+    console.log('[callClaude] raw response text:', raw);
+    try {
+      return JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('[callClaude] JSON.parse failed:', parseErr);
+      console.error('[callClaude] cleaned string was:', cleaned);
+      throw parseErr;
+    }
   }
 
   function renderResults(data: any, struggle: string, translation: string) {
