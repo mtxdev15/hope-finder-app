@@ -7,6 +7,23 @@ var CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type"
 };
+var requestCounts = /* @__PURE__ */ new Map();
+var RATE_LIMIT = 10;
+var WINDOW_MS = 60 * 1e3;
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = requestCounts.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    requestCounts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT) {
+    return true;
+  }
+  entry.count++;
+  return false;
+}
+__name(checkRateLimit, "checkRateLimit");
 var src_default = {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -14,6 +31,13 @@ var src_default = {
     }
     if (request.method !== "POST") {
       return new Response("Method Not Allowed", { status: 405 });
+    }
+    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    if (checkRateLimit(ip)) {
+      return new Response(
+        JSON.stringify({ error: "You have reached the request limit. Please wait a moment before trying again." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+      );
     }
     const body = await request.text();
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
