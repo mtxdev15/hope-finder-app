@@ -174,7 +174,7 @@ Translation selected: NKJV
 ## Implementation Notes
 
 ### API Call Structure
-- Model: `claude-sonnet-4-20250514`
+- Model: `claude-sonnet-4-5`
 - Temperature: `0.7` — warm and natural, not robotic, but consistent
 - Max tokens: `1800` — increased to accommodate full verse text in responses
 - System prompt: paste the block above

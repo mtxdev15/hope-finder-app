@@ -43,7 +43,7 @@ Jeff will drive traffic through his **Podcast** and **YouTube Channel**. The too
 | Styling | Tailwind CSS | To set up |
 | AI Assistant | Claude Code (CLI) | To install |
 | IDE | VS Code | Ready ✓ |
-| AI Engine | Anthropic Claude (claude-sonnet-4-20250514) | Integrated ✓ |
+| AI Engine | Anthropic Claude (claude-sonnet-4-5) | Integrated ✓ |
 | API Security | Cloudflare Workers (serverless proxy) | To build |
 | Hosting | Cloudflare Pages | To set up |
 | Domain | declareandbelieve.com via Cloudflare | Registered ✓ |
@@ -169,7 +169,7 @@ The visual identity is fully defined. See `declare-and-believe-brand.html` for t
 ## AI Engine
 
 **Name:** HopeFinder Companion
-**Model:** claude-sonnet-4-20250514
+**Model:** claude-sonnet-4-5
 **Temperature:** 0.7
 **Max tokens:** 1800
 

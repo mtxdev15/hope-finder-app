@@ -23,7 +23,7 @@ I am not a professional developer. I am learning as I build. Always:
 ## Tech Stack
 - **Framework:** Astro (V1)
 - **Styling:** Tailwind CSS (V1)
-- **AI Engine:** Anthropic Claude (claude-sonnet-4-20250514)
+- **AI Engine:** Anthropic Claude (claude-sonnet-4-5)
 - **API Security:** Cloudflare Workers (proxy — API key never touches frontend)
 - **Hosting:** Cloudflare Pages + Cloudflare Workers
 - **Domain:** declareandbelieve.com (registered and managed in Cloudflare)
@@ -85,7 +85,7 @@ declareandbelieve.com (live)
 
 ## AI Companion
 **Name:** HopeFinder Companion
-**Model:** claude-sonnet-4-20250514
+**Model:** claude-sonnet-4-5
 **Temperature:** 0.7
 **Max tokens:** 1800
 Full instructions in `declare-and-believe-system-prompt.md`
