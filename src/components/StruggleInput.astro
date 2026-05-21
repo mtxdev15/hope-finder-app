@@ -1,0 +1,64 @@
+---
+import CrisisBanner from './CrisisBanner.astro';
+
+const chips = [
+  { val: "fear and anxiety", label: "Fear & Anxiety" },
+  { val: "shame and guilt", label: "Shame & Guilt" },
+  { val: "feeling like a failure", label: "Feeling Like a Failure" },
+  { val: "comparison and jealousy", label: "Comparison" },
+  { val: "overthinking and worry", label: "Overthinking" },
+  { val: "loneliness and isolation", label: "Loneliness" },
+  { val: "lack of purpose and direction", label: "No Purpose" },
+  { val: "feeling lost and without direction", label: "Lost" },
+  { val: "doubt and unbelief", label: "Doubt" },
+  { val: "anger and bitterness", label: "Anger & Bitterness" },
+  { val: "financial stress and lack", label: "Financial Stress" },
+  { val: "feeling unworthy of love", label: "Feeling Unworthy" },
+  { val: "grief and loss", label: "Grief & Loss" },
+  { val: "broken identity", label: "Broken Identity" },
+  { val: "perfectionism", label: "Perfectionism" },
+  { val: "depression and hopelessness", label: "Depression" },
+  { val: "suicidal thoughts and wanting to give up on life", label: "Suicidal Thoughts" },
+  { val: "spiritual dryness", label: "Spiritual Dryness" },
+  { val: "adultery and fornication and sexual sin", label: "Adultery / Fornication" },
+  { val: "self trauma and unhealed wounds from the past", label: "Self Trauma" },
+  { val: "verbal abuse and the damage of words spoken over me", label: "Verbal Abuse" },
+  { val: "emotional abuse and manipulation", label: "Emotional Abuse" },
+  { val: "feeling abandoned and left behind by people I loved", label: "Abandoned" },
+  { val: "victimization and feeling like life keeps happening to me", label: "Victimization" },
+  { val: "self sabotage and getting in my own way", label: "Self Sabotage" },
+  { val: "control and the need to control outcomes and people", label: "Control" },
+];
+---
+<div class="input-card" id="inputSection">
+  <span class="input-label">What are you struggling with right now?</span>
+
+  <div class="struggles-grid" id="chipsGrid">
+    {chips.map(chip => (
+      <div class="chip" data-val={chip.val}>{chip.label}</div>
+    ))}
+  </div>
+
+  <CrisisBanner />
+
+  <div class="translation-row">
+    <span class="translation-label">Translation:</span>
+    <button class="trans-btn active" data-trans="NKJV">NKJV</button>
+    <button class="trans-btn" data-trans="NLT">NLT</button>
+    <button class="trans-btn" data-trans="NIV">NIV</button>
+  </div>
+
+  <div class="textarea-wrap">
+    <textarea id="customInput" placeholder="Or describe in your own words what's on your heart… (e.g. 'I keep replaying my past mistakes and feel like God can't use me')"></textarea>
+  </div>
+
+  <button class="btn-declare" id="declareBtn">
+    <span class="btn-inner">
+      <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="0" width="2" height="16" rx="1" fill="white"/><rect x="0" y="5" width="14" height="2" rx="1" fill="white"/></svg>
+      Speak Truth Over This
+    </span>
+  </button>
+
+  <div class="error-msg" id="errorMsg">Please select a struggle or describe what you're going through.</div>
+  <p class="connection-note" id="connectionNote">If this keeps happening, the full experience requires a live connection. Stay close — it is coming soon.</p>
+</div>
