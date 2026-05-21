@@ -25,6 +25,8 @@ I am not a professional developer. I am learning as I build. Always:
 - **Styling:** Tailwind CSS (V1)
 - **AI Engine:** Anthropic Claude (claude-sonnet-4-5)
 - **API Security:** Cloudflare Workers (proxy — API key never touches frontend)
+- **Worker URL:** hope-finder-worker.thinktoro.workers.dev
+- **Rate Limiting:** 10 requests per IP per minute (enforced in the Worker)
 - **Hosting:** Cloudflare Pages + Cloudflare Workers
 - **Domain:** declareandbelieve.com (registered and managed in Cloudflare)
 - **Version Control:** GitHub (hope-finder-app)
@@ -60,12 +62,12 @@ hope-finder-app/
 - [x] Project brief written
 - [x] Repo created (hope-finder-app)
 - [x] Files moved into repo locally
-- [ ] Astro initialized with Tailwind CSS
-- [ ] HTML converted to Astro components
-- [ ] Cloudflare Worker built (API proxy)
-- [ ] Cloudflare Pages connected to GitHub
-- [ ] declareandbelieve.com domain connected
-- [ ] Live
+- [x] Astro initialized with Tailwind CSS
+- [x] HTML converted to Astro components
+- [x] Cloudflare Worker built (API proxy)
+- [x] Cloudflare Pages connected to GitHub
+- [x] declareandbelieve.com domain connected
+- [x] Live
 
 ---
 
@@ -87,7 +89,8 @@ declareandbelieve.com (live)
 **Name:** HopeFinder Companion
 **Model:** claude-sonnet-4-5
 **Temperature:** 0.7
-**Max tokens:** 1800
+**Max tokens:** 4096
+**Prompt caching:** Enabled — system prompt cached as ephemeral
 Full instructions in `declare-and-believe-system-prompt.md`
 
 ---
