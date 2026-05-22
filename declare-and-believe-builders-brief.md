@@ -43,7 +43,7 @@ Jeff will drive traffic through his **Podcast** and **YouTube Channel**. The too
 | Styling | Tailwind CSS | Live ✓ |
 | AI Assistant | Claude Code (CLI) | Ready ✓ |
 | IDE | VS Code | Ready ✓ |
-| AI Engine | Anthropic Claude (claude-sonnet-4-5) | Integrated ✓ |
+| AI Engine | Anthropic Claude (claude-haiku-4-5-20251001) | Integrated ✓ |
 | API Security | Cloudflare Workers (serverless proxy) | Live ✓ |
 | Worker URL | hope-finder-worker.thinktoro.workers.dev | Live ✓ |
 | Hosting | Cloudflare Pages | Live ✓ |
@@ -170,11 +170,11 @@ The visual identity is fully defined. See `declare-and-believe-brand.html` for t
 ## AI Engine
 
 **Name:** HopeFinder Companion
-**Model:** claude-sonnet-4-5
+**Model:** claude-haiku-4-5-20251001
 **Temperature:** 0.7
-**Max tokens:** 1800
+**Max tokens:** 1500
 
-Full system prompt lives in `declare-and-believe-system-prompt.md`. That file is the source of truth for all AI behavior. Any changes to tone, declarations, format, or crisis protocol are made there first, then reflected in the HTML.
+Full system prompt lives in `declare-and-believe-system-prompt.md`. That file is the source of truth for all AI behavior. Any changes to tone, declarations, format, or crisis protocol are made in declare-and-believe-system-prompt.md first, then reflected in src/pages/index.astro.
 
 **Verse text:** Claude writes verse text directly in the selected translation (NKJV, NLT, NIV) until YouVersion API is approved. When YouVersion is integrated, the `text` field returns to `""` and YouVersion fills it. No other structural changes needed.
 

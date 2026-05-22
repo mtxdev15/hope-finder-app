@@ -23,7 +23,7 @@ I am not a professional developer. I am learning as I build. Always:
 ## Tech Stack
 - **Framework:** Astro (V1)
 - **Styling:** Tailwind CSS (V1)
-- **AI Engine:** Anthropic Claude (claude-sonnet-4-5)
+- **AI Engine:** Anthropic Claude (claude-haiku-4-5-20251001)
 - **API Security:** Cloudflare Workers (proxy — API key never touches frontend)
 - **Worker URL:** hope-finder-worker.thinktoro.workers.dev
 - **Rate Limiting:** 10 requests per IP per minute (enforced in the Worker)
@@ -37,7 +37,6 @@ I am not a professional developer. I am learning as I build. Always:
 hope-finder-app/
 ├── CLAUDE.md                               — this file
 ├── README.md                               — repo description
-├── declare-and-believe.html                — working app reference (V1 source)
 ├── declare-and-believe-system-prompt.md    — AI behavior instructions
 ├── declare-and-believe-project-brief.md    — app identity and keywords
 ├── declare-and-believe-builders-brief.md   — tech stack and roadmap
@@ -57,7 +56,7 @@ hope-finder-app/
 ---
 
 ## Current Status
-- [x] Working app built (declare-and-believe.html)
+- [x] Working app built (src/pages/index.astro — migrated from declare-and-believe.html)
 - [x] System prompt written
 - [x] Project brief written
 - [x] Repo created (hope-finder-app)
@@ -87,9 +86,9 @@ declareandbelieve.com (live)
 
 ## AI Companion
 **Name:** HopeFinder Companion
-**Model:** claude-sonnet-4-5
+**Model:** claude-haiku-4-5-20251001
 **Temperature:** 0.7
-**Max tokens:** 4096
+**Max tokens:** 1500
 **Prompt caching:** Enabled — system prompt cached as ephemeral
 Full instructions in `declare-and-believe-system-prompt.md`
 
@@ -106,3 +105,15 @@ Full instructions in `declare-and-believe-system-prompt.md`
 ---
 
 *To God be the glory. Forever.*
+
+---
+
+## Current Architecture (Performance)
+
+The app uses claude-haiku-4-5-20251001 for pastoral response generation. Request flow:
+
+- Frontend (src/pages/index.astro) → Cloudflare Worker (worker/src/index.js) → Anthropic API
+- Streaming via Server-Sent Events: the Worker pipes Anthropic's response body through without buffering, and the frontend reads chunks with a stream reader.
+- Prompt caching: the system prompt is wrapped with `cache_control: { type: 'ephemeral' }` for ~10x cost reduction on repeat calls.
+- max_tokens: 1500 (sized for the JSON response shape).
+- Defensive JSON extraction: the frontend slices content between first `{` and last `}` to handle cases where the model appends safety/crisis text after the JSON object.

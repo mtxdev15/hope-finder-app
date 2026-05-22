@@ -174,9 +174,9 @@ Translation selected: NKJV
 ## Implementation Notes
 
 ### API Call Structure
-- Model: `claude-sonnet-4-5`
+- Model: `claude-haiku-4-5-20251001`
 - Temperature: `0.7` — warm and natural, not robotic, but consistent
-- Max tokens: `1800` — increased to accommodate full verse text in responses
+- Max tokens: `1500` — sized for the JSON response shape; streaming reduces perceived latency
 - System prompt: paste the block above
 - User message: the struggle text + selected translation (e.g. "Struggle: fear and anxiety. Translation: NKJV")
 
