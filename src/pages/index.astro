@@ -129,18 +129,56 @@ Return ONLY valid JSON in this exact structure:
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        stream: true,
         system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
-    if (!response.ok) throw new Error('API error: ' + response.status);
+    if (!response.ok || !response.body) {
+      throw new Error('API error: ' + response.status);
+    }
 
-    const data = await response.json();
-    const raw = data.content[0].text;
-    const cleaned = raw.replace(/```json|```/g, '').trim();
+    // Read the SSE stream and accumulate the text delta from Anthropic
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const dataStr = line.slice(6).trim();
+        if (!dataStr || dataStr === '[DONE]') continue;
+
+        try {
+          const event = JSON.parse(dataStr);
+          if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+            fullText += event.delta.text;
+          }
+        } catch {
+          // ignore malformed lines
+        }
+      }
+    }
+
+    // Strip markdown fences, then extract the JSON object boundaries
+    // (some models append safety/crisis text after the JSON closes — be defensive)
+    const stripped = fullText.replace(/```json|```/g, '').trim();
+    const firstBrace = stripped.indexOf('{');
+    const lastBrace = stripped.lastIndexOf('}');
+    const cleaned = (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace)
+      ? stripped.slice(firstBrace, lastBrace + 1)
+      : stripped;
     try {
       return JSON.parse(cleaned);
     } catch (parseErr) {

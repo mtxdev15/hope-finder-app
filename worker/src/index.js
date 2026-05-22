@@ -57,12 +57,11 @@ export default {
       body,
     });
 
-    const responseText = await anthropicRes.text();
-
-    return new Response(responseText, {
+    return new Response(anthropicRes.body, {
       status: anthropicRes.status,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': anthropicRes.headers.get('Content-Type') || 'application/json',
+        'Cache-Control': 'no-cache',
         ...CORS_HEADERS,
       },
     });
