@@ -9,6 +9,10 @@
   --gold: #C9A84C;
   --gold-light: #E8C97A;
   --gold-dark: #9B7A2E;
+  --gold-text: #8A6B1F;          /* AA on cream (4.67:1) — for .header-eyebrow */
+  --gold-button: #7A6429;        /* AA with white text (5.70:1) — for .trans-btn.active bg */
+  --text-footer: #5C5448;        /* AAA on cream (6.98:1) — for footer body */
+  --text-footer-accent: #7A6225; /* AA on cream (5.46:1) — for footer span */
   --forest: #2D4A3E;
   --forest-light: #3D6356;
   --text: #1A1A18;
@@ -54,7 +58,7 @@ header {
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-text);
   margin-bottom: 0.75rem;
 }
 
@@ -191,7 +195,7 @@ textarea:focus { border-color: var(--gold-light); background: var(--white); }
 }
 
 .trans-btn:hover { border-color: var(--gold-light); color: var(--forest); }
-.trans-btn.active { background: var(--gold); border-color: var(--gold); color: var(--white); }
+.trans-btn.active { background: var(--gold-button); border-color: var(--gold-button); color: var(--white); }
 
 .btn-declare {
   width: 100%;
@@ -568,12 +572,12 @@ footer {
   z-index: 1;
   text-align: center;
   padding: 1.5rem;
-  color: var(--text-light);
+  color: var(--text-footer);
   font-size: 12px;
   border-top: 1px solid var(--parchment);
 }
 
-footer span { color: var(--gold-dark); }
+footer span { color: var(--text-footer-accent); }
 
 @media (max-width: 600px) {
   header { padding: 2.5rem 1.25rem 2rem; }
