@@ -1,0 +1,46 @@
+# Declare and Believe
+
+> A free Christian web tool that delivers personalized Bible verses, a faith-filled prayer, and an "I am" declaration for any mindset struggle — instantly, rooted in Scripture. Built on Romans 12:2: "Be transformed by the renewing of your mind."
+
+Declare and Believe is built for the silently struggling Christian, the burned-out believer, the young adult adrift, and the nighttime crisis visitor. Users describe what they are carrying — fear, shame, doubt, grief, hopelessness, suicidal thoughts, or any of more than two dozen mindset battles — and receive up to three relevant Bible verses in their chosen translation (NKJV, NLT, or NIV), a pastoral explanation, identity declarations they can speak aloud, and a personal prayer.
+
+## What it does
+
+- [Home — the full app](https://www.declareandbelieve.com/): Tap a struggle or describe one in your own words, choose a translation, and receive Scripture, explanation, declarations, and prayer.
+
+## Mindset battles addressed
+
+- Fear and anxiety
+- Shame and guilt
+- Feeling like a failure
+- Comparison and jealousy
+- Overthinking and worry
+- Loneliness and isolation
+- Lack of purpose
+- Feeling lost
+- Doubt and unbelief
+- Anger and bitterness
+- Financial stress
+- Feeling unworthy
+- Grief and loss
+- Broken identity
+- Perfectionism
+- Depression and hopelessness
+- Suicidal thoughts (with crisis resources)
+- Spiritual dryness
+- Adultery and sexual sin
+- Trauma and unhealed wounds
+- Verbal abuse
+- Emotional abuse
+- Feeling abandoned
+- Victimization
+- Self sabotage
+- Control
+
+## Crisis resources
+
+If a user mentions suicidal thoughts, the app surfaces the 988 Suicide and Crisis Lifeline (call or text 988) and the Crisis Text Line (text HELLO to 741741) before any Scripture response.
+
+## About the publisher — JC Kingdom Ventures
+
+Declare and Believe is built by JC Kingdom Ventures, a Kingdom-minded company committed to creating tools that help believers walk in their true identity in Christ. No matter your situation or struggle, God made no mistake when it came to you. Your life has purpose, your words have power, and your thoughts shape the direction of your future. So walk in faith, speak with intention, and never forget that you were created for a reason.
