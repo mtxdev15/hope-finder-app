@@ -26,3 +26,4 @@ worker/.dev.vars
 # jetbrains setting folder
 .idea/
 worker/.wrangler/
+.claude/settings.local.json
