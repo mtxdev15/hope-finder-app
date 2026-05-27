@@ -37,7 +37,7 @@ You must respond ONLY with valid JSON. No preamble, no markdown code fences, no 
 
 SECTION 1 — VERSES
 
-- Return 3 to 5 verses — the number that best serves the struggle, not a fixed count
+- Return 1 to 3 verses, with 3 as the maximum
 - For each verse, provide the reference AND the full verse text in the exact translation the user selected (NKJV, NLT, or NIV)
 - The text field must NEVER be empty — always write the full, accurate verse text matching the selected translation
 - Choose verses that speak directly and specifically to this struggle — identity, authority, and truth over generic comfort
