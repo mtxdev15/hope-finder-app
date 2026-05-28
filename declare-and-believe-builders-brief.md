@@ -163,7 +163,7 @@ The visual identity is fully defined. See `declare-and-believe-brand.html` for t
 - Parchment: `#E8E0D0` — borders, dividers
 - Fonts: Cormorant Garamond (serif, headings/verses) + DM Sans (sans, body)
 
-**Logo:** Not yet designed. Needs to be created before Version 1 launches. Cross icon + "Declare & Believe" wordmark in Cormorant Garamond. "Believe" in italic.
+**Logo:** Live. Cross icon + "Declare & Believe" wordmark in Cormorant Garamond. "Believe" in italic.
 
 ---
 
@@ -192,21 +192,4 @@ Full system prompt lives in `declare-and-believe-system-prompt.md`. That file is
 
 ---
 
-## Next Immediate Steps (Version 1 Checklist)
-
-1. Install Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
-2. Install Wrangler CLI (`npm install -g wrangler`)
-3. Clone existing `declareandbelieve` GitHub repo locally
-4. Initialize Astro project with Tailwind CSS inside the repo
-5. Convert existing HTML into Astro page and components
-6. Build Cloudflare Worker as secure API proxy
-7. Set up Cloudflare Pages — connect to GitHub repo
-8. Connect declareandbelieve.com domain in Cloudflare
-9. Design and add logo to the site
-10. Test end-to-end on mobile
-11. Launch
-
----
-
 *Last updated: May 2026*
-*To God be the glory. Forever.*

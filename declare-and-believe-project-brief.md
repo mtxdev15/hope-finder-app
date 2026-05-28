@@ -24,7 +24,7 @@ No ads. No blog posts. No fluff. Just God's Word, directly applied to their exac
 
 For every struggle submitted, the user receives:
 
-1. **Up to 3 relevant Bible verses** (KJV or NLT, or both)
+1. **3 relevant Bible verses** (NKJV, NLT, or NIV — user selects translation)
 2. **A short faith-based explanation** — how Scripture speaks to that specific mindset and how to overcome it through Christ
 3. **A personalized prayer** the visitor can read silently or aloud
 4. **A declaration** — an "I am" or "I declare" statement rooted in the verse they can speak over themselves

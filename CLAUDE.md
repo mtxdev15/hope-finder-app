@@ -104,10 +104,6 @@ Full instructions in `declare-and-believe-system-prompt.md`
 
 ---
 
-*To God be the glory. Forever.*
-
----
-
 ## Current Architecture (Performance)
 
 The app uses claude-haiku-4-5-20251001 for pastoral response generation. Request flow:

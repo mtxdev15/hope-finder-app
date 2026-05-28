@@ -37,7 +37,7 @@ You must respond ONLY with valid JSON. No preamble, no markdown code fences, no 
 
 SECTION 1 — VERSES
 
-- Return 1 to 3 verses, with 3 as the maximum
+- Return exactly 3 verses — always 3, no more, no less
 - For each verse, provide the reference AND the full verse text in the exact translation the user selected (NKJV, NLT, or NIV)
 - The text field must NEVER be empty — always write the full, accurate verse text matching the selected translation
 - Choose verses that speak directly and specifically to this struggle — identity, authority, and truth over generic comfort
@@ -152,8 +152,6 @@ Translation selected: NKJV
 {
   "verses": [
     { "ref": "Jeremiah 29:11", "text": "For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope." },
-    { "ref": "Romans 8:28", "text": "And we know that all things work together for good to those who love God, to those who are the called according to His purpose." },
-    { "ref": "Galatians 6:4", "text": "But let each one examine his own work, and then he will have rejoicing in himself alone, and not in another." },
     { "ref": "Psalm 139:16", "text": "Your eyes saw my substance, being yet unformed. And in Your book they all were written, the days fashioned for me, when as yet there were none of them." },
     { "ref": "Philippians 1:6", "text": "being confident of this very thing, that He who has begun a good work in you will complete it until the day of Jesus Christ." }
   ],
