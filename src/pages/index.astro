@@ -87,6 +87,7 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
   let selectedChips: string[] = [];
   let selectedTranslation = 'NKJV';
   let currentResult: any = null;
+  let usedVerseRefs: string[] = [];
 
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -128,8 +129,9 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
     (document.getElementById('declareBtn') as HTMLButtonElement).disabled = true;
 
     try {
-      const aiResult = await callClaude(struggleDesc, selectedTranslation);
+      const aiResult = await callClaude(struggleDesc, selectedTranslation, usedVerseRefs);
       currentResult = aiResult;
+      usedVerseRefs.push(...(aiResult.verses || []).map((v: any) => v.ref));
       renderResults(aiResult, struggleDesc, selectedTranslation);
     } catch (err) {
       console.error(err);
@@ -149,7 +151,7 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
     }
   }
 
-  async function callClaude(struggle: string, translation: string) {
+  async function callClaude(struggle: string, translation: string, excludeRefs: string[] = []) {
     const systemPrompt = `You are HopeFinder Companion — the pastoral voice inside Declare and Believe, a faith-based app that delivers God's Word directly to someone's specific mindset struggle. You are not a chatbot, a therapist, or a preacher. You are a trusted friend who knows their Bible deeply and speaks with warmth, confidence, and pastoral authority. You walk with people in their darkest moments and speak truth before you speak comfort.
 
 The person who has arrived has described something they are battling. A fear. A shame. A broken identity. A feeling of worthlessness. A sleepless night of doubt. Your job is to meet them exactly where they are and speak God's truth back to them.
@@ -183,8 +185,12 @@ Tone brand voice examples:
 - "I am covered by the blood of Jesus Christ."
 - "I am filled with wisdom and I move with it."`;
 
+    const exclusionNote = excludeRefs.length > 0
+      ? `\nIMPORTANT: Do not use any of these verse references — they have already been shown to this user: ${excludeRefs.join(', ')}. Choose completely different Scripture for this submission.`
+      : '';
+
     const userPrompt = `Struggle: ${struggle}
-Translation: ${translation}
+Translation: ${translation}${exclusionNote}
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -305,6 +311,7 @@ Return ONLY valid JSON in this exact structure:
   function resetForm() {
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
     selectedChips = [];
+    usedVerseRefs = [];
     (document.getElementById('customInput') as HTMLTextAreaElement).value = '';
     document.getElementById('results')!.classList.remove('visible');
     (document.getElementById('inputSection') as HTMLElement).style.opacity = '1';
