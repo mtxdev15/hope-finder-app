@@ -6,6 +6,7 @@
   --cream: #FAF7F2;
   --cream-2: #F5EFE4;
   --cream-3: #EFE7D7;
+  --cream-dark: #F0EBE1;      /* section-head border, declaration dividers */
   --parchment: #E8E0D0;
   --gold: #C9A84C;
   --gold-light: #E8C97A;
@@ -186,55 +187,233 @@ textarea:focus { border-color: var(--gold); background: var(--white); box-shadow
 @keyframes crossPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 .loading-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.25rem; color: var(--text-muted); }
 
-/* ---------- RESULTS (devotional spread) ---------- */
+/* ---------- RESULTS (card-based) ---------- */
 #results { display: none; }
-#results.visible { display: block; animation: fadeUp 0.55s ease both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-.spread { max-width: 760px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+#results.visible { display: block; animation: fadeUp 0.5s ease both; }
 
-.results-banner { text-align: center; padding: 3.5rem 1.5rem 3rem; }
-.results-struggle { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-text); margin-bottom: 0.6rem; }
-.results-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 400; letter-spacing: -0.02em; color: var(--forest); line-height: 1.05; }
-.results-title:focus { outline: none; }
-
-.movement { margin-bottom: 3.25rem; }
-.movement-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 1.5rem; }
-.movement-num { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 400; line-height: 0.8; color: var(--gold-large); flex-shrink: 0; }
-.movement-titles { flex: 1; }
-.movement-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-label); margin-bottom: 3px; }
-.movement-title { font-family: 'Cormorant Garamond', serif; font-size: 1.65rem; font-weight: 400; letter-spacing: -0.015em; color: var(--forest); line-height: 1.1; }
-.movement-rule { height: 1px; background: linear-gradient(90deg, var(--gold) 0%, var(--ink-rule) 35%, transparent 100%); margin-bottom: 1.5rem; }
-
-.verse-item { padding: 0 0 1.4rem; margin-bottom: 1.4rem; border-bottom: 1px solid var(--hairline-soft); }
-.verse-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-.verse-ref { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-text); margin-bottom: 9px; }
-.verse-text { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 400; line-height: 1.5; color: var(--text); }
-
-.explanation-text { font-size: 16px; line-height: 1.9; color: var(--text); }
-.explanation-text p { margin-bottom: 1.1rem; }
-.explanation-text p:last-child { margin-bottom: 0; }
-.explanation-text p:first-child::first-letter {
-  font-family: 'Cormorant Garamond', serif; font-size: 3.4rem; font-weight: 500; float: left;
-  line-height: 0.82; padding: 6px 12px 0 0; color: var(--gold-text);
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.declaration-item { display: flex; gap: 16px; align-items: flex-start; padding: 1rem 0; border-bottom: 1px solid var(--hairline-soft); }
+.results-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--parchment);
+}
+
+.results-struggle {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 0.4rem;
+}
+
+.results-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--forest);
+}
+
+.results-title:focus { outline: none; }
+
+.section-block {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 14px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--cream-dark);
+  background: var(--cream);
+}
+
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.icon-gold { background: rgba(201,168,76,0.15); color: var(--gold-dark); }
+.icon-forest { background: rgba(45,74,62,0.12); color: var(--forest); }
+.icon-blue { background: rgba(70,100,130,0.12); color: #3D5C7A; }
+
+.section-title-text {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.section-body { padding: 1.5rem; }
+
+.verse-item {
+  padding: 1.1rem 1.25rem;
+  border-radius: 10px;
+  background: var(--cream);
+  border-left: 3px solid var(--gold);
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.verse-item:last-child { margin-bottom: 0; }
+
+.verse-ref {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 6px;
+}
+
+.verse-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--text);
+  font-style: italic;
+}
+
+.explanation-text {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.declaration-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--cream-dark);
+}
+
 .declaration-item:last-child { border-bottom: none; }
-.decl-bullet { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 500; color: var(--gold-large); flex-shrink: 0; line-height: 1.1; min-width: 26px; }
-.decl-text { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 500; line-height: 1.4; color: var(--forest); }
 
-.prayer-box { background: var(--cream-2); border: 1px solid var(--hairline); border-radius: var(--r-lg); padding: 2.25rem; position: relative; box-shadow: var(--shadow-soft); }
-.prayer-box::before { content: '\201C'; font-family: 'Cormorant Garamond', serif; font-size: 5.5rem; color: #B9A061; position: absolute; top: 2px; left: 18px; line-height: 1; pointer-events: none; }
-.prayer-text { font-family: 'Cormorant Garamond', serif; font-size: 1.45rem; font-style: italic; line-height: 1.75; color: var(--text); padding-top: 1rem; }
+.decl-bullet {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
 
-.action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1.5rem; }
-.action-btn { flex: 1; min-width: 130px; padding: 13px 16px; border-radius: var(--r-pill); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--hairline); background: var(--white); color: var(--text); }
-.action-btn:hover { border-color: var(--gold-light); background: var(--white); transform: translateY(-1px); box-shadow: var(--shadow-soft); }
-.action-btn.primary { background: var(--gold-button); border-color: var(--gold-button); color: var(--white); }
-.action-btn.primary:hover { background: var(--gold-text); border-color: var(--gold-text); }
+.decl-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--forest);
+}
 
-.btn-new { width: 100%; margin-top: 1.5rem; padding: 15px; border-radius: var(--r-pill); border: 1.5px dashed var(--hairline); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.18s; }
-.btn-new:hover { border-color: var(--gold-light); color: var(--forest); background: var(--white); }
+.prayer-box {
+  background: linear-gradient(135deg, #F5EFE2 0%, #EDE4D4 100%);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border: 1px solid var(--parchment);
+  position: relative;
+}
+
+.prayer-box::before {
+  content: '\201C';
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 5rem;
+  color: var(--gold-light);
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.prayer-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.08rem;
+  font-style: italic;
+  line-height: 1.8;
+  color: var(--text);
+  padding-top: 0.5rem;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 130px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--parchment);
+  background: var(--white);
+  color: var(--text);
+}
+
+.action-btn:hover { border-color: var(--gold-light); background: #FBF8F2; transform: translateY(-1px); }
+
+.action-btn.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--white);
+}
+
+.action-btn.primary:hover { background: var(--gold-dark); border-color: var(--gold-dark); }
+
+.btn-new {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 13px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--parchment);
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.btn-new:hover { border-color: var(--gold-light); color: var(--forest); }
 
 .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--forest); color: var(--white); padding: 13px 22px; border-radius: var(--r-pill); font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 1000; white-space: nowrap; box-shadow: var(--shadow); }
 .toast.show { transform: translateX(-50%) translateY(0); }
@@ -255,9 +434,9 @@ footer span { font-family: 'Cormorant Garamond', serif; font-style: italic; font
   .composer-body { padding: 1.4rem 1.4rem 1.75rem; }
   .composer-foot { flex-direction: column; align-items: stretch; }
   .btn-declare { width: 100%; }
+  .section-body { padding: 1.25rem; }
   .action-row { flex-direction: column; }
   .action-btn { min-width: unset; }
-  .movement-num { font-size: 2.4rem; }
 }
 
 /* ---------- REDUCED MOTION ---------- */

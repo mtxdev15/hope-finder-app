@@ -289,7 +289,7 @@ Return ONLY valid JSON in this exact structure:
 
     const paras = data.explanation.split('\n').filter((p: string) => p.trim());
     document.getElementById('explanationBody')!.innerHTML = paras.map((p: string) =>
-      `<p>${p}</p>`
+      `<p style="margin-bottom: 0.9rem;">${p}</p>`
     ).join('');
 
     const declBody = document.getElementById('declarationsBody')!;
