@@ -1,64 +1,83 @@
 ---
 import CrisisBanner from './CrisisBanner.astro';
-
-const chips = [
-  { val: "fear and anxiety", label: "Fear & Anxiety" },
-  { val: "shame and guilt", label: "Shame & Guilt" },
-  { val: "feeling like a failure", label: "Feeling Like a Failure" },
-  { val: "comparison and jealousy", label: "Comparison" },
-  { val: "overthinking and worry", label: "Overthinking" },
-  { val: "loneliness and isolation", label: "Loneliness" },
-  { val: "lack of purpose and direction", label: "No Purpose" },
-  { val: "feeling lost and without direction", label: "Lost" },
-  { val: "doubt and unbelief", label: "Doubt" },
-  { val: "anger and bitterness", label: "Anger & Bitterness" },
-  { val: "financial stress and lack", label: "Financial Stress" },
-  { val: "feeling unworthy of love", label: "Feeling Unworthy" },
-  { val: "grief and loss", label: "Grief & Loss" },
-  { val: "broken identity", label: "Broken Identity" },
-  { val: "perfectionism", label: "Perfectionism" },
-  { val: "depression and hopelessness", label: "Depression" },
-  { val: "suicidal thoughts and wanting to give up on life", label: "Suicidal Thoughts" },
-  { val: "spiritual dryness", label: "Spiritual Dryness" },
-  { val: "adultery and fornication and sexual sin", label: "Adultery / Fornication" },
-  { val: "self trauma and unhealed wounds from the past", label: "Self Trauma" },
-  { val: "verbal abuse and the damage of words spoken over me", label: "Verbal Abuse" },
-  { val: "emotional abuse and manipulation", label: "Emotional Abuse" },
-  { val: "feeling abandoned and left behind by people I loved", label: "Abandoned" },
-  { val: "victimization and feeling like life keeps happening to me", label: "Victimization" },
-  { val: "self sabotage and getting in my own way", label: "Self Sabotage" },
-  { val: "control and the need to control outcomes and people", label: "Control" },
-];
 ---
-<div class="input-card" id="inputSection">
-  <span class="input-label">What are you struggling with right now?</span>
+<section class="composer">
+  <div class="composer-card" id="inputSection">
+    <div class="composer-head">
+      <div class="composer-num">01</div>
+      <h2 class="composer-q">What are you struggling with right now?</h2>
+      <p class="composer-hint">Choose what fits — or write it in your own words below.</p>
+    </div>
 
-  <div class="struggles-grid" id="chipsGrid">
-    {chips.map(chip => (
-      <div class="chip" data-val={chip.val}>{chip.label}</div>
-    ))}
+    <div class="composer-body">
+      <div class="group-label">Identity &amp; Worth</div>
+      <div class="struggles-grid">
+        <button type="button" class="chip" data-val="shame and guilt" aria-pressed="false">Shame &amp; Guilt</button>
+        <button type="button" class="chip" data-val="feeling like a failure" aria-pressed="false">Feeling Like a Failure</button>
+        <button type="button" class="chip" data-val="comparison and jealousy" aria-pressed="false">Comparison</button>
+        <button type="button" class="chip" data-val="feeling unworthy of love" aria-pressed="false">Feeling Unworthy</button>
+        <button type="button" class="chip" data-val="broken identity" aria-pressed="false">Broken Identity</button>
+        <button type="button" class="chip" data-val="lack of purpose and direction" aria-pressed="false">No Purpose</button>
+        <button type="button" class="chip" data-val="feeling lost and without direction" aria-pressed="false">Lost</button>
+        <button type="button" class="chip chip--crisis" data-val="suicidal thoughts and wanting to give up on life" aria-pressed="false">Suicidal Thoughts</button>
+      </div>
+
+      <div class="group-label">Wounds &amp; Relationships</div>
+      <div class="struggles-grid">
+        <button type="button" class="chip" data-val="self trauma and unhealed wounds from the past" aria-pressed="false">Self Trauma</button>
+        <button type="button" class="chip" data-val="verbal abuse and the damage of words spoken over me" aria-pressed="false">Verbal Abuse</button>
+        <button type="button" class="chip" data-val="emotional abuse and manipulation" aria-pressed="false">Emotional Abuse</button>
+        <button type="button" class="chip" data-val="feeling abandoned and left behind by people I loved" aria-pressed="false">Abandoned</button>
+        <button type="button" class="chip" data-val="victimization and feeling like life keeps happening to me" aria-pressed="false">Victimization</button>
+        <button type="button" class="chip" data-val="self sabotage and getting in my own way" aria-pressed="false">Self Sabotage</button>
+        <button type="button" class="chip" data-val="grief and loss" aria-pressed="false">Grief &amp; Loss</button>
+        <button type="button" class="chip" data-val="loneliness and isolation" aria-pressed="false">Loneliness</button>
+      </div>
+
+      <div class="group-label">Mind &amp; Emotion</div>
+      <div class="struggles-grid">
+        <button type="button" class="chip" data-val="fear and anxiety" aria-pressed="false">Fear &amp; Anxiety</button>
+        <button type="button" class="chip" data-val="overthinking and worry" aria-pressed="false">Overthinking</button>
+        <button type="button" class="chip" data-val="depression and hopelessness" aria-pressed="false">Depression</button>
+        <button type="button" class="chip" data-val="anger and bitterness" aria-pressed="false">Anger &amp; Bitterness</button>
+        <button type="button" class="chip" data-val="doubt and unbelief" aria-pressed="false">Doubt</button>
+        <button type="button" class="chip" data-val="control and the need to control outcomes and people" aria-pressed="false">Control</button>
+        <button type="button" class="chip" data-val="perfectionism" aria-pressed="false">Perfectionism</button>
+      </div>
+
+      <div class="group-label">Spirit &amp; Season</div>
+      <div class="struggles-grid">
+        <button type="button" class="chip" data-val="spiritual dryness" aria-pressed="false">Spiritual Dryness</button>
+        <button type="button" class="chip" data-val="financial stress and lack" aria-pressed="false">Financial Stress</button>
+        <button type="button" class="chip" data-val="adultery and fornication and sexual sin" aria-pressed="false">Adultery / Fornication</button>
+      </div>
+
+      <CrisisBanner />
+
+      <div class="composer-divider"></div>
+
+      <div class="textarea-wrap">
+        <span class="ta-quote">&ldquo;</span>
+        <textarea id="customInput" placeholder="In your own words… what's on your heart? (e.g. 'I keep replaying my past mistakes and feel like God can't use me')"></textarea>
+      </div>
+
+      <div class="composer-foot">
+        <div class="translation-row">
+          <span class="translation-label">Translation</span>
+          <button class="trans-btn active" data-trans="NKJV" aria-pressed="true">NKJV</button>
+          <button class="trans-btn" data-trans="NLT" aria-pressed="false">NLT</button>
+          <button class="trans-btn" data-trans="NIV" aria-pressed="false">NIV</button>
+        </div>
+        <button class="btn-declare" id="declareBtn">
+          <span class="btn-inner">
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="0" width="2" height="16" rx="1" fill="white"/><rect x="0" y="5" width="14" height="2" rx="1" fill="white"/></svg>
+            Speak Truth Over This
+          </span>
+        </button>
+      </div>
+
+      <div class="error-msg" id="errorMsg">Please select a struggle or describe what you're going through.</div>
+      <p class="connection-note" id="connectionNote">If this keeps happening, the full experience requires a live connection. Stay close — it is coming soon.</p>
+    </div>
   </div>
-
-  <CrisisBanner />
-
-  <div class="translation-row">
-    <span class="translation-label">Translation:</span>
-    <button class="trans-btn active" data-trans="NKJV">NKJV</button>
-    <button class="trans-btn" data-trans="NLT">NLT</button>
-    <button class="trans-btn" data-trans="NIV">NIV</button>
-  </div>
-
-  <div class="textarea-wrap">
-    <textarea id="customInput" placeholder="Or describe in your own words what's on your heart… (e.g. 'I keep replaying my past mistakes and feel like God can't use me')"></textarea>
-  </div>
-
-  <button class="btn-declare" id="declareBtn">
-    <span class="btn-inner">
-      <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="0" width="2" height="16" rx="1" fill="white"/><rect x="0" y="5" width="14" height="2" rx="1" fill="white"/></svg>
-      Speak Truth Over This
-    </span>
-  </button>
-
-  <div class="error-msg" id="errorMsg">Please select a struggle or describe what you're going through.</div>
-  <p class="connection-note" id="connectionNote">If this keeps happening, the full experience requires a live connection. Stay close — it is coming soon.</p>
-</div>
+</section>

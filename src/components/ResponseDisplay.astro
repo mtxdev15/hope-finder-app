@@ -1,68 +1,81 @@
 ---
 ---
-<div class="loading-state" id="loadingState">
-  <div class="cross-loader"></div>
+<div class="loading-state" id="loadingState" aria-live="polite" aria-atomic="true">
+  <div class="cross-loader" role="presentation"></div>
   <p class="loading-text">Searching the Word for you…</p>
 </div>
 
 <div id="results">
-  <div class="results-header">
+  <div class="results-banner">
     <p class="results-struggle" id="resultsLabel"></p>
-    <p class="results-title">God's Word speaks directly to this</p>
+    <p class="results-title" id="resultsHeading" tabindex="-1">God's Word speaks<br>directly to this</p>
   </div>
 
-  <div class="section-block">
-    <div class="section-head">
-      <div class="section-icon icon-gold">✦</div>
-      <span class="section-title-text">Scripture — <span id="transLabel">NKJV</span></span>
+  <div class="spread">
+    <div class="movement">
+      <div class="movement-head">
+        <div class="movement-num">I</div>
+        <div class="movement-titles">
+          <div class="movement-kicker">Scripture — <span id="transLabel">NKJV</span></div>
+          <div class="movement-title">What God says</div>
+        </div>
+      </div>
+      <div class="movement-rule"></div>
+      <div id="versesBody"></div>
     </div>
-    <div class="section-body" id="versesBody"></div>
-  </div>
 
-  <div class="section-block">
-    <div class="section-head">
-      <div class="section-icon icon-forest">↗</div>
-      <span class="section-title-text">How to Overcome This Mindset</span>
+    <div class="movement">
+      <div class="movement-head">
+        <div class="movement-num">II</div>
+        <div class="movement-titles">
+          <div class="movement-kicker">Understanding</div>
+          <div class="movement-title">How to overcome this mindset</div>
+        </div>
+      </div>
+      <div class="movement-rule"></div>
+      <div class="explanation-text" id="explanationBody"></div>
     </div>
-    <div class="section-body">
-      <p class="explanation-text" id="explanationBody"></p>
-    </div>
-  </div>
 
-  <div class="section-block">
-    <div class="section-head">
-      <div class="section-icon icon-gold">◈</div>
-      <span class="section-title-text">Speak These Declarations Aloud</span>
+    <div class="movement">
+      <div class="movement-head">
+        <div class="movement-num">III</div>
+        <div class="movement-titles">
+          <div class="movement-kicker">Declare</div>
+          <div class="movement-title">Speak these aloud</div>
+        </div>
+      </div>
+      <div class="movement-rule"></div>
+      <div id="declarationsBody"></div>
     </div>
-    <div class="section-body" id="declarationsBody"></div>
-  </div>
 
-  <div class="section-block">
-    <div class="section-head">
-      <div class="section-icon icon-blue">✿</div>
-      <span class="section-title-text">Your Personal Prayer</span>
-    </div>
-    <div class="section-body">
+    <div class="movement">
+      <div class="movement-head">
+        <div class="movement-num">IV</div>
+        <div class="movement-titles">
+          <div class="movement-kicker">Prayer</div>
+          <div class="movement-title">Written for you</div>
+        </div>
+      </div>
+      <div class="movement-rule"></div>
       <div class="prayer-box">
         <p class="prayer-text" id="prayerBody"></p>
       </div>
     </div>
-  </div>
 
-  <div class="action-row">
-    <button class="action-btn primary" id="copyBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Copy All
-    </button>
-    <button class="action-btn" id="shareBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      Share
-    </button>
-    <button class="action-btn" id="saveBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Save
-    </button>
+    <div class="action-row">
+      <button class="action-btn primary" id="copyBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy All
+      </button>
+      <button class="action-btn" id="shareBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+      <button class="action-btn" id="saveBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save
+      </button>
+    </div>
+    <button class="btn-new" id="resetBtn">↩ Search for a different struggle</button>
   </div>
-
-  <button class="btn-new" id="resetBtn">↩ Search for a different struggle</button>
 </div>

@@ -6,14 +6,14 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
 ---
 
 <Layout>
-  <Header />
-  <main>
+  <div class="wrap">
+    <Header />
     <StruggleInput />
     <ResponseDisplay />
-  </main>
-  <footer>
-    Built to renew the mind — <span>Declare &amp; Believe</span> · To God be the glory. Forever.
-  </footer>
+    <footer>
+      Built to renew the mind — <span>Declare &amp; Believe</span>
+    </footer>
+  </div>
   <noscript>
 <div style="max-width:720px;margin:0 auto;padding:2rem 1rem;font-family:Georgia,serif;color:#1a1a1a;line-height:1.7;">
 
@@ -91,9 +91,10 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
 
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      chip.classList.toggle('selected');
+      const isSelected = chip.classList.toggle('selected');
+      (chip as HTMLElement).setAttribute('aria-pressed', isSelected ? 'true' : 'false');
       const val = (chip as HTMLElement).dataset.val!;
-      if (chip.classList.contains('selected')) {
+      if (isSelected) {
         if (!selectedChips.includes(val)) selectedChips.push(val);
       } else {
         selectedChips = selectedChips.filter(v => v !== val);
@@ -105,8 +106,12 @@ import ResponseDisplay from '../components/ResponseDisplay.astro';
 
   document.querySelectorAll('.trans-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.trans-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.trans-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       selectedTranslation = (btn as HTMLElement).dataset.trans!;
     });
   });
@@ -284,7 +289,7 @@ Return ONLY valid JSON in this exact structure:
 
     const paras = data.explanation.split('\n').filter((p: string) => p.trim());
     document.getElementById('explanationBody')!.innerHTML = paras.map((p: string) =>
-      `<p style="margin-bottom: 0.9rem;">${p}</p>`
+      `<p>${p}</p>`
     ).join('');
 
     const declBody = document.getElementById('declarationsBody')!;
@@ -300,6 +305,10 @@ Return ONLY valid JSON in this exact structure:
     const resultsEl = document.getElementById('results')!;
     resultsEl.classList.add('visible');
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Move focus to results heading for screen reader users
+    const resultsHeading = document.getElementById('resultsHeading') as HTMLElement | null;
+    if (resultsHeading) resultsHeading.focus({ preventScroll: true });
   }
 
   function showLoading(show: boolean) {
@@ -309,7 +318,10 @@ Return ONLY valid JSON in this exact structure:
   }
 
   function resetForm() {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.chip').forEach(c => {
+      c.classList.remove('selected');
+      c.setAttribute('aria-pressed', 'false');
+    });
     selectedChips = [];
     usedVerseRefs = [];
     (document.getElementById('customInput') as HTMLTextAreaElement).value = '';
