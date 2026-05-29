@@ -188,7 +188,7 @@ textarea:focus { border-color: var(--gold); background: var(--white); box-shadow
 .loading-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.25rem; color: var(--text-muted); }
 
 /* ---------- RESULTS (card-based) ---------- */
-#results { display: none; }
+#results { display: none; max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }
 #results.visible { display: block; animation: fadeUp 0.5s ease both; }
 
 @keyframes fadeUp {
