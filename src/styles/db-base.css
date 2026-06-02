@@ -1,0 +1,61 @@
+  :root{
+    /* surfaces — brighter, cleaner warm-white (keeps parchment warmth but lifts
+       the whole field so the light theme reads bright, not dim, on mobile) */
+    --bg:#F7F3EC;
+    --surface:#FBF8F2;
+    --cream:#FEFCF8;
+    --cream-dark:#F4EFE5;
+    --parchment:#ECE4D5;
+    /* gold */
+    --gold:#C9A84C;
+    --gold-light:#E8C97A;
+    --gold-dark:#9B7A2E;
+    --gold-pale:#F6EFDB;
+    /* forest */
+    --forest:#2D4A3E;
+    --forest-light:#3D6356;
+    --forest-pale:#E8F0ED;
+    /* ink */
+    --text:#1A1A18;
+    --muted:#6B6355;
+    --light:#9B9080;
+    --error:#C0392B;
+    --success:#27AE60;
+    /* neumorphic shadows — softer warm shadow + brighter white highlight so
+       cards stay sculpted but feel airy rather than muddy */
+    --raise:7px 7px 16px rgba(190,176,150,0.38), -7px -7px 16px rgba(255,255,255,0.95);
+    --raise-sm:4px 4px 9px rgba(190,176,150,0.34), -4px -4px 9px rgba(255,255,255,0.9);
+    --raise-xs:3px 3px 6px rgba(190,176,150,0.32), -2px -2px 6px rgba(255,255,255,0.88);
+    --inset:inset 6px 6px 13px rgba(190,176,150,0.42), inset -6px -6px 13px rgba(255,255,255,0.96);
+    --inset-sm:inset 4px 4px 8px rgba(190,176,150,0.42), inset -4px -4px 8px rgba(255,255,255,0.95);
+    /* colored shadows */
+    --forest-press:inset 4px 4px 9px rgba(20,38,30,0.55), inset -4px -4px 9px rgba(74,103,90,0.55);
+    --gold-raise:5px 5px 12px rgba(160,130,60,0.4), -5px -5px 12px rgba(255,250,235,0.7);
+    --gold-press:inset 4px 4px 10px rgba(140,110,45,0.55), inset -4px -4px 10px rgba(240,210,140,0.65);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{background:var(--bg);}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'DM Sans', system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    min-height:100vh;
+  }
+  #root{min-height:100vh;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  ::selection{background:var(--gold-pale);}
+
+  /* scrollbars — keep quiet */
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(180,165,140,.4);border-radius:10px;border:3px solid var(--bg);}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  /* fade/slide transitions for screen swaps */
+  @keyframes db-fade-up{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes db-fade{from{opacity:0;}to{opacity:1;}}
+  @keyframes db-stagger{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}

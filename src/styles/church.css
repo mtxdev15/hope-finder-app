@@ -1,0 +1,179 @@
+/* Declare & Believe — Find / Add Your Church, warm-neumorphic (light + dark) */
+
+.church{ padding-top:8px; }
+
+/* top bar */
+.ch-top{ display:flex; align-items:center; gap:12px; padding:16px 2px 12px; }
+.ch-back{ flex:0 0 42px; width:42px; height:42px; border-radius:50%; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--forest); transition:box-shadow .15s, transform .12s; }
+.ch-back:active{ box-shadow:var(--inset-sm); transform:scale(.95); }
+.ch-toptitle{ flex:1; text-align:center; font-family:'Cormorant Garamond', serif; font-weight:600; font-size:26px; line-height:1; color:var(--text); }
+
+/* search */
+.ch-search{ display:flex; align-items:center; gap:11px; padding:14px 16px; border-radius:16px; background:var(--bg); box-shadow:var(--inset); margin:4px 0 14px; color:var(--light); }
+.ch-search input{ flex:1; border:none; outline:none; background:transparent; font-family:'DM Sans',sans-serif; font-size:15px; color:var(--text); }
+.ch-search input::placeholder{ color:var(--light); }
+.ch-clear{ flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--muted); }
+
+/* language filter */
+.ch-langseg{ display:flex; gap:5px; padding:5px; border-radius:999px; background:var(--bg); box-shadow:var(--inset-sm); margin-bottom:16px; }
+.ch-langbtn{ flex:1; min-height:40px; border-radius:999px; font-size:13.5px; font-weight:600; color:var(--muted); transition:color .18s, box-shadow .18s, background .18s; }
+.ch-langbtn.on{ color:var(--forest); background:var(--surface); box-shadow:var(--raise-xs); }
+
+/* geo prompt */
+.ch-geo{ display:flex; align-items:center; gap:14px; padding:16px; border-radius:20px; background:var(--forest-pale); box-shadow:var(--raise-sm); margin-bottom:18px; }
+.ch-geoic{ flex:0 0 44px; width:44px; height:44px; border-radius:14px; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--forest); }
+.ch-geotext{ flex:1; min-width:0; }
+.ch-geotitle{ font-size:14.5px; font-weight:600; color:var(--text); }
+.ch-geosub{ font-size:12.5px; color:var(--muted); line-height:1.4; margin-top:2px; }
+.ch-geobtn{ flex:0 0 auto; min-height:42px; padding:0 16px; border-radius:13px; background:var(--forest); color:#FAF7F2; font-size:13px; font-weight:600; box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; transition:transform .12s; }
+.ch-geobtn:active{ transform:scale(.97); }
+
+/* section label */
+.ch-seclabel{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--gold-dark); margin:8px 2px 13px; }
+
+/* list */
+.ch-list{ display:flex; flex-direction:column; gap:10px; }
+.ch-card{ display:flex; align-items:center; gap:13px; width:100%; text-align:left; padding:13px 14px; border-radius:16px; background:var(--surface); box-shadow:var(--raise-xs); transition:box-shadow .15s, transform .12s; }
+.ch-card:hover{ transform:translateY(-1px); }
+.ch-card:active{ box-shadow:var(--inset-sm); transform:translateY(0); }
+.ch-card.mine{ background:var(--forest-pale); box-shadow:var(--raise-sm); margin-bottom:8px; }
+.ch-logo{ flex:0 0 46px; width:46px; height:46px; border-radius:14px; background:var(--gold-pale); color:var(--gold-dark); display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond', serif; font-weight:700; font-size:18px; box-shadow:var(--raise-xs); }
+.ch-cmain{ flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+.ch-cname{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:15.5px; font-weight:600; color:var(--text); }
+.ch-cmeta{ font-size:12.5px; color:var(--muted); }
+.ch-badge{ display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--forest); background:var(--forest-pale); padding:2px 8px; border-radius:999px; }
+.ch-lang{ flex:0 0 auto; font-size:10.5px; font-weight:700; letter-spacing:.05em; padding:3px 8px; border-radius:999px; }
+.ch-lang.en{ color:var(--forest); background:var(--forest-pale); }
+.ch-lang.es{ color:var(--gold-dark); background:var(--gold-pale); }
+.ch-chev{ flex:0 0 auto; color:var(--light); transform:scaleX(-1); display:flex; }
+.ch-empty{ display:flex; flex-direction:column; align-items:center; gap:11px; text-align:center; padding:34px 24px; color:var(--light); border-radius:20px; background:var(--bg); box-shadow:var(--inset-sm); }
+.ch-empty p{ margin:0; font-size:13.5px; color:var(--muted); }
+
+/* ---- detail ---- */
+.ch-detail{ padding-bottom:8px; }
+.ch-dtop{ display:flex; align-items:center; justify-content:space-between; padding:14px 0 6px; }
+.ch-dtop-r{ display:flex; align-items:center; gap:10px; }
+.ch-sharebtn{ min-width:42px; height:42px; padding:0 12px; border-radius:999px; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--forest); transition:box-shadow .15s, transform .12s; }
+.ch-sharebtn:active{ box-shadow:var(--inset-sm); transform:scale(.96); }
+.ch-copied{ display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--success); white-space:nowrap; }
+.ch-share{ width:42px; height:42px; border-radius:50%; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--error); text-decoration:none; }
+.ch-change{ min-height:40px; padding:0 18px; border-radius:999px; background:var(--surface); box-shadow:var(--raise-xs); color:var(--gold-dark); font-size:13.5px; font-weight:600; transition:box-shadow .15s, transform .12s; }
+.ch-change:active{ box-shadow:var(--inset-sm); transform:scale(.97); }
+.ch-mybtn.static{ cursor:default; }
+.ch-hero{ text-align:center; padding:8px 0 6px; }
+.ch-logo.lg{ width:72px; height:72px; border-radius:20px; font-size:28px; margin:0 auto 14px; }
+.ch-name{ font-family:'Cormorant Garamond', serif; font-weight:600; font-size:clamp(26px,7vw,34px); line-height:1.1; color:var(--text); margin:0; text-wrap:balance; }
+.ch-herometa{ display:flex; align-items:center; justify-content:center; gap:9px; margin:11px 0 16px; }
+.ch-dist{ display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:var(--muted); }
+.ch-mybtn{ display:inline-flex; align-items:center; gap:8px; min-height:48px; padding:0 22px; border-radius:14px; background:var(--surface); box-shadow:var(--raise-sm); color:var(--forest); font-size:15px; font-weight:600; transition:box-shadow .14s, transform .12s; }
+.ch-mybtn:active{ box-shadow:var(--inset-sm); transform:scale(.98); }
+.ch-mybtn.on{ background:var(--forest); color:#FAF7F2; box-shadow:var(--forest-press); }
+.ch-about{ font-size:15px; line-height:1.6; color:var(--text); margin:18px 0 22px; }
+.ch-field{ margin-bottom:18px; }
+.ch-flabel{ display:block; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--light); margin-bottom:5px; }
+.ch-fval{ font-size:15.5px; color:var(--text); }
+.ch-addr{ display:flex; align-items:center; justify-content:space-between; gap:12px; text-decoration:none; color:var(--text); font-size:15px; }
+.ch-pin{ flex:0 0 38px; width:38px; height:38px; border-radius:12px; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--forest); }
+
+/* watch live */
+.ch-watch{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; border-radius:18px; margin:4px 0 22px; text-decoration:none; color:var(--text); background:linear-gradient(150deg, var(--gold-pale), var(--cream)); box-shadow:var(--raise-sm); transition:transform .12s; }
+.ch-watch:active{ transform:translateY(1px); }
+.ch-watch-l{ display:flex; align-items:center; gap:13px; }
+.ch-yt{ flex:0 0 40px; width:40px; height:40px; border-radius:12px; background:#E0392B; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(224,57,43,.35); }
+.ch-watch-t{ display:block; font-size:15px; font-weight:600; color:var(--text); }
+.ch-watch-s{ display:block; font-size:12px; color:var(--muted); margin-top:1px; }
+
+/* schedule */
+.ch-sched{ display:flex; flex-direction:column; gap:16px; margin-bottom:24px; }
+.ch-dayname{ font-family:'Cormorant Garamond', serif; font-weight:600; font-size:19px; color:var(--forest); margin-bottom:7px; }
+.ch-slot{ display:flex; gap:16px; padding:4px 0; }
+.ch-time{ flex:0 0 88px; font-size:14.5px; font-weight:600; color:var(--gold-dark); }
+.ch-svc{ font-size:14.5px; color:var(--text); }
+
+/* links */
+.ch-links{ display:flex; flex-direction:column; gap:10px; }
+.ch-link{ display:flex; align-items:center; gap:13px; padding:14px 16px; border-radius:14px; background:var(--surface); box-shadow:var(--raise-xs); color:var(--text); text-decoration:none; font-size:14px; transition:box-shadow .15s, transform .12s; word-break:break-all; }
+.ch-link svg{ flex:0 0 auto; color:var(--forest); }
+.ch-link:active{ box-shadow:var(--inset-sm); }
+.ch-removebtn{ display:block; width:100%; text-align:center; margin-top:18px; font-size:13.5px; color:var(--muted); padding:12px; }
+.ch-removebtn:hover{ color:var(--error); }
+
+/* ---- profile "Add Your Church" row + My Church card ---- */
+.pf-churchrow{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:14px 15px; border-radius:14px; background:var(--bg); box-shadow:var(--inset-sm); transition:box-shadow .15s; }
+.pf-churchrow:active{ box-shadow:var(--raise-xs); }
+.pf-churchic{ flex:0 0 34px; width:34px; height:34px; border-radius:10px; background:var(--surface); box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--gold-dark); }
+.pf-churchadd{ flex:1; font-size:15px; font-weight:600; color:var(--text); }
+.pf-mychurch{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pf-mychurch-name{ display:flex; align-items:center; gap:8px; font-size:15px; font-weight:600; color:var(--text); }
+.pf-mychurch-city{ font-size:12.5px; color:var(--muted); }
+.pf-churchrow-change{ flex:0 0 auto; font-size:13px; font-weight:600; color:var(--gold-dark); }
+
+/* ===== dark theme refinements ===== */
+html.theme-dark .ch-back, html.theme-dark .ch-geoic, html.theme-dark .ch-pin{ color:var(--forest-read); }
+html.theme-dark .ch-toptitle, html.theme-dark .ch-name, html.theme-dark .ch-dayname{ color:var(--text); }
+html.theme-dark .ch-dayname{ color:var(--forest-read); }
+html.theme-dark .ch-langbtn.on{ color:var(--forest-read); }
+html.theme-dark .ch-geobtn, html.theme-dark .ch-mybtn.on{ color:#FAF7F2; }
+html.theme-dark .ch-mybtn{ color:var(--forest-read); }
+html.theme-dark .ch-change{ color:var(--gold-light); }
+html.theme-dark .ch-sharebtn{ color:var(--forest-read); }
+html.theme-dark .ch-lang.en, html.theme-dark .ch-badge, html.theme-dark .ch-link svg{ color:var(--forest-read); }
+html.theme-dark .ch-lang.en, html.theme-dark .ch-badge{ background:rgba(78,122,104,.22); }
+html.theme-dark .ch-card, html.theme-dark .ch-link, html.theme-dark .ch-empty, html.theme-dark .ch-geo, html.theme-dark .ch-watch{ border:1px solid rgba(238,229,212,0.1); }
+html.theme-dark .pf-mychurch-name{ color:var(--text); }
+html.theme-dark .ch-logo{ background:rgba(214,180,90,.16); color:var(--gold-light); }
+
+/* ===== share sheet (explicit options; adapts phone → tablet → desktop) ===== */
+.sh-scrim{ position:fixed; inset:0; z-index:8000; background:rgba(28,22,14,.42); backdrop-filter:blur(2px);
+  display:flex; align-items:flex-end; justify-content:center; animation:sh-fade .2s ease; }
+@keyframes sh-fade{ from{ opacity:0; } to{ opacity:1; } }
+.sh-sheet{ position:relative; width:100%; max-width:540px; background:var(--bg);
+  border-radius:30px 30px 0 0; box-shadow:0 -12px 44px rgba(40,34,24,.32);
+  padding:12px 22px calc(20px + env(safe-area-inset-bottom,0)); animation:sh-up .34s cubic-bezier(.2,.85,.25,1); }
+@keyframes sh-up{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+.sh-grip{ width:44px; height:5px; border-radius:999px; background:rgba(150,135,110,.5); margin:2px auto 14px; }
+.sh-x{ position:absolute; top:16px; right:18px; width:34px; height:34px; border-radius:50%; background:var(--surface);
+  box-shadow:var(--raise-xs); display:flex; align-items:center; justify-content:center; color:var(--muted);
+  transition:box-shadow .14s, transform .12s; }
+.sh-x:active{ box-shadow:var(--inset-sm); transform:scale(.94); }
+.sh-head{ display:flex; align-items:center; gap:14px; padding:0 2px 18px; }
+.sh-logo{ flex:0 0 auto; width:48px; height:48px; border-radius:14px; background:var(--gold-pale); color:var(--gold-dark);
+  display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:19px; }
+.sh-headtx{ min-width:0; }
+.sh-title{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:22px; line-height:1.1; color:var(--forest); }
+.sh-sub{ font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sh-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 6px; padding:4px 0 8px; }
+.sh-opt{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 2px;
+  background:none; border:none; cursor:pointer; transition:transform .12s; }
+.sh-opt:active{ transform:scale(.92); }
+.sh-tile{ width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 12px rgba(40,34,24,.16); }
+.sh-tlabel{ font-size:12px; font-weight:600; color:var(--text); text-align:center; line-height:1.2; max-width:72px; }
+.sh-cancel{ width:100%; min-height:52px; margin-top:14px; border-radius:16px; background:var(--surface);
+  box-shadow:var(--raise-sm); font-size:15px; font-weight:600; color:var(--forest); transition:box-shadow .14s, transform .12s; }
+.sh-cancel:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+
+/* tablet & desktop: centered dialog instead of a bottom sheet */
+@media (min-width:700px){
+  .sh-scrim{ align-items:center; }
+  .sh-sheet{ width:auto; min-width:440px; max-width:560px; border-radius:26px; padding:22px 26px 26px;
+    animation:sh-pop .26s cubic-bezier(.2,.85,.25,1); }
+  @keyframes sh-pop{ from{ transform:scale(.94); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .sh-grip{ display:none; }
+  .sh-grid{ grid-template-columns:repeat(4,1fr); gap:18px 10px; }
+  .sh-tile{ width:62px; height:62px; }
+  .sh-cancel{ max-width:200px; margin:18px auto 0; display:block; }
+}
+@media (min-width:1000px){
+  .sh-sheet{ max-width:600px; }
+  .sh-grid{ grid-template-columns:repeat(7,1fr); }
+  .sh-cancel{ display:none; } /* desktop: X + click-outside is the norm */
+}
+
+/* dark theme */
+html.theme-dark .sh-sheet{ background:#211D16; border:1px solid rgba(238,229,212,.14); box-shadow:0 -12px 44px rgba(0,0,0,.6); }
+html.theme-dark .sh-title{ color:var(--forest-read); }
+html.theme-dark .sh-logo{ background:rgba(214,180,90,.16); color:var(--gold-light); }
+html.theme-dark .sh-x{ color:var(--muted); border:1px solid rgba(238,229,212,.16); }
+html.theme-dark .sh-cancel{ color:var(--forest-read); border:1px solid rgba(238,229,212,.14); }
+html.theme-dark .sh-grip{ background:rgba(238,229,212,.26); }

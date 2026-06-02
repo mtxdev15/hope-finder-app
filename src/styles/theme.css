@@ -1,0 +1,232 @@
+/* Declare & Believe — app-wide DARK theme.
+   We flip the design tokens under html.theme-dark so the whole neumorphic
+   system re-skins automatically, then add a few contrast refinements
+   (hairline edges, accent remaps) so cards & buttons read clearly on dark. */
+
+html.theme-dark{
+  /* surfaces — warm near-black, not flat grey */
+  --bg:#17150F;
+  --surface:#211D16;
+  --cream:#252017;
+  --cream-dark:#1C1810;
+  --parchment:#2A251B;
+  /* gold — lift so it reads on dark */
+  --gold:#D6B45A;
+  --gold-light:#EBD08A;
+  --gold-dark:#E2C173;
+  --gold-pale:#3A301C;
+  /* forest — lift the pale into a deep usable green; keep forest for fills */
+  --forest:#43705C;
+  --forest-light:#5A8973;
+  --forest-pale:#22332B;
+  /* a light, readable green for forest-as-TEXT/icon on dark surfaces */
+  --forest-read:#8FCBAE;
+  /* ink */
+  --text:#ECE3D2;
+  --muted:#AEA491;
+  --light:#857B6A;
+  --error:#E0705F;
+  --success:#5FBE86;
+  /* neumorphic shadows on dark: deeper drop + a clearer warm highlight so
+     cards read as softly extruded, mirroring the light theme's sculpted feel */
+  --raise:8px 8px 20px rgba(0,0,0,0.62), -7px -7px 16px rgba(86,77,58,0.55);
+  --raise-sm:5px 5px 13px rgba(0,0,0,0.55), -4px -4px 11px rgba(86,77,58,0.48);
+  --raise-xs:3px 3px 8px rgba(0,0,0,0.5), -2px -2px 7px rgba(86,77,58,0.42);
+  --inset:inset 5px 5px 12px rgba(0,0,0,0.62), inset -4px -4px 10px rgba(92,82,60,0.42);
+  --inset-sm:inset 3px 3px 8px rgba(0,0,0,0.55), inset -3px -3px 7px rgba(92,82,60,0.4);
+  --forest-press:inset 4px 4px 9px rgba(0,0,0,0.5), inset -4px -4px 9px rgba(78,122,104,0.45);
+  --gold-raise:4px 4px 11px rgba(0,0,0,0.5), -4px -4px 10px rgba(80,68,44,0.4);
+  --gold-press:inset 4px 4px 10px rgba(0,0,0,0.45), inset -3px -3px 9px rgba(214,180,90,0.4);
+}
+
+/* hairline edges so raised cards/buttons separate clearly from the dark field */
+html.theme-dark .card,
+html.theme-dark .stattile,
+html.theme-dark .scripcard,
+html.theme-dark .mindcard,
+html.theme-dark .prayer,
+html.theme-dark .pf-card,
+html.theme-dark .pf-fields,
+html.theme-dark .pf-vcard,
+html.theme-dark .pf-mcard,
+html.theme-dark .pf-dcard,
+html.theme-dark .pf-pcard,
+html.theme-dark .jr-compose,
+html.theme-dark .jr-card,
+html.theme-dark .jr-journaladd,
+html.theme-dark .pf-empty,
+html.theme-dark .modal,
+html.theme-dark .sc-text,
+html.theme-dark .sc-cmp,
+html.theme-dark .sc-book,
+html.theme-dark .sc-resume,
+html.theme-dark .crisrow,
+html.theme-dark .navinner{
+  border:1px solid rgba(238,229,212,0.16);
+}
+
+/* small controls / chips get a slightly stronger edge to feel tappable */
+html.theme-dark .chip,
+html.theme-dark .tpill,
+html.theme-dark .savebtn,
+html.theme-dark .pf-stat,
+html.theme-dark .pf-input,
+html.theme-dark .pf-voicerow,
+html.theme-dark .back,
+html.theme-dark .sc-back,
+html.theme-dark .sc-size,
+html.theme-dark .sc-iconbtn,
+html.theme-dark .sc-topright,
+html.theme-dark .sc-chap,
+html.theme-dark .sc-tpill,
+html.theme-dark .sc-navbtn,
+html.theme-dark .rs-size,
+html.theme-dark .rs-theme,
+html.theme-dark .modal-x,
+html.theme-dark .well textarea,
+html.theme-dark .jr-text,
+html.theme-dark .sc-search,
+html.theme-dark .fld{
+  border:1px solid rgba(238,229,212,0.18);
+}
+
+/* selected/forest states keep their fill but gain a clear edge */
+html.theme-dark .chip.sel,
+html.theme-dark .savebtn.on,
+html.theme-dark .sc-segbtn.on{
+  border-color:rgba(120,170,148,0.5);
+}
+
+/* gold CTAs stay bright gold on dark (don't let the gold get muddy) */
+html.theme-dark .pf-btn.gold,
+html.theme-dark .mbtn.gold,
+html.theme-dark .jr-add,
+html.theme-dark .pf-jadd{
+  background:var(--gold); color:#241B08; border:none;
+}
+
+/* the floating bottom nav: lift it off the dark field */
+html.theme-dark .navinner{
+  background:#221E16;
+  box-shadow:0 -2px 24px rgba(0,0,0,0.5), var(--raise);
+}
+
+/* inputs & wells: readable text + placeholder on dark */
+html.theme-dark input,
+html.theme-dark textarea,
+html.theme-dark select{ color:var(--text); }
+html.theme-dark ::placeholder{ color:var(--light); }
+
+/* brand wordmark + section hairlines read on dark */
+html.theme-dark .catlabel::after,
+html.theme-dark .seclabel::after,
+html.theme-dark .pf-section-label::after{
+  background:linear-gradient(90deg, rgba(226,193,115,0.32), transparent);
+}
+
+/* active bottom-nav item: readable mint-green in dark mode */
+html.theme-dark .navitem.active{ color:var(--forest-read); }
+
+/* text sitting ON a forest fill: --cream flips dark in dark mode, so force a
+   light ink for selected pills / cards that use a green background. */
+html.theme-dark .jr-chip.on,
+html.theme-dark .sc-resume,
+html.theme-dark .sc-resume .sc-resume-ref,
+html.theme-dark .sc-trow-check.on,
+html.theme-dark .pf-appbtn.on{ color:#EEF5F1; }
+
+/* ===== forest-as-TEXT readability on dark =====
+   The deep forest green is fine as a FILL behind cream text, but unreadable
+   when used AS text/icon on a dark field. Remap those spots to a light mint-green. */
+html.theme-dark .statzone h2{ color:var(--forest-read); }
+html.theme-dark .receive-ic{ color:var(--forest-read); }
+html.theme-dark .receive-lead{ color:var(--gold-light); }
+html.theme-dark .stattile.f .num{ color:var(--forest-read); }
+html.theme-dark .notalone b{ color:var(--forest-read); }
+html.theme-dark .notalone .heart{ background:var(--forest-read); }
+
+/* footer links read as light mint-green on dark */
+html.theme-dark .dbfoot{ border-top-color:rgba(238,229,212,.14); }
+html.theme-dark .dbfoot-links a{ color:var(--forest-read); }
+html.theme-dark .dbfoot-links a:hover{ color:var(--gold-light); }
+
+/* results: "Overcome This Mindset" card + play buttons */
+html.theme-dark .mindcard{ background:#1F2E27; }
+html.theme-dark .mindcard p{ color:#D8E8DF; }
+html.theme-dark .decl .spk{ color:var(--forest-read); }
+html.theme-dark .decl.speaking .spk{ color:var(--gold-light); }
+
+/* crisis screen */
+html.theme-dark .crisis .lead{ color:var(--forest-read); }
+html.theme-dark .crisrow .cic{ background:rgba(78,122,104,.2); color:var(--forest-read); }
+
+/* profile: "Declaring daily" pill + appearance toggle */
+html.theme-dark .pf-status{ background:rgba(78,122,104,.22); color:var(--forest-read); }
+html.theme-dark .pf-status .pf-dot, html.theme-dark .pf-dot{ background:var(--forest-read); }
+html.theme-dark .pf-appbtn.on{ color:#EDF5F0; }
+html.theme-dark .pf-stat.on .pf-scap{ color:var(--gold-light); }
+
+/* scripture: category titles, chapter numbers, testament toggle, prev/next */
+html.theme-dark .sc-grouptitle{ color:var(--forest-read); }
+html.theme-dark .sc-segbtn.on{ color:var(--forest-read); }
+html.theme-dark .sc-chap{ color:var(--forest-read); }
+html.theme-dark .sc-chap:active{ color:var(--gold-light); }
+html.theme-dark .sc-navbtn{ color:var(--forest-read); }
+html.theme-dark .sc-iconbtn{ color:var(--forest-read); }
+html.theme-dark .sc-tpill.more{ color:var(--forest-read); }
+html.theme-dark .sc-subname{ color:var(--text); }
+
+/* journal: reflections/prayers toggle + entry tag */
+html.theme-dark .jr-segbtn.on{ color:var(--forest-read); }
+html.theme-dark .jr-tag{ background:rgba(78,122,104,.22); color:var(--forest-read); }
+html.theme-dark .jr-ctxname{ color:var(--gold-light); }
+
+/* reading-settings sheet: appearance + night labels */
+html.theme-dark .rs-theme.on .rs-theme-name{ color:var(--forest-read); }
+html.theme-dark .rs-font.on{ color:var(--forest-read); }
+
+/* scrollbar tuned for dark */
+html.theme-dark ::-webkit-scrollbar-thumb{ background:rgba(120,110,90,.45); border-color:var(--bg); }
+
+/* avatar image-slot: its placeholder caption + icon inherit a dark color from
+   the component's shadow DOM, which disappears on the dark card. `color` is an
+   inherited property, so we can lift it to a light tone from outside. */
+html.theme-dark .pf-avatarslot{ color:rgba(236,227,210,0.6) !important; background:#2A251C !important; }
+
+/* translation sheet: match the app's dark theme (green text + card shadow/edge) */
+html.theme-dark .sc-sheet{ border:1px solid rgba(238,229,212,0.14); box-shadow:0 -12px 44px rgba(0,0,0,0.65); }
+html.theme-dark .sc-sheet-title{ color:var(--forest-read); }
+html.theme-dark .sc-trow-type{ background:rgba(78,122,104,0.22); color:var(--forest-read); }
+html.theme-dark .sc-trow{ border:1px solid rgba(238,229,212,0.1); }
+html.theme-dark .sc-trow.on{ border-color:rgba(214,180,90,0.32); }
+
+/* ===== verse action popup on dark ===== */
+/* lift the sheet onto a clear warm surface (not near-black) + readable text */
+html.theme-dark .vsheet{ background:#211D16; border:1px solid rgba(238,229,212,0.16); box-shadow:0 -12px 44px rgba(0,0,0,0.65); }
+html.theme-dark .vsheet-refname{ color:var(--forest-read); }
+html.theme-dark .vsheet-reftrans{ background:rgba(214,180,90,0.18); color:var(--gold-light); }
+html.theme-dark .vsheet-text{ color:var(--text); border-left-color:var(--gold); }
+html.theme-dark .vsheet-act{ color:var(--forest-read); border:1px solid rgba(238,229,212,0.16); }
+html.theme-dark .vsheet-act.on{ color:#EEF5F1; border-color:rgba(120,170,148,0.5); }
+html.theme-dark .vsheet-close{ color:var(--muted); border:1px solid rgba(238,229,212,0.16); }
+html.theme-dark .vsheet-grip{ background:rgba(238,229,212,0.28); }
+/* swatches: solid colors already read on dark; tune the selected ring + 'none' */
+html.theme-dark .vsheet-hl.on{ box-shadow:var(--raise-xs), inset 0 0 0 3px rgba(33,29,22,.55), 0 0 0 2px rgba(235,208,138,.7); }
+html.theme-dark .vsheet-hl.none{ border:1px solid rgba(238,229,212,0.18); }
+
+/* applied verse highlights: lift the washes so they read on the dark page */
+html.theme-dark .sc-v.hl-gold, html.theme-dark .sc-cmp.hl-gold{ background:rgba(214,180,90,.30); }
+html.theme-dark .sc-v.hl-olive, html.theme-dark .sc-cmp.hl-olive{ background:rgba(120,170,148,.26); }
+html.theme-dark .sc-v.hl-rose, html.theme-dark .sc-cmp.hl-rose{ background:rgba(224,112,95,.26); }
+html.theme-dark .sc-v.hl-sky, html.theme-dark .sc-cmp.hl-sky{ background:rgba(120,170,220,.26); }
+html.theme-dark .sc-v.hl{ color:#F4ECDC; }
+
+/* brightness note reads gold on dark */
+html.theme-dark .rs-brightnote{ color:var(--gold-light); }
+
+/* journal: lift entry + empty cards onto a clear surface so they read like the
+   rest of the app's dark cards (cream / bg backgrounds blend into the field). */
+html.theme-dark .jr-card{ background:var(--surface); }
+html.theme-dark .pf-empty{ background:var(--surface); box-shadow:var(--raise-sm); }
+html.theme-dark .jr-jcard{ background:var(--surface); }
+
