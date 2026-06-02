@@ -27,3 +27,4 @@ worker/.dev.vars
 .idea/
 worker/.wrangler/
 .claude/settings.local.json
+.impeccable/

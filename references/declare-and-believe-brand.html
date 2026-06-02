@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Declare & Believe — Brand Identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream: #FAF7F2;
+  --cream-dark: #F0EBE1;
+  --parchment: #E8E0D0;
+  --gold: #C9A84C;
+  --gold-light: #E8C97A;
+  --gold-dark: #9B7A2E;
+  --gold-pale: #F5EDD8;
+  --forest: #2D4A3E;
+  --forest-light: #3D6356;
+  --forest-pale: #E8F0ED;
+  --text: #1A1A18;
+  --text-muted: #6B6355;
+  --text-light: #9B9080;
+  --white: #FFFFFF;
+  --error: #C0392B;
+  --success: #27AE60;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F2EDE4;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── PAGE HEADER ── */
+.brand-cover {
+  background: var(--forest);
+  padding: 5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 80% at 50% 50%, rgba(201,168,76,0.12) 0%, transparent 70%);
+}
+
+.brand-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+.cover-inner { position: relative; z-index: 1; }
+
+.cover-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  margin-bottom: 1.5rem;
+}
+
+.cover-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.logo-icon {
+  width: 52px;
+  height: 52px;
+}
+
+.cover-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 300;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.cover-title em {
+  font-style: italic;
+  color: var(--gold-light);
+}
+
+.cover-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: rgba(250,247,242,0.6);
+  margin-top: 1rem;
+}
+
+.cover-badge {
+  display: inline-block;
+  margin-top: 2rem;
+  padding: 6px 16px;
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 100px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+}
+
+/* ── SECTION WRAPPER ── */
+.section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.section + .section {
+  border-top: 1px solid var(--parchment);
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--forest);
+  margin-bottom: 2rem;
+  line-height: 1.2;
+}
+
+/* ── LOGO SECTION ── */
+.logo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.logo-card {
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--parchment);
+}
+
+.logo-card.on-light { background: var(--cream); }
+.logo-card.on-dark { background: var(--forest); }
+.logo-card.on-gold { background: var(--gold); }
+.logo-card.on-white { background: var(--white); border: 1px solid var(--parchment); }
+
+.logo-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-wordmark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.logo-wordmark em { font-style: italic; }
+
+.logo-card-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+/* Logo color variants */
+.on-light .logo-wordmark { color: var(--forest); }
+.on-light .logo-wordmark em { color: var(--gold-dark); }
+.on-light .logo-card-label { color: var(--text-light); }
+
+.on-dark .logo-wordmark { color: var(--cream); }
+.on-dark .logo-wordmark em { color: var(--gold-light); }
+.on-dark .logo-card-label { color: rgba(250,247,242,0.5); }
+
+.on-gold .logo-wordmark { color: var(--white); }
+.on-gold .logo-wordmark em { color: var(--forest); }
+.on-gold .logo-card-label { color: rgba(255,255,255,0.7); }
+
+.on-white .logo-wordmark { color: var(--forest); }
+.on-white .logo-wordmark em { color: var(--gold-dark); }
+.on-white .logo-card-label { color: var(--text-light); }
+
+/* ── COLORS ── */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.color-swatch {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.swatch-color {
+  height: 80px;
+  width: 100%;
+}
+
+.swatch-info {
+  background: var(--white);
+  padding: 10px 12px;
+}
+
+.swatch-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.swatch-hex {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-muted);
+}
+
+.swatch-role {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 2px;
+  display: block;
+}
+
+/* ── TYPOGRAPHY ── */
+.type-sample {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1rem;
+}
+
+.type-meta {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--parchment);
+}
+
+.type-display-1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 3.5rem;
+  font-weight: 300;
+  color: var(--forest);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.type-display-2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.5rem;
+  font-weight: 400;
+  color: var(--forest);
+  line-height: 1.15;
+}
+
+.type-display-3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--forest);
+  line-height: 1.25;
+}
+
+.type-declaration {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--forest);
+  line-height: 1.4;
+  font-style: normal;
+}
+
+.type-verse {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.type-body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.type-body-sm {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.type-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+}
+
+.type-note {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 0.5rem;
+}
+
+/* ── COMPONENTS ── */
+.component-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .component-grid { grid-template-columns: 1fr; }
+  .logo-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.component-card {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.component-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  background: var(--forest);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #1a3029, 0 4px 16px rgba(45,74,62,0.25);
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--white);
+  color: var(--forest);
+  border: 1.5px solid var(--parchment);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--gold);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Chips */
+.chip-demo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-demo span {
+  padding: 6px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 400;
+  border: 1px solid var(--parchment);
+  background: var(--cream);
+  color: var(--text-muted);
+}
+
+.chip-demo span.active {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--white);
+}
+
+/* Verse card */
+.verse-demo {
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  background: var(--cream);
+  border-left: 3px solid var(--gold);
+  margin-bottom: 8px;
+}
+
+.verse-demo-ref {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 4px;
+}
+
+.verse-demo-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* Declaration */
+.decl-demo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cream-dark);
+}
+
+.decl-demo:last-child { border-bottom: none; }
+
+.decl-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--white);
+  font-size: 9px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.decl-demo-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--forest);
+  line-height: 1.45;
+}
+
+/* Prayer */
+.prayer-demo {
+  background: linear-gradient(135deg, #F5EFE2, #EDE4D4);
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid var(--parchment);
+  position: relative;
+}
+
+.prayer-demo::before {
+  content: '\201C';
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 4rem;
+  color: var(--gold-light);
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  line-height: 1;
+}
+
+.prayer-demo-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text);
+  padding-top: 0.4rem;
+}
+
+/* ── VOICE & TONE ── */
+.voice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .voice-grid { grid-template-columns: 1fr; }
+  .color-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.voice-card {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.voice-card.do { border-top: 3px solid var(--forest); }
+.voice-card.dont { border-top: 3px solid #C0392B; }
+
+.voice-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.voice-card.do .voice-card-label { color: var(--forest); }
+.voice-card.dont .voice-card-label { color: #C0392B; }
+
+.voice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.voice-item::before {
+  content: '✓';
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--forest);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.voice-card.dont .voice-item::before {
+  content: '✗';
+  color: #C0392B;
+}
+
+/* Declaration examples */
+.decl-examples {
+  background: var(--forest);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.decl-ex-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  margin-bottom: 1.25rem;
+}
+
+.decl-ex-item {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--cream);
+  line-height: 1.5;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(250,247,242,0.08);
+}
+
+.decl-ex-item:last-child { border-bottom: none; }
+
+.decl-ex-item span {
+  color: var(--gold-light);
+  font-weight: 500;
+}
+
+/* ── ICON SYSTEM ── */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.icon-card {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-preview {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  border-radius: 8px;
+}
+
+.icon-name {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── SPACING ── */
+.spacing-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 10px;
+}
+
+.spacing-block {
+  background: var(--gold);
+  opacity: 0.6;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.spacing-label {
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-muted);
+}
+
+/* ── PHOTOGRAPHY / ILLUSTRATION ── */
+.art-direction {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .art-direction { grid-template-columns: 1fr; }
+}
+
+.art-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--parchment);
+}
+
+.art-preview {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
+.art-preview.warm { background: linear-gradient(135deg, #F5EFE2, #E8D8B8); color: var(--forest); }
+.art-preview.deep { background: linear-gradient(135deg, #2D4A3E, #1A2E27); color: var(--gold-light); }
+.art-preview.morning { background: linear-gradient(135deg, #FBF3E4, #F0E4C8); color: var(--gold-dark); }
+
+.art-label {
+  background: var(--white);
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* ── USAGE RULES ── */
+.rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) { .rules-grid { grid-template-columns: 1fr; } }
+
+.rule-card {
+  background: var(--white);
+  border: 1px solid var(--parchment);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.rule-card.correct { border-left: 3px solid var(--forest); }
+.rule-card.incorrect { border-left: 3px solid #C0392B; }
+
+.rule-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.rule-card.correct .rule-tag { color: var(--forest); }
+.rule-card.incorrect .rule-tag { color: #C0392B; }
+
+.rule-example {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.rule-card.correct .rule-example { color: var(--forest); }
+.rule-card.incorrect .rule-example { color: var(--text-muted); text-decoration: line-through; }
+
+/* ── FOOTER ── */
+.brand-footer {
+  background: var(--forest);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.brand-footer p {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  color: rgba(250,247,242,0.5);
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.brand-footer strong {
+  color: var(--gold-light);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ── BG FOR SECTION ── */
+.bg-white { background: var(--white); }
+.bg-cream { background: var(--cream); }
+.bg-forest { background: var(--forest); }
+
+.divider {
+  height: 1px;
+  background: var(--parchment);
+  margin: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="brand-cover">
+  <div class="cover-inner">
+    <p class="cover-eyebrow">Brand Identity System · JC Kingdom Ventures, LLC</p>
+
+    <div class="cover-logo">
+      <svg class="logo-icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="23" y="4" width="6" height="44" rx="3" fill="#C9A84C"/>
+        <rect x="4" y="17" width="44" height="6" rx="3" fill="#C9A84C"/>
+        <rect x="10" y="28" width="32" height="2" rx="1" fill="rgba(201,168,76,0.35)"/>
+        <rect x="10" y="33" width="26" height="2" rx="1" fill="rgba(201,168,76,0.25)"/>
+        <rect x="10" y="38" width="20" height="2" rx="1" fill="rgba(201,168,76,0.15)"/>
+      </svg>
+    </div>
+
+    <h1 class="cover-title">Declare &amp; <em>Believe</em></h1>
+    <p class="cover-sub">Brand Identity System — 2026</p>
+    <span class="cover-badge">declareandbelieve.com</span>
+  </div>
+</div>
+
+<!-- LOGO SECTION -->
+<div class="bg-cream">
+<div class="section">
+  <p class="section-label">01 — Logo System</p>
+  <h2 class="section-title">Logo & Wordmark</h2>
+
+  <div class="logo-grid">
+
+    <!-- Light -->
+    <div class="logo-card on-light">
+      <div class="logo-display">
+        <svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="23" y="4" width="6" height="44" rx="3" fill="#9B7A2E"/><rect x="4" y="17" width="44" height="6" rx="3" fill="#9B7A2E"/></svg>
+        <div class="logo-wordmark">Declare &amp; <em>Believe</em></div>
+      </div>
+      <span class="logo-card-label">On Light / Cream</span>
+    </div>
+
+    <!-- Dark -->
+    <div class="logo-card on-dark">
+      <div class="logo-display">
+        <svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="23" y="4" width="6" height="44" rx="3" fill="#C9A84C"/><rect x="4" y="17" width="44" height="6" rx="3" fill="#C9A84C"/></svg>
+        <div class="logo-wordmark">Declare &amp; <em>Believe</em></div>
+      </div>
+      <span class="logo-card-label">On Forest / Dark</span>
+    </div>
+
+    <!-- Gold -->
+    <div class="logo-card on-gold">
+      <div class="logo-display">
+        <svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="23" y="4" width="6" height="44" rx="3" fill="#2D4A3E"/><rect x="4" y="17" width="44" height="6" rx="3" fill="#2D4A3E"/></svg>
+        <div class="logo-wordmark">Declare &amp; <em>Believe</em></div>
+      </div>
+      <span class="logo-card-label">On Gold</span>
+    </div>
+
+    <!-- White -->
+    <div class="logo-card on-white">
+      <div class="logo-display">
+        <svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="23" y="4" width="6" height="44" rx="3" fill="#9B7A2E"/><rect x="4" y="17" width="44" height="6" rx="3" fill="#9B7A2E"/></svg>
+        <div class="logo-wordmark">Declare &amp; <em>Believe</em></div>
+      </div>
+      <span class="logo-card-label">On White</span>
+    </div>
+
+  </div>
+
+  <p style="font-size:12px; color:var(--text-light); margin-top:1.25rem; line-height:1.6;">
+    <strong style="color:var(--text-muted);">Logo construction:</strong> The cross icon represents the foundation — Jesus Christ at the center of every declaration. The wordmark uses Cormorant Garamond Light with "Believe" in italic to evoke the act of faith. The ampersand (&amp;) bridges declaration and belief — speaking truth and receiving it.
+  </p>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- COLORS -->
+<div class="bg-white">
+<div class="section">
+  <p class="section-label">02 — Color System</p>
+  <h2 class="section-title">Brand Colors</h2>
+
+  <div class="color-grid">
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#2D4A3E;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Forest</span>
+        <span class="swatch-hex">#2D4A3E</span>
+        <span class="swatch-role">Primary · Buttons · Headers</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#3D6356;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Forest Light</span>
+        <span class="swatch-hex">#3D6356</span>
+        <span class="swatch-role">Hover states</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#C9A84C;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Gold</span>
+        <span class="swatch-hex">#C9A84C</span>
+        <span class="swatch-role">Accent · Highlights</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#E8C97A;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Gold Light</span>
+        <span class="swatch-hex">#E8C97A</span>
+        <span class="swatch-role">On dark backgrounds</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#9B7A2E;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Gold Dark</span>
+        <span class="swatch-hex">#9B7A2E</span>
+        <span class="swatch-role">Labels · References</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#FAF7F2;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Cream</span>
+        <span class="swatch-hex">#FAF7F2</span>
+        <span class="swatch-role">Page background</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#F0EBE1;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Cream Dark</span>
+        <span class="swatch-hex">#F0EBE1</span>
+        <span class="swatch-role">Card backgrounds</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#E8E0D0;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Parchment</span>
+        <span class="swatch-hex">#E8E0D0</span>
+        <span class="swatch-role">Borders · Dividers</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#1A1A18;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Text</span>
+        <span class="swatch-hex">#1A1A18</span>
+        <span class="swatch-role">Body text</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#6B6355;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Text Muted</span>
+        <span class="swatch-hex">#6B6355</span>
+        <span class="swatch-role">Secondary text</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#9B9080;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">Text Light</span>
+        <span class="swatch-hex">#9B9080</span>
+        <span class="swatch-role">Placeholder · Meta</span>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="swatch-color" style="background:#FFFFFF; border-bottom: 1px solid #E8E0D0;"></div>
+      <div class="swatch-info">
+        <span class="swatch-name">White</span>
+        <span class="swatch-hex">#FFFFFF</span>
+        <span class="swatch-role">Cards · Panels</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- TYPOGRAPHY -->
+<div class="bg-cream">
+<div class="section">
+  <p class="section-label">03 — Typography</p>
+  <h2 class="section-title">Type System</h2>
+
+  <div class="type-sample">
+    <p class="type-meta">Display 1 · Cormorant Garamond 300 · 56px</p>
+    <p class="type-display-1">Declare &amp; <em style="color:var(--gold-dark)">Believe</em></p>
+    <p class="type-note">Used for: Hero headline, page title</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Display 2 · Cormorant Garamond 400 · 40px</p>
+    <p class="type-display-2">God's Word speaks directly to this</p>
+    <p class="type-note">Used for: Section headlines, results header</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Display 3 · Cormorant Garamond 400 · 28px</p>
+    <p class="type-display-3">How to Overcome This Mindset</p>
+    <p class="type-note">Used for: Card titles, subheadings</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Declaration · Cormorant Garamond 500 · 18px</p>
+    <p class="type-declaration">I am not defined by my past. I am defined by my Creator.</p>
+    <p class="type-note">Used for: Declaration statements — confident, grounded</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Verse · Cormorant Garamond Italic 400 · 17px</p>
+    <p class="type-verse">"For God has not given us a spirit of fear, but of power and of love and of a sound mind." — 2 Timothy 1:7 (NKJV)</p>
+    <p class="type-note">Used for: Bible verse text — italic conveys reverence</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Body · DM Sans 400 · 15px</p>
+    <p class="type-body">Fear is real — but it is not your identity. God's Word doesn't just acknowledge your struggle; it speaks directly into it with power and authority. The same Spirit that raised Christ from the dead lives in you.</p>
+    <p class="type-note">Used for: Explanations, descriptions, general body copy</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Body Small · DM Sans 400 · 13px</p>
+    <p class="type-body-sm">Select a struggle above or describe what's on your heart in your own words. Your declarations will be personalized to exactly what you're carrying.</p>
+    <p class="type-note">Used for: Input labels, helper text, secondary info</p>
+  </div>
+
+  <div class="type-sample">
+    <p class="type-meta">Label · DM Sans 500 · 11px · Uppercase · Tracked</p>
+    <p class="type-label">Scripture — NKJV</p>
+    <p class="type-note">Used for: Section labels, translation badges, metadata</p>
+  </div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- COMPONENTS -->
+<div class="bg-white">
+<div class="section">
+  <p class="section-label">04 — UI Components</p>
+  <h2 class="section-title">Component Library</h2>
+
+  <div class="component-grid">
+
+    <!-- Buttons -->
+    <div class="component-card">
+      <p class="component-label">Buttons</p>
+      <button class="btn-primary">
+        <svg width="13" height="15" viewBox="0 0 14 16" fill="none"><rect x="6" y="0" width="2" height="16" rx="1" fill="white"/><rect x="0" y="5" width="14" height="2" rx="1" fill="white"/></svg>
+        Speak Truth Over This
+      </button>
+      <button class="btn-gold">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy All
+      </button>
+      <button class="btn-secondary">↩ Search Again</button>
+    </div>
+
+    <!-- Struggle Chips -->
+    <div class="component-card">
+      <p class="component-label">Struggle Chips</p>
+      <div class="chip-demo">
+        <span class="active">Fear &amp; Anxiety</span>
+        <span>Shame &amp; Guilt</span>
+        <span class="active">Overthinking</span>
+        <span>Loneliness</span>
+        <span>No Purpose</span>
+        <span>Doubt</span>
+        <span>Depression</span>
+      </div>
+    </div>
+
+    <!-- Verse Card -->
+    <div class="component-card">
+      <p class="component-label">Verse Card</p>
+      <div class="verse-demo">
+        <p class="verse-demo-ref">2 Timothy 1:7 — NKJV</p>
+        <p class="verse-demo-text">"For God has not given us a spirit of fear, but of power and of love and of a sound mind."</p>
+      </div>
+      <div class="verse-demo">
+        <p class="verse-demo-ref">Philippians 4:13 — NKJV</p>
+        <p class="verse-demo-text">"I can do all things through Christ who strengthens me."</p>
+      </div>
+    </div>
+
+    <!-- Prayer Box -->
+    <div class="component-card">
+      <p class="component-label">Prayer Box</p>
+      <div class="prayer-demo">
+        <p class="prayer-demo-text">Father, I come to You carrying fear I have held too long. Remind me today that You did not give me this spirit — You gave me power, love, and a sound mind. I receive that truth right now. In Jesus' name, Amen.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Declarations -->
+  <div class="component-card" style="margin-top:1rem;">
+    <p class="component-label">Declaration List</p>
+    <div class="decl-demo">
+      <div class="decl-num">1</div>
+      <p class="decl-demo-text">I am not defined by my past. I am defined by my Creator.</p>
+    </div>
+    <div class="decl-demo">
+      <div class="decl-num">2</div>
+      <p class="decl-demo-text">I am not moved by what I see. I am moved by what God said.</p>
+    </div>
+    <div class="decl-demo">
+      <div class="decl-num">3</div>
+      <p class="decl-demo-text">God did not give me a spirit of fear — He gave me power, love, and a sound mind.</p>
+    </div>
+    <div class="decl-demo">
+      <div class="decl-num">4</div>
+      <p class="decl-demo-text">I am who God says I am — not what my circumstances say.</p>
+    </div>
+    <div class="decl-demo">
+      <div class="decl-num">5</div>
+      <p class="decl-demo-text">I am covered by the blood of Jesus Christ. I am sealed by the Holy Spirit.</p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- VOICE & TONE -->
+<div class="bg-cream">
+<div class="section">
+  <p class="section-label">05 — Voice &amp; Tone</p>
+  <h2 class="section-title">Brand Voice</h2>
+
+  <div class="voice-grid">
+    <div class="voice-card do">
+      <p class="voice-card-label">✓ We Are</p>
+      <div class="voice-item">Warm and direct — like a trusted friend who knows their Bible</div>
+      <div class="voice-item">Grounded in identity in Christ, not positive thinking</div>
+      <div class="voice-item">Confident and Spirit-led — speaking truth with authority</div>
+      <div class="voice-item">Specific to the man's exact struggle — never generic</div>
+      <div class="voice-item">Present tense — "I am" not "I will be"</div>
+      <div class="voice-item">Faith-forward — pointing back to God's Word always</div>
+    </div>
+    <div class="voice-card dont">
+      <p class="voice-card-label">✗ We Are Not</p>
+      <div class="voice-item">Preachy, clinical, or religious-sounding</div>
+      <div class="voice-item">Generic motivational content ("you've got this!")</div>
+      <div class="voice-item">Distant or formal — no liturgy, no stiff language</div>
+      <div class="voice-item">Repetitive — prayers never use the same phrases twice</div>
+      <div class="voice-item">Future-focused declarations ("I will be free someday")</div>
+      <div class="voice-item">Therapy substitute — always point to God, not self-help</div>
+    </div>
+  </div>
+
+  <div class="decl-examples">
+    <p class="decl-ex-label">Declaration Voice Examples</p>
+    <p class="decl-ex-item"><span>I am</span> not defined by my past. I am defined by my Creator.</p>
+    <p class="decl-ex-item"><span>I am</span> not moved by what I see. I am moved by what God said.</p>
+    <p class="decl-ex-item"><span>I declare</span> that fear is not my portion. God gave me power, love, and a sound mind.</p>
+    <p class="decl-ex-item"><span>I am</span> who God says I am — not what my circumstances say.</p>
+    <p class="decl-ex-item"><span>I am</span> the man. The husband. The father. The creator. The son of God.</p>
+    <p class="decl-ex-item"><span>I am</span> living in the promise. Right now. Today.</p>
+  </div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ART DIRECTION -->
+<div class="bg-white">
+<div class="section">
+  <p class="section-label">06 — Art Direction</p>
+  <h2 class="section-title">Visual Mood</h2>
+
+  <div class="art-direction">
+    <div class="art-card">
+      <div class="art-preview warm">Warm morning light. Open Bible. Man in quiet reflection.</div>
+      <div class="art-label">WARM · DEVOTIONAL</div>
+    </div>
+    <div class="art-card">
+      <div class="art-preview deep">Deep forest. Stillness. A man standing in faith — alone but not alone.</div>
+      <div class="art-label">DEEP · GROUNDED</div>
+    </div>
+    <div class="art-card">
+      <div class="art-preview morning">Golden hour. New beginning. Light breaking through.</div>
+      <div class="art-label">LIGHT · HOPEFUL</div>
+    </div>
+  </div>
+
+  <p style="font-size:12px; color:var(--text-light); margin-top:1.25rem; line-height:1.7;">
+    Photography and illustrations should feel <strong style="color:var(--text-muted)">warm, masculine, and sacred</strong> — not stock-photo generic. Men in quiet strength. Morning light. Scripture. Never prosperity-gospel imagery (flashy wealth, big stages). The visual world of Declare &amp; Believe is a <em>sanctuary</em>, not a conference.
+  </p>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SPACING -->
+<div class="bg-cream">
+<div class="section">
+  <p class="section-label">07 — Spacing &amp; Layout</p>
+  <h2 class="section-title">Spatial System</h2>
+
+  <div style="background:var(--white); border-radius:12px; padding:1.5rem; border:1px solid var(--parchment);">
+    <p class="component-label" style="margin-bottom:1.25rem;">Base Unit: 4px</p>
+
+    <div class="spacing-row"><div class="spacing-block" style="width:4px;"></div><span class="spacing-label">4px — xs · tight spacing, icon padding</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:8px;"></div><span class="spacing-label">8px — sm · chip gaps, small margins</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:16px;"></div><span class="spacing-label">16px — md · standard padding</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:24px;"></div><span class="spacing-label">24px — lg · card padding, section gaps</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:32px;"></div><span class="spacing-label">32px — xl · section margins</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:48px;"></div><span class="spacing-label">48px — 2xl · major section breathing room</span></div>
+    <div class="spacing-row"><div class="spacing-block" style="width:80px;"></div><span class="spacing-label">80px — 3xl · hero padding, page margins</span></div>
+  </div>
+
+  <p style="font-size:12px; color:var(--text-light); margin-top:1rem; line-height:1.6;">
+    The layout favors <strong style="color:var(--text-muted)">generous breathing room</strong> — a calming, sanctuary-like spaciousness. Max content width: <code style="font-size:11px; background:var(--parchment); padding:2px 6px; border-radius:4px;">760px</code> centered. Mobile-first, fluid typography using <code style="font-size:11px; background:var(--parchment); padding:2px 6px; border-radius:4px;">clamp()</code>.
+  </p>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- USAGE RULES -->
+<div class="bg-white">
+<div class="section">
+  <p class="section-label">08 — Usage Rules</p>
+  <h2 class="section-title">Do's &amp; Don'ts</h2>
+
+  <div class="rules-grid">
+    <div class="rule-card correct">
+      <span class="rule-tag">✓ Correct</span>
+      <p class="rule-example">Declare &amp; <em style="color:var(--gold-dark)">Believe</em></p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">"Believe" always italic in brand contexts</p>
+    </div>
+    <div class="rule-card incorrect">
+      <span class="rule-tag">✗ Incorrect</span>
+      <p class="rule-example">Declare and Believe</p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">Never spell out the ampersand in the logo</p>
+    </div>
+    <div class="rule-card correct">
+      <span class="rule-tag">✓ Correct</span>
+      <p class="rule-example" style="font-family:'Cormorant Garamond',serif; font-size:1rem; color:var(--forest);">I am who God says I am.</p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">Present tense. Identity-rooted. First person.</p>
+    </div>
+    <div class="rule-card incorrect">
+      <span class="rule-tag">✗ Incorrect</span>
+      <p class="rule-example" style="font-family:'Cormorant Garamond',serif; font-size:1rem;">I will become who God wants me to be someday.</p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">Never future tense. You are already in Christ.</p>
+    </div>
+    <div class="rule-card correct">
+      <span class="rule-tag">✓ Correct</span>
+      <p class="rule-example" style="font-size:1rem; color:var(--forest);">Forest green on cream. Gold on forest. White on forest.</p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">Approved color pairings only</p>
+    </div>
+    <div class="rule-card incorrect">
+      <span class="rule-tag">✗ Incorrect</span>
+      <p class="rule-example" style="font-size:1rem;">Gold text on cream background.</p>
+      <p style="font-size:11px; color:var(--text-light); margin-top:6px;">Gold on cream fails accessibility contrast</p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="brand-footer">
+  <p>Declare &amp; <strong>Believe</strong> · Brand Identity System</p>
+  <p>JC Kingdom Ventures, LLC · Orlando, Florida · 2026</p>
+  <p style="margin-top:1rem;">To God be the glory. <strong>Forever.</strong></p>
+</div>
+
+</body>
+</html>
