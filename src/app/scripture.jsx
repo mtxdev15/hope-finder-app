@@ -545,10 +545,10 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
     const loadSel = () => {
       try {
         const raw = localStorage.getItem(TRANS_KEY);
-        if (!raw) return ['kjv'];
-        if (raw[0] === '[') { const a = JSON.parse(raw).filter((id) => DB_BIBLE_TRANSLATIONS.some((t) => t.id === id)); return a.length ? a : ['kjv']; }
-        return DB_BIBLE_TRANSLATIONS.some((t) => t.id === raw) ? [raw] : ['kjv']; // migrate old single value
-      } catch (e) { return ['kjv']; }
+        if (!raw) return ['nkjv'];
+        if (raw[0] === '[') { const a = JSON.parse(raw).filter((id) => DB_BIBLE_TRANSLATIONS.some((t) => t.id === id)); return a.length ? a : ['nkjv']; }
+        return DB_BIBLE_TRANSLATIONS.some((t) => t.id === raw) ? [raw] : ['nkjv']; // migrate old single value
+      } catch (e) { return ['nkjv']; }
     };
     const [view, setView] = useState('books'); // books | chapters | reader
     const [testament, setTestament] = useState(startPos && startPos.testament || 'OT');
@@ -578,7 +578,13 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
     };
 
     const setSelected = (arr) => { const a = arr.length ? arr : ['kjv']; setSelectedRaw(a); localStorage.setItem(TRANS_KEY, JSON.stringify(a)); };
-    const toggleTrans = (id) => { setSelected(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]); };
+    const toggleTrans = (id) => {
+      if (selected.includes(id)) {
+        if (selected.length > 1) setSelected(selected.filter((x) => x !== id));
+      } else {
+        setSelected(selected.length >= 3 ? [...selected.slice(1), id] : [...selected, id]);
+      }
+    };
     const onManage = (action, id) => { if (action === 'open') setSheet(true); else if (action === 'toggle') toggleTrans(id); };
 
     // order selected to match the canonical translation order

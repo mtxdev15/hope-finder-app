@@ -217,11 +217,15 @@
 .sc-cmp-line.v0{ box-shadow:inset 3px 0 0 var(--forest); }
 .sc-cmp-label.v1{ background:var(--gold-pale); color:var(--gold-dark); }
 .sc-cmp-line.v1{ box-shadow:inset 3px 0 0 var(--gold); }
+.sc-cmp-label.v2{ background:#EEE0D2; color:#9A5A30; }
+.sc-cmp-line.v2{ box-shadow:inset 3px 0 0 #B5703F; }
 .sc-cmp-line.saved{ background:var(--gold-pale); }
 html.theme-dark .sc-cmp-label.v0{ background:rgba(78,122,104,.24); color:#8FCBB2; }
 html.theme-dark .sc-cmp-line.v0{ box-shadow:inset 3px 0 0 #4E7A68; }
 html.theme-dark .sc-cmp-label.v1{ background:rgba(226,193,115,.18); color:var(--gold-light); }
 html.theme-dark .sc-cmp-line.v1{ box-shadow:inset 3px 0 0 var(--gold); }
+html.theme-dark .sc-cmp-label.v2{ background:rgba(181,112,63,.20); color:#D8A075; }
+html.theme-dark .sc-cmp-line.v2{ box-shadow:inset 3px 0 0 #B5703F; }
 
 /* ===== verse action popup (save · highlight · copy · share) ===== */
 .vsheet{ position:relative; width:100%; max-width:480px; background:var(--bg); border-radius:28px 28px 0 0;
