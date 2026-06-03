@@ -23,7 +23,7 @@ CRITICAL — VERSE SPECIFICITY: Before selecting any verse, ask yourself: what i
 
 Do NOT default to broadly applicable verses that fit any struggle (Philippians 3:13-14, Romans 8:28, Jeremiah 29:11, John 3:16, Romans 8:1, Psalm 23). These are only acceptable if they are the single most precise fit for this specific struggle — and that will rarely be true. Go deeper. Find the verse God put in Scripture for this exact pain.
 
-EXPLANATION: Write 1 to 2 paragraphs, never more than 2, separated by \\n. Write in natural flowing sentences the way a pastor speaks to someone sitting across from them, not the way a writer crafts punchy lines for a page. Each paragraph should breathe and connect to the next. This is a conversation, not a list of insights. Address the exact struggle. Ground everything in identity in Christ. End on confidence and forward movement. DASH RULE: Use em dashes sparingly and only when a pause genuinely changes the weight of what follows. If a comma or a new sentence works just as well, use that instead. One or two dashes per paragraph is the ceiling. Zero is fine.
+EXPLANATION: Write exactly 1 paragraph. Write in natural flowing sentences the way a pastor speaks to someone sitting across from them, not the way a writer crafts punchy lines for a page. Each paragraph should breathe and connect to the next. This is a conversation, not a list of insights. Address the exact struggle. Ground everything in identity in Christ. End on confidence and forward movement. DASH RULE: Use em dashes sparingly and only when a pause genuinely changes the weight of what follows. If a comma or a new sentence works just as well, use that instead. One or two dashes per paragraph is the ceiling. Zero is fine.
 
 DECLARATIONS: 3 to 5 declarations. May begin with "I am", "I declare", or a God-statement construction (e.g. "God did not give me a spirit of fear — He gave me power, love, and a sound mind."). Present tense only. Specific to the struggle. Punchy, speakable, and memorable. Match this voice exactly:
 - "I am not defined by my past. I am defined by my Creator."
@@ -54,7 +54,7 @@ Return ONLY valid JSON in this exact structure:
   "verses": [
     { "ref": "Book Chapter:Verse", "text": "Full verse text in ${translation}" }
   ],
-  "explanation": "paragraph 1\\n\\nparagraph 2",
+  "explanation": "Single paragraph of pastoral encouragement.",
   "declarations": ["declaration 1", "declaration 2", "declaration 3"],
   "prayer": "Full prayer text. In Jesus' name, Amen."
 }`;
@@ -121,6 +121,14 @@ Return ONLY valid JSON in this exact structure:
     console.error('[generateContent] cleaned string was:', cleaned);
     throw parseErr;
   }
+}
+
+function isCompleteResult(ai) {
+  return !!(ai
+    && Array.isArray(ai.verses) && ai.verses.length > 0 && ai.verses.every((v) => v && v.ref && v.text)
+    && typeof ai.explanation === 'string' && ai.explanation.trim()
+    && Array.isArray(ai.declarations) && ai.declarations.length > 0
+    && typeof ai.prayer === 'string' && ai.prayer.trim());
 }
 
 /* ---------- component styles (warm neumorphic skin) ---------- */
@@ -954,7 +962,7 @@ function Results({ struggle, content, translation, onBack, onNew, voiceCfg, stud
             <button className={'savebtn onlight' + (mindSaved ? ' on' : '')} onClick={() => onToggleMind({ text: content.mindset, ref: content.ref, struggle })} aria-label={mindSaved ? 'Saved' : 'Save this mindset'} title={mindSaved ? 'Saved' : 'Save this mindset'}>
               <Icon name={mindSaved ? 'bookmarkfill' : 'bookmark'} size={16} />
             </button>
-            {String(content.mindset || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 2).map((para, i) => <p key={i}>{para}</p>)}
+            {String(content.mindset || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 1).map((para, i) => <p key={i}>{para}</p>)}
           </div>
         </section>
 
@@ -1974,9 +1982,18 @@ function App() {
   const runGen = async (struggle) => {
     setAiContent(null); setGenError(false); setGenLoading(true);
     try {
-      const ai = await generateContent(struggle, translation, usedRefs);
-      setAiContent(adaptContent(ai, translation));
-      setUsedRefs((prev) => [...prev, ...((ai.verses || []).map((v) => v.ref))]);
+      let ai = await generateContent(struggle, translation, usedRefs);
+      if (!isCompleteResult(ai)) {
+        console.warn('[gen] incomplete result — retrying once:', ai);
+        ai = await generateContent(struggle, translation, usedRefs);
+      }
+      if (!isCompleteResult(ai)) {
+        console.warn('[gen] still incomplete after retry:', ai);
+        setGenError(true);
+      } else {
+        setAiContent(adaptContent(ai, translation));
+        setUsedRefs((prev) => [...prev, ...(ai.verses.map((v) => v.ref))]);
+      }
     } catch (e) {
       setGenError(true);
     } finally {
