@@ -131,6 +131,28 @@ function isCompleteResult(ai) {
     && typeof ai.prayer === 'string' && ai.prayer.trim());
 }
 
+function fileToCompressedDataURL(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ---------- component styles (warm neumorphic skin) ---------- */
 const DB_CSS = `
 .app{
@@ -541,6 +563,8 @@ const DB_CSS = `
 .vspin{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(155,122,46,.25); border-top-color:var(--gold-dark); animation:db-spin .7s linear infinite; display:inline-block; }
 .vspin.dark{ border-color:rgba(45,74,62,.25); border-top-color:var(--forest); }
 @keyframes db-spin{ to{ transform:rotate(360deg); } }
+@keyframes db-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+.genloader{ animation:db-pulse 1.8s ease-in-out infinite; }
 
 /* ---- modal ---- */
 .modal-scrim{
@@ -1081,17 +1105,32 @@ function UnsplashPicker({ current, onPick, onClose }) {
   const cats = DB_BACKGROUNDS || [];
   const [cat, setCat] = useState(cats[0] ? cats[0].cat : '');
   const active = cats.find((c) => c.cat === cat) || cats[0] || { photos: [] };
+  const photoRef = useRef(null);
+  const cameraRef = useRef(null);
+  const handleUpload = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try { const url = await fileToCompressedDataURL(f, 1400, 0.72); onPick(url); }
+    catch (err) { console.error('[bg upload] failed:', err); }
+  };
   return (
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal bg-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
             <div className="modal-title">Choose a background</div>
-            <div className="modal-sub">Free photos from Unsplash.</div>
+            <div className="modal-sub">Use your own photo, or browse Unsplash.</div>
           </div>
           <button className="modal-x" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body">
+          <div className="bg-upload">
+            <button className="bg-uploadbtn" onClick={() => photoRef.current && photoRef.current.click()}><Icon name="camera" size={15} /> Choose from Photos</button>
+            <button className="bg-uploadbtn" onClick={() => cameraRef.current && cameraRef.current.click()}><Icon name="camera" size={15} /> Take Photo</button>
+            <input ref={photoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleUpload} />
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={handleUpload} />
+          </div>
           <div className="bg-cats">
             {cats.map((c) =>
             <button key={c.cat} className={'bg-cat' + (cat === c.cat ? ' on' : '')} onClick={() => setCat(c.cat)}>{c.cat}</button>
@@ -1113,6 +1152,39 @@ function UnsplashPicker({ current, onPick, onClose }) {
 
 }
 
+function AvatarPicker({ current, onPick, onClose }) {
+  const photoRef = useRef(null);
+  const cameraRef = useRef(null);
+  const handleUpload = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try { const url = await fileToCompressedDataURL(f, 256, 0.85); onPick(url); }
+    catch (err) { console.error('[avatar upload] failed:', err); }
+  };
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <div className="modal bg-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">Profile photo</div>
+            <div className="modal-sub">Add a photo from your library or camera.</div>
+          </div>
+          <button className="modal-x" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <div className="bg-upload">
+            <button className="bg-uploadbtn" onClick={() => photoRef.current && photoRef.current.click()}><Icon name="camera" size={15} /> Choose from Photos</button>
+            <button className="bg-uploadbtn" onClick={() => cameraRef.current && cameraRef.current.click()}><Icon name="camera" size={15} /> Take Photo</button>
+            <input ref={photoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleUpload} />
+            <input ref={cameraRef} type="file" accept="image/*" capture="user" style={{ display:'none' }} onChange={handleUpload} />
+          </div>
+          {current && <button className="mbtn-remove" onClick={() => onPick('')}>Remove photo</button>}
+        </div>
+      </div>
+    </div>);
+}
+
 function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, onRemoveMind, onOpenVerse, account, studioActive, voiceName, onOpenVoice, theme, setTheme, myChurch, onOpenChurch, onBack, voiceCfg }) {
   const [draft, setDraft] = useState(profile);
   const [tab, setTab] = useState('verses');
@@ -1123,6 +1195,9 @@ function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, on
   const [bannerUrl, setBannerUrl] = useState(() => localStorage.getItem('db_banner_url') || '');
   const [bgPicker, setBgPicker] = useState(false);
   const pickBanner = (url) => {setBannerUrl(url);if (url) localStorage.setItem('db_banner_url', url);else localStorage.removeItem('db_banner_url');setBgPicker(false);};
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('db_avatar_url') || '');
+  const [avPicker, setAvPicker] = useState(false);
+  const pickAvatar = (url) => { setAvatarUrl(url); if (url) localStorage.setItem('db_avatar_url', url); else localStorage.removeItem('db_avatar_url'); setAvPicker(false); };
   const [toast, setToast] = useState(false);
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const dirty = JSON.stringify(draft) !== JSON.stringify(profile);
@@ -1144,12 +1219,15 @@ function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, on
         <button className="pf-bgbtn" onClick={() => setBgPicker(true)}><Icon name="camera" size={15} /> Background</button>
       </div>
       {bgPicker && <UnsplashPicker current={bannerUrl} onPick={pickBanner} onClose={() => setBgPicker(false)} />}
+      {avPicker && <AvatarPicker current={avatarUrl} onPick={pickAvatar} onClose={() => setAvPicker(false)} />}
 
       {/* identity card */}
       <div className="pf-card">
         <div className="pf-toprow">
           <div className="pf-avatarwrap">
-            <div className="pf-avatarslot" />
+            <button className="pf-avatarslot" onClick={() => setAvPicker(true)} aria-label="Add profile photo">
+              {avatarUrl ? <img className="pf-avatarimg" src={avatarUrl} alt="" /> : <span className="pf-avatarempty"><Icon name="camera" size={19} /><span>Add photo</span></span>}
+            </button>
             {emailVerified && <span className="pf-verified" title="Verified"><Icon name="check" size={13} /></span>}
           </div>
         </div>
@@ -2046,8 +2124,8 @@ function App() {
     return (
       <div className="app">
         {genLoading ? (
-          <div style={{ minHeight:'60vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'16px', textAlign:'center', padding:'40px 24px', color:'var(--muted)' }}>
-            <span style={{ color:'var(--gold-dark)' }}><Icon name="flame" size={30} /></span>
+          <div className="genloader" style={{ minHeight:'60vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'16px', textAlign:'center', padding:'40px 24px', color:'var(--muted)' }}>
+            <span style={{ color:'var(--gold-dark)' }}><Icon name="cross" size={30} /></span>
             <p style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', color:'var(--forest)' }}>Receiving the Word for you…</p>
           </div>
         ) : genError ? (
