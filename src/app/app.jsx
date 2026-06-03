@@ -1751,6 +1751,8 @@ function voiceRegion(lang) {
 function AuthModal({ church, purpose, onVerified, onClose }) {
   const [step, setStep] = useState('email'); // email | code
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [code, setCode] = useState('');
   const [sent, setSent] = useState('');
   const [entered, setEntered] = useState('');
@@ -1769,7 +1771,7 @@ function AuthModal({ church, purpose, onVerified, onClose }) {
     setSent(c);setStep('code');setErr('');
   };
   const verify = () => {
-    if (entered.replace(/\s/g, '') === sent) {onVerified(email.trim());} else
+    if (entered.replace(/\s/g, '') === sent) {onVerified(email.trim(), firstName.trim(), lastName.trim());} else
     {setErr('That code didn’t match. Try again.');}
   };
 
@@ -1788,6 +1790,11 @@ function AuthModal({ church, purpose, onVerified, onClose }) {
 
         <div className="modal-body">
           {step === 'email' && <>
+            <label className="fld-label">Your name</label>
+            <div style={{ display:'flex', gap:'10px' }}>
+              <input className="fld" style={{ flex:1, minWidth:0 }} type="text" value={firstName} placeholder="First" autoComplete="given-name" onChange={(e) => setFirstName(e.target.value)} />
+              <input className="fld" style={{ flex:1, minWidth:0 }} type="text" value={lastName} placeholder="Last" autoComplete="family-name" onChange={(e) => setLastName(e.target.value)} />
+            </div>
             <label className="fld-label">Email address</label>
             <input className="fld" type="email" value={email} placeholder="you@email.com" autoComplete="email"
             onChange={(e) => {setEmail(e.target.value);if (err) setErr('');}} onKeyDown={(e) => e.key === 'Enter' && send()} />
@@ -1805,7 +1812,7 @@ function AuthModal({ church, purpose, onVerified, onClose }) {
             {err && <p className="modal-err">{err}</p>}
             <div className="auth-demo"><Icon name="lock" size={13} /> Demo: no real email is sent. Your code is <b>{sent}</b>.</div>
             <div className="modal-actions">
-              <button className="mbtn ghost" onClick={() => onVerified(email.trim())}>Use magic link</button>
+              <button className="mbtn ghost" onClick={() => onVerified(email.trim(), firstName.trim(), lastName.trim())}>Use magic link</button>
               <button className="mbtn gold" onClick={verify} disabled={entered.length < 6}>Verify</button>
             </div>
             <button className="mbtn-remove" onClick={() => setStep('email')}>Use a different email</button>
@@ -1858,11 +1865,20 @@ function App() {
     setAuthReq({ purpose: JOURNAL_PURPOSE, after: () => {addJournal(text, meta);setJournalNonce((n) => n + 1);} });
     return false;
   };
-  const onVerified = (email) => {
-    const acct = { email, verified: true };
+  const onVerified = (email, firstName = '', lastName = '') => {
+    const acct = { email, firstName, lastName, verified: true };
     setAccountRaw(acct);localStorage.setItem('db_account', JSON.stringify(acct));
-    // reflect the verified email on the profile (only fill if not already set)
-    setProfile((p) => {const next = { ...p, email: p.email && p.email.trim() ? p.email : email };localStorage.setItem('db_profile', JSON.stringify(next));return next;});
+    // reflect the verified email + name on the profile (only fill if not already set)
+    setProfile((p) => {
+      const next = {
+        ...p,
+        email: p.email && p.email.trim() ? p.email : email,
+        firstName: p.firstName && p.firstName.trim() ? p.firstName : firstName,
+        lastName: p.lastName && p.lastName.trim() ? p.lastName : lastName,
+      };
+      localStorage.setItem('db_profile', JSON.stringify(next));
+      return next;
+    });
     if (authReq && authReq.after) {authReq.after();}
     setAuthReq(null);
   };
