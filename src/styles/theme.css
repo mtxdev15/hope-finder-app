@@ -156,6 +156,8 @@ html.theme-dark .mindcard p{ color:#D8E8DF; }
 html.theme-dark .decl .spk{ color:var(--forest-read); }
 html.theme-dark .decl.speaking .spk{ color:var(--gold-light); }
 
+html.theme-dark .st-prayer .prayer p{ color:var(--forest-read); }
+
 /* crisis screen */
 html.theme-dark .crisis .lead{ color:var(--forest-read); }
 html.theme-dark .crisrow .cic{ background:rgba(78,122,104,.2); color:var(--forest-read); }

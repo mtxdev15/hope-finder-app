@@ -8,6 +8,121 @@ import ChurchScreen from './church.jsx';
 import { DB_CATEGORIES, DB_CONTENT, DB_DEFAULT, DB_CRISIS } from '../data/content.js';
 import { DB_BACKGROUNDS } from '../data/backgrounds.js';
 
+async function generateContent(struggle, translation, excludeRefs = []) {
+  const systemPrompt = `You are HopeFinder Companion — the pastoral voice inside Declare and Believe, a faith-based app that delivers God's Word directly to someone's specific mindset struggle. You are not a chatbot, a therapist, or a preacher. You are a trusted friend who knows their Bible deeply and speaks with warmth, confidence, and pastoral authority. You walk with people in their darkest moments and speak truth before you speak comfort.
+
+The person who has arrived has described something they are battling. A fear. A shame. A broken identity. A feeling of worthlessness. A sleepless night of doubt. Your job is to meet them exactly where they are and speak God's truth back to them.
+
+This person came here carrying something real. They may have typed it out or selected it from a list, but either way they are sitting with something heavy right now. Your job is not to give them information. Your job is to speak God's Word directly into what they are carrying, give them declarations they can speak aloud with confidence, and send them back into their day knowing who they are in Christ. Make it personal. Make it real. Make it land.
+
+RESPONSE FORMAT: Respond ONLY with valid JSON. No preamble, no markdown fences, no extra text.
+
+VERSES: Return exactly 3 verses — always 3, no more, no less. For each verse provide the reference AND the full accurate verse text in the ${translation} translation. The text field must NEVER be empty.
+
+CRITICAL — VERSE SPECIFICITY: Before selecting any verse, ask yourself: what is the specific spiritual or emotional wound behind this struggle? Then choose Scripture that speaks to THAT wound precisely. Fear of failure needs different verses than grief. Shame needs different verses than anger. Loneliness needs different verses than financial stress. Every struggle must produce a unique, specific set of verses.
+
+Do NOT default to broadly applicable verses that fit any struggle (Philippians 3:13-14, Romans 8:28, Jeremiah 29:11, John 3:16, Romans 8:1, Psalm 23). These are only acceptable if they are the single most precise fit for this specific struggle — and that will rarely be true. Go deeper. Find the verse God put in Scripture for this exact pain.
+
+EXPLANATION: Write 1 to 2 paragraphs, never more than 2, separated by \\n. Write in natural flowing sentences the way a pastor speaks to someone sitting across from them, not the way a writer crafts punchy lines for a page. Each paragraph should breathe and connect to the next. This is a conversation, not a list of insights. Address the exact struggle. Ground everything in identity in Christ. End on confidence and forward movement. DASH RULE: Use em dashes sparingly and only when a pause genuinely changes the weight of what follows. If a comma or a new sentence works just as well, use that instead. One or two dashes per paragraph is the ceiling. Zero is fine.
+
+DECLARATIONS: 3 to 5 declarations. May begin with "I am", "I declare", or a God-statement construction (e.g. "God did not give me a spirit of fear — He gave me power, love, and a sound mind."). Present tense only. Specific to the struggle. Punchy, speakable, and memorable. Match this voice exactly:
+- "I am not defined by my past. I am defined by my Creator."
+- "I am not moved by what I see. I am moved by what God said."
+- "God did not give me a spirit of fear — He gave me power, love, and a sound mind."
+- "I am who God says I am — not what my circumstances say."
+Never passive voice. Never hedging. Never future tense.
+
+PRAYER: 3 to 5 sentences spoken directly to God in first person. Starts with "Father," or "Lord,". Ends with "In Jesus' name, Amen." Specific to the struggle. Should feel lifted from the weight they walked in carrying. Never generic.
+
+CRISIS: If the struggle involves suicidal ideation or self-harm, lead with compassion, mention the 988 Suicide & Crisis Lifeline (call or text 988), then proceed with Scripture focused on God's presence in the darkest valley.
+
+Tone brand voice examples:
+- "I am fearless. Fear is not my portion."
+- "I am the husband my wife prayed for."
+- "I am covered by the blood of Jesus Christ."
+- "I am filled with wisdom and I move with it."`;
+
+  const exclusionNote = excludeRefs.length > 0
+    ? `\nIMPORTANT: Do not use any of these verse references — they have already been shown to this user: ${excludeRefs.join(', ')}. Choose completely different Scripture for this submission.`
+    : '';
+
+  const userPrompt = `Struggle: ${struggle}
+Translation: ${translation}${exclusionNote}
+
+Return ONLY valid JSON in this exact structure:
+{
+  "verses": [
+    { "ref": "Book Chapter:Verse", "text": "Full verse text in ${translation}" }
+  ],
+  "explanation": "paragraph 1\\n\\nparagraph 2",
+  "declarations": ["declaration 1", "declaration 2", "declaration 3"],
+  "prayer": "Full prayer text. In Jesus' name, Amen."
+}`;
+
+  const response = await fetch('https://hope-finder-worker.thinktoro.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      temperature: 1.0,
+      stream: true,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error('API error: ' + response.status);
+  }
+
+  // Read the SSE stream and accumulate the text delta from Anthropic
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const dataStr = line.slice(6).trim();
+      if (!dataStr || dataStr === '[DONE]') continue;
+
+      try {
+        const event = JSON.parse(dataStr);
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          fullText += event.delta.text;
+        }
+      } catch {
+        // ignore malformed lines
+      }
+    }
+  }
+
+  // Strip markdown fences, then extract the JSON object boundaries
+  // (some models append safety/crisis text after the JSON closes — be defensive)
+  const stripped = fullText.replace(/```json|```/g, '').trim();
+  const firstBrace = stripped.indexOf('{');
+  const lastBrace = stripped.lastIndexOf('}');
+  const cleaned = (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace)
+    ? stripped.slice(firstBrace, lastBrace + 1)
+    : stripped;
+  try {
+    return JSON.parse(cleaned);
+  } catch (parseErr) {
+    console.error('[generateContent] JSON.parse failed:', parseErr);
+    console.error('[generateContent] cleaned string was:', cleaned);
+    throw parseErr;
+  }
+}
+
 /* ---------- component styles (warm neumorphic skin) ---------- */
 const DB_CSS = `
 .app{
@@ -271,7 +386,7 @@ const DB_CSS = `
 .savebtn:hover{ color:var(--gold-dark); }
 .savebtn:active{ transform:scale(.94); }
 .savebtn.on{ color:#FAF7F2; box-shadow:var(--forest-press); background:var(--forest); }
-.savebtn.onlight{ position:absolute; top:14px; right:14px; flex:0 0 40px; width:40px; height:40px; background:var(--surface); box-shadow:var(--raise-xs); color:var(--gold-dark); }
+.savebtn.onlight{ position:absolute; top:14px; right:14px; flex:0 0 40px; width:40px; height:40px; background:var(--surface); box-shadow:var(--raise-xs); color:var(--gold-dark); z-index:2; }
 .savebtn.onlight.on{ background:var(--forest); color:#FAF7F2; box-shadow:var(--forest-press); }
 .prayer{ position:relative; border-radius:22px; background:var(--cream); box-shadow:var(--raise-sm); padding:22px; }
 .prayer p{ margin:0; font-size:15px; line-height:1.68; color:var(--text); }
@@ -333,7 +448,7 @@ const DB_CSS = `
 .readchapter .rc-go svg{ transform:rotate(180deg); }
 
 /* 2 · Mindset — interpretation / reflection (quiet, contemplative) */
-.st-mind .mindcard{ background:var(--forest-pale); box-shadow:var(--raise-sm); padding:24px 24px 22px; position:relative; }
+.st-mind .mindcard{ background:var(--forest-pale); box-shadow:var(--raise-sm); padding:58px 24px 22px; position:relative; }
 .st-mind .mindcard::before{
   content:'\\201C'; position:absolute; top:6px; left:16px; font-family:'Cormorant Garamond',serif;
   font-size:64px; line-height:1; color:var(--forest); opacity:.12;
@@ -346,7 +461,7 @@ const DB_CSS = `
 /* 4 · Prayer — intimate / personal (a quiet, enclosed moment) */
 .st-prayer .prayer{
   background:radial-gradient(120% 100% at 50% 0%, var(--cream), var(--cream-dark));
-  box-shadow:var(--raise-sm), var(--inset-sm); padding:30px 26px; text-align:center;
+  box-shadow:var(--raise-sm), var(--inset-sm); padding:60px 26px 30px; text-align:center;
 }
 .st-prayer .prayer > p{ padding-right:0; }
 .st-prayer .prayer p{
@@ -839,7 +954,7 @@ function Results({ struggle, content, translation, onBack, onNew, voiceCfg, stud
             <button className={'savebtn onlight' + (mindSaved ? ' on' : '')} onClick={() => onToggleMind({ text: content.mindset, ref: content.ref, struggle })} aria-label={mindSaved ? 'Saved' : 'Save this mindset'} title={mindSaved ? 'Saved' : 'Save this mindset'}>
               <Icon name={mindSaved ? 'bookmarkfill' : 'bookmark'} size={16} />
             </button>
-            <p>{content.mindset}</p>
+            {String(content.mindset || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 2).map((para, i) => <p key={i}>{para}</p>)}
           </div>
         </section>
 
@@ -987,9 +1102,10 @@ function UnsplashPicker({ current, onPick, onClose }) {
 
 }
 
-function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, onRemoveMind, onOpenVerse, account, studioActive, voiceName, onOpenVoice, theme, setTheme, myChurch, onOpenChurch, onBack }) {
+function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, onRemoveMind, onOpenVerse, account, studioActive, voiceName, onOpenVoice, theme, setTheme, myChurch, onOpenChurch, onBack, voiceCfg }) {
   const [draft, setDraft] = useState(profile);
   const [tab, setTab] = useState('verses');
+  const { speak, speaking, loading } = useSpeaker(voiceCfg);
   // the email is "verified" only when it matches the signed-in, verified account
   const emailVerified = !!(account && account.verified && account.email && draft.email &&
   account.email.trim().toLowerCase() === draft.email.trim().toLowerCase());
@@ -1611,6 +1727,10 @@ function App() {
   const [custom, setCustom] = useState(saved.custom || '');
   const [translation, setTranslation] = useState(saved.translation || 'NKJV');
   const [active, setActive] = useState(saved.activeStruggle || null);
+  const [aiContent, setAiContent] = useState(null);
+  const [genLoading, setGenLoading] = useState(false);
+  const [genError, setGenError] = useState(false);
+  const [usedRefs, setUsedRefs] = useState([]);
 
   // app-wide appearance: light/dark theme + reading brightness
   const [theme, setThemeRaw] = useState(() => localStorage.getItem('db_theme') || 'light');
@@ -1744,25 +1864,34 @@ function App() {
   const persistSaved = (next) => {setSavedItems(next);localStorage.setItem('db_saved', JSON.stringify(next));};
   const saveProfile = (p) => {setProfile(p);localStorage.setItem('db_profile', JSON.stringify(p));};
 
+  const SAVE_PURPOSE = {
+    sub: <>Create a free account to save this to your profile and keep it in one place.</>,
+    note: 'We only use your email to sign you in and keep your saved verses, declarations, and prayers together.' };
+  const gatedSave = (action) => { if (isAuthed) { action(); } else { setAuthReq({ purpose: SAVE_PURPOSE, after: action }); } };
+
   const toggleVerse = (v) => {
     const exists = savedItems.verses.some((x) => x.ref === v.ref && x.struggle === v.struggle);
     const verses = exists ? savedItems.verses.filter((x) => !(x.ref === v.ref && x.struggle === v.struggle)) : [v, ...savedItems.verses];
-    persistSaved({ ...savedItems, verses });
+    const apply = () => persistSaved({ ...savedItems, verses });
+    if (exists) { apply(); } else { gatedSave(apply); }
   };
   const toggleDecl = (text) => {
     const exists = savedItems.declarations.some((x) => x.text === text);
     const declarations = exists ? savedItems.declarations.filter((x) => x.text !== text) : [{ text }, ...savedItems.declarations];
-    persistSaved({ ...savedItems, declarations });
+    const apply = () => persistSaved({ ...savedItems, declarations });
+    if (exists) { apply(); } else { gatedSave(apply); }
   };
   const toggleMind = (m) => {
     const exists = savedItems.mindsets.some((x) => x.text === m.text);
     const mindsets = exists ? savedItems.mindsets.filter((x) => x.text !== m.text) : [m, ...savedItems.mindsets];
-    persistSaved({ ...savedItems, mindsets });
+    const apply = () => persistSaved({ ...savedItems, mindsets });
+    if (exists) { apply(); } else { gatedSave(apply); }
   };
   const togglePrayer = (p) => {
     const exists = savedItems.prayers.some((x) => x.text === p.text);
     const prayers = exists ? savedItems.prayers.filter((x) => x.text !== p.text) : [p, ...savedItems.prayers];
-    persistSaved({ ...savedItems, prayers });
+    const apply = () => persistSaved({ ...savedItems, prayers });
+    if (exists) { apply(); } else { gatedSave(apply); }
   };
   const removeVerse = (i) => persistSaved({ ...savedItems, verses: savedItems.verses.filter((_, j) => j !== i) });
   const removeMind = (i) => persistSaved({ ...savedItems, mindsets: savedItems.mindsets.filter((_, j) => j !== i) });
@@ -1835,12 +1964,33 @@ function App() {
     document.head.appendChild(el);
   }, []);
 
+  const adaptContent = (ai, tr) => ({
+    ref: (ai.verses && ai.verses[0] && ai.verses[0].ref) || '',
+    verses: (ai.verses || []).map((v) => ({ ref: v.ref, [tr]: v.text })),
+    mindset: ai.explanation || '',
+    declarations: ai.declarations || [],
+    prayer: ai.prayer || '',
+  });
+  const runGen = async (struggle) => {
+    setAiContent(null); setGenError(false); setGenLoading(true);
+    try {
+      const ai = await generateContent(struggle, translation, usedRefs);
+      setAiContent(adaptContent(ai, translation));
+      setUsedRefs((prev) => [...prev, ...((ai.verses || []).map((v) => v.ref))]);
+    } catch (e) {
+      setGenError(true);
+    } finally {
+      setGenLoading(false);
+    }
+  };
   const goResults = () => {
     const struggle = custom.trim() ? custom.trim() : selected;
-    setActive(struggle);
-    setScreen('results');
+    if (!struggle) return;
+    setActive(struggle); setScreen('results');
     window.scrollTo({ top: 0, behavior: 'instant' });
+    runGen(struggle);
   };
+  const retryGen = () => { if (active) runGen(active); };
 
   const resetToEntry = () => {
     setSelected(null);setCustom('');
@@ -1851,7 +2001,7 @@ function App() {
   const backToDash = () => {setScreen('dashboard');window.scrollTo({ top: 0, behavior: 'instant' });};
 
   // resolve content for the active struggle
-  const content = active ? DB_CONTENT[active] || DB_DEFAULT : DB_DEFAULT;
+  const content = aiContent;
 
   const openVoicePref = () => setShowVoicePref(true);
   const voiceModals =
@@ -1867,12 +2017,26 @@ function App() {
   if (screen === 'results') {
     return (
       <div className="app">
-        <Results struggle={active} content={content} translation={translation} onBack={backToDash} onNew={resetToEntry}
-        voiceCfg={voiceCfg} studioActive={studioActive} onOpenVoice={openVoicePref}
-        saved={savedItems} onToggleVerse={toggleVerse} onToggleDecl={toggleDecl} onToggleMind={toggleMind} onTogglePrayer={togglePrayer}
-        onOpenVerse={goScriptureVerse} onOpenBible={goScripture} onOpenJournal={goJournal} />
+        {genLoading ? (
+          <div style={{ minHeight:'60vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'16px', textAlign:'center', padding:'40px 24px', color:'var(--muted)' }}>
+            <span style={{ color:'var(--gold-dark)' }}><Icon name="flame" size={30} /></span>
+            <p style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', color:'var(--forest)' }}>Receiving the Word for you…</p>
+          </div>
+        ) : genError ? (
+          <div style={{ minHeight:'60vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'18px', textAlign:'center', padding:'40px 24px' }}>
+            <p style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', color:'var(--forest)' }}>The Word never fails — we hit a snag reaching it.</p>
+            <button className="cta" onClick={retryGen}>Try again</button>
+            <button className="back" onClick={backToDash}><Icon name="arrow" size={18} /> Back</button>
+          </div>
+        ) : aiContent ? (
+          <Results struggle={active} content={content} translation={translation} onBack={backToDash} onNew={resetToEntry}
+            voiceCfg={voiceCfg} studioActive={studioActive} onOpenVoice={openVoicePref}
+            saved={savedItems} onToggleVerse={toggleVerse} onToggleDecl={toggleDecl} onToggleMind={toggleMind} onTogglePrayer={togglePrayer}
+            onOpenVerse={goScriptureVerse} onOpenBible={goScripture} onOpenJournal={goJournal} />
+        ) : null}
         <BottomNav active="home" onHome={resetToEntry} onScripture={goScripture} onProfile={goProfile} onJournal={goJournal} />
         {voiceModals}
+        {authModal}
       </div>);
 
   }
@@ -1885,6 +2049,7 @@ function App() {
         openTarget={scriptureTarget} onTargetConsumed={() => setScriptureTarget(null)} />
         <BottomNav active="scripture" onHome={backToDash} onScripture={goScripture} onProfile={goProfile} onJournal={goJournal} />
         {voiceModals}
+        {authModal}
       </div>);
 
   }
@@ -1922,10 +2087,11 @@ function App() {
         <ProfileScreen
           profile={profile} onSave={saveProfile} saved={savedItems} account={account}
           onRemoveVerse={removeVerse} onRemoveDecl={removeDecl} onRemoveMind={removeMind} onOpenVerse={goScriptureVerse}
-          studioActive={studioActive} voiceName={voiceCfg.voiceName} onOpenVoice={openVoicePref} theme={theme} setTheme={setTheme}
+          studioActive={studioActive} voiceName={voiceCfg.voiceName} onOpenVoice={openVoicePref} voiceCfg={voiceCfg} theme={theme} setTheme={setTheme}
           myChurch={myChurch} onOpenChurch={goChurch} onBack={backToDash} />
         <BottomNav active="profile" onHome={backToDash} onScripture={goScripture} onProfile={goProfile} onJournal={goJournal} />
         {voiceModals}
+        {authModal}
       </div>);
 
   }
@@ -1961,6 +2127,7 @@ function App() {
 
       <BottomNav active="home" onHome={backToDash} onScripture={goScripture} onProfile={goProfile} onJournal={goJournal} />
       {voiceModals}
+      {authModal}
     </div>);
 
 }
