@@ -47,6 +47,7 @@
 .sc-bookmain{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
 .sc-bookname{ font-size:16px; font-weight:600; color:var(--text); }
 .sc-bookmeta{ font-size:12.5px; color:var(--muted); }
+.sc-bookchapters{ display:block; margin-top:4px; font-size:11.5px; color:var(--light); }
 .sc-booksaved{ display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:var(--gold-dark); background:var(--gold-pale); padding:4px 9px; border-radius:999px; }
 .sc-bookchev{ flex:0 0 auto; color:var(--light); transform:scaleX(-1); display:flex; }
 

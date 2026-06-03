@@ -71,7 +71,8 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
                 <button className="sc-book" key={b.name} onClick={() => onOpenBook(b)}>
                     <span className="sc-bookmain">
                       <span className="sc-bookname">{b.name}</span>
-                      <span className="sc-bookmeta">{b.tag ? b.tag : b.chapters + (b.chapters > 1 ? ' chapters' : ' chapter')}</span>
+                      <span className="sc-bookmeta">{b.tag}</span>
+                      <span className="sc-bookchapters">{b.chapters + (b.chapters > 1 ? ' chapters' : ' chapter')}</span>
                     </span>
                     {saved > 0 && <span className="sc-booksaved"><Icon name="bookmarkfill" size={12} /> {saved}</span>}
                     <span className="sc-bookchev"><Icon name="arrow" size={16} /></span>
@@ -173,9 +174,6 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
   /* ---- translation picker sheet (multi-select) ---- */
   function TranslationSheet({ selected, onToggle, onClose }) {
     const list = DB_BIBLE_TRANSLATIONS;
-    const note = (t) => {
-      if (!t.free) return;
-    };
     return (
       <div className="sc-sheet-scrim" onClick={onClose}>
         <div className="sc-sheet" onClick={(e) => e.stopPropagation()}>
@@ -190,16 +188,16 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
             {list.map((t, i) => {
               const on = selected.includes(t.id);
               return (
-                <button key={t.id} className={'sc-trow' + (on ? ' on' : '') + (t.free ? '' : ' locked')}
-                  onClick={() => t.free && onToggle(t.id)}>
+                <button key={t.id} className={'sc-trow' + (on ? ' on' : '')}
+                  onClick={() => onToggle(t.id)}>
                   <span className={'sc-trow-check' + (on ? ' on' : '')}>
-                    {t.free ? (on ? <Icon name="check" size={14} /> : null) : <Icon name="lock" size={13} />}
+                    {on ? <Icon name="check" size={14} /> : null}
                   </span>
                   <span className="sc-trow-main">
                     <span className="sc-trow-top">
                       <span className="sc-trow-label">{t.label}</span>
                       <span className="sc-trow-type">{t.type}</span>
-                      {t.free ? <span className="sc-trow-free">Free</span> : <span className="sc-trow-lock">License</span>}
+
                     </span>
                     <span className="sc-trow-name">{t.name}</span>
                     <span className="sc-trow-why">{t.why}</span>
@@ -207,10 +205,7 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
                 </button>
               );
             })}
-            <p className="sc-sheet-foot">
-              <Icon name="lock" size={12} /> Licensed translations need a Bible-API key before their full text can be shown.
-              The free translations are public domain and read in full now.
-            </p>
+
           </div>
         </div>
       </div>
@@ -551,8 +546,8 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
       try {
         const raw = localStorage.getItem(TRANS_KEY);
         if (!raw) return ['kjv'];
-        if (raw[0] === '[') { const a = JSON.parse(raw).filter((id) => freeTrans.some((t) => t.id === id)); return a.length ? a : ['kjv']; }
-        return freeTrans.some((t) => t.id === raw) ? [raw] : ['kjv']; // migrate old single value
+        if (raw[0] === '[') { const a = JSON.parse(raw).filter((id) => DB_BIBLE_TRANSLATIONS.some((t) => t.id === id)); return a.length ? a : ['kjv']; }
+        return DB_BIBLE_TRANSLATIONS.some((t) => t.id === raw) ? [raw] : ['kjv']; // migrate old single value
       } catch (e) { return ['kjv']; }
     };
     const [view, setView] = useState('books'); // books | chapters | reader
