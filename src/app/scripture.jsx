@@ -377,8 +377,8 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
         </div>
 
         <div className="sc-transrow">
-          {freeTrans.map((t) => (
-            <button key={t.id} className={'sc-tpill' + (selected.includes(t.id) ? ' on' : '')}
+          {DB_BIBLE_TRANSLATIONS.filter((t) => selected.includes(t.id)).map((t) => (
+            <button key={t.id} className="sc-tpill on"
               onClick={() => onManage('toggle', t.id)} title={t.name}>{t.label}</button>
           ))}
           <button className="sc-tpill more" onClick={() => onManage('open')}>All translations</button>
