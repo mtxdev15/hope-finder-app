@@ -181,6 +181,9 @@ html.theme-dark .sc-subname{ color:var(--text); }
 /* journal: reflections/prayers toggle + entry tag */
 html.theme-dark .jr-segbtn.on{ color:var(--forest-read); }
 html.theme-dark .jr-tag{ background:rgba(78,122,104,.22); color:var(--forest-read); }
+html.theme-dark .jr-tag--verse{ color:var(--gold-light); background:rgba(184,137,42,.22); }
+html.theme-dark .jr-tag--declaration{ color:#E0A183; background:rgba(168,86,56,.22); }
+html.theme-dark .jr-tag--prayer{ color:#C7A8D6; background:rgba(109,79,126,.26); }
 html.theme-dark .jr-ctxname{ color:var(--gold-light); }
 
 /* reading-settings sheet: appearance + night labels */

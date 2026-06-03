@@ -264,6 +264,9 @@
 .jr-cardtop{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:9px; padding-right:86px; }
 .jr-date{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-dark); }
 .jr-tag{ font-size:11px; font-weight:600; color:var(--forest); background:var(--forest-pale); padding:3px 10px; border-radius:999px; }
+.jr-tag--verse{ color:#8A6A1F; background:rgba(184,137,42,.15); }
+.jr-tag--declaration{ color:#A85638; background:rgba(168,86,56,.13); }
+.jr-tag--prayer{ color:#6D4F7E; background:rgba(109,79,126,.13); }
 .jr-body{ margin:0; font-size:14.5px; line-height:1.62; color:var(--text); white-space:pre-wrap; }
 .jr-edited{ font-size:10px; font-weight:600; font-style:italic; letter-spacing:.04em; color:var(--light); }
 .jr-cardactions{ position:absolute; top:14px; right:14px; display:flex; gap:8px; }

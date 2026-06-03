@@ -448,6 +448,9 @@ const DB_CSS = `
 }
 .readchapter:hover{ transform:translateY(-1px); }
 .readchapter:active{ box-shadow:var(--forest-press); transform:translateY(0); }
+.returnword{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin:0 0 16px; padding:15px 18px; border-radius:18px; background:var(--forest); color:var(--gold-light); font-size:15px; font-weight:600; box-shadow:var(--raise-sm); transition:box-shadow .14s ease, transform .12s ease; }
+.returnword:hover{ transform:translateY(-1px); }
+.returnword:active{ box-shadow:var(--forest-press); transform:translateY(0); }
 .readchapter .rc-ic{ flex:0 0 42px; width:42px; height:42px; border-radius:13px; background:rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center; color:var(--gold-light); }
 .readchapter .rc-tx{ flex:1; min-width:0; }
 .readchapter .rc-tx b{ display:block; font-size:15.5px; font-weight:600; letter-spacing:.005em; }
@@ -1312,6 +1315,14 @@ function JournalScreen({ recent, journal, onAdd, onRemove, onEdit, prayers, onRe
   const startEdit = (j) => {setEditingId(j.id);setEditText(j.text);};
   const cancelEdit = () => {setEditingId(null);setEditText('');};
   const saveEdit = (id) => {const t = editText.trim();if (!t) return;onEdit(id, t);setEditingId(null);setEditText('');};
+  const tagKind = (label) => {
+    const l = (label || '').toLowerCase();
+    if (l.includes('verse')) return 'verse';
+    if (l.includes('mindset')) return 'mindset';
+    if (l.includes('declaration')) return 'declaration';
+    if (l.includes('prayer')) return 'prayer';
+    return 'default';
+  };
 
   const ctx = recent && recent.content;
   const prompts = ctx ? [
@@ -1384,7 +1395,7 @@ function JournalScreen({ recent, journal, onAdd, onRemove, onEdit, prayers, onRe
             <div className="jr-cardtop">
               <span className="jr-date">{j.date}</span>
               {(j.promptLabel || j.struggle) &&
-              <span className="jr-tag">{[j.struggle, j.promptLabel].filter(Boolean).join(' · ')}</span>}
+              <span className={'jr-tag jr-tag--' + tagKind(j.promptLabel)}>{[j.struggle, j.promptLabel].filter(Boolean).join(' · ')}</span>}
               {j.edited && <span className="jr-edited">edited</span>}
             </div>
             {editingId === j.id ?
@@ -2011,7 +2022,7 @@ function App() {
 
   const resetToEntry = () => {
     setSelected(null);setCustom('');
-    setActive(null);setScreen('dashboard');
+    setScreen('dashboard');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -2127,6 +2138,12 @@ function App() {
   return (
     <div className="app">
       <BrandHeader minimal={true} onAdmin={() => setShowAdmin(true)} />
+
+      {aiContent && (
+        <button className="returnword" onClick={() => { setScreen('results'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
+          <Icon name="cross" size={18} /> Return to your word
+        </button>
+      )}
 
       <EntryCard
         selected={selected} onSelect={setSelected}
