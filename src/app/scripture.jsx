@@ -362,7 +362,7 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
     // deep-link: once the chapter text is loaded, scroll to the requested verse
     useEffect(() => {
       if (!gotoVerse || !base) return;
-      const t = setTimeout(() => { jumpTo(gotoVerse); if (onGotoDone) onGotoDone(); }, 220);
+      const t = setTimeout(() => { jumpTo(gotoVerse); if (onGotoDone) onGotoDone(); }, 450);
       return () => clearTimeout(t);
     }, [gotoVerse, base]);
 
@@ -624,9 +624,10 @@ import { DB_BIBLE, DB_BIBLE_TRANSLATIONS } from '../data/bible.js';
     // deep-link: open the reader straight to a saved verse's book + chapter
     useEffect(() => {
       if (!openTarget || !openTarget.book) return;
+      const bookMatch = (a, b) => { const al = a.toLowerCase(), bl = b.toLowerCase(); return al === bl || al.startsWith(bl) || bl.startsWith(al); };
       for (const t of ['OT', 'NT']) {
-        const grp = DB_BIBLE[t].groups.find((g) => g.books.some((b) => b.name === openTarget.book));
-        const b = grp && grp.books.find((x) => x.name === openTarget.book);
+        const grp = DB_BIBLE[t].groups.find((g) => g.books.some((b) => bookMatch(b.name, openTarget.book)));
+        const b = grp && grp.books.find((x) => bookMatch(x.name, openTarget.book));
         if (b) {setTestament(t);openChapter(b, openTarget.chapter || 1, t);setGotoVerse(openTarget.verse || 0);break;}
       }
       if (onTargetConsumed) onTargetConsumed();
