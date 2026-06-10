@@ -1,13 +1,16 @@
 ---
-// /today — Declare hero shell (verification surface for the v3.2 foundation).
-// Empty body for now: this step is the shared shell only. Real Declare content
-// (struggle input -> verse + reflection + declarations + prayer) ships next step.
+// /today — the Declare hero. Mounts the React island that ports the proven v1
+// Declare flow (struggle -> Worker -> verses/reflection/declarations/prayer) into
+// the v3.2 dark-cinematic design. The brain (declare-api) is unchanged from v1.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+import DeclareToday from '../app/declare/DeclareToday.jsx';
 ---
 <DeclareLayout
   title="Declare — Today"
   description="Name what's heavy and receive His Word for this moment."
   activeTab="declare"
 >
-  <main class="in"><!-- placeholder — real Declare flow comes next step --></main>
+  <main>
+    <DeclareToday client:load />
+  </main>
 </DeclareLayout>
