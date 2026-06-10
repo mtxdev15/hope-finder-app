@@ -1,0 +1,139 @@
+/* Declare & Believe — route transition loader overlay.
+   Reuses the Loading.html flipping-Bible, prefixed rl-* so it never collides
+   with page styles. Relies on declare.css custom properties when present, with
+   hard fallbacks so it also works on pages that load it standalone. */
+
+.rl-overlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:#0c130f; color:#F4EFE3;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .42s ease, visibility .42s ease;
+  padding:env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+  overflow:hidden; font-family:'DM Sans',system-ui,sans-serif;
+}
+html[data-theme="light"] .rl-overlay{ background:#FBF8F1; color:#26352C; }
+.rl-overlay.rl-show{ opacity:1; visibility:visible; pointer-events:auto; }
+
+/* warm breathing glow */
+.rl-overlay::before{
+  content:""; position:absolute; left:50%; top:45%; width:min(620px,124vw); aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle, rgba(222,190,100,.20), transparent 60%);
+  filter:blur(10px); animation:rl-breathe 6.4s ease-in-out infinite; pointer-events:none;
+}
+html[data-theme="light"] .rl-overlay::before{ background:radial-gradient(circle, rgba(201,162,58,.16), transparent 62%); }
+/* cinematic vignette */
+.rl-overlay::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(120% 100% at 50% 44%, transparent 54%, rgba(0,0,0,.45) 100%);
+}
+html[data-theme="light"] .rl-overlay::after{ background:radial-gradient(120% 100% at 50% 44%, transparent 60%, rgba(60,46,14,.10) 100%); }
+@keyframes rl-breathe{ 0%,100%{ opacity:.58; transform:translate(-50%,-50%) scale(.92);} 50%{ opacity:1; transform:translate(-50%,-50%) scale(1.07);} }
+
+/* brand mark */
+.rl-mark{
+  width:88px; height:88px; margin-bottom:36px; position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:center;
+  animation:rl-markin .9s cubic-bezier(.2,.7,.2,1) both, rl-float 6s ease-in-out .9s infinite;
+}
+.rl-mark::before{
+  content:""; position:absolute; inset:-32%; border-radius:50%; z-index:-1;
+  background:radial-gradient(circle, rgba(222,190,100,.26), transparent 66%);
+  filter:blur(4px); animation:rl-halo 4.6s ease-in-out infinite;
+}
+.rl-mark img{ width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.45)) drop-shadow(0 0 20px rgba(222,190,100,.3)); }
+html[data-theme="light"] .rl-mark img{ filter:drop-shadow(0 8px 16px rgba(34,56,46,.18)); }
+@keyframes rl-markin{ from{ opacity:0; transform:translateY(-8px) scale(.86);} to{ opacity:1; transform:none;} }
+@keyframes rl-float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-5px);} }
+@keyframes rl-halo{ 0%,100%{ opacity:.5; transform:scale(.94);} 50%{ opacity:1; transform:scale(1.08);} }
+
+/* flipping Bible */
+.rl-book{ --w:90px; --h:114px; --dur:3.2s;
+  position:relative; width:calc(var(--w)*2); height:var(--h); z-index:2;
+  perspective:1600px; perspective-origin:50% 36%;
+  animation:rl-bookin 1s cubic-bezier(.2,.7,.2,1) .12s both; }
+@keyframes rl-bookin{ from{ opacity:0; transform:translateY(14px) scale(.9);} to{ opacity:1; transform:none;} }
+.rl-scene{ position:absolute; inset:0; transform-style:preserve-3d; transform:rotateX(34deg);
+  animation:rl-sway 9s ease-in-out infinite; }
+@keyframes rl-sway{ 0%,100%{ transform:rotateX(33deg) rotateZ(-1.1deg);} 50%{ transform:rotateX(36deg) rotateZ(1.1deg);} }
+
+.rl-shadow{ position:absolute; left:50%; bottom:-24px; width:74%; height:28px; transform:translateX(-50%);
+  background:radial-gradient(ellipse, rgba(0,0,0,.55), transparent 72%); filter:blur(7px); z-index:0;
+  animation:rl-contact 9s ease-in-out infinite; }
+html[data-theme="light"] .rl-shadow{ background:radial-gradient(ellipse, rgba(60,46,14,.22), transparent 72%); }
+@keyframes rl-contact{ 0%,100%{ opacity:.7; transform:translateX(-50%) scaleX(.96);} 50%{ opacity:.95; transform:translateX(-50%) scaleX(1.04);} }
+
+.rl-stack{ position:absolute; top:0; width:var(--w); height:var(--h); border-radius:3px 6px 6px 3px;
+  background:linear-gradient(105deg,#F6EFDD,#EADEC2 88%); box-shadow:inset 0 0 0 1px rgba(154,122,36,.16); }
+.rl-stack.l{ left:0; transform-origin:right center; transform:rotateY(8deg); border-radius:6px 3px 3px 6px;
+  background:linear-gradient(255deg,#F6EFDD,#EADEC2 88%); }
+.rl-stack.r{ left:var(--w); transform-origin:left center; transform:rotateY(-8deg); }
+.rl-stack::after{ content:""; position:absolute; top:2px; bottom:2px; width:6px; background:linear-gradient(#DEBE64,#B8923A); }
+.rl-stack.l::after{ left:-6px; border-radius:3px 0 0 3px; box-shadow:-1px 0 3px rgba(0,0,0,.35); }
+.rl-stack.r::after{ right:-6px; border-radius:0 3px 3px 0; box-shadow:1px 0 3px rgba(0,0,0,.35); }
+.rl-lines{ position:absolute; inset:12px 12px 14px; border-radius:2px;
+  background:repeating-linear-gradient(transparent 0 8px, rgba(154,122,36,.16) 8px 9px); opacity:.7; }
+.rl-stack.l .rl-lines{ inset:12px 14px 14px 12px; }
+
+.rl-spine{ position:absolute; left:calc(var(--w) - 1px); top:1px; width:3px; height:calc(var(--h) - 2px);
+  background:linear-gradient(#C9A23A,#7c5f1c); transform:translateZ(1px); z-index:5; box-shadow:0 0 12px rgba(222,190,100,.55); }
+
+.rl-leaf{ position:absolute; left:var(--w); top:0; width:var(--w); height:var(--h);
+  transform-origin:left center; transform-style:preserve-3d; will-change:transform;
+  animation:rl-flip var(--dur) cubic-bezier(.46,.03,.30,1) infinite, rl-fade var(--dur) linear infinite;
+  animation-delay:var(--d); }
+.rl-face{ position:absolute; inset:0; border-radius:3px 6px 6px 3px; backface-visibility:hidden;
+  background:linear-gradient(105deg,#FBF5E6,#EFE3C8 92%);
+  box-shadow:inset 1px 0 0 rgba(154,122,36,.22), inset 0 0 0 1px rgba(154,122,36,.08); overflow:hidden; }
+.rl-face.b{ transform:rotateY(180deg); background:linear-gradient(255deg,#FBF5E6,#EFE3C8 92%); border-radius:6px 3px 3px 6px; }
+.rl-face::before{ content:""; position:absolute; inset:11px 10px 13px;
+  background:repeating-linear-gradient(transparent 0 8px, rgba(154,122,36,.18) 8px 9px); opacity:.65; }
+.rl-shade{ position:absolute; inset:0; border-radius:3px 6px 6px 3px; z-index:2; pointer-events:none;
+  background:linear-gradient(105deg, rgba(255,250,235,.55) 0%, rgba(255,250,235,0) 34%, rgba(60,46,14,.12) 78%, rgba(60,46,14,.32) 100%);
+  animation:rl-sheen var(--dur) ease-in-out infinite; animation-delay:var(--d); }
+@keyframes rl-sheen{ 0%,100%{ opacity:.15;} 30%{ opacity:.55;} 50%{ opacity:.85;} 70%{ opacity:.5;} }
+
+.rl-leaf:nth-child(1){ --d:calc(var(--dur) * -.00); }
+.rl-leaf:nth-child(2){ --d:calc(var(--dur) * -.16); }
+.rl-leaf:nth-child(3){ --d:calc(var(--dur) * -.34); }
+.rl-leaf:nth-child(4){ --d:calc(var(--dur) * -.54); }
+.rl-leaf:nth-child(5){ --d:calc(var(--dur) * -.74); }
+@keyframes rl-flip{
+  0%{ transform:rotateY(-8deg); z-index:6; }
+  6%{ transform:rotateY(-13deg); }
+  50%{ transform:rotateY(-95deg); }
+  94%{ transform:rotateY(-167deg); }
+  100%{ transform:rotateY(-172deg); z-index:1; }
+}
+@keyframes rl-fade{ 0%{ opacity:0;} 6%{ opacity:1;} 91%{ opacity:1;} 100%{ opacity:0;} }
+
+/* copy */
+.rl-copy{ position:relative; z-index:2; margin-top:54px; text-align:center;
+  animation:rl-copyin 1s cubic-bezier(.2,.7,.2,1) .4s both; }
+@keyframes rl-copyin{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+.rl-copy h1{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:26px; letter-spacing:.01em; white-space:nowrap; margin:0; }
+.rl-copy h1 i{ font-style:normal; opacity:.25; animation:rl-blink 1.5s infinite; }
+.rl-copy h1 i:nth-of-type(2){ animation-delay:.22s; }
+.rl-copy h1 i:nth-of-type(3){ animation-delay:.44s; }
+@keyframes rl-blink{ 0%,80%,100%{ opacity:.25;} 40%{ opacity:1;} }
+
+.rl-verse{ height:20px; margin-top:13px; position:relative; }
+.rl-verse span{ position:absolute; left:0; right:0; top:0; font-size:12px; letter-spacing:.2em; text-transform:uppercase;
+  color:#C9A23A; font-weight:600; opacity:0; transform:translateY(4px); }
+.rl-verse span.on{ animation:rl-verse 2.9s cubic-bezier(.4,0,.2,1) both; }
+@keyframes rl-verse{ 0%{ opacity:0; transform:translateY(6px); filter:blur(3px);} 16%,70%{ opacity:1; transform:none; filter:blur(0);} 100%{ opacity:0; transform:translateY(-6px); filter:blur(3px);} }
+
+.rl-seek{ position:relative; z-index:2; margin-top:28px; width:190px; height:3px; border-radius:3px;
+  background:rgba(127,127,127,.22); overflow:hidden; animation:rl-copyin 1s cubic-bezier(.2,.7,.2,1) .55s both; }
+.rl-seek::before{ content:""; position:absolute; top:0; left:0; height:100%; width:46%; border-radius:3px;
+  background:linear-gradient(90deg, transparent, #DEBE64, transparent); animation:rl-seekx 2.1s cubic-bezier(.5,0,.5,1) infinite; }
+@keyframes rl-seekx{ 0%{ transform:translateX(-120%);} 100%{ transform:translateX(330%);} }
+
+@media (prefers-reduced-motion: reduce){
+  .rl-overlay::before,.rl-leaf,.rl-copy h1 i,.rl-seek::before,.rl-mark,.rl-book,.rl-scene,.rl-shadow,.rl-copy,.rl-seek,.rl-shade{ animation:none !important; }
+  .rl-mark,.rl-book,.rl-copy,.rl-seek{ opacity:1; transform:none; }
+  .rl-leaf{ opacity:0; } .rl-leaf:nth-child(3){ opacity:1; transform:rotateY(-95deg); }
+  .rl-verse span:first-child{ opacity:1; transform:none; }
+}

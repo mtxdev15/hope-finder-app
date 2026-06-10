@@ -1,0 +1,9 @@
+---
+// The shared five-tab bottom navigation (Word · Journey · ⊕ Declare · Vault · You).
+// Renders the <declare-tabbar> web component defined by /declare/declare-tabbar.js
+// (loaded in DeclareLayout). The component builds its own shadow-DOM markup,
+// including the raised gold "Declare" center action. `active` is one of:
+// word | journey | declare | vault | you.
+const { active = '' } = Astro.props;
+---
+<declare-tabbar active={active}></declare-tabbar>

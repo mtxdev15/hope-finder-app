@@ -1,0 +1,165 @@
+/* ============================================================
+   DECLARE — Motion System  (motion.css)
+   "Motion is the quiet hand that reveals the Word."
+   CSS-first. Calibrated to ~40% intensity. Honors reduce-motion.
+   Pairs with motion.js (scroll reveals + auto-stagger).
+   ============================================================ */
+
+/* Opt into calm same-origin cross-document transitions (Chrome).
+   Both pages must link motion.css; the swallow script up top keeps
+   the transition promise from ever throwing. No white flash. */
+@view-transition{ navigation:auto; }
+
+:root{
+  /* ---- duration tiers ---- */
+  --m-fast:150ms;        /* taps, toggles, micro-feedback     */
+  --m-normal:300ms;      /* hovers, small state changes        */
+  --m-premium:600ms;     /* card rise, section reveal          */
+  --m-cinematic:900ms;   /* thresholds, screen transforms      */
+
+  /* ---- easing curves ---- */
+  --ease-soft:cubic-bezier(.2,.7,.2,1);     /* house curve — calm settle   */
+  --ease-calm:cubic-bezier(.4,0,.2,1);      /* symmetric in/out             */
+  --ease-reveal:cubic-bezier(.16,1,.3,1);   /* expo-out — cinematic emerge  */
+  --ease-exit:cubic-bezier(.4,0,1,1);       /* accelerate away              */
+
+  /* ---- rhythm ---- */
+  --m-stagger:90ms;      /* gap between sequential children    */
+  --m-rise:24px;         /* reveal travel (40% intensity)      */
+  --m-blur:8px;          /* reveal blur veil                   */
+  --m-lift:-4px;         /* hover elevation                    */
+}
+
+/* ============================================================
+   1. SCROLL / ENTRANCE REVEALS
+   Base = hidden end-state animates FROM. motion.js adds .m-in.
+   Also fire on [data-deck-active] / print so nothing stays hidden.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference){
+  .m-rise, .m-fade, .m-scale, .m-veil{
+    opacity:0; will-change:opacity, transform, filter;
+    transition:opacity var(--m-premium) var(--ease-reveal),
+               transform var(--m-premium) var(--ease-reveal),
+               filter var(--m-premium) var(--ease-calm);
+    transition-delay:calc(var(--i, 0) * var(--m-stagger));
+  }
+  .m-rise{ transform:translateY(var(--m-rise)); }
+  .m-scale{ transform:scale(.97); }
+  .m-veil{ transform:translateY(var(--m-rise)); filter:blur(var(--m-blur)); }
+
+  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in{
+    opacity:1; transform:none; filter:blur(0);
+  }
+}
+
+/* ============================================================
+   2. BREATHING — barely-perceptible living presence
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes m-breath{
+    0%,100%{ opacity:.86; transform:scale(1); }
+    50%    { opacity:1;   transform:scale(1.012); }
+  }
+  @keyframes m-breath-soft{
+    0%,100%{ opacity:.7; }
+    50%    { opacity:1; }
+  }
+  .m-breath{ animation:m-breath 5.5s var(--ease-calm) infinite; }
+  .m-breath-soft{ animation:m-breath-soft 4.5s var(--ease-calm) infinite; }
+
+  /* gold glow that gently pulses (CTA halo) */
+  @keyframes m-halo{
+    0%,100%{ box-shadow:0 14px 34px -14px rgba(0,0,0,.5), 0 0 0 0 rgba(216,184,95,0); }
+    50%    { box-shadow:0 16px 40px -14px rgba(0,0,0,.55), 0 0 34px -6px rgba(216,184,95,.45); }
+  }
+  .m-halo{ animation:m-halo 4.8s var(--ease-calm) infinite; }
+}
+
+/* ============================================================
+   3. CARD MOTION — tangible, sacred, no harsh shadows
+   ============================================================ */
+.m-card{ transition:transform var(--m-normal) var(--ease-soft),
+                     box-shadow var(--m-premium) var(--ease-soft); }
+@media (hover:hover){
+  .m-card:hover{ transform:translateY(var(--m-lift));
+    box-shadow:var(--card-shadow), 0 22px 46px -22px rgba(0,0,0,.5), 0 0 40px -14px rgba(216,184,95,.28); }
+}
+.m-card:active{ transform:translateY(-1px) scale(.995); }
+
+/* press feedback for any tappable */
+.m-press{ transition:transform var(--m-fast) var(--ease-soft); }
+.m-press:active{ transform:scale(.97); }
+
+/* ============================================================
+   4. THRESHOLD — screen-transform helpers (Begin → Landing,
+   Declare entry). Used with the View Transitions scaffold.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes m-threshold-in{
+    from{ opacity:0; transform:scale(1.04); filter:blur(10px); }
+    to  { opacity:1; transform:none; filter:blur(0); }
+  }
+  @keyframes m-threshold-out{
+    from{ opacity:1; transform:none; filter:blur(0); }
+    to  { opacity:0; transform:scale(.985); filter:blur(6px); }
+  }
+  .m-enter{ animation:m-threshold-in var(--m-cinematic) var(--ease-reveal) both; }
+
+  /* cross-document View Transition: calm dissolve, never a hard cut */
+  ::view-transition-old(root){ animation:m-threshold-out var(--m-premium) var(--ease-exit) both; }
+  ::view-transition-new(root){ animation:m-threshold-in var(--m-cinematic) var(--ease-reveal) both; }
+}
+
+/* ============================================================
+   5. FULL-SCREEN MENU OVERLAY (Unseen-style, calmed)
+   ============================================================ */
+.m-menu{ position:fixed; inset:0; z-index:120; display:flex; flex-direction:column;
+  background:color-mix(in srgb, var(--bgfield) 78%, transparent);
+  backdrop-filter:blur(0px); -webkit-backdrop-filter:blur(0px);
+  opacity:0; visibility:hidden;
+  transition:opacity var(--m-premium) var(--ease-calm),
+             visibility var(--m-premium) var(--ease-calm),
+             backdrop-filter var(--m-premium) var(--ease-calm),
+             -webkit-backdrop-filter var(--m-premium) var(--ease-calm); }
+.m-menu.open{ opacity:1; visibility:visible;
+  backdrop-filter:blur(22px) saturate(1.1); -webkit-backdrop-filter:blur(22px) saturate(1.1); }
+.m-menu .m-menu-item{ opacity:0; transform:translateY(16px);
+  transition:opacity var(--m-premium) var(--ease-reveal), transform var(--m-premium) var(--ease-reveal);
+  transition-delay:calc(var(--i,0) * var(--m-stagger)); }
+.m-menu.open .m-menu-item{ opacity:1; transform:none; }
+
+/* ============================================================
+   6. EXISTING IN-APP TAB BARS — gentle universal polish
+   (screens already ship a .tabbar/.tab; enhance, don't replace)
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes m-tabbar-in{ from{ transform:translateY(100%); } to{ transform:none; } }
+  .tabbar{ animation:m-tabbar-in var(--m-premium) var(--ease-soft) both; }
+}
+.tabbar .tab{ transition:color var(--m-normal) var(--ease-soft), transform var(--m-fast) var(--ease-soft); }
+.tabbar .tab:active{ transform:scale(.9); }
+@media (hover:hover){ .tabbar .tab:not(.on):hover{ transform:translateY(-1px); } }
+
+/* the raised gold Declare orb breathes — the hero action, alive
+   (mobile/phone disc form only; desktop-flattened bars are skipped) */
+@media (prefers-reduced-motion: no-preference) and (max-width:480px){
+  @keyframes m-orb-breath{
+    0%,100%{ box-shadow:0 10px 24px -6px rgba(216,184,95,.5); }
+    50%    { box-shadow:0 12px 30px -6px rgba(216,184,95,.72), 0 0 26px -4px rgba(216,184,95,.5); }
+  }
+  .tab.center .tdisc{ animation:m-orb-breath 5s var(--ease-calm) infinite; }
+  .tab.center:active .tdisc{ transform:scale(.93); }
+}
+
+/* ============================================================
+   7. REDUCED MOTION — gentle fades only, no travel/loops
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  .m-rise, .m-fade, .m-scale, .m-veil{ opacity:0; transition:opacity var(--m-normal) linear; transform:none !important; filter:none !important; }
+  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in{ opacity:1; }
+  .m-breath, .m-breath-soft, .m-halo{ animation:none !important; }
+  .tabbar{ animation:none !important; }
+  .tab.center .tdisc{ animation:none !important; }
+  .m-enter{ animation:none !important; opacity:1 !important; }
+  .m-card:hover{ transform:none; }
+}

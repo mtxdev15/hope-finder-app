@@ -1,0 +1,72 @@
+---
+// v3.2 base layout — the shared shell every redesigned page sits on.
+// Owns the dark-cinematic head (anti-flash paint, theme resolver, fonts,
+// favicons, OG) and mounts the five-tab bottom nav. Deliberately separate
+// from src/layouts/Layout.astro (the legacy v1 app) so the two theme systems
+// (declare.css data-theme vs. db-base/theme.css .theme-dark) never collide.
+import TabBar from '../components/TabBar.astro';
+
+const {
+  title = 'Declare & Believe',
+  description = "Name what's heavy and receive His Word for this moment.",
+  ogImage = '/declare/brand/og.png',
+  activeTab = '',
+} = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<!-- swallow benign "Transition was skipped" rejections from cross-document View Transitions -->
+<script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<!-- anti-flash: paint a solid themed background on the FIRST frame so document-to-document
+     navigation never blinks white (declare.css gradients layer on top once loaded) -->
+<style is:inline id="anti-flash">html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}</style>
+<!-- resolve the saved/system theme synchronously, before paint, so a returning
+     light-mode user never sees a dark->light jump -->
+<script is:inline>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<!-- branch preview: keep everything on this branch out of the index until cutover -->
+<meta name="robots" content="noindex,nofollow" />
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="icon" type="image/png" sizes="32x32" href="/declare/brand/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="/declare/brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="/declare/brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImage} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" /></noscript>
+
+<link rel="stylesheet" href="/declare/declare.css" />
+<link rel="stylesheet" href="/declare/motion.css" />
+<link rel="stylesheet" href="/declare/route-loader.css" />
+</head>
+<body>
+  <slot />
+  <TabBar active={activeTab} />
+
+  <!-- shared vanilla runtime — plain external scripts, emitted verbatim so each
+       module's currentScript.src (e.g. route-loader's asset BASE) resolves correctly -->
+  <script is:inline src="/declare/theme.js"></script>
+  <script is:inline src="/declare/motion.js"></script>
+  <script is:inline src="/declare/route-loader.js" defer></script>
+  <script is:inline src="/declare/declare-tabbar.js"></script>
+</body>
+</html>
