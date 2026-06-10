@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Declare — Bible</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{--text:#22382E;--text2:#465A50;--muted:#7E8E84;--soft:rgba(34,56,46,.78);--gold:#C9A84C;--goldd:#9A7A24;--dot:#C9A84C;--clay:#B5703F;--glow1:rgba(201,168,76,.30);--glow2:rgba(255,243,210,.5);--page:#E7DFD0;--phone:linear-gradient(160deg,#cfc6b4,#b4aa96);--bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);--bg:#FAF7F2;--screen:#FBF8F3;--surface:#FFFFFF;--line:rgba(34,56,46,.08);--line2:rgba(34,56,46,.16);--field:#F4ECDB;--chipbg:#FFFFFF;--topglow:rgba(201,168,76,.26);--botglow:rgba(201,168,76,.12);--prayer:#F3EAD4;--pglow:rgba(201,168,76,.42);--receive:#F7EFDC;--return:#F3EAD4;--rglow:rgba(201,168,76,.3);--spine:#CDB05A;--playbg:#2D4A3E;--playicon:#FAF7F2;--cta:#2D4A3E;--ctatext:#FAF7F2;--statusc:rgba(34,56,46,.6);--tg-verse-b:#F4ECD9;--tg-verse-t:#9A7A24;--tg-dec-b:#F3E5D9;--tg-dec-t:#A35C2E;--tg-pray-b:#E4EDE6;--tg-pray-t:#3E6B52;--vignette:transparent;--card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 12px -3px rgba(34,56,46,.1), inset 0 1px 0 rgba(255,255,255,.7);--chip-shadow:0 6px 16px -6px rgba(34,56,46,.16), inset 0 1px 0 rgba(255,255,255,.6);--return-shadow:0 22px 54px -14px rgba(154,122,36,.34), 0 6px 16px -3px rgba(34,56,46,.12), inset 0 1px 0 rgba(255,255,255,.6);--prayer-shadow:0 28px 64px -14px rgba(154,122,36,.42), 0 8px 20px -4px rgba(34,56,46,.14), inset 0 1px 0 rgba(255,255,255,.6);--phone-shadow:0 50px 110px -24px rgba(34,56,46,.5), 0 16px 40px -12px rgba(34,56,46,.3);}
+html[data-theme="dark"]{--text:#F3EFE6;--text2:#C7D6CD;--muted:#92A89E;--soft:rgba(244,240,231,.6);--gold:#D8B85F;--goldd:#E2C572;--dot:#D8B85F;--clay:#D08A5B;--glow1:rgba(222,190,100,.5);--glow2:rgba(255,238,180,.5);--page:#05090700;--phone:linear-gradient(160deg,#1c2a22,#0b130e);--bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);--bg:#0E1A14;--screen:#13211A;--surface:#1b2c23;--line:rgba(244,239,230,.09);--line2:rgba(244,239,230,.2);--field:rgba(255,255,255,.05);--chipbg:#1b2c23;--topglow:rgba(222,190,100,.5);--botglow:rgba(216,184,95,.22);--prayer:#1D2E25;--pglow:rgba(222,190,100,.55);--receive:rgba(255,255,255,.05);--return:#22352B;--rglow:rgba(222,190,100,.34);--spine:#D8B85F;--playbg:#D8B85F;--playicon:#13211A;--cta:#D0AE54;--ctatext:#13211A;--statusc:rgba(244,239,230,.72);--tg-verse-b:rgba(220,188,99,.18);--tg-verse-t:#E2C572;--tg-dec-b:rgba(208,138,91,.2);--tg-dec-t:#E2A87A;--tg-pray-b:rgba(120,180,140,.18);--tg-pray-t:#8FCBB2;--vignette:rgba(0,0,0,.46);--card-shadow:0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22), inset 0 1px 0 rgba(255,255,255,.06);--chip-shadow:0 8px 20px -8px rgba(0,0,0,.6), 0 0 0 1px rgba(244,239,230,.05), inset 0 1px 0 rgba(255,255,255,.05);--return-shadow:0 26px 64px -16px rgba(0,0,0,.78), 0 0 0 1px rgba(222,190,100,.18), 0 0 70px -6px rgba(222,190,100,.32), inset 0 1px 0 rgba(255,255,255,.06);--prayer-shadow:0 30px 78px -16px rgba(0,0,0,.82), 0 0 0 1px rgba(222,190,100,.2), 0 0 96px -2px rgba(222,190,100,.5), inset 0 1px 0 rgba(255,255,255,.07);--phone-shadow:0 66px 150px -28px rgba(0,0,0,.9), 0 0 150px -34px rgba(222,190,100,.18);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--page);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;transition:background .5s}
+html[data-theme="dark"] body{background:radial-gradient(140% 100% at 50% 0%,#0c1812,#05090700)}
+.serif{font-family:'Cormorant Garamond',serif}
+.lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--goldd);font-weight:500}
+
+.toggle{position:fixed;bottom:18px;right:18px;display:flex;gap:3px;padding:4px;border-radius:999px;background:rgba(127,127,127,.16);backdrop-filter:blur(6px);z-index:10}
+.toggle button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;padding:7px 15px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:rgba(255,255,255,.12);color:var(--text)}
+
+.phone{width:390px;max-width:100%;background:var(--phone);border-radius:46px;padding:9px;box-shadow:var(--phone-shadow)}
+.screen{position:relative;border-radius:38px;overflow:hidden;background:var(--bgfield);max-height:760px;overflow-y:auto}
+.screen::-webkit-scrollbar{display:none}
+.topglow{position:absolute;top:0;left:0;right:0;height:540px;background:radial-gradient(56% 36% at 50% 1%,var(--glow2),transparent 42%),radial-gradient(122% 78% at 50% 2%,var(--topglow),transparent 60%);pointer-events:none;z-index:0}
+.in{position:relative;z-index:1}
+
+.bar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 0;font-size:12px;color:var(--statusc)}
+.batt{display:inline-block;width:18px;height:10px;border:1.5px solid currentColor;border-radius:2px}
+.head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px 4px;color:var(--text)}
+.title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;padding:6px 22px 2px;color:var(--text)}
+
+.search{display:flex;align-items:center;gap:11px;margin:14px 22px 0;padding:14px 16px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow)}
+.search svg{flex:0 0 auto;color:var(--goldd)}
+.search input{flex:1;border:0;background:transparent;outline:none;font-family:inherit;font-size:14px;color:var(--text)}
+.search input::placeholder{color:var(--muted)}
+
+.trow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:16px 22px 4px}
+.pill{font-size:12px;font-weight:500;padding:8px 14px;border-radius:999px;border:1px solid var(--line2);color:var(--text);background:transparent}
+.pill.on{background:var(--gold);border-color:var(--gold);color:#22382E}
+.pill.more{color:var(--goldd);border-style:dashed}
+
+.seg{display:flex;gap:4px;margin:14px 22px 0;padding:4px;background:var(--field);border-radius:999px}
+.seg button{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);padding:9px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:var(--card-shadow)}
+
+.grp{padding:24px 22px 0}
+.grphead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.grptitle{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text)}
+.grpsub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--goldd);font-weight:500}
+.books{display:flex;flex-direction:column;gap:10px}
+.book{display:flex;align-items:center;gap:14px;padding:15px 16px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow);transition:transform .25s}
+.book:hover{transform:translateY(-3px)}
+.book .bmain{flex:1;min-width:0}
+.book .bname{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1.1}
+.book .bdesc{font-size:12.5px;color:var(--muted);margin-top:3px}
+.book .bchap{font-size:11px;color:var(--text2);margin-top:5px;opacity:.8}
+.book .chev{flex:0 0 auto;color:var(--goldd);font-size:18px}
+.foot-sp{height:26px}
+</style>
+</head>
+<body>
+
+<div class="toggle"><button id="tL">Light</button><button id="tD">Dark</button><button id="tA">Auto</button></div>
+
+<div class="phone">
+  <div class="screen">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+
+      <div class="bar"><span style="font-weight:500">9:41</span><span style="display:flex;gap:7px;align-items:center"><span>&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+
+      <div class="head"><span style="font-size:21px">&#8592;</span><span class="lbl" style="padding-top:6px">Scripture</span><span style="font-size:20px">&#9881;</span></div>
+      <div class="title">The Word</div>
+
+      <div class="search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" />
+      </div>
+
+      <div class="trow">
+        <span class="pill on">NKJV</span>
+        <span class="pill on">KJV</span>
+        <span class="pill on">WEB</span>
+        <span class="pill more">All translations</span>
+      </div>
+
+      <div class="seg"><button>Old Testament</button><button class="on">New Testament</button></div>
+
+      <div class="grp">
+        <div class="grphead"><span class="grptitle">The Gospels</span><span class="grpsub">4 books</span></div>
+        <div class="books">
+          <div class="book"><div class="bmain"><div class="bname">Matthew</div><div class="bdesc">The promised Messiah and King</div><div class="bchap">28 chapters</div></div><span class="chev">&#8594;</span></div>
+          <div class="book"><div class="bmain"><div class="bname">Mark</div><div class="bdesc">The Servant who gave everything</div><div class="bchap">16 chapters</div></div><span class="chev">&#8594;</span></div>
+          <div class="book"><div class="bmain"><div class="bname">Luke</div><div class="bdesc">Good news for the lost</div><div class="bchap">24 chapters</div></div><span class="chev">&#8594;</span></div>
+          <div class="book"><div class="bmain"><div class="bname">John</div><div class="bdesc">The Word made flesh</div><div class="bchap">21 chapters</div></div><span class="chev">&#8594;</span></div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grphead"><span class="grptitle">Church History</span><span class="grpsub">1 book</span></div>
+        <div class="books">
+          <div class="book"><div class="bmain"><div class="bname">Acts</div><div class="bdesc">The Spirit empowers believers</div><div class="bchap">28 chapters</div></div><span class="chev">&#8594;</span></div>
+        </div>
+      </div>
+
+      <div class="foot-sp"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){var h=document.documentElement,L=document.getElementById('tL'),D=document.getElementById('tD');
+function set(t){h.setAttribute('data-theme',t);L.classList.toggle('on',t==='light');D.classList.toggle('on',t==='dark');}
+L.onclick=function(){set('light')};D.onclick=function(){set('dark')};})();
+</script>
+
+<script>(function(){var h=document.documentElement,L=document.getElementById("tL"),D=document.getElementById("tD"),A=document.getElementById("tA");if(!L||!D||!A)return;var mq=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");function paint(m){var t=m==="auto"?((mq&&mq.matches)?"dark":"light"):m;h.setAttribute("data-theme",t);L.classList.toggle("on",m==="light");D.classList.toggle("on",m==="dark");A.classList.toggle("on",m==="auto");}var saved=null;try{saved=localStorage.getItem("declare-theme-mock");}catch(e){}var mode=(saved==="light"||saved==="dark"||saved==="auto")?saved:(h.getAttribute("data-theme")==="light"?"light":"dark");function set(m){mode=m;try{localStorage.setItem("declare-theme-mock",m);}catch(e){}paint(m);}L.onclick=function(){set("light");};D.onclick=function(){set("dark");};A.onclick=function(){set("auto");};if(mq&&mq.addEventListener)mq.addEventListener("change",function(){if(mode==="auto")paint("auto");});paint(mode);})();</script>
+</body>
+</html>

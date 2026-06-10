@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Design System</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — Design System" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+
+
+<style>
+  body{ background:var(--bgfield); min-height:100vh; }
+  .ds{ position:relative; max-width:1080px; margin:0 auto; padding:64px 28px 120px; }
+  .ds-glow{ position:fixed; top:0; left:0; right:0; height:620px; z-index:0; pointer-events:none;
+    background:radial-gradient(60% 40% at 50% -4%, var(--glow2), transparent 46%), radial-gradient(120% 70% at 50% 0%, var(--topglow), transparent 60%); }
+  .ds > *{ position:relative; z-index:1; }
+
+  .ds-head{ text-align:center; margin-bottom:18px; }
+  .ds-head .markwrap{ width:66px; height:66px; margin:0 auto 22px; filter:drop-shadow(0 0 26px rgba(222,190,100,.42)); }
+  html[data-theme="light"] .ds-head .markwrap{ filter:drop-shadow(0 8px 18px rgba(154,122,36,.3)); }
+  .ds-head .markwrap img{ width:100%; height:100%; object-fit:contain; }
+  .ds-title{ font-family:'Cormorant Garamond',serif; font-size:clamp(48px,9vw,76px); font-weight:600; line-height:1;
+    color:var(--text); text-shadow:0 0 60px rgba(222,190,100,.3); }
+  .ds-tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:21px; color:var(--soft); margin-top:14px; }
+  .ds-meta{ font-size:13px; color:var(--muted); margin-top:16px; line-height:1.6; }
+
+  .sec{ margin-top:72px; }
+  .sec > .lbl{ margin-bottom:8px; }
+  .sec .sectitle{ font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--text); margin-bottom:6px; }
+  .sec .secnote{ font-size:14px; color:var(--muted); max-width:62ch; line-height:1.6; margin-bottom:26px; }
+  .hr{ height:1px; background:var(--line2); opacity:.5; margin-top:64px; }
+
+  .grid{ display:grid; gap:16px; }
+  .g2{ grid-template-columns:repeat(2,1fr); } .g3{ grid-template-columns:repeat(3,1fr); } .g4{ grid-template-columns:repeat(4,1fr); }
+  @media (max-width:720px){ .g3,.g4{ grid-template-columns:repeat(2,1fr); } }
+
+  /* swatches */
+  .sw{ border-radius:16px; overflow:hidden; box-shadow:var(--card-shadow); background:var(--surface); }
+  .sw .chip-c{ height:84px; }
+  .sw .meta{ padding:12px 14px; }
+  .sw .nm{ font-size:13px; font-weight:600; color:var(--text); }
+  .sw .hex{ font-size:11.5px; color:var(--muted); letter-spacing:.04em; margin-top:2px; }
+
+  /* type scale rows */
+  .typerow{ display:flex; align-items:baseline; gap:18px; padding:16px 0; border-bottom:1px solid var(--line); }
+  .typerow .tag{ flex:0 0 130px; font-size:11px; color:var(--muted); letter-spacing:.04em; }
+  .verse-demo{ font-family:'Cormorant Garamond',serif; font-size:27px; line-height:1.34; color:var(--text); }
+
+  /* icon grid */
+  .icons{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:12px; }
+  .ic{ display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 8px; border-radius:14px;
+    background:var(--surface); box-shadow:var(--chip-shadow); }
+  .ic svg{ width:23px; height:23px; color:var(--goldd); }
+  .ic span{ font-size:10.5px; color:var(--muted); letter-spacing:.04em; }
+
+  .demo{ padding:26px; border-radius:20px; background:var(--surface); box-shadow:var(--card-shadow); }
+  .demo-row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .stack{ display:flex; flex-direction:column; gap:16px; }
+
+  .spine-demo{ position:relative; padding-left:52px; }
+  .spine-demo .sline{ position:absolute; left:20px; top:6px; bottom:6px; width:2px; transform:translateX(-50%);
+    background:linear-gradient(var(--spine), rgba(201,168,76,.25)); box-shadow:0 0 10px 1px rgba(216,184,95,.4); border-radius:2px; }
+  .spine-demo .snode{ position:absolute; left:5px; width:30px; height:30px; border-radius:50%; background:var(--screen);
+    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; color:var(--goldd);
+    box-shadow:0 0 0 5px var(--screen),0 0 18px 1px rgba(216,184,95,.5); }
+  .spine-demo .snode svg{ width:14px; height:14px; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+
+<div class="ds-glow" aria-hidden="true"></div>
+<div class="ds">
+
+  <header class="ds-head">
+    <div class="markwrap rise d1"><img src="brand/mark.png" alt="Declare" /></div>
+    <div class="ds-title serif rise d2">Declare</div>
+    <div class="ds-tag rise d3">Light in the darkness.</div>
+    <div class="ds-meta rise d4">Unified design system &middot; v3.2 &middot; Open &times; Superpower, merged into Declare<br>Dark is default (cinematic); Light is a warm dawn key. Romans 12:2.</div>
+  </header>
+
+  <!-- COLOR -->
+  <section class="sec">
+    <div class="lbl">01 — Color</div>
+    <div class="sectitle serif">A forest field, lit by gold</div>
+    <div class="secnote">Near-black forest green with a warm gold glow breaking through like light in darkness. Toggle the theme (top-right) to see both keys — every token re-skins live.</div>
+
+    <div class="grid g4">
+      <div class="sw"><div class="chip-c" style="background:#0c130f"></div><div class="meta"><div class="nm">Deep field</div><div class="hex">#0c130f</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#13211A"></div><div class="meta"><div class="nm">Screen</div><div class="hex">#13211A</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#2D4A3E"></div><div class="meta"><div class="nm">Forest</div><div class="hex">#2D4A3E</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#1b2c23"></div><div class="meta"><div class="nm">Surface</div><div class="hex">#1b2c23</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#D8B85F"></div><div class="meta"><div class="nm">Gold (dark)</div><div class="hex">#D8B85F</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#C9A84C"></div><div class="meta"><div class="nm">Gold</div><div class="hex">#C9A84C</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#D08A5B"></div><div class="meta"><div class="nm">Clay</div><div class="hex">#D08A5B</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#FAF7F2"></div><div class="meta"><div class="nm">Cream</div><div class="hex">#FAF7F2</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:#E8E0D0"></div><div class="meta"><div class="nm">Parchment</div><div class="hex">#E8E0D0</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:var(--text)"></div><div class="meta"><div class="nm">Text</div><div class="hex">--text</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:var(--muted)"></div><div class="meta"><div class="nm">Muted</div><div class="hex">--muted</div></div></div>
+      <div class="sw"><div class="chip-c" style="background:var(--bgfield)"></div><div class="meta"><div class="nm">Field gradient</div><div class="hex">--bgfield</div></div></div>
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  <!-- TYPE -->
+  <section class="sec">
+    <div class="lbl">02 — Typography</div>
+    <div class="sectitle serif">Cormorant for the soul, DM Sans for the hands</div>
+    <div class="secnote">Cormorant Garamond carries the wordmark, headings, Scripture, prayers and taglines. DM Sans carries all UI, labels and body. Section labels are tiny uppercase gold.</div>
+
+    <div class="typerow"><span class="tag">Wordmark / Display</span><span class="serif" style="font-size:52px;font-weight:600;color:var(--text)">Declare</span></div>
+    <div class="typerow"><span class="tag">Heading · Cormorant 600</span><span class="serif" style="font-size:33px;font-weight:600;color:var(--text)">What&rsquo;s weighing on your heart?</span></div>
+    <div class="typerow"><span class="tag">Scripture · ~27/1.34</span><span class="verse-demo">&ldquo;Fear thou not; for I am with thee: be not dismayed; for I am thy God.&rdquo;</span></div>
+    <div class="typerow"><span class="tag">Tagline · italic</span><span class="serif" style="font-style:italic;font-size:21px;color:var(--soft)">Name what&rsquo;s heavy.</span></div>
+    <div class="typerow"><span class="tag">Body · DM Sans</span><span style="font-size:15px;color:var(--text2);max-width:48ch;line-height:1.6">Fear says you&rsquo;re carrying this alone. Scripture answers with a Person, not a pep talk.</span></div>
+    <div class="typerow"><span class="tag">Section label</span><span class="lbl">Scripture for this</span></div>
+  </section>
+
+  <div class="hr"></div>
+
+  <!-- ICONS -->
+  <section class="sec">
+    <div class="lbl">03 — Icons</div>
+    <div class="sectitle serif">Thin-line, gold-tinted, optically aligned</div>
+    <div class="secnote">A cohesive ~1.7-stroke set. Nav 22px, row 17–18px, inline 12–14px. No character-glyph arrows — every icon is real SVG so nothing renders as a missing-glyph box.</div>
+    <div class="icons">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span>The Word</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12a7 7 0 0 0 14 0"/><line x1="5" y1="12" x2="2.5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/></svg><span>Anchor</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"/><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"/></svg><span>Today</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="3" y="13" width="4" height="7" rx="1.5"/><rect x="17" y="13" width="4" height="7" rx="1.5"/></svg><span>Listen</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span>You</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Send</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Play</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg><span>Save</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg><span>Search</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"/><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"/><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"/></svg><span>Crisis</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Arrow</span></div>
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"/><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"/></svg><span>Prayer</span></div>
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  <!-- COMPONENTS -->
+  <section class="sec">
+    <div class="lbl">04 — Components</div>
+    <div class="sectitle serif">Everything floats</div>
+    <div class="secnote">Soft layered shadows, a faint gold halo, and a glassy top highlight — never flat. Buttons, chips, the write-your-own input, cards, the results spine.</div>
+
+    <div class="grid g2">
+      <div class="demo stack">
+        <div class="lbl">Buttons</div>
+        <button class="btn btn-primary btn-full">Receive the Word</button>
+        <button class="btn btn-ghost btn-full">Save this word</button>
+        <div class="demo-row">
+          <span class="chip on">Fear &amp; anxiety</span>
+          <span class="chip">Shame</span>
+          <span class="chip more">More +</span>
+        </div>
+      </div>
+
+      <div class="demo stack">
+        <div class="lbl">Write your own</div>
+        <div class="input">
+          <input type="text" placeholder="Or write what&rsquo;s on your heart&hellip;" aria-label="demo" />
+          <button class="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        </div>
+        <div class="divider"><span></span><em>or choose what fits</em><span></span></div>
+        <a href="#" class="crisis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/></svg>
+          <span>In crisis? Find help now</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:16px">
+      <div class="demo">
+        <div class="lbl" style="margin-bottom:18px">Scripture card</div>
+        <div class="serif verse-demo">&ldquo;Be not dismayed, for I am your God. I will strengthen you.&rdquo;</div>
+        <div class="lbl" style="margin-top:14px;color:var(--goldd)">Isaiah 41:10 &middot; KJV</div>
+      </div>
+      <div class="demo">
+        <div class="lbl" style="margin-bottom:18px">Results spine &amp; stations</div>
+        <div class="spine-demo" style="min-height:150px">
+          <div class="sline"></div>
+          <div class="snode" style="top:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <div style="padding-bottom:22px"><div class="lbl">Scripture</div><div style="font-size:13px;color:var(--text2);margin-top:6px">A large verse + reference.</div></div>
+          <div class="snode" style="top:74px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6M10 20.5h4M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"/></svg></div>
+          <div><div class="lbl">Mindset</div><div style="font-size:13px;color:var(--text2);margin-top:6px">A short reflection.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo" style="margin-top:16px">
+      <div class="lbl" style="margin-bottom:16px">Curved bottom tab bar — Today centered</div>
+      <nav class="tabbar" style="background:none;border-radius:16px;border:1px solid var(--line)">
+        <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span>
+        <span class="tab center on"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></span>
+      </nav>
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  <!-- SCREENS -->
+  <section class="sec">
+    <div class="lbl">05 — Screens in this build</div>
+    <div class="sectitle serif">Start here</div>
+    <div class="secnote">The first two screens are ready. We&rsquo;ll go screen by screen from here.</div>
+    <div class="grid g3">
+      <a class="card tap" href="Hero.html" style="padding:22px;display:block">
+        <div class="lbl">Threshold</div>
+        <div class="serif" style="font-size:24px;color:var(--text);margin-top:8px">Hero</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px">Cinematic landing &middot; Begin / Sign in</div>
+      </a>
+      <a class="card tap" href="Today.html" style="padding:22px;display:block">
+        <div class="lbl">Home</div>
+        <div class="serif" style="font-size:24px;color:var(--text);margin-top:8px">Declare</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px">Entry &middot; chips &middot; More sheet &middot; tab bar</div>
+      </a>
+      <div class="card" style="padding:22px;opacity:.6">
+        <div class="lbl">Next</div>
+        <div class="serif" style="font-size:24px;color:var(--text);margin-top:8px">Results &amp; beyond</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px">The Word, Anchor, Profile, Account&hellip;</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="theme.js"></script>
+</body>
+</html>

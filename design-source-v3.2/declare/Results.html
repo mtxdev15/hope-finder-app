@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Your Word</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — Your Word" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<script src="account-morph.js" defer></script>
+<link rel="stylesheet" href="motion.css" />
+<link rel="stylesheet" href="share.css" />
+<link rel="stylesheet" href="card-studio.css" />
+
+
+<style>
+  .screen{ min-height:760px; }
+  .stnacts{ display:flex; align-items:center; gap:2px; }
+  .praywrap .prayshare{ position:absolute; top:14px; left:14px; z-index:2; }
+  .foot .share{ flex:1; border:1px solid var(--line2); background:transparent; color:var(--text); border-radius:14px; padding:15px; font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:9px; transition:transform .16s ease, color .2s ease, border-color .2s ease; }
+  .foot .share:active{ transform:scale(.97); }
+  .foot .share svg{ width:16px; height:16px; }
+  .foot .share:hover{ color:var(--goldd); border-color:rgba(216,184,95,.5); }
+
+  /* share chooser sheet */
+  .sps-scrim{ position:fixed; inset:0; z-index:64; background:rgba(6,11,8,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .4s ease; }
+  .sps-scrim.show{ opacity:1; pointer-events:auto; }
+  .sps{ position:fixed; left:50%; bottom:0; transform:translate(-50%,100%); width:min(440px,100%); z-index:65; background:var(--screen); border-radius:26px 26px 0 0; box-shadow:0 -24px 70px -24px rgba(0,0,0,.7); padding:10px 20px calc(22px + env(safe-area-inset-bottom)); transition:transform .42s cubic-bezier(.2,.7,.2,1); max-height:84vh; overflow-y:auto; scrollbar-width:none; }
+  .sps::-webkit-scrollbar{ display:none; }
+  .sps.show{ transform:translate(-50%,0); }
+  .sps .grab{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:2px auto 14px; }
+  .sps h3{ font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--text); text-align:center; }
+  .sps-sub{ font-size:13px; color:var(--muted); text-align:center; margin-top:4px; margin-bottom:6px; }
+  .sps-row{ display:flex; align-items:center; gap:14px; padding:15px 6px; width:100%; border:0; background:none; cursor:pointer; font-family:inherit; text-align:left; border-top:1px solid var(--line); transition:padding-left .2s ease; }
+  .sps-row:hover{ padding-left:10px; }
+  .sps-row .ic{ flex:0 0 auto; width:40px; height:40px; border-radius:12px; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .sps-row .ic svg{ width:19px; height:19px; }
+  .sps-row .tx{ flex:1; min-width:0; }
+  .sps-row .k{ font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .sps-row .v{ font-size:14.5px; color:var(--text); margin-top:3px; line-height:1.42; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sps-row .go{ flex:0 0 auto; color:var(--muted); display:flex; }
+  .sps-row .go svg{ width:16px; height:16px; }
+  .botglow{ position:absolute; bottom:64px; left:0; right:0; height:360px; z-index:0; pointer-events:none;
+    background:radial-gradient(120% 78% at 50% 112%,var(--botglow),transparent 58%); }
+
+  .head{ position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center; padding:14px 18px 4px; color:var(--text); }
+  .head .mid{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+  .head .bm{ color:var(--text); }
+  .head .bm.on{ color:var(--goldd); }
+
+  .intro{ position:relative; z-index:1; text-align:center; padding:12px 28px 24px; }
+  .intro .serif{ font-size:27px; font-style:italic; color:var(--text); line-height:1.34; }
+
+  .journey{ position:relative; z-index:1; padding:0 22px 22px; }
+  .stn{ position:relative; padding-left:52px; padding-bottom:34px; }
+  /* spine threads through each node's centre (x=20 within .stn) */
+  .stn::before{ content:''; position:absolute; left:20px; transform:translateX(-50%); top:14px; height:100%; width:2px;
+    background:linear-gradient(var(--spine), rgba(201,168,76,.25)); box-shadow:0 0 10px 1px rgba(216,184,95,.4); border-radius:2px; z-index:0; }
+  .stn:last-child::before{ display:none; }
+  .node{ position:absolute; left:5px; top:-1px; width:30px; height:30px; border-radius:50%; background:var(--screen);
+    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; color:var(--goldd);
+    box-shadow:0 0 0 5px var(--screen),0 0 18px 1px rgba(216,184,95,.5); z-index:2; }
+  .node svg{ width:15px; height:15px; }
+
+  .stnhead{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding-top:6px; }
+  .verse{ font-family:'Cormorant Garamond',serif; font-size:27px; line-height:1.34; color:var(--text); margin-top:12px; }
+  .ref{ font-size:12px; letter-spacing:.05em; color:var(--goldd); margin-top:11px; font-weight:500; }
+
+  .ibtn{ width:30px; height:30px; border:0; background:transparent; cursor:pointer; color:var(--muted); display:flex; align-items:center; justify-content:center; border-radius:9px; transition:transform .16s ease, color .2s ease; }
+  .ibtn:active{ transform:scale(.9); }
+  .ibtn svg{ width:17px; height:17px; }
+  .ibtn.on{ color:var(--goldd); }
+
+  .receive{ display:flex; align-items:center; gap:12px; margin-top:18px; padding:15px 16px; background:var(--receive);
+    border-radius:14px; border:1px solid var(--line); box-shadow:var(--card-shadow); cursor:pointer; width:100%; text-align:left; }
+  .receive .pl{ flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1.5px solid var(--gold); display:flex;
+    align-items:center; justify-content:center; color:var(--goldd); box-shadow:0 0 14px rgba(216,184,95,.4); transition:transform .35s cubic-bezier(.2,.7,.2,1); }
+  .receive .pl svg{ width:14px; height:14px; }
+  .receive.open .pl{ transform:rotate(135deg); }
+  .receive .rmid{ flex:1; }
+  .receive .rprompt{ font-size:13px; color:var(--muted); }
+  .receive .reveal{ display:grid; grid-template-rows:0fr; opacity:0; margin-top:0; transition:grid-template-rows .42s cubic-bezier(.2,.7,.2,1), opacity .3s ease, margin-top .42s ease; }
+  .receive.open .reveal{ grid-template-rows:1fr; opacity:1; margin-top:10px; }
+  .receive .reveal-in{ overflow:hidden; min-height:0; }
+  .receive .rverse{ font-family:'Cormorant Garamond',serif; font-size:19px; line-height:1.4; color:var(--text); }
+  .receive .rrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
+  .receive .rref{ font-size:11px; letter-spacing:.06em; color:var(--goldd); font-weight:500; }
+
+  .body{ font-size:14.5px; line-height:1.66; color:var(--text2); margin-top:13px; }
+  .more-body{ display:grid; grid-template-rows:0fr; opacity:0; margin-top:0; transition:grid-template-rows .42s cubic-bezier(.2,.7,.2,1), opacity .3s ease, margin-top .42s ease; }
+  .mind.open .more-body{ grid-template-rows:1fr; opacity:1; margin-top:11px; }
+  .more-in{ overflow:hidden; min-height:0; }
+  .more{ font-size:13px; color:var(--goldd); margin-top:12px; font-weight:500; cursor:pointer; background:none; border:0; font-family:inherit; display:inline-flex; align-items:center; gap:7px; padding:2px 0; }
+  .more svg{ width:14px; height:14px; transition:transform .3s ease; }
+  .mind.open .more svg{ transform:rotate(180deg); }
+
+  .speak{ display:flex; flex-direction:column; gap:11px; margin-top:15px; }
+  .srow{ display:flex; align-items:center; gap:14px; padding:13px 14px; }
+  .srow .play{ flex:0 0 auto; width:36px; height:36px; border:0; cursor:pointer; border-radius:50%; background:var(--playbg);
+    display:flex; align-items:center; justify-content:center; color:var(--playicon); box-shadow:0 6px 16px -3px rgba(0,0,0,.3),0 0 20px -2px rgba(216,184,95,.5); transition:transform .16s ease, box-shadow .2s ease; }
+  .srow .play:active{ transform:scale(.9); }
+  .srow .play svg{ width:14px; height:14px; }
+  .srow.speaking .play{ box-shadow:0 0 0 4px rgba(216,184,95,.2),0 6px 18px -3px rgba(216,184,95,.7); }
+  .srow .dec{ flex:1; font-family:'Cormorant Garamond',serif; font-size:18px; color:var(--text); line-height:1.3; }
+
+  .praywrap{ position:relative; margin-top:18px; }
+  .prayglow{ position:absolute; inset:-26px; background:radial-gradient(circle at 50% 42%,var(--pglow),transparent 70%); pointer-events:none; }
+  .pray{ position:relative; background:var(--prayer); border-radius:20px; padding:28px 24px 24px; text-align:center; box-shadow:var(--prayer-shadow); border:1px solid var(--line); }
+  .pray .ptext{ font-family:'Cormorant Garamond',serif; font-size:20px; font-style:italic; line-height:1.52; color:var(--text); }
+  .pray .amen{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--goldd); margin-top:16px; letter-spacing:.05em; text-shadow:0 0 18px rgba(216,184,95,.4); }
+  .pray .praysave{ position:absolute; top:14px; right:14px; }
+
+  .foot{ position:relative; z-index:1; display:flex; gap:10px; padding:6px 22px calc(28px + env(safe-area-inset-bottom)); }
+  .foot .save{ flex:1; border:1px solid var(--line2); background:transparent; color:var(--text); border-radius:14px; padding:15px; font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:9px; transition:transform .16s ease, color .2s ease, border-color .2s ease; }
+  .foot .save svg{ width:16px; height:16px; }
+  .foot .save.on{ color:var(--goldd); border-color:rgba(216,184,95,.5); }
+  .foot .again{ flex:0 0 auto; border:0; background:var(--cta); color:var(--ctatext); padding:15px 20px; border-radius:14px; font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; box-shadow:0 8px 22px -6px rgba(216,184,95,.5); }
+
+  /* tiny toast */
+  .toast{ position:fixed; left:50%; bottom:90px; transform:translate(-50%,20px); background:var(--surface); color:var(--text);
+    padding:12px 18px; border-radius:14px; box-shadow:var(--card-shadow); font-size:13.5px; display:flex; align-items:center; gap:9px;
+    opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease; z-index:60; }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .toast svg{ width:16px; height:16px; color:var(--goldd); }
+
+  /* closing next-steps */
+  .nextsteps{ position:relative; z-index:1; padding:2px 22px 14px; }
+  .nextsteps .ns-lbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:12px; text-align:center; }
+  .nslist{ display:flex; flex-direction:column; gap:10px; }
+  .nscard{ display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); border-radius:14px; box-shadow:var(--card-shadow); text-decoration:none; transition:transform .25s cubic-bezier(.2,.7,.2,1); }
+  @media (hover:hover){ .nscard:hover{ transform:translateY(-3px); } }
+  .nscard .nsi{ flex:0 0 auto; width:34px; height:34px; border-radius:10px; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .nscard .nsi svg{ width:17px; height:17px; }
+  .nscard .nsm{ flex:1; min-width:0; }
+  .nscard .nst{ display:block; font-size:15px; font-weight:500; color:var(--text); }
+  .nscard .nsd{ display:block; font-size:12px; color:var(--muted); margin-top:1px; }
+  .nscard .nsa{ flex:0 0 auto; color:var(--muted); display:flex; }
+  .nscard .nsa svg{ width:16px; height:16px; }
+
+  /* commentary card — a focused, centered reading moment with a soft scrim */
+  .ctoast-scrim{ position:fixed; inset:0; z-index:59; background:rgba(6,11,8,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    opacity:0; pointer-events:none; transition:opacity .45s ease; }
+  .ctoast-scrim.show{ opacity:1; pointer-events:auto; }
+  .ctoast{ position:fixed; left:50%; top:50%; z-index:60; width:min(420px,calc(100% - 40px));
+    background:var(--screen); border:1px solid var(--line2); border-radius:20px; overflow:hidden;
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.78), 0 0 0 1px rgba(216,184,95,.1); padding:24px 20px 20px;
+    opacity:0; pointer-events:none; transform:translate(-50%,-46%) scale(.96);
+    transition:transform .52s cubic-bezier(.2,.7,.2,1), opacity .4s ease; }
+  .ctoast.show{ opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+  .ctoast::before{ content:''; position:absolute; top:-46%; left:50%; transform:translateX(-50%); width:150%; height:170px; pointer-events:none;
+    background:radial-gradient(60% 100% at 50% 0, rgba(216,184,95,.2), transparent 72%); }
+  .ctoast > *{ position:relative; z-index:1; }
+  @media (prefers-reduced-motion: reduce){ .ctoast{ transition:opacity .3s ease; transform:translate(-50%,-50%); } }
+  .ctoast-x{ position:absolute; top:11px; right:11px; width:28px; height:28px; border:0; background:transparent; color:var(--muted);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:.18s; z-index:2; }
+  .ctoast-x:hover{ color:var(--text); background:var(--field); }
+  .ctoast-x svg{ width:15px; height:15px; }
+  .ctoast-ref{ font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:9px; padding-right:24px; }
+  .ctoast-body{ font-size:14.5px; line-height:1.62; color:var(--text2); }
+  .ctoast-act{ display:inline-flex; align-items:center; gap:8px; margin-top:15px; font-size:13.5px; font-weight:600; color:var(--goldd); text-decoration:none; transition:color .18s; }
+  .ctoast-act:hover{ color:var(--gold); }
+  .ctoast-act svg{ width:15px; height:15px; }
+
+  /* ============================================================
+     DESKTOP / TABLET (>=481px): drop the phone bezel, turn the bottom
+     tab bar into a top nav bar, and center the reading in a column.
+     Mobile (<=480px) keeps the full-bleed phone layout.
+     ============================================================ */
+  @media (min-width:481px){
+    .stage{ padding:0; align-items:stretch; }
+    .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+    .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
+    .bar{ display:none; }
+
+    /* tab bar → top app bar */
+    .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
+      flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
+      background:color-mix(in srgb, var(--bgfield) 82%, transparent);
+      backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2); border-bottom:1px solid var(--line); }
+    .tabbar .arc{ display:none; }
+    .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 13px; border-radius:11px; color:var(--muted); transition:color .2s ease; position:relative; }
+    .tab:hover{ color:var(--text); }
+    .tab svg{ width:18px; height:18px; }
+    .tab .tlbl{ opacity:1; font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; }
+    .tab.on{ color:var(--text); }
+    .tab.center{ flex:0 0 auto; margin:0; }
+    .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; background:none; box-shadow:none; border-radius:0; display:flex; }
+    .tab.center svg{ width:18px; height:18px; }
+    .tab.center.on{ color:var(--goldd); }
+    .tab.center.on .tdisc{ color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.5)); }
+    .tab.center.on::after{ content:''; position:absolute; left:13px; right:13px; bottom:2px; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+    /* reading content centered in a calm column, cleared of the top bar */
+    .head{ max-width:720px; margin:0 auto; width:100%; padding:80px 22px 4px; }
+    .intro{ max-width:720px; margin:0 auto; width:100%; }
+    .journey{ max-width:720px; margin:0 auto; width:100%; }
+    .foot{ max-width:720px; margin:0 auto; width:100%; padding-bottom:40px; }
+    .nextsteps{ max-width:720px; margin:0 auto; width:100%; padding-bottom:96px; }
+    .botglow{ bottom:120px; }
+  }
+  @media (min-width:1100px){
+    .head, .intro, .journey, .foot, .nextsteps{ max-width:760px; }
+  }
+
+  /* ===== Start a Journey CTA (carries the struggle into Journey) ===== */
+  .startjourney{ position:relative; margin:18px 22px 6px; padding:20px; border-radius:18px; overflow:hidden;
+    border:1px solid color-mix(in srgb,var(--gold) 34%,transparent);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--gold) 12%,var(--surface)), var(--surface));
+    box-shadow:0 18px 46px -18px rgba(216,184,95,.42), var(--card-shadow); }
+  .startjourney .sj-glow{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(72% 60% at 50% 0%, rgba(216,184,95,.18), transparent 70%); }
+  .startjourney .sj-tag{ position:relative; z-index:1; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+  .startjourney .sj-h{ position:relative; z-index:1; font-family:'Cormorant Garamond',serif; font-size:24px; color:var(--text); font-weight:600; margin-top:8px; line-height:1.14; }
+  .startjourney .sj-p{ position:relative; z-index:1; font-size:13.5px; line-height:1.56; color:var(--text2); margin-top:8px; }
+  .startjourney .sj-p b{ color:var(--text); font-weight:600; }
+  .startjourney .btn{ position:relative; z-index:1; width:100%; margin-top:15px; box-shadow:0 14px 34px -12px rgba(216,184,95,.6); }
+  @media (min-width:481px){ .startjourney{ max-width:760px; margin-left:auto; margin-right:auto; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="botglow" aria-hidden="true"></div>
+
+      <div class="bar">
+        <span style="font-weight:500">9:41</span>
+        <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+      </div>
+
+      <div class="head">
+        <a class="iconbtn" href="Today.html" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </a>
+        <span class="mid" id="forLabel">For fear &amp; anxiety</span>
+        <button class="iconbtn bm" id="saveWord" aria-label="Save this word" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg>
+        </button>
+      </div>
+
+      <div class="intro rise d1"><div class="serif">Walk through this slowly.</div></div>
+
+      <div class="journey" data-m-stagger style="--m-stagger:240ms; --m-premium:820ms">
+
+        <!-- Scripture -->
+        <div class="stn m-veil">
+          <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></span>
+          <div class="stnhead">
+            <span class="lbl">Scripture</span>
+          </div>
+          <div class="serif verse">&ldquo;Fear thou not; for I am with thee: be not dismayed; for I am thy God.&rdquo;</div>
+          <div class="ref">Isaiah 41:10 &middot; KJV</div>
+
+          <button class="receive" id="receive" aria-expanded="false">
+            <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="rmid">
+              <span class="rprompt"><b style="color:var(--text2);font-weight:600">Psalm 34:4</b> &mdash; <span class="serif" style="font-style:italic" id="rprompt">tap to receive this verse</span></span>
+              <span class="reveal"><span class="reveal-in">
+                <span class="serif rverse">&ldquo;I sought the Lord, and he heard me, and delivered me from all my fears.&rdquo;</span>
+                <span class="rrow">
+                  <span class="rref">Psalm 34:4 &middot; KJV</span>
+                </span>
+              </span></span>
+            </span>
+          </button>
+        </div>
+
+        <!-- Mindset -->
+        <div class="stn m-veil">
+          <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6"/><path d="M10 20.5h4"/><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"/></svg></span>
+          <div class="stnhead">
+            <span class="lbl">Mindset</span>
+          </div>
+          <div class="mind" id="mind">
+            <div class="body">Fear says you&rsquo;re carrying this alone. Scripture answers with a Person, not a pep talk &mdash; God himself, near and holding on to you. You don&rsquo;t have to summon courage; you have to remember who is with you.</div>
+            <div class="more-body"><div class="more-in">
+              <div class="body" style="margin-top:0">So don&rsquo;t fight the fear with willpower tonight. Turn toward the One who is already here, name what frightens you, and let Him carry what you cannot. His nearness is not a feeling to chase &mdash; it is a fact to rest on.</div>
+            </div></div>
+            <button class="more" id="more" aria-expanded="false">
+              <span class="more-lbl">Read more</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Speak it aloud -->
+        <div class="stn m-veil">
+          <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg></span>
+          <div class="stnhead"><span class="lbl">Speak it aloud</span></div>
+          <div class="speak">
+            <div class="card srow">
+              <button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+              <span class="dec">I am not alone. God is with me.</span>
+            </div>
+            <div class="card srow">
+              <button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+              <span class="dec">I will not be afraid; He holds me.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prayer -->
+        <div class="stn m-veil">
+          <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"/><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"/></svg></span>
+          <div class="stnhead"><span class="lbl">Prayer</span></div>
+          <div class="praywrap">
+            <div class="prayglow" aria-hidden="true"></div>
+            <div class="pray">
+              <div class="ptext">Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness.</div>
+              <div class="amen">Amen.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="foot rise d6">
+        <button class="save" id="saveWord2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg>
+          <span class="sw-lbl">Save this word</span>
+        </button>
+        <button class="share" id="shareWord">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+          <span>Share</span>
+        </button>
+      </div>
+
+      <div class="startjourney rise d6">
+        <div class="sj-glow" aria-hidden="true"></div>
+        <div class="sj-tag">Be transplanted</div>
+        <div class="sj-h">Don&rsquo;t just declare it today</div>
+        <div class="sj-p">Be rooted in it. Start a 5-day journey and let this truth grow real where <b id="sjStruggle">fear &amp; anxiety</b> has been &mdash; one declaration at a time.</div>
+        <button class="btn btn-primary btn-full" id="startJourney">Start a 5-Day Journey
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <div class="nextsteps rise d6">
+        <div class="ns-lbl">Carry it with you</div>
+        <div class="nslist">
+          <a class="nscard" id="readPassage" href="TheWord.html"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></span><span class="nsm"><span class="nst">Read the full passage</span><span class="nsd">Open it in The Word, with a short commentary</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>
+          <a class="nscard" href="#"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg></span><span class="nsm"><span class="nst">Return to it later</span><span class="nsd">Everything you saved lives in your Vault</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>
+          <a class="nscard" href="Today.html"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"/><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"/></svg></span><span class="nsm"><span class="nst">Receive another word</span><span class="nsd">For whatever else is heavy</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </div>
+
+      <nav class="tabbar" aria-label="Primary">
+        <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+        <a class="tab" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+        <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+        <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+        <a class="tab" href="Vault.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+        <a class="tab" href="Account-A.html"><svg data-you-morph viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+      </nav>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span id="toastMsg">Saved to Anchor</span></div>
+
+<div class="sps-scrim" id="spsScrim"></div>
+<section class="sps" id="sps" aria-hidden="true" aria-label="Choose what to share">
+  <div class="grab" aria-hidden="true"></div>
+  <h3>Share this word</h3>
+  <div class="sps-sub">Choose what to send</div>
+  <div id="spsRows"></div>
+</section>
+
+<div class="ctoast-scrim" id="ctoastScrim"></div>
+<div class="ctoast" id="ctoast" role="dialog" aria-live="polite" aria-label="Verse commentary">
+  <button class="ctoast-x" id="ctoastX" aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="ctoast-ref" id="ctoastRef">Isaiah 41:10 &middot; KJV</div>
+  <div class="ctoast-body" id="ctoastBody"></div>
+  <a class="ctoast-act" id="ctoastOpen" href="TheWord.html">Open the passage in The Word <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
+</div>
+
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script src="share.js"></script>
+<script src="card-studio.js"></script>
+<script>
+(function(){
+  var KEY='declare-vault';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function save(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+  function has(id){ return load().some(function(x){ return x.id===id; }); }
+  function add(item){ var a=load(); if(!a.some(function(x){return x.id===item.id;})){ a.unshift(item); save(a); } }
+  function remove(id){ save(load().filter(function(x){ return x.id!==id; })); }
+
+  var struggle = (function(){ try{ return localStorage.getItem('declare-struggle'); }catch(e){ return null; } })() || 'Fear & anxiety';
+  document.getElementById('forLabel').textContent = 'For ' + struggle.toLowerCase();
+
+  var toast=document.getElementById('toast'), toastMsg=document.getElementById('toastMsg'), tTimer;
+  function flash(msg){ toastMsg.textContent=msg; toast.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(function(){ toast.classList.remove('show'); },1800); }
+
+  // per-item saves
+  function bindSave(el){
+    var id=el.dataset.id;
+    function paint(){ var on=has(id); el.classList.toggle('on',on); el.querySelector('svg').setAttribute('fill', on?'currentColor':'none'); }
+    paint();
+    function toggle(){
+      if(has(id)){ remove(id); paint(); flash('Removed from Vault'); }
+      else{ add({ id:id, type:el.dataset.save, ref:el.dataset.ref, vref:el.dataset.ref, text:el.dataset.text, struggle:struggle, coll:struggle, mine:false, ts:Date.now() }); paint(); flash('Saved to Vault'); }
+    }
+    el.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
+    el.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } });
+  }
+  document.querySelectorAll('[data-save]').forEach(bindSave);
+
+  // whole word save (header + footer, synced)
+  var wordId='word:'+struggle.toLowerCase().replace(/[^a-z]+/g,'-');
+  var bm=document.getElementById('saveWord'), foot=document.getElementById('saveWord2');
+  function paintWord(){
+    var on=has(wordId);
+    bm.classList.toggle('on',on); bm.setAttribute('aria-pressed',on?'true':'false');
+    bm.querySelector('svg').setAttribute('fill', on?'currentColor':'none');
+    foot.classList.toggle('on',on);
+    foot.querySelector('svg').setAttribute('fill', on?'currentColor':'none');
+    foot.querySelector('.sw-lbl').textContent = on?'Saved to Vault':'Save this word';
+  }
+  function toggleWord(){
+    if(has(wordId)){ remove(wordId); paintWord(); flash('Removed from Vault'); }
+    else{
+      add({ id:wordId, type:'verse', ref:'A word', struggle:struggle, coll:struggle, mine:false,
+        text:'Fear thou not; for I am with thee. — Isaiah 41:10',
+        verse:'Fear thou not; for I am with thee: be not dismayed; for I am thy God.', vref:'Isaiah 41:10 · KJV',
+        prayer:'Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness. Amen.',
+        ts:Date.now() });
+      paintWord(); flash('Saved to Vault');
+    }
+  }
+  bm.addEventListener('click', toggleWord);
+  foot.addEventListener('click', toggleWord);
+  paintWord();
+
+  // "Read the full passage" → commentary toast + open the passage
+  // Commentary is keyed to the received verse, so it stays correct as the verse changes.
+  var COMMENTARY = {
+    'Isaiah 41:10': 'Isaiah first spoke this to a people in exile, afraid God had forgotten them. His answer was not a strategy but a presence: I am with you, I am your God. Every command here, fear not and be not dismayed, rests on that one fact, not your own strength but His nearness, and the hand that reaches out to take hold of yours.'
+  };
+  var verseRef = 'Isaiah 41:10';
+  var verseFull = 'Isaiah 41:10 \u00b7 KJV';
+  var ct = document.getElementById('ctoast');
+  var ctScrim = document.getElementById('ctoastScrim');
+  document.getElementById('ctoastRef').textContent = verseFull;
+  document.getElementById('ctoastBody').textContent = COMMENTARY[verseRef] || '';
+  var ctTimer;
+  function showCToast(){ try{ localStorage.setItem('declare-open-ref', verseFull); }catch(e){} ct.classList.add('show'); ctScrim.classList.add('show'); clearTimeout(ctTimer); ctTimer=setTimeout(hideCToast, 16000); }
+  function hideCToast(){ ct.classList.remove('show'); ctScrim.classList.remove('show'); clearTimeout(ctTimer); }
+  var rpCard = document.getElementById('readPassage');
+  if(rpCard){ rpCard.addEventListener('click', function(e){ e.preventDefault(); showCToast(); }); }
+  document.getElementById('ctoastX').addEventListener('click', hideCToast);
+  ctScrim.addEventListener('click', hideCToast);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') hideCToast(); });
+
+  // tap-to-receive second verse
+  var rc=document.getElementById('receive'), rp=document.getElementById('rprompt');
+  rc.addEventListener('click', function(){
+    var open=rc.classList.toggle('open');
+    rc.setAttribute('aria-expanded', open?'true':'false');
+    rp.textContent = open ? 'received' : 'tap to receive this verse';
+  });
+
+  // mindset read more
+  var mind=document.getElementById('mind'), more=document.getElementById('more');
+  more.addEventListener('click', function(){
+    var open=mind.classList.toggle('open');
+    more.setAttribute('aria-expanded', open?'true':'false');
+    more.querySelector('.more-lbl').textContent = open?'Read less':'Read more';
+  });
+
+  // read-aloud
+  var playIcon='<path d="M8 5v14l11-7z"/>', pauseIcon='<rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="14" y="5" width="3.6" height="14" rx="1"/>';
+  function stopAll(){ if(window.speechSynthesis) window.speechSynthesis.cancel();
+    document.querySelectorAll('.srow.speaking').forEach(function(r){ r.classList.remove('speaking'); r.querySelector('.play svg').innerHTML=playIcon; r.querySelector('.play svg').setAttribute('fill','currentColor'); }); }
+  document.querySelectorAll('.srow').forEach(function(row){
+    var btn=row.querySelector('.play'), text=row.querySelector('.dec').textContent.trim();
+    btn.addEventListener('click', function(){
+      var isThis=row.classList.contains('speaking'); stopAll(); if(isThis) return;
+      if(!window.speechSynthesis) return;
+      var u=new SpeechSynthesisUtterance(text); u.rate=0.9; u.pitch=1; u.onend=stopAll;
+      row.classList.add('speaking'); btn.querySelector('svg').innerHTML=pauseIcon;
+      window.speechSynthesis.speak(u);
+    });
+  });
+
+  // Start a Journey — carry the chosen struggle into Journey, open Day 1
+  var sjStrug = struggle;
+  var sjEl = document.getElementById('sjStruggle'); if(sjEl) sjEl.textContent = sjStrug.toLowerCase();
+  var sjBtn = document.getElementById('startJourney');
+  if(sjBtn) sjBtn.addEventListener('click', function(){
+    try{ localStorage.setItem('declare-journey-struggle', sjStrug); localStorage.setItem('declare-start-journey','1'); }catch(e){}
+    location.href = 'Journey.html';
+  });
+
+  /* ---------- Sharing: one button → choose what to share ---------- */
+  var SP_IC = {
+    verse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>',
+    mind:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6"/><path d="M10 20.5h4"/><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"/></svg>',
+    dec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg>',
+    pray:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"/><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"/></svg>',
+    go:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+  };
+  var SHAREABLES = [
+    { type:'verse', label:'Scripture', text:'Fear thou not; for I am with thee: be not dismayed; for I am thy God.', ref:'Isaiah 41:10 \u00b7 KJV', ic:'verse' },
+    { type:'reading', label:'Mindset', text:'Fear says you\u2019re carrying this alone. Scripture answers with a Person, not a pep talk \u2014 God himself, near and holding on to you. You don\u2019t have to summon courage; you have to remember who is with you.', ref:'Mindset', ic:'mind' },
+    { type:'declaration', label:'Declaration', text:'I am not alone. God is with me.', ref:'', ic:'dec' },
+    { type:'declaration', label:'Declaration', text:'I will not be afraid; He holds me.', ref:'', ic:'dec' },
+    { type:'reading', label:'Prayer', text:'Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness. Amen.', ref:'A prayer', ic:'pray' }
+  ];
+  var sps=document.getElementById('sps'), spsScrim=document.getElementById('spsScrim'), spsRows=document.getElementById('spsRows');
+  spsRows.innerHTML = SHAREABLES.map(function(s,i){
+    return '<button class="sps-row" data-i="'+i+'"><span class="ic">'+SP_IC[s.ic]+'</span>'+
+      '<span class="tx"><span class="k">'+s.label+'</span><span class="v">'+s.text.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span></span>'+
+      '<span class="go">'+SP_IC.go+'</span></button>';
+  }).join('');
+  function openSps(){ sps.classList.add('show'); spsScrim.classList.add('show'); sps.setAttribute('aria-hidden','false'); }
+  function closeSps(){ sps.classList.remove('show'); spsScrim.classList.remove('show'); sps.setAttribute('aria-hidden','true'); }
+  spsScrim.addEventListener('click', closeSps);
+  spsRows.querySelectorAll('.sps-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var s=SHAREABLES[+row.getAttribute('data-i')];
+      closeSps();
+      setTimeout(function(){
+        DeclareShare.open({ type:s.type, text:s.text, ref:s.ref, subtitle:'For '+struggle.toLowerCase(), url:location.href });
+      }, 180);
+    });
+  });
+  var shareWord = document.getElementById('shareWord');
+  if(shareWord) shareWord.addEventListener('click', openSps);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Today</title>
+<meta name="description" content="What's weighing on your heart? Name it, and receive His Word for this moment — a verse, a reflection, declarations to speak, and a prayer." />
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — Today" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<script src="account-morph.js" defer></script>
+
+
+<style>
+  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; padding:0 24px 4px; }
+  .entryhero{ text-align:center; padding:36px 6px 6px; }
+  .entryhero .heading{ font-family:'Cormorant Garamond',serif; font-size:33px; line-height:1.15; font-weight:600; color:var(--text); text-wrap:balance; }
+  .entryhero .sub{ font-size:14px; color:var(--muted); margin-top:13px; line-height:1.5; }
+
+  /* composer: a clean, wrapping multi-line field (DM Sans, grows with text) */
+  .input{ align-items:flex-end; }
+  .input textarea{ flex:1; border:0; background:transparent; outline:none; resize:none;
+    font-family:'DM Sans',sans-serif; font-size:16px; line-height:1.55; color:var(--text);
+    height:26px; max-height:168px; overflow-y:auto; padding:0; margin:0; }
+  .input textarea::placeholder{ color:var(--muted); opacity:1; }
+  .input textarea::-webkit-scrollbar{ display:none; }
+  .input textarea{ scrollbar-width:none; }
+
+  .entry-input{ margin-top:28px; }
+  .entry-div{ margin:26px 0 18px; }
+  .entry-chips{ justify-content:center; }
+  .spacer{ flex:1; min-height:22px; }
+  .entry-crisis{ margin-top:18px; }
+  .entry-crisis svg{ color:var(--gold); }
+
+  /* Today nav button — a clean glowing icon, NOT a filled gold disc/square.
+     (Applies at all widths on this page; the desktop block fine-tunes sizing.) */
+  .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; background:none; box-shadow:none; border-radius:0; }
+  .tab.center svg{ width:24px; height:24px; }
+  .tab.center.on{ color:var(--goldd); }
+  .tab.center.on .tdisc{ background:none; box-shadow:none; color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.5)); }
+
+  /* the More sheet */
+  .sheet{ position:fixed; left:50%; bottom:0; transform:translate(-50%,100%); width:min(760px,100%); max-width:100%;
+    background:var(--screen); border-radius:30px 30px 0 0; box-shadow:0 -30px 80px -20px rgba(0,0,0,.6);
+    z-index:45; display:flex; flex-direction:column; max-height:88vh; transition:transform .42s cubic-bezier(.2,.7,.2,1);
+    overflow:hidden; }
+  .sheet.open{ transform:translate(-50%,0); }
+  .sheet .sheetglow{ position:absolute; top:0; left:0; right:0; height:300px; z-index:0; pointer-events:none;
+    background:radial-gradient(80% 60% at 50% 0%, var(--topglow), transparent 60%); }
+  .shead{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:14px 22px 2px; }
+  .shead .t{ font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:var(--text); }
+  .shead .x{ width:32px; height:32px; border-radius:50%; background:var(--surface); box-shadow:var(--chip-shadow);
+    display:flex; align-items:center; justify-content:center; color:var(--text); cursor:pointer; border:0; }
+  .shead .x svg{ width:15px; height:15px; }
+  .ssscroll{ position:relative; z-index:1; flex:1; overflow-y:auto; padding:0 22px 8px; }
+  .ssscroll::-webkit-scrollbar{ display:none; }
+  .ssscroll{ scrollbar-width:none; }
+  .scat{ margin-top:24px; }
+  .scat .catlbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin-bottom:13px; }
+  .scat .chips{ gap:9px; }
+  .scat .chip{ font-size:13.5px; padding:10px 15px; }
+  .sheet-crisis{ margin:24px 0 6px; }
+  .ctawrap{ position:relative; z-index:1; padding:14px 22px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(to top,var(--screen) 70%,transparent); }
+  .cta-n{ font-size:12px; opacity:.7; }
+
+  @media (max-width:480px){ .sheet{ width:100%; } }
+
+  /* ============================================================
+     DESKTOP / TABLET (>=481px): drop the phone bezel and present
+     Today as a true full-screen, responsive app surface instead of
+     a 390px mockup floating on a dark canvas. Mobile (<=480px) keeps
+     the full-bleed phone layout from declare.css.
+     ============================================================ */
+  @media (min-width:481px){
+    .stage{ padding:0; align-items:stretch; }
+    .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+    .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
+
+    /* ---- TOP APP BAR: brand dot (left) · nav (center) · avatar (right) ---- */
+    .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
+      flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
+      background:color-mix(in srgb, var(--bgfield) 82%, transparent);
+      backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+      border-bottom:1px solid var(--line); }
+    .tabbar .arc{ display:none; }
+    .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 13px; border-radius:11px; color:var(--muted);
+      transition:color .2s ease; position:relative; }
+    .tab:hover{ color:var(--text); background:transparent; }
+    .tab svg{ width:18px; height:18px; }
+    .tab .tlbl{ opacity:0; width:0; overflow:hidden; font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; transition:opacity .18s ease; }
+    .tab.on{ color:var(--text); }
+    .tab.on .tlbl{ color:var(--text); }
+    /* Today active — clean & atmospheric: gold, with a soft glow on the icon and a slim underline. No box. */
+    .tab.center{ flex:0 0 auto; margin:0; }
+    .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; border-radius:0; background:none; box-shadow:none; display:flex; }
+    .tab.center svg{ width:18px; height:18px; }
+    .tab.center.on{ background:transparent; color:var(--goldd); }
+    .tab.center.on .tdisc{ color:var(--goldd); filter:drop-shadow(0 0 9px rgba(216,184,95,.5)); }
+    .tab.center.on .tlbl{ color:var(--goldd); }
+    .tab.center.on::after{ content:''; position:absolute; left:13px; right:13px; bottom:2px; height:2px; border-radius:2px;
+      background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+    /* dot + avatar pinned into the same top band, at the edges */
+    .bar{ display:none; }
+    .mast{ position:fixed; top:0; left:0; right:0; z-index:31; height:60px; margin:0; padding:0 clamp(22px,3vw,44px);
+      display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
+    .mast .dot{ pointer-events:auto; }
+    .mast .avatar{ pointer-events:auto; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      color:var(--muted); background:transparent; transition:color .2s ease; }
+    .mast .avatar:hover{ color:var(--text); background:transparent; }
+    .mast .avatar svg{ width:20px; height:20px; }
+
+    /* ---- centered composer column ---- */
+    .in{ justify-content:center; align-items:center; max-width:640px; width:100%; margin:0 auto; padding:84px 24px 48px; }
+    .spacer{ display:none; }
+    .entryhero{ width:100%; padding:0; }
+    .entryhero .heading{ font-size:clamp(32px,3.2vw,42px); line-height:1.14; }
+    .entryhero .heading br{ display:none; }
+    .entryhero .sub{ font-size:15.5px; margin-top:13px; }
+
+    /* composer input — the focal element */
+    .entry-input{ width:100%; max-width:580px; margin:30px auto 0; padding:8px 8px 8px 20px; border-radius:16px; }
+    .entry-input input{ font-size:16px; }
+    .entry-input .send{ width:38px; height:38px; }
+
+    .entry-div{ width:100%; max-width:560px; margin:26px auto 16px; }
+
+    /* refined suggestion chips — smaller, lighter, secondary */
+    .entry-chips{ max-width:560px; gap:8px; }
+    .entry-chips .chip{ font-size:13px; padding:8px 14px; box-shadow:none;
+      background:color-mix(in srgb, var(--text) 5%, transparent); border:1px solid var(--line); color:var(--text2); }
+    .entry-chips .chip:hover{ color:var(--text); border-color:var(--line2); }
+    .entry-chips .chip.on{ background:var(--gold); color:#22382E; border-color:transparent; box-shadow:0 6px 16px -6px rgba(201,168,76,.45); }
+    .entry-chips .chip.more{ background:transparent; border:1px dashed var(--line2); color:var(--goldd); }
+
+    /* primary action — compact, centered, not a full-width slab */
+    #receiveBtn{ width:auto; min-width:230px; align-self:center; margin-top:30px; padding:13px 34px; font-size:14.5px; border-radius:13px; }
+    .entry-crisis{ margin-top:22px; font-size:13px; }
+  }
+
+  /* tablet+ : reveal the nav labels (icon-only stays on the smallest desktop widths) */
+  @media (min-width:640px){
+    .tab .tlbl{ opacity:1; width:auto; }
+  }
+  @media (min-width:1100px){
+    .in{ max-width:660px; padding-top:104px; }
+    .entryhero .heading{ font-size:44px; }
+  }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+
+      <div class="in">
+        <div class="bar">
+          <span style="font-weight:500">9:41</span>
+          <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+        </div>
+
+        <div class="mast">
+          <span class="dot" aria-hidden="true"></span>
+          <a class="avatar" href="#" aria-label="You">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+          </a>
+        </div>
+
+        <div class="entryhero rise d1">
+          <div class="heading">What&rsquo;s weighing on your heart?</div>
+          <div class="sub">Name it, and receive His Word for this moment.</div>
+        </div>
+
+        <form class="input entry-input rise d2" id="writeForm" autocomplete="off">
+          <textarea id="writeInput" rows="1" placeholder="Or write what&rsquo;s on your heart&hellip;" aria-label="Write what's on your heart"></textarea>
+          <button class="send" type="submit" aria-label="Receive the Word">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+          </button>
+        </form>
+
+        <div class="divider entry-div rise d3"><span></span><em>or choose what fits</em><span></span></div>
+
+        <div class="chips entry-chips rise d4" id="chips">
+          <button class="chip on" data-struggle="Fear &amp; Anxiety">Fear &amp; Anxiety</button>
+          <button class="chip" data-struggle="Shame &amp; Guilt">Shame &amp; Guilt</button>
+          <button class="chip" data-struggle="Loneliness">Loneliness</button>
+          <button class="chip" data-struggle="Anger &amp; Bitterness">Anger &amp; Bitterness</button>
+          <button class="chip" data-struggle="Doubt">Doubt</button>
+          <button class="chip" data-struggle="Grief &amp; Loss">Grief &amp; Loss</button>
+          <button class="chip more" id="moreBtn">More +</button>
+        </div>
+
+        <div class="spacer"></div>
+
+        <button class="btn btn-primary btn-full rise d5" id="receiveBtn">Receive the Word</button>
+
+        <a href="Crisis.html" class="crisis entry-crisis rise d6">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"/><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"/><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"/></svg>
+          <span>In crisis? Find help now</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+
+      <!-- curved bottom tab bar -->
+      <nav class="tabbar" id="tabbar" aria-label="Primary">
+        <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+        <a class="tab" href="TheWord.html" data-key="word">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="tlbl">Word</span>
+        </a>
+        <a class="tab" href="Journey.html" data-key="journey">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg>
+          <span class="tlbl">Journey</span>
+        </a>
+        <a class="tab center on" href="Today.html" data-key="today">
+          <span class="tdisc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg>
+          </span>
+          <span class="tlbl">Declare</span>
+        </a>
+        <a class="tab" href="Vault.html" data-key="vault">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg>
+          <span class="tlbl">Vault</span>
+        </a>
+        <a class="tab" href="Account-A.html" data-key="you">
+          <svg data-you-morph viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+          <span class="tlbl">You</span>
+        </a>
+      </nav>
+
+    </div>
+  </div>
+</div>
+
+<!-- More sheet -->
+<div class="sheet-scrim" id="scrim"></div>
+<section class="sheet" id="sheet" aria-label="Choose what fits" aria-hidden="true">
+  <div class="sheetglow" aria-hidden="true"></div>
+  <div class="grabber" aria-hidden="true"></div>
+  <div class="shead">
+    <span class="t serif">What&rsquo;s on your heart?</span>
+    <button class="x" id="sheetClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="ssscroll">
+    <form class="input" id="sheetForm" autocomplete="off" style="margin-top:16px">
+      <input type="text" placeholder="Or write it in your own words&hellip;" aria-label="Write it in your own words" />
+      <button class="send" type="submit" aria-label="Receive the Word">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+      </button>
+    </form>
+
+    <div class="scat">
+      <div class="catlbl">Identity &amp; worth</div>
+      <div class="chips" data-cat>
+        <button class="chip" data-struggle="Shame &amp; Guilt">Shame &amp; Guilt</button><button class="chip" data-struggle="Feeling Like a Failure">Feeling Like a Failure</button><button class="chip" data-struggle="Comparison">Comparison</button><button class="chip" data-struggle="Feeling Unworthy">Feeling Unworthy</button><button class="chip" data-struggle="Broken Identity">Broken Identity</button><button class="chip" data-struggle="Feeling Lost">Feeling Lost</button><button class="chip" data-struggle="People Pleasing">People Pleasing</button>
+      </div>
+    </div>
+    <div class="scat">
+      <div class="catlbl">Wounds &amp; relationships</div>
+      <div class="chips" data-cat>
+        <button class="chip" data-struggle="Emotional &amp; Verbal Abuse">Emotional &amp; Verbal Abuse</button><button class="chip" data-struggle="Rejection &amp; Abandonment">Rejection &amp; Abandonment</button><button class="chip" data-struggle="Betrayal">Betrayal</button><button class="chip" data-struggle="Self-Sabotage">Self-Sabotage</button><button class="chip" data-struggle="Unforgiveness">Unforgiveness</button><button class="chip" data-struggle="Family Conflict">Family Conflict</button><button class="chip" data-struggle="Marriage Struggles">Marriage Struggles</button><button class="chip" data-struggle="Divorce / Separation">Divorce / Separation</button><button class="chip" data-struggle="Grief &amp; Loss">Grief &amp; Loss</button><button class="chip" data-struggle="Loneliness">Loneliness</button>
+      </div>
+    </div>
+    <div class="scat">
+      <div class="catlbl">Mind &amp; emotion</div>
+      <div class="chips" data-cat>
+        <button class="chip on" data-struggle="Fear &amp; Anxiety">Fear &amp; Anxiety</button><button class="chip" data-struggle="Overthinking">Overthinking</button><button class="chip" data-struggle="Depression">Depression</button><button class="chip" data-struggle="Anger &amp; Bitterness">Anger &amp; Bitterness</button><button class="chip" data-struggle="Doubt">Doubt</button><button class="chip" data-struggle="Control">Control</button><button class="chip" data-struggle="Perfectionism">Perfectionism</button><button class="chip" data-struggle="Stress &amp; Burnout">Stress &amp; Burnout</button>
+      </div>
+    </div>
+    <div class="scat">
+      <div class="catlbl">Trials &amp; Seasons</div>
+      <div class="chips" data-cat>
+        <button class="chip" data-struggle="Spiritual Dryness">Spiritual Dryness</button><button class="chip" data-struggle="Waiting on God">Waiting on God</button><button class="chip" data-struggle="Financial Stress">Financial Stress</button><button class="chip" data-struggle="Sexual Temptation">Sexual Temptation</button><button class="chip" data-struggle="Addiction">Addiction</button><button class="chip" data-struggle="Faith Crisis">Faith Crisis</button><button class="chip" data-struggle="Feeling Spiritually Attacked">Feeling Spiritually Attacked</button><button class="chip" data-struggle="Drifting from God">Drifting from God</button>
+      </div>
+    </div>
+
+    <a href="Crisis.html" class="crisis sheet-crisis">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"/><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"/><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"/></svg>
+      <span>In crisis? Find help now</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+  <div class="ctawrap">
+    <button class="btn btn-primary btn-full" id="sheetCta">Receive the Word <span class="cta-n">&middot; Fear &amp; Anxiety</span></button>
+  </div>
+</section>
+
+<script src="theme.js"></script>
+<script>
+(function(){
+  var selected = 'Fear & Anxiety';
+
+  // main chips (single-select, excluding "More +")
+  var chips = document.getElementById('chips');
+  chips.addEventListener('click', function(e){
+    var c = e.target.closest('.chip'); if(!c) return;
+    if(c.id === 'moreBtn'){ openSheet(); return; }
+    chips.querySelectorAll('.chip:not(.more)').forEach(function(x){ x.classList.remove('on'); });
+    c.classList.add('on');
+    selected = c.dataset.struggle.replace(/&amp;/g,'&');
+  });
+
+  document.getElementById('receiveBtn').addEventListener('click', go);
+  document.getElementById('writeForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = document.getElementById('writeInput').value.trim();
+    if(v) selected = v;
+    go();
+  });
+  // composer: grow with the text, submit on Enter (Shift+Enter for a new line)
+  var wi = document.getElementById('writeInput');
+  function autogrow(){ wi.style.height='auto'; wi.style.height=Math.min(wi.scrollHeight,168)+'px'; }
+  if(wi){
+    wi.addEventListener('input', autogrow);
+    wi.addEventListener('keydown', function(e){
+      if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(wi.form.requestSubmit){ wi.form.requestSubmit(); } else { wi.form.dispatchEvent(new Event('submit',{cancelable:true})); } }
+    });
+  }
+  function go(){ try{ localStorage.setItem('declare-struggle', selected); }catch(e){} location.href = 'Results.html'; }
+
+  // Deep-link: arrive from a marketing/SEO page with ?struggle=… and open pre-selected.
+  // If the struggle only lives in the "More" sheet, promote it into the main row so it
+  // always reads as chosen — the user's intent is never dropped at the threshold.
+  function preselect(s){
+    s = s.trim(); if(!s) return;
+    var main = Array.prototype.slice.call(chips.querySelectorAll('.chip:not(.more)'));
+    var match = null;
+    main.forEach(function(x){ if(x.dataset.struggle.replace(/&amp;/g,'&')===s) match=x; });
+    main.forEach(function(x){ x.classList.remove('on'); });
+    if(match){ match.classList.add('on'); }
+    else {
+      var b=document.createElement('button');
+      b.className='chip on'; b.setAttribute('data-struggle', s); b.textContent = s;
+      chips.insertBefore(b, chips.firstChild);
+    }
+    selected = s;
+  }
+  try{
+    var _inc = new URLSearchParams(location.search).get('struggle');
+    if(_inc) preselect(_inc);
+  }catch(e){}
+
+  // sheet
+  var sheet = document.getElementById('sheet'), scrim = document.getElementById('scrim');
+  var sheetCta = document.getElementById('sheetCta');
+  function openSheet(){ sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden','false'); }
+  function closeSheet(){ sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); }
+  document.getElementById('moreBtn').addEventListener('click', openSheet);
+  document.getElementById('sheetClose').addEventListener('click', closeSheet);
+  scrim.addEventListener('click', closeSheet);
+
+  // sheet chips select across all categories
+  function syncMain(s){
+    var matched=false;
+    chips.querySelectorAll('.chip:not(.more)').forEach(function(x){
+      var on = x.dataset.struggle.replace(/&amp;/g,'&')===s;
+      x.classList.toggle('on', on); if(on) matched=true;
+    });
+    if(!matched) chips.querySelectorAll('.chip:not(.more)').forEach(function(x){ x.classList.remove('on'); });
+  }
+  sheet.querySelectorAll('[data-cat]').forEach(function(group){
+    group.addEventListener('click', function(e){
+      var c = e.target.closest('.chip'); if(!c) return;
+      sheet.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('on'); });
+      c.classList.add('on');
+      var s = c.dataset.struggle.replace(/&amp;/g,'&');
+      selected = s;
+      sheetCta.querySelector('.cta-n').innerHTML = '&middot; ' + c.innerHTML;
+      syncMain(s);
+    });
+  });
+  document.getElementById('sheetForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = this.querySelector('input').value.trim();
+    if(v) selected = v;
+    go();
+  });
+  sheetCta.addEventListener('click', go);
+})();
+</script>
+</body>
+</html>

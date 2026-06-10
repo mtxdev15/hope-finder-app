@@ -1,0 +1,342 @@
+/* ============================================================
+   DECLARE — unified design system (v3.2)
+   "Light in the darkness": near-black forest field, gold glow,
+   editorial serif voice, floating gold-tinged depth.
+   Dark is default; light is a warm dawn key. Tokens are the
+   single source of truth — map these onto Tailwind theme later.
+   ============================================================ */
+
+/* ---------- LIGHT (warm / dawn) is the :root base ---------- */
+:root{
+  --text:#22382E; --text2:#465A50; --muted:#7E8E84; --soft:rgba(34,56,46,.78);
+  --gold:#C9A84C; --goldd:#9A7A24; --dot:#C9A84C; --clay:#B5703F;
+  --glow1:rgba(201,168,76,.30); --glow2:rgba(255,243,210,.5);
+  --page:#E7DFD0; --phone:linear-gradient(160deg,#cfc6b4,#b4aa96);
+  --bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);
+  --bg:#FAF7F2; --screen:#FBF8F3; --surface:#FFFFFF;
+  --line:rgba(34,56,46,.08); --line2:rgba(34,56,46,.16); --field:#F4ECDB; --chipbg:#FFFFFF;
+  --topglow:rgba(201,168,76,.26); --botglow:rgba(201,168,76,.12);
+  --prayer:#F3EAD4; --pglow:rgba(201,168,76,.42);
+  --receive:#F7EFDC; --return:#F3EAD4; --rglow:rgba(201,168,76,.3); --spine:#CDB05A;
+  --playbg:#2D4A3E; --playicon:#FAF7F2; --cta:#2D4A3E; --ctatext:#FAF7F2;
+  --statusc:rgba(34,56,46,.6); --vignette:transparent;
+  /* category tint chips (verse / declaration / prayer) */
+  --tg-verse-b:#F4ECD9; --tg-verse-t:#9A7A24;
+  --tg-dec-b:#F3E5D9; --tg-dec-t:#A35C2E;
+  --tg-pray-b:#E4EDE6; --tg-pray-t:#3E6B52;
+  --card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 12px -3px rgba(34,56,46,.1), inset 0 1px 0 rgba(255,255,255,.7);
+  --chip-shadow:0 6px 16px -6px rgba(34,56,46,.16), inset 0 1px 0 rgba(255,255,255,.6);
+  --return-shadow:0 22px 54px -14px rgba(154,122,36,.34), 0 6px 16px -3px rgba(34,56,46,.12), inset 0 1px 0 rgba(255,255,255,.6);
+  --prayer-shadow:0 28px 64px -14px rgba(154,122,36,.42), 0 8px 20px -4px rgba(34,56,46,.14), inset 0 1px 0 rgba(255,255,255,.6);
+  --phone-shadow:0 50px 110px -24px rgba(34,56,46,.5), 0 16px 40px -12px rgba(34,56,46,.3);
+}
+
+/* ---------- DARK (default / cinematic) ---------- */
+html[data-theme="dark"]{
+  --text:#F3EFE6; --text2:#C7D6CD; --muted:#92A89E; --soft:rgba(244,240,231,.6);
+  --gold:#D8B85F; --goldd:#E2C572; --dot:#D8B85F; --clay:#D08A5B;
+  --glow1:rgba(222,190,100,.5); --glow2:rgba(255,238,180,.5);
+  --page:#05090700; --phone:linear-gradient(160deg,#1c2a22,#0b130e);
+  --bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);
+  --bg:#0E1A14; --screen:#13211A; --surface:#1b2c23;
+  --line:rgba(244,239,230,.09); --line2:rgba(244,239,230,.2); --field:rgba(255,255,255,.05); --chipbg:#1b2c23;
+  --topglow:rgba(222,190,100,.5); --botglow:rgba(216,184,95,.22);
+  --prayer:#1D2E25; --pglow:rgba(222,190,100,.55);
+  --receive:rgba(255,255,255,.05); --return:#22352B; --rglow:rgba(222,190,100,.34); --spine:#D8B85F;
+  --playbg:#D8B85F; --playicon:#13211A; --cta:#D0AE54; --ctatext:#13211A;
+  --statusc:rgba(244,240,231,.72); --vignette:rgba(0,0,0,.46);
+  --tg-verse-b:rgba(220,188,99,.18); --tg-verse-t:#E2C572;
+  --tg-dec-b:rgba(208,138,91,.2); --tg-dec-t:#E2A87A;
+  --tg-pray-b:rgba(120,180,140,.18); --tg-pray-t:#8FCBB2;
+  --card-shadow:0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22), inset 0 1px 0 rgba(255,255,255,.06);
+  --chip-shadow:0 8px 20px -8px rgba(0,0,0,.6), 0 0 0 1px rgba(244,239,230,.05), inset 0 1px 0 rgba(255,255,255,.05);
+  --return-shadow:0 26px 64px -16px rgba(0,0,0,.78), 0 0 0 1px rgba(222,190,100,.18), 0 0 70px -6px rgba(222,190,100,.32), inset 0 1px 0 rgba(255,255,255,.06);
+  --prayer-shadow:0 30px 78px -16px rgba(0,0,0,.82), 0 0 0 1px rgba(222,190,100,.2), 0 0 96px -2px rgba(222,190,100,.5), inset 0 1px 0 rgba(255,255,255,.07);
+  --phone-shadow:0 66px 150px -28px rgba(0,0,0,.9), 0 0 150px -34px rgba(222,190,100,.18);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+/* Paint a SOLID themed background on the document itself so page-to-page
+   navigation never flashes white. (body uses --page, which is intentionally
+   transparent in dark mode, so without this the browser default white shows
+   through during the document swap = harsh flash on a dark site.) */
+html{ background:var(--bg); }
+/* ============================================================
+   CINEMATIC PAGE TRANSITIONS (cross-document View Transitions)
+   Buttery, branded page-to-page motion: the outgoing page settles
+   back and dims; the incoming page rises with a gentle focus-pull.
+   Expo-out easing + ~520ms feel = premium, modern, unhurried.
+   Supported in Chromium/Safari; silently ignored elsewhere.
+   ============================================================ */
+/* Navigation transitions are ENABLED so the avatar→Account hero morph can pair
+   across documents — but ordinary navigations are kept INSTANT below. The page
+   only animates when a navigation is to/from the Account page (account-morph.js
+   tags it with the `to-account` type and exposes the shared `db-you-av` name). */
+@view-transition{ navigation:auto; }
+
+:root{
+  --vt-ease:cubic-bezier(.16,1,.3,1);          /* expo-out: fast start, long graceful settle */
+  --vt-ease-out:cubic-bezier(.4,0,.2,1);
+  --vt-in:560ms;
+  --vt-out:420ms;
+}
+
+/* DEFAULT — every other navigation swaps instantly, exactly as before. */
+::view-transition-old(root),::view-transition-new(root){ animation:none; }
+
+@media (prefers-reduced-motion: no-preference){
+  /* ---- the AVATAR morph (only present during to/from-Account navs) ----
+     The shared element rides above the page snapshots and smoothly grows /
+     shrinks between the little avatar and the gold hero avatar. */
+  ::view-transition-group(db-you-av){
+    animation-duration:var(--vt-in);
+    animation-timing-function:var(--vt-ease);
+  }
+  ::view-transition-old(db-you-av){ animation:db-av-fade 220ms var(--vt-ease-out) both; }
+  ::view-transition-new(db-you-av){ animation:db-av-rise 460ms var(--vt-ease) 70ms both; }
+  @keyframes db-av-fade{ to{ opacity:0; } }
+  @keyframes db-av-rise{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ---- gentle root focus-pull that ACCOMPANIES the morph (Account navs only) ----
+     Scoped to the `to-account` transition type so it never fires elsewhere. */
+  :root:active-view-transition-type(to-account)::view-transition-old(root){
+    animation:db-vt-out var(--vt-out) var(--vt-ease-out) both;
+    transform-origin:50% 42%;
+  }
+  :root:active-view-transition-type(to-account)::view-transition-new(root){
+    animation:db-vt-in var(--vt-in) var(--vt-ease) 30ms both;
+    transform-origin:50% 58%;
+  }
+  @keyframes db-vt-out{
+    0%  { opacity:1; transform:none;                    filter:blur(0); }
+    100%{ opacity:0; transform:scale(.988) translateY(10px); filter:blur(3px); }
+  }
+  @keyframes db-vt-in{
+    0%  { opacity:0; transform:scale(1.014) translateY(18px); filter:blur(5px); }
+    55% { opacity:1;                                          filter:blur(0); }
+    100%{ opacity:1; transform:none;                          filter:blur(0); }
+  }
+}
+/* reduced-motion: no morph, instant swap everywhere */
+@media (prefers-reduced-motion: reduce){
+  ::view-transition-old(db-you-av),::view-transition-new(db-you-av){ animation:none; }
+}
+body{ font-family:'DM Sans',sans-serif; color:var(--text); background:var(--page);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+.serif{ font-family:'Cormorant Garamond',serif; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; }
+
+/* tiny gold uppercase section label */
+.lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
+
+/* ---------- the device showcase frame (mobile screens) ----------
+   On real phones (<=480px) the frame drops away → true full-bleed app. */
+.stage{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:40px 16px;
+  background:var(--page); transition:background .5s; }
+html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#0c1812,#05090700); }
+.phone{ width:390px; max-width:100%; background:var(--phone); border-radius:46px; padding:9px;
+  box-shadow:var(--phone-shadow); transition:box-shadow .5s; }
+.screen{ position:relative; border-radius:38px; overflow:hidden; min-height:760px; background:var(--bgfield);
+  display:flex; flex-direction:column; box-shadow:inset 0 0 130px var(--vignette); transition:background .5s; }
+
+/* signature gold core-glow (threshold strength) */
+.coreglow{ position:absolute; top:0; left:0; right:0; height:560px; z-index:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 40%,var(--glow1),transparent 42%); }
+.coreglow2{ position:absolute; top:0; left:0; right:0; height:560px; z-index:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 38%,var(--glow2),transparent 17%); }
+/* calmer top-glow for reading/working screens — restrained "light breaking through" */
+.topglow{ position:absolute; top:0; left:0; right:0; height:440px; z-index:0; pointer-events:none;
+  background:radial-gradient(40% 22% at 50% -1%, color-mix(in srgb, var(--glow2) 50%, transparent), transparent 48%),
+             radial-gradient(100% 58% at 50% 0%, color-mix(in srgb, var(--topglow) 64%, transparent), transparent 64%); }
+
+/* device status bar removed app-wide — the element is kept ONLY as a notch / Dynamic Island
+   safe-area spacer so real-device content clears the top; the fake clock/dots/battery are hidden. */
+.bar{ position:relative; z-index:2; display:block; padding:max(10px, env(safe-area-inset-top)) 24px 0; }
+.bar > *{ display:none !important; }
+
+/* masthead row: gold heartbeat dot + (avatar | menu | back) */
+.mast{ position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center; padding:18px 24px 0; }
+.dot{ width:11px; height:11px; border-radius:50%; background:var(--dot); box-shadow:0 0 14px rgba(216,184,95,.6);
+  animation:dotpulse 4.5s ease-in-out infinite; }
+@keyframes dotpulse{ 0%,100%{ box-shadow:0 0 10px rgba(216,184,95,.45);} 50%{ box-shadow:0 0 18px 2px rgba(216,184,95,.75);} }
+.mast .menu{ background:none; border:0; cursor:pointer; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:7px; }
+.iconbtn{ width:40px; height:40px; border:0; background:transparent; color:var(--text); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; border-radius:13px; transition:transform .16s ease, background .2s ease; }
+.iconbtn:active{ transform:scale(.92); }
+.iconbtn svg{ width:21px; height:21px; }
+.avatar{ width:32px; height:32px; border-radius:50%; background:var(--surface); box-shadow:var(--chip-shadow);
+  display:flex; align-items:center; justify-content:center; color:var(--goldd); overflow:hidden; }
+.avatar svg{ width:17px; height:17px; }
+
+/* ---------- floating card ---------- */
+.card{ position:relative; background:var(--surface); border-radius:18px; box-shadow:var(--card-shadow);
+  transition:transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s ease; }
+@media (hover:hover){ .card.tap:hover{ transform:translateY(-4px); } }
+
+/* ---------- buttons ---------- */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; border:0;
+  font-size:15px; font-weight:500; border-radius:16px; padding:16px 20px; transition:transform .16s ease, box-shadow .22s ease, filter .2s ease; }
+.btn:active{ transform:translateY(1px) scale(.992); }
+.btn svg{ width:17px; height:17px; }
+.btn-primary{ background:var(--cta); color:var(--ctatext); box-shadow:0 12px 30px -10px rgba(201,168,76,.5); }
+.btn-primary:hover{ filter:brightness(1.04); }
+.btn-ghost{ background:transparent; color:var(--text); border:1px solid var(--line2); }
+.btn-full{ width:100%; }
+
+/* ---------- struggle chips ---------- */
+.chips{ display:flex; flex-wrap:wrap; gap:10px; }
+.chip{ font-size:14px; padding:11px 17px; border-radius:999px; background:var(--chipbg); color:var(--text);
+  box-shadow:var(--chip-shadow); cursor:pointer; border:0; transition:transform .16s ease, box-shadow .2s ease; }
+.chip:active{ transform:scale(.96); }
+.chip.on{ background:var(--gold); color:#22382E; box-shadow:0 8px 20px -6px rgba(201,168,76,.5); }
+.chip.more{ color:var(--goldd); background:transparent; box-shadow:none; border:1px dashed var(--line2); }
+
+/* ---------- write-your-own input ---------- */
+.input{ display:flex; align-items:center; gap:12px; padding:16px 16px 16px 19px; background:var(--surface);
+  border-radius:18px; box-shadow:var(--card-shadow); }
+.input input{ flex:1; border:0; background:transparent; outline:none; font-family:'Cormorant Garamond',serif;
+  font-size:17px; font-style:italic; color:var(--text); }
+.input input::placeholder{ color:var(--muted); opacity:1; }
+.input .send{ flex:0 0 auto; width:40px; height:40px; border:0; cursor:pointer; border-radius:50%; background:var(--gold);
+  display:flex; align-items:center; justify-content:center; color:#22382E; box-shadow:0 6px 16px -3px rgba(201,168,76,.55); transition:transform .16s ease; }
+.input .send:active{ transform:scale(.9); }
+.input .send svg{ width:18px; height:18px; }
+
+/* ---------- "or" divider ---------- */
+.divider{ display:flex; align-items:center; gap:12px; }
+.divider span{ flex:1; height:1px; background:var(--line2); opacity:.6; }
+.divider em{ font-size:11px; letter-spacing:.05em; color:var(--muted); font-style:normal; }
+
+/* ---------- crisis link ---------- */
+.crisis{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--text); opacity:.82; }
+.crisis svg{ width:17px; height:17px; color:var(--gold); }
+
+/* ---------- curved bottom tab bar (Open-style, Today centered) ---------- */
+.tabbar{ position:relative; z-index:3; display:flex; justify-content:space-between; align-items:flex-end;
+  padding:18px 22px 22px; background:linear-gradient(to top, var(--screen) 26%, transparent);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.tabbar .arc{ position:absolute; top:0; left:0; width:100%; height:18px; pointer-events:none; }
+.tabbar .arc path{ fill:none; stroke:var(--line); stroke-width:1; }
+.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--muted); cursor:pointer;
+  background:none; border:0; transition:color .2s ease, transform .16s ease; }
+.tab:active{ transform:translateY(1px); }
+.tab svg{ width:22px; height:22px; }
+.tab .tlbl{ font-size:11px; letter-spacing:.01em; text-transform:none; font-weight:500; opacity:1; transition:opacity .2s ease, color .2s ease; }
+.tab.on{ color:var(--text); }
+.tab.on .tlbl{ opacity:1; color:var(--goldd); }
+/* Today — centered, emphasized, gold-tinted glow */
+.tab.center{ flex:0 0 auto; margin:0 4px; }
+.tab.center .tdisc{ width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:var(--field); color:var(--goldd); box-shadow:0 8px 22px -6px rgba(216,184,95,.5), inset 0 1px 0 rgba(255,255,255,.08);
+  margin-top:-14px; transition:transform .2s ease, box-shadow .25s ease; }
+.tab.center svg{ width:25px; height:25px; }
+.tab.center.on .tdisc{ background:var(--gold); color:#13211A; box-shadow:0 10px 30px -6px rgba(216,184,95,.75); }
+
+/* ---------- bottom sheet ---------- */
+.sheet-scrim{ position:fixed; inset:0; background:rgba(8,14,11,.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none;
+  transition:opacity .3s ease; z-index:40; }
+.sheet-scrim.open{ opacity:1; pointer-events:auto; }
+.grabber{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:12px auto 0; }
+
+/* ---------- micro-animations: staggered fade-rise ---------- */
+.rise{ opacity:0; transform:translateY(16px); animation:rise .75s cubic-bezier(.2,.72,.2,1) forwards; }
+.d1{ animation-delay:.05s; } .d2{ animation-delay:.13s; } .d3{ animation-delay:.22s; }
+.d4{ animation-delay:.32s; } .d5{ animation-delay:.43s; } .d6{ animation-delay:.55s; }
+@keyframes rise{ to{ opacity:1; transform:none; } }
+
+@media (prefers-reduced-motion: reduce){
+  .rise{ opacity:1 !important; transform:none !important; animation:none !important; }
+  .dot{ animation:none; }
+  *{ scroll-behavior:auto !important; }
+}
+
+/* ---------- real-phone full-bleed (drop the showcase frame) ---------- */
+@media (max-width:480px){
+  .stage{ padding:0; }
+  .phone{ width:100%; border-radius:0; padding:0; box-shadow:none; }
+  .screen{ border-radius:0; min-height:100vh; min-height:100dvh; }
+  .bar{ padding-top:max(14px, env(safe-area-inset-top)); }
+  .tabbar{ padding-bottom:max(22px, calc(env(safe-area-inset-bottom) + 14px)); }
+}
+
+/* ---------- tablet & desktop: show the TRUE-SIZE device mockup, framed and
+   centered, so real mobile proportions are visible. (Real phones ≤480px get
+   full-bleed above.) This prevents the phone UI from stretching/blowing up. */
+@media (min-width:481px){
+  .stage{ padding:clamp(32px,5vh,72px) 24px; align-items:center; }
+}
+
+/* ============================================================
+   RESPONSIVE APP SHELL  —  opt-in via class="stage app-shell"
+   At >=481px this drops the phone bezel and presents the screen as a
+   true full-viewport responsive web app with a fixed top app bar
+   (the bottom tab bar reflows into it). Mobile (<=480px) is untouched.
+   A page adopts it by: (1) class="stage app-shell", (2) including the
+   standard .tabbar nav, (3) optional per-page column tuning.
+   ============================================================ */
+@media (min-width:481px){
+  .app-shell.stage{ padding:0; align-items:stretch; min-height:100vh; min-height:100dvh; }
+  .app-shell .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+  .app-shell .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
+  .app-shell .bar{ display:none; }
+
+  /* bottom tab bar -> fixed top app bar */
+  .app-shell .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
+    display:flex; flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
+    background:color-mix(in srgb, var(--bgfield) 82%, transparent);
+    backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+    border-bottom:1px solid var(--line); }
+  .app-shell .tabbar .arc{ display:none; }
+  .app-shell .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 14px; border-radius:11px; color:var(--muted);
+    transition:color .2s ease, background .2s ease; position:relative; }
+  .app-shell .tab:hover{ color:var(--text); background:color-mix(in srgb,var(--text) 5%, transparent); }
+  .app-shell .tab svg{ width:18px; height:18px; }
+  .app-shell .tab .tlbl{ font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; opacity:1; }
+  .app-shell .tab.on{ color:var(--text); }
+  .app-shell .tab.on .tlbl{ color:var(--goldd); }
+  /* neutralize the raised "Today" disc so it sits inline in the bar */
+  .app-shell .tab.center{ margin:0; }
+  .app-shell .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; border-radius:0; background:none; box-shadow:none; }
+  .app-shell .tab.center svg{ width:18px; height:18px; }
+  .app-shell .tab.center.on .tdisc{ background:none; box-shadow:none; color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.45)); }
+
+  /* primary scroll region sits below the bar; pages center their own column */
+  .app-shell .scroll{ padding-top:84px; }
+}
+
+/* ---------- theme toggle (shared control) — simplified to Light/Dark/Auto ---------- */
+.themectl{ position:fixed; bottom:16px; right:16px; z-index:50; display:flex; gap:2px; padding:4px; border-radius:999px;
+  background:rgba(127,127,127,.16); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.themectl button{ border:0; background:transparent; color:var(--muted); font-family:inherit; font-size:11.5px;
+  letter-spacing:.03em; padding:7px 14px; border-radius:999px; cursor:pointer; transition:.2s; }
+.themectl button.on{ background:var(--screen); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+
+/* relocated into the slide-out menu as an "Appearance" setting (pages with a menu) */
+.menu-appearance{ margin-top:34px; }
+.menu-appearance .ms-lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+.menupanel .themectl{ position:static; inset:auto; z-index:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:4px; width:100%; padding:5px; border-radius:14px;
+  background:var(--field); border:1px solid var(--line2); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.menupanel .themectl button{ font-size:12.5px; padding:11px 6px; border-radius:10px; color:var(--text2); }
+.menupanel .themectl button.on{ background:var(--screen); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+
+
+/* ============================================================
+   Cinematic page transitions — shared across every screen.
+   Enter: a brand-field veil + gold glow fades out on load.
+   Exit:  the same veil fades back in when an internal link is clicked.
+   Respects prefers-reduced-motion.
+   ============================================================ */
+@keyframes fxVeilOut{ from{ opacity:1; } to{ opacity:0; visibility:hidden; } }
+@keyframes fxGlowOut{ from{ opacity:.7; transform:translate(-50%,-50%) scale(.72); } to{ opacity:0; transform:translate(-50%,-50%) scale(1.28); visibility:hidden; } }
+html::before{ content:''; position:fixed; inset:0; z-index:99998; pointer-events:none; background:var(--bgfield);
+  animation:fxVeilOut .58s cubic-bezier(.2,.7,.2,1) forwards; }
+html::after{ content:''; position:fixed; top:44%; left:50%; width:min(48vw,440px); height:min(48vw,440px); transform:translate(-50%,-50%);
+  z-index:99999; pointer-events:none; border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb, var(--gold) 36%, transparent), transparent 62%);
+  animation:fxGlowOut .64s cubic-bezier(.2,.7,.2,1) forwards; }
+/* (legacy #pagefx veil removed — transitions handled by route-loader.js) */
+@media (prefers-reduced-motion: reduce){
+  html::before, html::after{ animation:none !important; opacity:0 !important; visibility:hidden !important; }
+}

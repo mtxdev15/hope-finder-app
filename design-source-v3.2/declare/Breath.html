@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Declare — Breath</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<style>
+  .stage{ padding:0; }
+  .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+  .screen{ border-radius:0; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+  .b-top{ display:flex; align-items:center; gap:13px; padding:max(14px,env(safe-area-inset-top)) 20px 12px; }
+  .b-top .ey{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+  .b-top .nm{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:14px; color:var(--text2); margin-top:1px; }
+  .b-body{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 24px 60px; position:relative; z-index:1; }
+  .b-head{ font-family:'Cormorant Garamond',serif; font-size:30px; color:var(--text); text-align:center; margin-bottom:34px; line-height:1.15; }
+  .b-controls{ position:fixed; bottom:max(18px,env(safe-area-inset-bottom)); left:0; right:0; display:flex; gap:10px; justify-content:center; padding:0 20px; z-index:5; }
+  .b-controls button{ font-family:'DM Sans',sans-serif; font-size:12.5px; font-weight:600; padding:11px 16px; border-radius:100px; cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid var(--line2); color:var(--text); }
+  .b-controls button:hover{ border-color:color-mix(in srgb,var(--gold) 36%,transparent); }
+  .note{ position:fixed; top:64px; left:50%; transform:translateX(-50%); font-size:11px; color:var(--soft); letter-spacing:.04em; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage">
+ <div class="phone">
+  <div class="screen">
+   <div class="topglow" aria-hidden="true"></div>
+   <div class="b-top">
+     <div>
+       <div class="ey">Day 1 of 7 &middot; Shame &rarr; Beloved Child</div>
+       <div class="nm">Arrive</div>
+     </div>
+   </div>
+   <div class="note">Breath ring preview — try each variant below</div>
+   <div class="b-body">
+     <div class="b-head" id="bHead">Before anything, breathe.</div>
+     <div id="breathMount" style="width:100%;"></div>
+   </div>
+   <div class="b-controls">
+     <button data-mode="arrive">Arrive (4·4·4)</button>
+     <button data-mode="exhale">Cast off (exhale)</button>
+     <button data-mode="inhale">Declare (inhale)</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<script src="breath-ring.js"></script>
+<script>
+(function(){
+  var mountEl=document.getElementById('breathMount');
+  var head=document.getElementById('bHead');
+  var current=null;
+  var MODES={
+    arrive:{ head:'Before anything, breathe.', opts:{ caption:'Be still, and know.', loop:true, skipLabel:'Skip, I\u2019m ready',
+      seq:[{label:'Breathe in',secs:4,scale:1,glow:.95},{label:'Hold',secs:4,scale:1,glow:.95},{label:'Breathe out',secs:4,scale:.62,glow:.4}] } },
+    exhale:{ head:'Breathe out the lie.', opts:{ caption:'As you breathe out, release it.', skipLabel:'Skip',
+      seq:[{label:'Settle',secs:1,scale:1,glow:.9},{label:'Breathe out the lie',secs:6,scale:.55,glow:.32}], onDone:function(){ head.textContent='It has no hold on you.'; } } },
+    inhale:{ head:'Breathe in the truth.', opts:{ caption:'As you breathe in, receive it.', skipLabel:'Skip',
+      seq:[{label:'Settle',secs:1,scale:.6,glow:.4},{label:'Breathe in the truth',secs:6,scale:1.05,glow:1}], onDone:function(){ head.textContent='Now declare it.'; } } }
+  };
+  function run(mode){
+    if(current) current.destroy();
+    var m=MODES[mode]; head.textContent=m.head;
+    current=window.BreathRing.mount(mountEl, m.opts);
+  }
+  document.querySelectorAll('.b-controls button').forEach(function(b){ b.addEventListener('click', function(){ run(b.dataset.mode); }); });
+  run('arrive');
+})();
+</script>
+</body>
+</html>

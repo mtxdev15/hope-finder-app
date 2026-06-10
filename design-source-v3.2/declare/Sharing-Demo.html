@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Sharing Demo</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="share.css" />
+<link rel="stylesheet" href="card-studio.css" />
+<style>
+  .screen{ min-height:812px; height:812px; }
+  @media (max-width:480px){ .screen{ height:100dvh; } }
+  .app{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  .scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:46px 20px calc(34px + env(safe-area-inset-bottom)); scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+  .hd{ margin:6px 2px 4px; }
+  .hd .k{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .hd .t{ font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--text); line-height:1.06; margin-top:8px; }
+  .hd .s{ font-size:13.5px; line-height:1.6; color:var(--muted); margin-top:10px; }
+
+  .demo{ margin-top:22px; border-radius:20px; overflow:hidden; box-shadow:var(--card-shadow); background:var(--surface); }
+  .demo + .demo{ margin-top:16px; }
+  .dm-crest{ position:relative; aspect-ratio:3/2; display:flex; align-items:center; justify-content:center; padding:24px 22px; overflow:hidden; }
+  .dm-crest .rays{ position:absolute; left:50%; top:-30%; width:170%; height:180%; transform:translateX(-50%); mix-blend-mode:screen; opacity:.55;
+    background:repeating-conic-gradient(from 180deg at 50% 0%, rgba(255,242,210,0) 0deg, rgba(255,242,210,.14) 1.2deg, rgba(255,242,210,0) 3deg, rgba(255,242,210,0) 7deg);
+    -webkit-mask-image:radial-gradient(60% 80% at 50% 0%, #000, transparent 72%); mask-image:radial-gradient(60% 80% at 50% 0%, #000, transparent 72%); }
+  .dm-crest .vig{ position:absolute; inset:0; background:radial-gradient(120% 100% at 50% 30%, transparent 55%, rgba(0,0,0,.4)); }
+  .dm-q{ position:relative; z-index:2; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:#FCF8EE; line-height:1.34; text-shadow:0 2px 14px rgba(0,0,0,.55); max-width:92%; text-align:center; text-wrap:pretty; }
+  .dm-body{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; }
+  .dm-meta .dm-t{ font-size:14px; font-weight:600; color:var(--text); }
+  .dm-meta .dm-d{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .dm-share{ flex:0 0 auto; display:inline-flex; align-items:center; gap:8px; padding:11px 16px; border-radius:13px; border:0;
+    background:var(--gold); color:#15241B; font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; box-shadow:0 8px 20px -8px rgba(216,184,95,.5); }
+  .dm-share svg{ width:15px; height:15px; }
+  .note{ margin-top:24px; font-size:12px; line-height:1.6; color:var(--muted); text-align:center; padding:0 10px; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="app">
+        <div class="bar"><span style="font-weight:500">9:41</span><span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+        <div class="scroll">
+          <div class="hd">
+            <div class="k">Sharing · Preview</div>
+            <div class="t">Share anything,<br>beautifully</div>
+            <div class="s">Tap share on any item below. Verses, declarations &amp; journey moments open the card studio; churches open the share &amp; embed sheet.</div>
+          </div>
+
+          <!-- VERSE -->
+          <div class="demo">
+            <div class="dm-crest" style="background:linear-gradient(155deg,#243a4a,#0b141b)"><span class="rays"></span><span class="vig"></span>
+              <div class="dm-q">&ldquo;Fear not, for I am with you; be not dismayed, for I am your God.&rdquo;</div>
+            </div>
+            <div class="dm-body"><div class="dm-meta"><div class="dm-t">Verse of the day</div><div class="dm-d">Isaiah 41:10 · NKJV</div></div>
+              <button class="dm-share" data-share="verse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg>Share</button>
+            </div>
+          </div>
+
+          <!-- DECLARATION -->
+          <div class="demo">
+            <div class="dm-crest" style="background:linear-gradient(155deg,#3a2f17,#130c05)"><span class="rays"></span><span class="vig"></span>
+              <div class="dm-q">I am fearfully and wonderfully made.</div>
+            </div>
+            <div class="dm-body"><div class="dm-meta"><div class="dm-t">Today&rsquo;s declaration</div><div class="dm-d">Speak it over your life</div></div>
+              <button class="dm-share" data-share="declaration"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg>Share</button>
+            </div>
+          </div>
+
+          <!-- JOURNEY -->
+          <div class="demo">
+            <div class="dm-crest" style="background:linear-gradient(155deg,#26402f,#0a1410)"><span class="rays"></span><span class="vig"></span>
+              <div class="dm-q">7-day streak &mdash; you showed up every morning this week.</div>
+            </div>
+            <div class="dm-body"><div class="dm-meta"><div class="dm-t">Journey moment</div><div class="dm-d">A week in the Word</div></div>
+              <button class="dm-share" data-share="journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg>Share</button>
+            </div>
+          </div>
+
+          <!-- CHURCH (share + embed sheet) -->
+          <div class="demo">
+            <div class="dm-crest" style="background:linear-gradient(155deg,#2c4b3b,#13251c)"><span class="rays"></span><span class="vig"></span>
+              <div class="dm-q" style="font-size:24px">Grace Community Church</div>
+            </div>
+            <div class="dm-body"><div class="dm-meta"><div class="dm-t">A church</div><div class="dm-d">Orlando, FL · Sundays 9 &amp; 11</div></div>
+              <button class="dm-share" data-share="church"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg>Share</button>
+            </div>
+          </div>
+
+          <div class="note">Exports render a real PNG at the chosen size, then open your device&rsquo;s native share to post.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="theme.js"></script>
+<script src="share.js"></script>
+<script src="card-studio.js"></script>
+<script>
+(function(){
+  var DATA={
+    verse:{ type:'verse', title:'Isaiah 41:10', text:'Fear not, for I am with you; be not dismayed, for I am your God.', ref:'Isaiah 41:10 · NKJV', url:'https://declareandbelieve.com/verse/isaiah-41-10' },
+    declaration:{ type:'declaration', title:'A declaration', text:'I am fearfully and wonderfully made.', ref:'Psalm 139:14', url:'https://declareandbelieve.com/declarations' },
+    journey:{ type:'journey', title:'7-day streak', text:'7 mornings in a row in the Word.', ref:'A week with God', url:'https://declareandbelieve.com/journey' },
+    church:{ type:'church', id:'grace-community', title:'Grace Community Church', subtitle:'Orlando, FL · Sundays 9 & 11', monogram:'GC', gradient:'linear-gradient(155deg,#2c4b3b,#13251c)', url:'https://declareandbelieve.com/church/grace-community' }
+  };
+  document.querySelectorAll('[data-share]').forEach(function(b){
+    b.addEventListener('click', function(){ DeclareShare.open(DATA[b.getAttribute('data-share')]); });
+  });
+})();
+</script>
+</body>
+</html>

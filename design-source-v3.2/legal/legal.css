@@ -1,0 +1,142 @@
+/* Declare & Believe — shared styles for standalone info pages
+   (Privacy, Terms, Contact, About). Mobile-first, warm-neumorphic to match
+   the app. Tokens mirror the app's :root so the pages feel native. */
+
+:root{
+  --bg:#F7F3EC;
+  --surface:#FBF8F2;
+  --cream:#FEFCF8;
+  --parchment:#ECE4D5;
+  --gold:#C9A84C;
+  --gold-light:#E8C97A;
+  --gold-dark:#9B7A2E;
+  --gold-pale:#F6EFDB;
+  --forest:#2D4A3E;
+  --forest-light:#3D6356;
+  --forest-pale:#E8F0ED;
+  --text:#1A1A18;
+  --muted:#6B6355;
+  --light:#9B9080;
+  --raise:7px 7px 16px rgba(190,176,150,0.38), -7px -7px 16px rgba(255,255,255,0.95);
+  --raise-sm:4px 4px 9px rgba(190,176,150,0.34), -4px -4px 9px rgba(255,255,255,0.9);
+  --raise-xs:3px 3px 6px rgba(190,176,150,0.32), -2px -2px 6px rgba(255,255,255,0.88);
+  --inset-sm:inset 4px 4px 8px rgba(190,176,150,0.42), inset -4px -4px 8px rgba(255,255,255,0.95);
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+html{ background:var(--bg); -webkit-text-size-adjust:100%; }
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'DM Sans', system-ui, sans-serif; font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; min-height:100vh;
+}
+::selection{ background:var(--gold-pale); }
+a{ color:var(--forest); text-decoration:none; }
+
+/* page scaffold — mobile first, content column caps on larger screens */
+.pg{ max-width:760px; margin:0 auto; padding:0 22px calc(40px + env(safe-area-inset-bottom,0)); }
+
+/* top bar with back-to-app */
+.pg-top{
+  position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px;
+  padding:16px 0 14px; margin-bottom:8px;
+  background:linear-gradient(var(--bg) 72%, transparent);
+}
+.pg-back{
+  flex:0 0 auto; width:46px; height:46px; border-radius:50%;
+  background:var(--surface); box-shadow:var(--raise-sm);
+  display:flex; align-items:center; justify-content:center; color:var(--forest);
+  transition:box-shadow .14s, transform .12s;
+}
+.pg-back:active{ box-shadow:var(--inset-sm); transform:scale(.95); }
+.pg-brand{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pg-brandname{ font-family:'Cormorant Garamond', serif; font-weight:600; font-size:19px; line-height:1.1; color:var(--forest); letter-spacing:.01em; white-space:nowrap; }
+.pg-brandsub{ font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-dark); }
+
+/* hero */
+.pg-hero{ padding:18px 0 10px; }
+.pg-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-dark); margin:0 0 12px; }
+.pg-title{
+  font-family:'Cormorant Garamond', serif; font-weight:600; font-style:italic;
+  font-size:clamp(34px,9vw,52px); line-height:1.04; color:var(--forest); margin:0 0 12px; letter-spacing:.005em;
+}
+.pg-lede{ font-size:clamp(16px,4vw,18px); color:var(--muted); margin:0; max-width:54ch; }
+.pg-updated{ font-size:13px; color:var(--light); margin:14px 0 0; }
+
+/* content card */
+.pg-card{
+  background:var(--surface); border-radius:24px; box-shadow:var(--raise);
+  padding:clamp(22px,5vw,40px); margin-top:26px;
+}
+.pg-card + .pg-card{ margin-top:18px; }
+.pg-card h2{
+  font-family:'Cormorant Garamond', serif; font-weight:600; font-size:clamp(22px,5.5vw,27px);
+  color:var(--forest); margin:0 0 10px; line-height:1.18;
+}
+.pg-card h2:not(:first-child){ margin-top:26px; }
+.pg-card h3{ font-size:15px; font-weight:700; color:var(--text); margin:20px 0 6px; }
+.pg-card p{ margin:0 0 14px; color:var(--text); }
+.pg-card p:last-child{ margin-bottom:0; }
+.pg-card a{ color:var(--gold-dark); font-weight:600; text-decoration:underline; text-underline-offset:2px; }
+.pg-card ul{ margin:0 0 14px; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:11px; }
+.pg-card li{ position:relative; padding-left:24px; color:var(--text); }
+.pg-card li::before{ content:''; position:absolute; left:4px; top:.62em; width:7px; height:7px; border-radius:50%; background:var(--gold); }
+.pg-card strong{ color:var(--forest); }
+
+/* contact action tiles */
+.pg-actions{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:6px; }
+@media (min-width:600px){ .pg-actions{ grid-template-columns:1fr 1fr; } }
+.pg-action{
+  display:flex; align-items:center; gap:15px; padding:18px 20px; border-radius:18px;
+  background:var(--bg); box-shadow:var(--raise-sm); transition:box-shadow .14s, transform .12s;
+}
+.pg-action:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+.pg-action-ic{
+  flex:0 0 auto; width:46px; height:46px; border-radius:14px; background:var(--forest-pale);
+  display:flex; align-items:center; justify-content:center; color:var(--forest);
+}
+.pg-action-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pg-action-lb{ font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--light); }
+.pg-action-vl{ font-size:16px; font-weight:600; color:var(--forest); word-break:break-word; }
+
+/* footer (shared with the app) */
+.pg-footer{ margin-top:44px; padding-top:26px; border-top:1px solid rgba(155,144,128,.22); text-align:center; }
+.dbfoot-links{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:10px 0; margin-bottom:18px;
+}
+.dbfoot-links a{
+  font-size:13.5px; font-weight:600; color:var(--forest); padding:6px 16px;
+  position:relative; transition:color .15s;
+}
+.dbfoot-links a:not(:last-child)::after{
+  content:''; position:absolute; right:0; top:50%; transform:translateY(-50%);
+  width:1px; height:13px; background:rgba(155,144,128,.4);
+}
+.dbfoot-links a:hover{ color:var(--gold-dark); }
+.dbfoot-copy{ font-size:12.5px; color:var(--light); letter-spacing:.01em; }
+.dbfoot-copy b{ color:var(--muted); font-weight:600; }
+
+/* dark theme — mirrors the app's dark palette so pages match if the user
+   set dark mode in the app (applied via the tiny inline script in each page) */
+html.theme-dark{
+  --bg:#161310; --surface:#211D17; --cream:#1B1813; --parchment:#2A2419;
+  --gold:#D6B45A; --gold-light:#E7C97C; --gold-dark:#D6B45A; --gold-pale:#3A301C;
+  --forest:#8FCBAE; --forest-light:#5A8973; --forest-pale:#22332B;
+  --text:#ECE3D2; --muted:#B5AB97; --light:#8A8170;
+  --raise:7px 7px 18px rgba(0,0,0,0.5), -6px -6px 16px rgba(255,255,255,0.02);
+  --raise-sm:4px 4px 10px rgba(0,0,0,0.45), -3px -3px 9px rgba(255,255,255,0.02);
+  --raise-xs:3px 3px 7px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.02);
+  --inset-sm:inset 3px 3px 7px rgba(0,0,0,0.5), inset -3px -3px 7px rgba(255,255,255,0.03);
+}
+html.theme-dark body{ background:var(--bg); }
+html.theme-dark .pg-title,
+html.theme-dark .pg-brandname,
+html.theme-dark .pg-card h2,
+html.theme-dark .pg-action-vl,
+html.theme-dark .pg-back{ color:var(--forest); }
+html.theme-dark .pg-card a,
+html.theme-dark .dbfoot-links a:hover{ color:var(--gold-light); }
+html.theme-dark .pg-action-ic{ background:rgba(78,122,104,.22); }
+html.theme-dark .pg-card strong{ color:var(--forest); }

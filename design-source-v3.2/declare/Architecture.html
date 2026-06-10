@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Declare — Production Architecture &amp; Build Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#FAF7F2; --paper:#FFFFFF; --ink:#22321F; --ink2:#4A5A47; --muted:#8A968A;
+    --gold:#B8923C; --goldd:#9A7A2E; --green:#2D4A3E; --line:#E6E0D4; --line2:#D8D0C0;
+    --code-bg:#F4F0E8; --accent-soft:rgba(184,146,60,.12); --rose:#B5524A;
+    --maxw:860px;
+  }
+  *{ box-sizing:border-box; }
+  html{ background:var(--bg); scroll-behavior:smooth; }
+  body{ margin:0; font-family:'DM Sans',system-ui,sans-serif; color:var(--ink); line-height:1.62;
+    font-size:16px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 28px; }
+
+  /* ---------- cover ---------- */
+  .cover{ padding:clamp(64px,10vw,128px) 0 clamp(40px,6vw,72px); border-bottom:1px solid var(--line); }
+  .kicker{ display:inline-flex; align-items:center; gap:11px; font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .kicker::before{ content:''; width:30px; height:1px; background:linear-gradient(90deg,var(--gold),transparent); }
+  h1{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:clamp(40px,6.5vw,76px); line-height:1.02; margin:22px 0 0; letter-spacing:-.01em; }
+  .sub{ font-size:clamp(17px,2vw,20px); color:var(--ink2); margin:20px 0 0; max-width:54ch; }
+  .meta{ display:flex; flex-wrap:wrap; gap:8px 28px; margin-top:34px; font-size:13.5px; color:var(--muted); }
+  .meta b{ color:var(--ink2); font-weight:600; }
+
+  /* ---------- table of contents ---------- */
+  .toc{ padding:40px 0; border-bottom:1px solid var(--line); }
+  .toc h2{ font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin:0 0 18px; }
+  .toc ol{ margin:0; padding:0; list-style:none; counter-reset:toc; columns:2; column-gap:48px; }
+  .toc li{ break-inside:avoid; margin-bottom:11px; counter-increment:toc; }
+  .toc a{ color:var(--ink); text-decoration:none; font-size:15px; display:flex; gap:12px; align-items:baseline; }
+  .toc a::before{ content:counter(toc,decimal-leading-zero); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--gold); flex:0 0 auto; }
+  .toc a:hover{ color:var(--goldd); }
+
+  /* ---------- sections ---------- */
+  section.doc{ padding:clamp(40px,6vw,64px) 0; border-bottom:1px solid var(--line); }
+  .secnum{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gold); letter-spacing:.08em; }
+  h2.sec{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:clamp(28px,4vw,44px); line-height:1.08; margin:8px 0 0; }
+  .lede{ font-size:17px; color:var(--ink2); margin:16px 0 0; max-width:60ch; }
+  h3{ font-family:'DM Sans',sans-serif; font-weight:600; font-size:19px; margin:38px 0 0; color:var(--ink); }
+  h4{ font-weight:600; font-size:15px; margin:26px 0 0; color:var(--green); letter-spacing:.01em; }
+  p{ margin:13px 0 0; }
+  ul,ol{ margin:13px 0 0; padding-left:22px; }
+  li{ margin:7px 0; }
+  strong{ font-weight:600; color:var(--ink); }
+  a.ref{ color:var(--goldd); text-decoration:none; border-bottom:1px solid var(--line2); }
+  code{ font-family:'JetBrains Mono',monospace; font-size:.86em; background:var(--code-bg); padding:2px 6px; border-radius:5px; color:var(--green); white-space:nowrap; }
+
+  pre{ font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.6; background:#1C2A22; color:#E4DFD2;
+    padding:20px 22px; border-radius:14px; overflow-x:auto; margin:18px 0 0; tab-size:2; }
+  pre .c{ color:#7E907F; }     /* comment */
+  pre .k{ color:#E0B964; }     /* keyword */
+  pre .s{ color:#9FC9A8; }     /* string */
+  pre .t{ color:#D6A4F0; }     /* type/table */
+
+  /* callouts */
+  .note{ margin:22px 0 0; padding:18px 22px; border-radius:14px; background:var(--paper); border:1px solid var(--line);
+    border-left:3px solid var(--gold); }
+  .note.warn{ border-left-color:var(--rose); }
+  .note.dec{ border-left-color:var(--green); background:linear-gradient(180deg,rgba(45,74,62,.04),transparent); }
+  .note .nt{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--goldd); }
+  .note.warn .nt{ color:var(--rose); }
+  .note.dec .nt{ color:var(--green); }
+  .note p:first-of-type{ margin-top:7px; }
+
+  /* tables */
+  .tbl{ width:100%; border-collapse:collapse; margin:20px 0 0; font-size:13.5px; }
+  .tbl th{ text-align:left; font-weight:600; color:var(--green); border-bottom:2px solid var(--line2); padding:10px 12px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  .tbl td{ border-bottom:1px solid var(--line); padding:11px 12px; vertical-align:top; }
+  .tbl td code{ white-space:nowrap; }
+  .tbl tr:last-child td{ border-bottom:0; }
+
+  /* stack diagram */
+  .stack{ margin:24px 0 0; display:flex; flex-direction:column; gap:10px; }
+  .layer{ border:1px solid var(--line); border-radius:14px; padding:16px 20px; background:var(--paper); position:relative; }
+  .layer .lh{ font-weight:600; font-size:15px; color:var(--ink); display:flex; align-items:center; gap:10px; }
+  .layer .lt{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--accent-soft); color:var(--goldd); }
+  .layer .ld{ font-size:13.5px; color:var(--ink2); margin-top:6px; }
+  .flow{ text-align:center; color:var(--muted); font-size:18px; line-height:1; margin:-4px 0; }
+
+  /* decision cards */
+  .dec-grid{ display:grid; gap:14px; margin:22px 0 0; }
+  .dcard{ border:1px solid var(--line); border-radius:16px; padding:20px 22px; background:var(--paper); }
+  .dcard .dn{ display:flex; align-items:center; gap:12px; }
+  .dcard .dnum{ font-family:'JetBrains Mono',monospace; font-size:12px; color:#fff; background:var(--green); width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .dcard h4{ margin:0; font-size:17px; color:var(--ink); }
+  .dcard .status{ margin-left:auto; font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; padding:4px 10px; border-radius:999px; }
+  .status.gate{ background:rgba(181,82,74,.12); color:var(--rose); }
+  .status.ready{ background:rgba(45,74,62,.1); color:var(--green); }
+  .dcard .rec{ margin-top:12px; font-size:14px; }
+  .dcard .rec b{ color:var(--goldd); }
+
+  .pill{ display:inline-block; font-size:11px; font-weight:600; padding:3px 10px; border-radius:999px; background:var(--accent-soft); color:var(--goldd); margin:0 2px; }
+
+  footer.docfoot{ padding:48px 0 80px; text-align:center; color:var(--muted); font-size:13px; }
+  footer.docfoot .bm{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--ink); font-weight:600; }
+  footer.docfoot .bm b{ color:var(--goldd); }
+
+  @media (max-width:680px){ .toc ol{ columns:1; } }
+  @media print{
+    html,body{ background:#fff; font-size:11.5pt; }
+    .toc a, a.ref{ color:var(--ink); }
+    section.doc{ break-inside:auto; padding:26px 0; }
+    h2.sec,h3,h4{ break-after:avoid; }
+    pre,.note,.tbl,.dcard,.layer{ break-inside:avoid; }
+    .cover{ padding:24px 0 32px; }
+    pre{ background:#f4f0e8; color:#22321f; border:1px solid var(--line); }
+    pre .c{color:#8a968a;} pre .k{color:#9a7a2e;} pre .s{color:#2d4a3e;} pre .t{color:#7a4ea0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="wrap">
+    <span class="kicker">Engineering Handoff · Confidential</span>
+    <h1>Declare &amp; Believe<br>Production Architecture &amp; Build Plan</h1>
+    <p class="sub">How the v3.2-redesign prototype becomes a shippable web app — and the foundation for the native iPhone app — on Supabase, Cloudflare Workers &amp; Pages, the Claude API, and the American Bible API.</p>
+    <div class="meta">
+      <span><b>Version</b> v3.2-redesign</span>
+      <span><b>Target stack</b> Astro · Cloudflare · Supabase</span>
+      <span><b>Status</b> Prototype complete → engineering</span>
+      <span><b>Audience</b> Senior developer</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#decisions">Launch-gating decisions</a></li>
+      <li><a href="#architecture">Target architecture</a></li>
+      <li><a href="#repo">Repository &amp; Astro structure</a></li>
+      <li><a href="#data">Data model &amp; Supabase schema</a></li>
+      <li><a href="#auth">Authentication &amp; accounts</a></li>
+      <li><a href="#content">Content pipeline — Claude + Bible API</a></li>
+      <li><a href="#licensing">Scripture licensing</a></li>
+      <li><a href="#reminders">Reminders &amp; notifications</a></li>
+      <li><a href="#secrets">Secrets &amp; environment</a></li>
+      <li><a href="#deploy">Deployment sequence</a></li>
+      <li><a href="#native">Path to the native iOS app</a></li>
+      <li><a href="#todos">Open items &amp; out of scope</a></li>
+    </ol>
+  </div>
+</nav>
+
+<!-- 1 -->
+<section class="doc" id="decisions">
+  <div class="wrap">
+    <span class="secnum">01</span>
+    <h2 class="sec">Launch-gating decisions</h2>
+    <p class="lede">Four product decisions gate a real launch. Three are resolved; one needs the founder + legal. Everything downstream in this doc assumes these answers.</p>
+
+    <div class="dec-grid">
+      <div class="dcard">
+        <div class="dn"><span class="dnum">1</span><h4>Content source</h4><span class="status ready">Resolved</span></div>
+        <p class="rec"><b>Server-generated</b> via the Claude API, with verses from the American Bible API. The prototype's in-browser <code>window.claude.complete</code> does not exist in production — generation moves to a Cloudflare Worker. The authored fallback bank stays as the safety net (see §6).</p>
+      </div>
+      <div class="dcard">
+        <div class="dn"><span class="dnum">2</span><h4>Accounts &amp; persistence</h4><span class="status ready">Resolved</span></div>
+        <p class="rec"><b>Real auth + real persistence</b> on Supabase (Postgres + Auth + RLS). Every <code>localStorage</code> key in the prototype maps to a table or a user-preferences column (see §4). Guest/local mode persists until first sign-in, then migrates.</p>
+      </div>
+      <div class="dcard">
+        <div class="dn"><span class="dnum">3</span><h4>Reminders &amp; notifications</h4><span class="status ready">Resolved</span></div>
+        <p class="rec"><b>Server-scheduled.</b> A Cloudflare Cron Worker drives the daily reminder + journey check-ins, honoring quiet hours and per-channel toggles. Web Push for the PWA now; APNs for the native app later (see §8).</p>
+      </div>
+      <div class="dcard">
+        <div class="dn"><span class="dnum">4</span><h4>Scripture licensing</h4><span class="status gate">Decision needed</span></div>
+        <p class="rec">The app ships <b>KJV / WEB / ASV</b> (public domain) today. <b>NKJV, NIV, NLT</b> — marketed on the homepage and used across the SEO pages — are copyrighted and require licenses. <b>Decision:</b> license them, or swap to public-domain text and correct the "six translations" claim (see §7).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="doc" id="architecture">
+  <div class="wrap">
+    <span class="secnum">02</span>
+    <h2 class="sec">Target architecture</h2>
+    <p class="lede">A static-first Astro site on Cloudflare Pages, a thin Worker API for everything dynamic, Supabase as the system of record, and two external services behind the Worker so no key ever reaches the browser.</p>
+
+    <div class="stack">
+      <div class="layer">
+        <div class="lh"><span class="lt">Client</span> Astro site + PWA</div>
+        <div class="ld">Static marketing/SEO pages (pre-rendered) + the app shell (Today, Journey, Vault, The Word, Account, Find a Church). Service worker for offline + Web Push. This is the current HTML, ported to Astro components.</div>
+      </div>
+      <div class="flow">↓ &nbsp; fetch / JSON &nbsp; ↓</div>
+      <div class="layer">
+        <div class="lh"><span class="lt">Edge API</span> Cloudflare Workers</div>
+        <div class="ld">One Worker (or a small set) exposing <code>/api/*</code>: daily word generation, Bible passage proxy + cache, vault sync, journey state, reminders registration, ratings, waitlist. Holds all secrets. Cron Triggers fire scheduled notifications.</div>
+      </div>
+      <div class="flow">↓ &nbsp; Postgres · REST · RPC &nbsp; ↓</div>
+      <div class="layer">
+        <div class="lh"><span class="lt">Data</span> Supabase</div>
+        <div class="ld">Postgres (system of record), Auth (magic link + OAuth), Row Level Security, Storage (card-studio exports, avatars), Realtime (optional, for cross-device vault sync).</div>
+      </div>
+      <div class="flow">↑ &nbsp; called only from the Worker &nbsp; ↑</div>
+      <div class="layer">
+        <div class="lh"><span class="lt">External</span> Claude API &amp; American Bible API</div>
+        <div class="ld">Anthropic Claude generates the verse-reflection-declaration-prayer set and journey days. The American Bible API serves verbatim Scripture by translation. Both are server-side only, rate-limited, and cached in Postgres.</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="nt">Why this shape</span>
+      <p>The prototype is already static HTML with client logic — Astro + Cloudflare Pages is a near-direct port with zero server runtime to manage. Workers give you a single secret boundary and cron in the same platform. Supabase covers auth, DB, and storage without standing up infrastructure. Nothing here requires a long-running server.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="doc" id="repo">
+  <div class="wrap">
+    <span class="secnum">03</span>
+    <h2 class="sec">Repository &amp; Astro structure</h2>
+    <p class="lede">The current files map cleanly onto Astro routes and components. Marketing pages pre-render at build; the app shell hydrates on the client.</p>
+
+    <h3>Proposed layout</h3>
+<pre><span class="c">// Cloudflare Pages build target: Astro (static + islands)</span>
+src/
+  pages/
+    index.astro              <span class="c">// Home.html</span>
+    today.astro              <span class="c">// Today.html  → "Declare"</span>
+    journey.astro            <span class="c">// Journey.html</span>
+    vault.astro              <span class="c">// Vault.html</span>
+    the-word.astro           <span class="c">// TheWord.html</span>
+    account.astro            <span class="c">// Account-A.html</span>
+    find-a-church.astro      <span class="c">// Find-a-Church-Flow.html</span>
+    [struggle].astro         <span class="c">// anxiety, grief, … → SEO pages, one template</span>
+    release-notes.astro
+    legal/{privacy,terms}.astro
+  components/
+    AppShell.astro           <span class="c">// the shared .app-shell + tab bar (consolidate per-page CSS)</span>
+    TabBar.astro             <span class="c">// from declare-tabbar.js</span>
+    coda/RelatedStruggles.astro  <span class="c">// SEO closing block, data-driven from one map</span>
+  lib/
+    supabase.ts              <span class="c">// browser client (anon key, RLS-guarded)</span>
+    api.ts                   <span class="c">// typed fetch wrappers to /api/*</span>
+  content/
+    struggles.ts             <span class="c">// the 13 struggle slugs + related-struggle map + verses</span>
+functions/                   <span class="c">// Cloudflare Pages Functions, or a separate Worker</span>
+  api/
+    daily.ts  bible.ts  vault.ts  journey.ts  reminders.ts  rate.ts
+  scheduled.ts               <span class="c">// cron entry — reminders + check-ins</span></pre>
+
+    <div class="note">
+      <span class="nt">Consolidation win</span>
+      <p>Each prototype screen currently carries its own copy of the desktop/responsive CSS. In Astro, hoist that into <code>AppShell.astro</code> + one shared stylesheet so the breakpoints live in exactly one place. The <code>[struggle].astro</code> template should be data-driven from <code>content/struggles.ts</code> (the related-struggles map already lives in <code>uploads/declare-closing-block-mappings.md</code> — port it verbatim).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="doc" id="data">
+  <div class="wrap">
+    <span class="secnum">04</span>
+    <h2 class="sec">Data model &amp; Supabase schema</h2>
+    <p class="lede">Every piece of prototype state lives in <code>localStorage</code> today. Here is the exact mapping to Postgres, and the schema to create.</p>
+
+    <h3>localStorage → Postgres</h3>
+    <table class="tbl">
+      <thead><tr><th>Prototype key</th><th>Holds</th><th>Becomes</th></tr></thead>
+      <tbody>
+        <tr><td><code>declare-firstname</code> / <code>declare-email</code> / <code>declare-session</code></td><td>Identity + signed-in flag</td><td><code>auth.users</code> + <code>profiles</code></td></tr>
+        <tr><td><code>declare-country</code></td><td>Locale for churches/times</td><td><code>profiles.country</code></td></tr>
+        <tr><td><code>declare-struggle</code>, <code>declare-journey-struggle</code></td><td>Current / journey struggle</td><td><code>sessions.struggle</code>, <code>journeys.struggle</code></td></tr>
+        <tr><td><code>declare-begin-day</code></td><td>Daily threshold date</td><td><code>profiles.last_begin_on</code></td></tr>
+        <tr><td><code>declare-vault</code></td><td>Saved verses / declarations / prayers</td><td><code>vault_items</code></td></tr>
+        <tr><td><code>db_journey_lock</code></td><td>Per-journey pacing (one day/day)</td><td><code>journeys</code> + <code>journey_days</code></td></tr>
+        <tr><td><code>declare-church</code></td><td>Home church id</td><td><code>profiles.home_church_id</code></td></tr>
+        <tr><td><code>declare-translation</code>, <code>declare-textsize</code>, <code>declare-fontstyle</code>, <code>declare-brightness</code>, <code>db_bible_display</code></td><td>Reader preferences</td><td><code>profiles.prefs</code> (jsonb)</td></tr>
+        <tr><td><code>db_bible_cache_*</code></td><td>Fetched passages</td><td><code>bible_cache</code> (server-side)</td></tr>
+        <tr><td><code>declare-reminder</code>, <code>declare-notif-*</code></td><td>Reminder time + channel toggles</td><td><code>reminder_settings</code></td></tr>
+        <tr><td><code>declare-rating</code></td><td>Stars + improvement chips + note</td><td><code>ratings</code></td></tr>
+        <tr><td><code>declare-ios-waitlist</code></td><td>Native-app waitlist opt-in</td><td><code>ios_waitlist</code></td></tr>
+        <tr><td><code>declare-theme</code>, <code>declare-admin</code></td><td>Theme; admin preview flag</td><td><code>profiles.prefs.theme</code>; <code>profiles.role</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Schema (abridged DDL)</h3>
+<pre><span class="k">create table</span> <span class="t">profiles</span> (
+  id            <span class="k">uuid primary key references</span> auth.users(id) <span class="k">on delete cascade</span>,
+  first_name    <span class="k">text</span>,
+  country       <span class="k">text</span>,
+  home_church_id <span class="k">text</span>,
+  role          <span class="k">text</span> <span class="k">default</span> <span class="s">'member'</span>,   <span class="c">-- 'member' | 'admin'</span>
+  prefs         <span class="k">jsonb</span> <span class="k">default</span> <span class="s">'{}'</span>,       <span class="c">-- theme, reader display, translation</span>
+  last_begin_on <span class="k">date</span>,
+  created_at    <span class="k">timestamptz default</span> now()
+);
+
+<span class="k">create table</span> <span class="t">vault_items</span> (
+  id        <span class="k">uuid primary key default</span> gen_random_uuid(),
+  user_id   <span class="k">uuid references</span> profiles(id) <span class="k">on delete cascade</span>,
+  type      <span class="k">text</span>,                       <span class="c">-- 'verse' | 'declaration' | 'prayer'</span>
+  body      <span class="k">text</span>,
+  reference <span class="k">text</span>,                       <span class="c">-- e.g. 'John 1:1 KJV'</span>
+  collection <span class="k">text</span>,                      <span class="c">-- e.g. 'Morning Strength'</span>
+  is_mine   <span class="k">boolean default</span> false,      <span class="c">-- user-authored vs received</span>
+  created_at <span class="k">timestamptz default</span> now()
+);
+
+<span class="k">create table</span> <span class="t">journeys</span> (
+  id        <span class="k">uuid primary key default</span> gen_random_uuid(),
+  user_id   <span class="k">uuid references</span> profiles(id) <span class="k">on delete cascade</span>,
+  struggle  <span class="k">text</span>,
+  status    <span class="k">text default</span> <span class="s">'active'</span>,     <span class="c">-- 'active' | 'complete'</span>
+  day       <span class="k">int default</span> 1,              <span class="c">-- 1..5</span>
+  started_at <span class="k">timestamptz default</span> now(),
+  <span class="k">unique</span>(user_id, struggle, started_at)
+);
+
+<span class="k">create table</span> <span class="t">journey_days</span> (
+  journey_id <span class="k">uuid references</span> journeys(id) <span class="k">on delete cascade</span>,
+  day        <span class="k">int</span>,                      <span class="c">-- the per-day pacing lock</span>
+  unlocked_on <span class="k">date</span>,                     <span class="c">-- "one day per calendar day"</span>
+  returned   <span class="k">boolean default</span> false,
+  payload    <span class="k">jsonb</span>,                    <span class="c">-- generated verse/reflection/declaration/prayer</span>
+  <span class="k">primary key</span>(journey_id, day)
+);
+
+<span class="k">create table</span> <span class="t">reminder_settings</span> (
+  user_id   <span class="k">uuid primary key references</span> profiles(id) <span class="k">on delete cascade</span>,
+  reminder_at <span class="k">text</span>,                    <span class="c">-- '08:00' | custom ISO datetime | 'off'</span>
+  tz        <span class="k">text</span>,                       <span class="c">-- IANA, e.g. 'America/New_York'</span>
+  push      <span class="k">boolean default</span> true,
+  journey   <span class="k">boolean default</span> true,
+  updates   <span class="k">boolean default</span> true,
+  email     <span class="k">boolean default</span> false,
+  quiet_start <span class="k">text</span>, quiet_end <span class="k">text</span>
+);
+
+<span class="k">create table</span> <span class="t">ratings</span> (
+  id <span class="k">uuid primary key default</span> gen_random_uuid(),
+  user_id <span class="k">uuid references</span> profiles(id) <span class="k">on delete set null</span>,
+  stars <span class="k">int</span>, chips <span class="k">text[]</span>, note <span class="k">text</span>,
+  created_at <span class="k">timestamptz default</span> now()
+);
+
+<span class="k">create table</span> <span class="t">ios_waitlist</span> (
+  email <span class="k">text primary key</span>, user_id <span class="k">uuid</span>, source <span class="k">text</span>,
+  created_at <span class="k">timestamptz default</span> now()
+);
+
+<span class="k">create table</span> <span class="t">bible_cache</span> (        <span class="c">-- server-side passage cache (replaces db_bible_cache_*)</span>
+  key <span class="k">text primary key</span>,            <span class="c">-- '{translation}:{book}:{chapter}'</span>
+  translation <span class="k">text</span>, payload <span class="k">jsonb</span>,
+  fetched_at <span class="k">timestamptz default</span> now()
+);</pre>
+
+    <h3>Row Level Security</h3>
+    <p>Enable RLS on every user table. The pattern is identical across them:</p>
+<pre><span class="k">alter table</span> <span class="t">vault_items</span> <span class="k">enable row level security</span>;
+
+<span class="k">create policy</span> <span class="s">"own rows"</span> <span class="k">on</span> <span class="t">vault_items</span>
+  <span class="k">for all using</span> (auth.uid() = user_id)
+  <span class="k">with check</span> (auth.uid() = user_id);</pre>
+    <div class="note">
+      <span class="nt">Guest → member migration</span>
+      <p>Local mode keeps writing to <code>localStorage</code> until first sign-in. On sign-in, a one-time <code>POST /api/migrate</code> reads the local blobs and inserts them under the new <code>user_id</code>, then clears local. Keep the local keys as the offline cache layer even after migration.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="doc" id="auth">
+  <div class="wrap">
+    <span class="secnum">05</span>
+    <h2 class="sec">Authentication &amp; accounts</h2>
+    <p class="lede">Supabase Auth covers the prototype's sign-in screen as-is: passwordless email plus social providers.</p>
+    <ul>
+      <li><strong>Email magic link / OTP</strong> — matches the existing <code>Signin.html</code> code-entry UI. No passwords to store.</li>
+      <li><strong>OAuth providers</strong> — the prototype's provider buttons map to Supabase's Google / Apple providers. <strong>Apple Sign-In is required</strong> for App Store approval of the native app, so wire it now.</li>
+      <li><strong>Session</strong> — Supabase issues a JWT; the browser client stores it. The <code>declare-session</code> flag is replaced by the real session. The "Stay signed in" checkbox maps to session persistence.</li>
+      <li><strong>Profile bootstrap</strong> — a Postgres trigger on <code>auth.users</code> insert creates the matching <code>profiles</code> row; <code>first_name</code> is derived from the email local-part exactly as the prototype does today.</li>
+      <li><strong>Account deletion</strong> — the Account screen's delete action calls an RPC that cascades (every user table is <code>on delete cascade</code>). Required for App Store compliance.</li>
+    </ul>
+    <div class="note dec">
+      <span class="nt">Admin gating</span>
+      <p>The check-in notification preview and any internal tooling key off <code>profiles.role = 'admin'</code> — replacing the prototype's <code>localStorage['declare-admin']</code> flag. Gate admin-only UI server-side, never on a client flag.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="doc" id="content">
+  <div class="wrap">
+    <span class="secnum">06</span>
+    <h2 class="sec">Content pipeline — Claude + Bible API</h2>
+    <p class="lede">The heart of the product: a struggle in, and a verse + reflection + declarations + prayer out. In production this runs server-side, with Scripture kept verbatim and trustworthy.</p>
+
+    <h3>Generation flow</h3>
+    <ol>
+      <li>Client <code>POST /api/daily</code> with <code>{ struggle, freeText?, day? }</code>.</li>
+      <li>Worker builds the prompt (the existing <code>journey-engine.js</code> prompt, ported server-side) and calls the <strong>Claude API</strong>.</li>
+      <li>Claude returns structured JSON: a chosen Scripture <em>reference</em>, a reflection, declarations, and a prayer — <strong>it never invents verse text</strong>.</li>
+      <li>The Worker resolves that reference's verbatim text from the <strong>American Bible API</strong> (in the user's translation), checking <code>bible_cache</code> first.</li>
+      <li>Worker assembles the payload, writes it to <code>journey_days.payload</code> (for journeys) and returns it.</li>
+    </ol>
+
+    <div class="note">
+      <span class="nt">Trust boundary — why this split</span>
+      <p>Scripture text comes only from the licensed Bible API, never from the model. Claude chooses <em>which</em> verse and writes the pastoral wrapper; the Bible API supplies the <em>words</em>. This keeps Scripture exact and licensable, and is exactly how the prototype's <code>journey-engine.js</code> already reasons.</p>
+    </div>
+
+    <h3>Worker sketch</h3>
+<pre><span class="c">// functions/api/daily.ts  (Cloudflare Worker)</span>
+<span class="k">export async function</span> onRequestPost({ request, env }) {
+  <span class="k">const</span> { struggle, freeText, day } = <span class="k">await</span> request.json();
+
+  <span class="c">// 1 — Claude picks the verse + writes reflection/declarations/prayer</span>
+  <span class="k">const</span> claude = <span class="k">await</span> fetch(<span class="s">"https://api.anthropic.com/v1/messages"</span>, {
+    method: <span class="s">"POST"</span>,
+    headers: {
+      <span class="s">"x-api-key"</span>: env.ANTHROPIC_API_KEY,
+      <span class="s">"anthropic-version"</span>: <span class="s">"2023-06-01"</span>,
+      <span class="s">"content-type"</span>: <span class="s">"application/json"</span>,
+    },
+    body: JSON.stringify({
+      model: <span class="s">"claude-sonnet-4-5"</span>,
+      max_tokens: 1024,
+      messages: [{ role: <span class="s">"user"</span>, content: buildPrompt({ struggle, freeText, day }) }],
+    }),
+  }).then(r =&gt; r.json());
+
+  <span class="k">const</span> draft = parseJSON(claude);          <span class="c">// { reference, reflection, declarations[], prayer }</span>
+  <span class="k">if</span> (!draft) <span class="k">return</span> json(fallbackBank(struggle));  <span class="c">// authored safety net</span>
+
+  <span class="c">// 2 — resolve verbatim Scripture (cache-first)</span>
+  draft.verse = <span class="k">await</span> getPassage(env, draft.reference, translationFor(request));
+
+  <span class="k">return</span> json(draft);
+}</pre>
+
+    <h3>Caching &amp; cost control</h3>
+    <ul>
+      <li><strong>Bible passages</strong> — cache in <code>bible_cache</code> by <code>{translation}:{book}:{chapter}</code>. Passages are immutable; cache effectively forever.</li>
+      <li><strong>Daily word</strong> — optionally cache a canonical daily generation per <code>(struggle, date)</code> so repeat opens are free and consistent. Free-text entries always generate fresh.</li>
+      <li><strong>Fallback</strong> — keep the authored bank from <code>journey-engine.js</code>. On any Claude timeout, rate-limit, or unparseable response, serve it. The user must never see an empty state.</li>
+      <li><strong>Rate limiting</strong> — per-user limit at the Worker (e.g. Cloudflare KV counter) to contain cost and abuse.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="doc" id="licensing">
+  <div class="wrap">
+    <span class="secnum">07</span>
+    <h2 class="sec">Scripture licensing</h2>
+    <p class="lede">This is decision #4 — the one open item. It is a legal gate, not an engineering task, and it affects both the reader and the marketing pages.</p>
+
+    <h4>Where it stands today</h4>
+    <ul>
+      <li>The reader (<code>TheWord.html</code>) ships <strong>KJV, WEB, ASV</strong> — all public domain — and already gates <strong>NKJV / NIV / NLT</strong> behind a "streams at launch" toast. Good seam.</li>
+      <li>The homepage markets <strong>"six translations… NKJV, NIV, NLT, KJV, WEB, and ASV."</strong> That promise currently exceeds the rights held.</li>
+      <li>The 13 SEO pages quote <strong>NIV / NLT</strong> throughout (hero verses and the new closing verses).</li>
+    </ul>
+
+    <div class="note warn">
+      <span class="nt">Action required before launch</span>
+      <p><strong>NKJV</strong> — license via HarperCollins Christian (Thomas Nelson). <strong>NIV</strong> — license via Biblica / Zondervan. <strong>NLT</strong> — license via Tyndale House. Each has quotation thresholds and API terms. Confirm the American Bible API's plan actually covers the translations you display — many require a per-publisher license even when accessed through an aggregator.</p>
+    </div>
+
+    <h4>Two clean paths</h4>
+    <ol>
+      <li><strong>License &amp; keep the claim.</strong> Secure NKJV/NIV/NLT, confirm Bible-API coverage, keep the homepage copy. Budget: per-publisher fees + legal review.</li>
+      <li><strong>Public-domain launch.</strong> Display only KJV/WEB/ASV everywhere (including SEO pages), and change the homepage to "three translations." Zero licensing cost, ships immediately. Add copyrighted translations post-launch behind the same toast seam.</li>
+    </ol>
+    <p>The architecture supports either without change — translation is a parameter to the Bible-API proxy. Only the <em>set you display</em> and the <em>marketing copy</em> move.</p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="doc" id="reminders">
+  <div class="wrap">
+    <span class="secnum">08</span>
+    <h2 class="sec">Reminders &amp; notifications</h2>
+    <p class="lede">A scheduled Worker drives the daily reminder and journey check-ins, honoring each user's time, timezone, quiet hours, and per-channel toggles — exactly the controls already built into Account.</p>
+
+    <h3>How it runs</h3>
+    <ul>
+      <li><strong>Cron Trigger</strong> — a Cloudflare scheduled Worker runs every ~15 min. It queries <code>reminder_settings</code> for users whose <code>reminder_at</code> (in their <code>tz</code>) falls in this window, are outside <code>quiet_start…quiet_end</code>, and have the relevant channel enabled.</li>
+      <li><strong>Delivery now (PWA)</strong> — <strong>Web Push</strong> (VAPID). Store push subscriptions per device. The encouraging check-in copy bank lives in the prototype (<code>CHECKINS</code> in Account) — move it to a <code>checkin_copy</code> table so it's editable without a deploy.</li>
+      <li><strong>Delivery later (native)</strong> — <strong>APNs</strong> for the iOS app. The same scheduler picks the channel by device type; the payload contract stays identical.</li>
+      <li><strong>Day-lock</strong> — the journey "one day per calendar day" rule (prototype <code>db_journey_lock</code>) becomes <code>journey_days.unlocked_on</code>, enforced server-side so it can't be bypassed by changing the device clock.</li>
+    </ul>
+    <div class="note">
+      <span class="nt">Copy is product, not code</span>
+      <p>The check-in notifications are written to fight the battle in the mind — naming the lie, speaking the truer thing. Keep them in a table the team can edit, and vary them by journey day. The app icon (<code>brand/icon-512.png</code>, the DB + cross mark) is the notification icon on both platforms.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="doc" id="secrets">
+  <div class="wrap">
+    <span class="secnum">09</span>
+    <h2 class="sec">Secrets &amp; environment</h2>
+    <p class="lede">Everything sensitive lives as a Worker secret or a Pages environment variable. The browser sees only the Supabase URL and anon key (which are safe by design under RLS).</p>
+    <table class="tbl">
+      <thead><tr><th>Name</th><th>Where</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Worker secret</td><td>Claude API — daily word + journey generation</td></tr>
+        <tr><td><code>BIBLE_API_KEY</code></td><td>Worker secret</td><td>American Bible API — verbatim Scripture</td></tr>
+        <tr><td><code>SUPABASE_URL</code></td><td>Pages env (public)</td><td>Project endpoint</td></tr>
+        <tr><td><code>SUPABASE_ANON_KEY</code></td><td>Pages env (public)</td><td>Browser client, RLS-guarded</td></tr>
+        <tr><td><code>SUPABASE_SERVICE_ROLE</code></td><td>Worker secret</td><td>Server writes (migration, scheduler) — never in the browser</td></tr>
+        <tr><td><code>VAPID_PUBLIC</code> / <code>VAPID_PRIVATE</code></td><td>Pages env / Worker secret</td><td>Web Push</td></tr>
+        <tr><td><code>GOOGLE_PLACES_KEY</code></td><td>Worker secret</td><td>Find a Church live data (prototype <code>church-api.js</code>)</td></tr>
+        <tr><td><code>APNS_KEY</code> / team &amp; key IDs</td><td>Worker secret</td><td>Native push (later)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="doc" id="deploy">
+  <div class="wrap">
+    <span class="secnum">10</span>
+    <h2 class="sec">Deployment sequence</h2>
+    <p class="lede">A pragmatic order from empty repo to <span class="pill">declareandbelieve.com</span> on the v3.2-redesign branch, then merge.</p>
+    <ol>
+      <li><strong>Supabase project</strong> — create it, run the §4 schema, enable RLS, configure Auth (email + Google + Apple), add the <code>profiles</code> bootstrap trigger.</li>
+      <li><strong>Astro repo</strong> — port the prototype into the §3 structure. Marketing/SEO pages pre-render; the app shell hydrates. Wire <code>lib/supabase.ts</code> and <code>lib/api.ts</code>.</li>
+      <li><strong>Worker API</strong> — implement <code>/api/{daily,bible,vault,journey,reminders,rate,migrate}</code> + the Bible cache. Add Worker secrets.</li>
+      <li><strong>Content pipeline</strong> — port the <code>journey-engine.js</code> prompt + fallback bank server-side; resolve the Bible-API account and translation coverage (ties to §7).</li>
+      <li><strong>Cron Worker</strong> — wire the scheduler, Web Push subscriptions, and the editable check-in copy table.</li>
+      <li><strong>Cloudflare Pages</strong> — connect the repo, set env vars, point the build at Astro. Deploy a preview on the <code>v3.2-redesign</code> branch first.</li>
+      <li><strong>QA on preview</strong> — auth, guest→member migration, daily generation + fallback, vault sync, journey day-lock, reminders, ratings, waitlist, Find a Church.</li>
+      <li><strong>DNS &amp; cutover</strong> — map the apex domain, verify, then merge <code>v3.2-redesign</code> → <code>main</code>.</li>
+      <li><strong>Post-launch</strong> — add copyrighted translations (if licensed), then begin the native app (§11).</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="doc" id="native">
+  <div class="wrap">
+    <span class="secnum">11</span>
+    <h2 class="sec">Path to the native iOS app</h2>
+    <p class="lede">The web build is the proving ground; SwiftUI is the destination. The data layer is shared, so the native app is a new client over the same Supabase + Worker backend.</p>
+    <ul>
+      <li><strong>Same backend</strong> — SwiftUI calls the identical <code>/api/*</code> Worker endpoints and Supabase Auth (official Swift SDK). No second backend.</li>
+      <li><strong>Auth parity</strong> — Apple Sign-In (already required on web) carries straight over; Supabase issues the same JWT.</li>
+      <li><strong>Notifications</strong> — swap Web Push for APNs at the delivery step; the scheduler and copy are unchanged.</li>
+      <li><strong>The waitlist</strong> — <code>ios_waitlist</code> is your launch list. Wire the store IDs in <code>rate.js</code>'s <code>STORE</code> object (currently TODO) when the app ships.</li>
+      <li><strong>Design fidelity</strong> — the prototype's motion system and the DB + cross icon are the visual spec; the responsive web shell already approximates the native layouts.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="doc" id="todos">
+  <div class="wrap">
+    <span class="secnum">12</span>
+    <h2 class="sec">Open items &amp; out of scope</h2>
+    <h4>Decisions still owned by the founder</h4>
+    <ul>
+      <li><strong>Scripture licensing</strong> (§7) — license NKJV/NIV/NLT, or launch public-domain and correct the homepage claim.</li>
+      <li><strong>Bible API confirmation</strong> — verify the American Bible API plan covers each translation you intend to display.</li>
+    </ul>
+    <h4>Engineering TODOs surfaced by the prototype</h4>
+    <ul>
+      <li>Real App Store / Play IDs in <code>rate.js</code> → <code>STORE</code> (currently placeholder).</li>
+      <li>Consolidate the per-page responsive CSS into <code>AppShell.astro</code> (§3).</li>
+      <li>Move the check-in copy bank and the related-struggles map out of code into editable tables/content.</li>
+      <li>Find a Church: prototype uses mock data via <code>church-api.js</code>; switch to Google Places with the live key. Church events remain out of scope.</li>
+    </ul>
+    <h4>Explicitly out of scope</h4>
+    <ul>
+      <li>Church event listings (product decision, deferred).</li>
+      <li>Spanish related-struggles blocks beyond the existing flagship — add per the mapping doc when more Spanish pages exist.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="docfoot">
+  <div class="wrap">
+    <div class="bm">Declare &amp; <b>Believe</b></div>
+    <p>Production Architecture &amp; Build Plan · v3.2-redesign · Confidential engineering handoff</p>
+    <p>To God be the glory.</p>
+  </div>
+</footer>
+
+</body>
+</html>

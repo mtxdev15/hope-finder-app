@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — App Flow</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<style>
+  html,body{ background:var(--bgfield); }
+  .wrap{ max-width:1000px; margin:0 auto; padding:0 24px 90px; }
+
+  .top{ position:sticky; top:0; z-index:40; padding:15px 0; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    background:linear-gradient(to bottom, rgba(12,19,15,.78), transparent); }
+  .topin{ max-width:1000px; margin:0 auto; padding:0 24px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:center; gap:10px; } .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+  .brand .wm{ font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); }
+  .legend{ display:flex; gap:18px; font-size:12px; }
+  .legend span{ display:inline-flex; align-items:center; gap:7px; color:var(--text2); }
+  .legend .k{ width:22px; height:0; border-top:2px solid var(--gold); }
+  .legend .k.ret{ border-top-style:dashed; border-color:var(--muted); }
+
+  .hero{ padding:50px 0 6px; }
+  .kicker{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  h1{ font-family:'Cormorant Garamond',serif; font-size:clamp(34px,5.6vw,50px); font-weight:600; color:var(--text); margin-top:13px; line-height:1.04; }
+  .lead{ font-size:15.5px; line-height:1.65; color:var(--text2); margin-top:16px; max-width:64ch; }
+  .lead b{ color:var(--text); }
+
+  /* stage scaffolding */
+  .stage-sec{ margin-top:40px; }
+  .stage-lbl{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .stage-lbl .n{ width:30px; height:30px; border-radius:50%; border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:15px; color:var(--goldd); flex:0 0 auto; }
+  .stage-lbl .t{ font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--text); }
+
+  /* node card */
+  .node{ display:block; text-decoration:none; background:var(--surface); border-radius:16px; box-shadow:var(--card-shadow); padding:16px 18px; border:1px solid var(--line); position:relative; }
+  .node.gold{ border-color:rgba(216,184,95,.4); box-shadow:var(--card-shadow), 0 0 0 1px rgba(216,184,95,.3); }
+  .node .nk{ font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .node .nt{ font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); margin-top:5px; line-height:1.12; }
+  .node .nd{ font-size:12.5px; color:var(--text2); margin-top:6px; line-height:1.5; }
+  .node .file{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); margin-top:9px; display:inline-flex; align-items:center; gap:6px; }
+  .node .file svg{ width:11px; height:11px; opacity:.7; }
+  .node.tap{ transition:transform .2s var(--ease-soft), box-shadow .3s var(--ease-soft); }
+  @media (hover:hover){ .node.tap:hover{ transform:translateY(-3px); box-shadow:var(--card-shadow), 0 22px 44px -22px rgba(0,0,0,.5), 0 0 36px -14px rgba(216,184,95,.3); } }
+
+  /* connectors */
+  .down{ width:2px; height:30px; margin:10px auto; background:linear-gradient(var(--gold), rgba(216,184,95,.2)); position:relative; }
+  .down::after{ content:''; position:absolute; left:50%; bottom:-2px; transform:translateX(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid var(--gold); }
+  .down.ret{ background:repeating-linear-gradient(var(--muted) 0 4px, transparent 4px 9px); }
+  .down.ret::after{ border-top-color:var(--muted); }
+
+  /* entry split */
+  .entry{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:620px){ .entry{ grid-template-columns:1fr; } }
+  .entrycol{ display:flex; flex-direction:column; align-items:center; }
+  .entrycol .path-lbl{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; margin-bottom:14px; }
+  .entrycol.new .path-lbl{ color:var(--goldd); }
+  .entrycol.ret .path-lbl{ color:var(--muted); }
+  .converge{ text-align:center; font-size:12px; color:var(--muted); margin:6px 0 2px; font-style:italic; font-family:'Cormorant Garamond',serif; }
+
+  /* the declare cascade strip */
+  .cascade{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:4px; }
+  @media (max-width:680px){ .cascade{ grid-template-columns:1fr 1fr; } }
+  .mvt{ background:var(--field); border:1px solid var(--line2); border-radius:13px; padding:13px; text-align:center; }
+  .mvt .mi{ width:34px; height:34px; margin:0 auto 8px; border-radius:10px; background:rgba(216,184,95,.12); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .mvt .mi svg{ width:18px; height:18px; }
+  .mvt .ml{ font-size:13px; font-weight:600; color:var(--text); }
+  .mvt .ms{ font-size:11px; color:var(--muted); margin-top:3px; }
+
+  /* outcomes */
+  .outs{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:620px){ .outs{ grid-template-columns:1fr; } }
+
+  /* tab row */
+  .tabsrow{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  @media (max-width:620px){ .tabsrow{ grid-template-columns:repeat(2,1fr); } }
+  .tnode{ text-align:center; padding:16px 10px; }
+  .tnode.center{ border-color:rgba(216,184,95,.5); background:linear-gradient(160deg, rgba(216,184,95,.14), rgba(216,184,95,.04)); }
+  .tnode .ti{ width:42px; height:42px; margin:0 auto 9px; border-radius:50%; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .tnode.center .ti{ background:linear-gradient(155deg,#F0DDA0,var(--gold)); color:#15241B; box-shadow:0 8px 20px -6px rgba(216,184,95,.5); }
+  .tnode .ti svg{ width:21px; height:21px; }
+  .tnode .tl{ font-size:13.5px; font-weight:600; color:var(--text); }
+  .tnode .ts{ font-size:11px; color:var(--muted); margin-top:3px; }
+
+  .note{ margin-top:36px; border-radius:16px; background:rgba(216,184,95,.08); border:1px solid rgba(216,184,95,.24); padding:18px 20px; }
+  .note .nh{ font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); font-weight:700; display:flex; align-items:center; gap:8px; }
+  .note .nh svg{ width:15px; height:15px; }
+  .note p{ font-size:14px; line-height:1.6; color:var(--text); margin-top:9px; }
+  .note code{ font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--field); border:1px solid var(--line2); border-radius:5px; padding:1px 6px; }
+
+  .opener{ display:inline-flex; align-items:center; gap:6px; margin-top:11px; font-size:11px; color:var(--goldd); font-weight:600; }
+  .opener svg{ width:12px; height:12px; }
+
+  footer{ margin-top:50px; text-align:center; font-size:13px; color:var(--muted); }
+  footer a{ color:var(--goldd); }
+  @media print{ .top{ display:none; } .node.tap:hover{ transform:none; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="top">
+  <div class="topin">
+    <a class="brand" href="Home.html"><span class="dot"></span><span class="wm">Declare</span></a>
+    <div class="legend"><span><span class="k"></span> New visitor</span><span><span class="k ret"></span> Returning / Signed in</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker m-fade">Product Flow</div>
+    <h1 class="m-rise">How a person moves through Declare</h1>
+    <p class="lead m-rise">Every node is the real screen &mdash; <b>tap any card to open it</b>. The gold path is a brand-new visitor; the dashed path is someone returning or signed in, who skips the landing and drops straight into the struggle entry.</p>
+  </section>
+
+  <!-- STAGE 1: ENTRY -->
+  <section class="stage-sec m-rise">
+    <div class="stage-lbl"><span class="n">1</span><span class="t">Entry</span></div>
+    <div class="entry">
+      <div class="entrycol new">
+        <div class="path-lbl">New visitor</div>
+        <a class="node gold tap" href="Hero.html?stay=1" target="_blank">
+          <div class="nk">Begin &middot; Landing</div>
+          <div class="nt">Begin</div>
+          <div class="nd">The calm threshold &mdash; wordmark, tagline, and a breathing &ldquo;Begin.&rdquo; First impression only.</div>
+          <div class="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>Hero.html</div>
+        </a>
+        <div class="down"></div>
+      </div>
+      <div class="entrycol ret">
+        <div class="path-lbl">Returning &middot; Signed in</div>
+        <div class="node" style="opacity:.6; border-style:dashed">
+          <div class="nk">Skips Begin</div>
+          <div class="nt" style="font-size:17px">No landing</div>
+          <div class="nd">Already knows Declare &mdash; goes straight to the struggle entry, no threshold screen.</div>
+        </div>
+        <div class="down ret"></div>
+      </div>
+    </div>
+    <div class="converge">&mdash; both paths arrive here &mdash;</div>
+  </section>
+
+  <!-- STAGE 2: STRUGGLE ENTRY -->
+  <section class="stage-sec m-rise">
+    <div class="stage-lbl"><span class="n">2</span><span class="t">Struggle entry &mdash; the Declare action</span></div>
+    <a class="node gold tap" href="Today.html" target="_blank">
+      <div class="nk">Declare</div>
+      <div class="nt">&ldquo;What&rsquo;s weighing on your heart?&rdquo;</div>
+      <div class="nd">The home of the app. Type what&rsquo;s heavy or pick a struggle chip (Fear, Shame, Loneliness, Doubt&hellip;), then tap <b>Receive the Word</b>.</div>
+      <div class="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>Today.html</div>
+    </a>
+    <div class="down"></div>
+  </section>
+
+  <!-- STAGE 3: THE WORD CASCADE -->
+  <section class="stage-sec m-rise">
+    <div class="stage-lbl"><span class="n">3</span><span class="t">Receive the Word</span></div>
+    <a class="node tap" href="Results.html" target="_blank" style="padding-bottom:18px">
+      <div class="nk">Results &middot; revealed in sequence</div>
+      <div class="nt" style="margin-bottom:14px">Your Word, unveiled one movement at a time</div>
+      <div class="cascade">
+        <div class="mvt"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div><div class="ml">Scripture</div><div class="ms">His Word</div></div>
+        <div class="mvt"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8h5.6c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"/><path d="M9.2 17.5h5.6"/></svg></div><div class="ml">Mindset</div><div class="ms">Reflection</div></div>
+        <div class="mvt"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg></div><div class="ml">Declarations</div><div class="ms">&ldquo;I am&hellip;&rdquo;</div></div>
+        <div class="mvt"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"/><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"/></svg></div><div class="ml">Prayer</div><div class="ms">The close</div></div>
+      </div>
+    </a>
+    <div class="down"></div>
+  </section>
+
+  <!-- STAGE 4: OUTCOMES -->
+  <section class="stage-sec m-rise">
+    <div class="stage-lbl"><span class="n">4</span><span class="t">What they can do with it</span></div>
+    <div class="outs">
+      <a class="node tap" href="Journey.html" target="_blank">
+        <div class="nk">Go deeper</div>
+        <div class="nt">Start a 5-day Journey</div>
+        <div class="nd">Be rooted in the truth over a week &mdash; the daily ritual: Receive, Pray, Cast off, Breathe, Declare, Reflect, Act.</div>
+        <div class="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>Journey.html</div>
+      </a>
+      <a class="node tap" href="Vault.html" target="_blank">
+        <div class="nk">Keep it</div>
+        <div class="nt">Save to Vault</div>
+        <div class="nd">The whole word, or any verse / declaration / prayer &mdash; filed by struggle to return to.</div>
+        <div class="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>Vault.html</div>
+      </a>
+      <a class="node tap" href="Sharing-Demo.html" target="_blank">
+        <div class="nk">Send it out</div>
+        <div class="nt">Share a card</div>
+        <div class="nd">Design a cinematic card in the Studio &mdash; backgrounds, fonts, social sizes &mdash; and post it.</div>
+        <div class="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>Card Studio</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- STAGE 5: PERSISTENT NAV -->
+  <section class="stage-sec m-rise">
+    <div class="stage-lbl"><span class="n">5</span><span class="t">The five tabs &mdash; always there</span></div>
+    <div class="tabsrow">
+      <a class="node tnode tap" href="TheWord.html" target="_blank"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div><div class="tl">Word</div><div class="ts">Bible reader</div></a>
+      <a class="node tnode tap" href="Journey.html" target="_blank"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c4-1 5-5 9-6"/><path d="M5 19c1-7 7-9 14-9"/></svg></div><div class="tl">Journey</div><div class="ts">5-day ritual</div></a>
+      <a class="node tnode center tap" href="Today.html" target="_blank"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></div><div class="tl">Declare</div><div class="ts">The hero action</div></a>
+      <a class="node tnode tap" href="Vault.html" target="_blank"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3.2"/></svg></div><div class="tl">Vault</div><div class="ts">Saved words</div></a>
+      <a class="node tnode tap" href="Account-A.html" target="_blank"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></div><div class="tl">You</div><div class="ts">Account</div></a>
+    </div>
+  </section>
+
+  <div class="note m-rise">
+    <div class="nh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg> One thing to decide</div>
+    <p>The dashed path &mdash; <b>returning &amp; signed-in users skipping Begin</b> &mdash; isn&rsquo;t wired yet; today everyone lands on Begin first. I can add a simple rule: if a visitor has been here before (or is signed in), <code>Hero.html</code> forwards straight to <code>Today.html</code>. Say the word and I&rsquo;ll implement it.</p>
+  </div>
+
+  <footer>Tap any node to open the real screen. <a href="Home.html">Back to Home</a></footer>
+</div>
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+</body>
+</html>

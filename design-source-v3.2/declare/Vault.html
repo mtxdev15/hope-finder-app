@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Vault — Layout B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<script src="account-morph.js" defer></script>
+<link rel="stylesheet" href="share.css" />
+<link rel="stylesheet" href="card-studio.css" />
+<style>
+  .screen{ height:100vh; height:100dvh; min-height:720px; }
+  .vin{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+  .mast{ display:flex; align-items:center; justify-content:space-between; padding:max(12px,env(safe-area-inset-top)) 22px 0; }
+  .mast .dot{ width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px var(--gold); }
+  .iconbtn{ width:38px; height:38px; border-radius:50%; border:0; background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .iconbtn svg{ width:20px; height:20px; }
+
+  .vscroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 30px; scrollbar-width:none; }
+  .vscroll::-webkit-scrollbar{ display:none; }
+
+  /* centered hero */
+  .vhero{ text-align:center; padding:18px 22px 4px; }
+  .vhero h1{ font-family:'Cormorant Garamond',serif; font-size:48px; line-height:1; color:var(--text); font-weight:600; }
+  .vhero .sub{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; color:var(--muted); margin-top:8px; }
+  .vsearch{ position:relative; max-width:460px; margin:18px auto 0; }
+  .vsearch svg{ position:absolute; left:16px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--soft); pointer-events:none; }
+  .vsearch input{ width:100%; font-family:inherit; font-size:14.5px; color:var(--text); background:var(--field); border:1px solid var(--line); border-radius:100px; padding:13px 16px 13px 42px; }
+  .vsearch input::placeholder{ color:var(--soft); } .vsearch input:focus{ outline:none; border-color:color-mix(in srgb,var(--gold) 46%,transparent); }
+
+  /* shelves */
+  .shelf{ margin-top:26px; opacity:0; transform:translateY(18px); animation:rise .6s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){ .shelf{ animation:none; opacity:1; transform:none; } }
+  .shelf-h{ display:flex; align-items:baseline; justify-content:space-between; padding:0 22px; margin-bottom:13px; }
+  .shelf-h .t{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); }
+  .shelf-h .more{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--goldd); font-weight:700; background:none; border:0; cursor:pointer; }
+  .rail{ display:flex; gap:14px; overflow-x:auto; overflow-y:visible; scroll-snap-type:x mandatory; padding:14px 22px 20px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .rail::-webkit-scrollbar{ display:none; }
+  .shelf .rail{ margin-top:-10px; margin-bottom:-12px; }
+
+  /* big cinematic card */
+  .bcard{ position:relative; flex:0 0 auto; width:248px; height:300px; scroll-snap-align:start; border-radius:22px; overflow:hidden; cursor:pointer;
+    border:1px solid color-mix(in srgb,var(--gold) 18%,transparent); background:radial-gradient(130% 100% at 30% 0%, #21362a, #0b110d 80%);
+    box-shadow:0 26px 60px -28px rgba(0,0,0,.75); display:flex; flex-direction:column; justify-content:flex-end; padding:20px;
+    transition:transform .45s cubic-bezier(.22,1,.36,1), box-shadow .45s ease, border-color .3s ease; }
+  .bcard .bg-glow{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(60% 50% at 50% 22%, rgba(222,190,100,.22), transparent 72%); opacity:.85; transition:opacity .45s ease; }
+  .bcard .spark{ position:absolute; border-radius:50%; background:rgba(246,234,194,.85); opacity:0; animation:tw 5s ease-in-out infinite; }
+  @keyframes tw{ 0%,100%{opacity:0;transform:scale(.6);} 50%{opacity:.8;transform:scale(1);} }
+  @media (prefers-reduced-motion:reduce){ .bcard .spark{ animation:none; } }
+  .bcard:hover{ transform:translateY(-7px) scale(1.012); border-color:color-mix(in srgb,var(--gold) 42%,transparent); box-shadow:0 36px 70px -26px rgba(0,0,0,.8), 0 0 60px -16px rgba(216,184,95,.34); }
+  .bcard:hover .bg-glow{ opacity:1; }
+  .bcard:active{ transform:translateY(-3px) scale(1.0); }
+  .bc-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; }
+  .bc-tag{ font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--bctag,#E8C97A); }
+  .bc-count{ font-size:11px; font-weight:700; color:rgba(243,239,230,.5); }
+  .bc-quote{ position:relative; z-index:2; flex:1; display:flex; align-items:center; }
+  .bc-quote span{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.4; color:#F3EFE6; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+  .bc-name{ position:relative; z-index:2; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:#fff; margin-top:12px; }
+  .bc-meta{ position:relative; z-index:2; font-size:11.5px; color:rgba(243,239,230,.55); margin-top:3px; }
+
+  /* create card in rail */
+  .createcard{ flex:0 0 auto; width:160px; height:300px; scroll-snap-align:start; border-radius:22px; cursor:pointer; border:1.5px dashed color-mix(in srgb,var(--gold) 34%,transparent);
+    background:color-mix(in srgb,var(--gold) 5%,transparent); color:var(--goldd); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; font-family:inherit; transition:.2s; }
+  .createcard:hover{ background:color-mix(in srgb,var(--gold) 10%,transparent); }
+  .createcard .cc-ic{ width:46px; height:46px; border-radius:50%; background:color-mix(in srgb,var(--gold) 16%,transparent); display:flex; align-items:center; justify-content:center; }
+  .createcard .cc-ic svg{ width:22px; height:22px; } .createcard .cc-t{ font-size:13px; font-weight:600; }
+
+  /* yours shelf as full-width rows when active filter; default shows all shelves */
+  .empty-note{ text-align:center; color:var(--muted); font-size:13.5px; padding:40px 30px; }
+
+  /* ===== focus overlay ===== */
+  .focus{ position:absolute; inset:0; z-index:60; background:var(--bgfield); opacity:0; visibility:hidden; transition:opacity .42s ease, visibility .42s; overflow-y:auto; scrollbar-width:none; }
+  .focus::-webkit-scrollbar{ display:none; } .focus.show{ opacity:1; visibility:visible; }
+  .focus-glow{ position:absolute; top:0; left:0; right:0; height:46%; pointer-events:none; background:radial-gradient(56% 60% at 50% 0%, var(--glow1), transparent 72%); }
+  .focus-top{ position:sticky; top:0; z-index:3; display:flex; align-items:center; gap:13px; padding:max(14px,env(safe-area-inset-top)) 20px 12px; background:linear-gradient(180deg,var(--bgfield),transparent); }
+  .focus-back{ width:40px; height:40px; border-radius:50%; border:1px solid var(--line2); background:color-mix(in srgb,var(--screen) 60%,transparent); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .focus-back svg{ width:19px; height:19px; }
+  .focus-h{ flex:1; min-width:0; } .focus-h .ti{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); line-height:1; } .focus-h .su{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .focus-in{ position:relative; z-index:2; padding:8px 20px 30px; max-width:680px; margin:0 auto; }
+  .ftruth{ position:relative; border:1px solid color-mix(in srgb,var(--gold) 18%,transparent); border-radius:18px; overflow:hidden; cursor:default;
+    background:radial-gradient(130% 100% at 28% 0%, #1e3127, #0c130f 82%); box-shadow:0 22px 50px -28px rgba(0,0,0,.7); padding:20px; margin-bottom:13px;
+    opacity:0; transform:translateY(16px) scale(.99); animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;
+    transition:transform .45s cubic-bezier(.22,1,.36,1), box-shadow .45s ease, border-color .3s ease; }
+  .ftruth:hover{ transform:translateY(-6px) scale(1.012); border-color:color-mix(in srgb,var(--gold) 42%,transparent); box-shadow:0 36px 70px -26px rgba(0,0,0,.8), 0 0 60px -16px rgba(216,184,95,.34); }
+  .ftruth:active{ transform:translateY(-3px) scale(1.0); }
+  html[data-theme="light"] .ftruth{ background:radial-gradient(130% 100% at 28% 0%, #243a2d, #16241c 84%); }
+  .ft-glow{ position:absolute; inset:0; pointer-events:none; opacity:.85; background:radial-gradient(58% 46% at 50% 14%, rgba(222,190,100,.16), transparent 72%); transition:opacity .45s ease; }
+  .ftruth:hover .ft-glow{ opacity:1; }
+  .ft-tag{ position:relative; z-index:2; display:inline-block; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--tagt); }
+  .ft-body{ position:relative; z-index:2; font-family:'Cormorant Garamond',serif; font-size:21px; line-height:1.42; color:#F3EFE6; margin-top:11px; }
+  .ftruth.dec .ft-body{ font-weight:600; } .ftruth.pray .ft-body{ font-style:italic; }
+  .ftruth{ position:relative; }
+  .ft-share{ position:absolute; top:13px; right:13px; z-index:3; width:32px; height:32px; border:0; background:rgba(255,255,255,.06); border-radius:50%; display:flex; align-items:center; justify-content:center; color:rgba(243,239,230,.72); cursor:pointer; transition:transform .16s ease, color .2s ease, background .2s ease; }
+  .ft-share:hover{ color:#F3EFE6; background:rgba(255,255,255,.12); }
+  .ft-share:active{ transform:scale(.9); }
+  .ft-share svg{ width:16px; height:16px; }
+  .ft-ref{ position:relative; z-index:2; display:block; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:rgba(243,239,230,.5); font-weight:700; margin-top:13px; }
+  .ft-read{ position:relative; z-index:2; display:inline-flex; align-items:center; gap:7px; margin-top:11px; text-decoration:none;
+    background:rgba(255,255,255,.06); border:1px solid color-mix(in srgb,var(--gold) 32%,transparent); border-radius:100px; padding:9px 15px;
+    font-size:12px; letter-spacing:.02em; font-weight:700; color:var(--goldd); transition:.18s; }
+  .ft-read:hover{ background:rgba(255,255,255,.13); border-color:color-mix(in srgb,var(--gold) 50%,transparent); }
+  .ft-read svg{ width:14px; height:14px; }
+
+  /* ===== go deeper: bridge a saved struggle into a 5-day journey ===== */
+  .vdeep{ position:relative; margin-top:6px; padding:20px; border-radius:18px; overflow:hidden;
+    border:1px solid color-mix(in srgb,var(--gold) 34%,transparent);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--gold) 12%,var(--surface)), var(--surface));
+    box-shadow:0 18px 46px -18px rgba(216,184,95,.42), var(--card-shadow);
+    opacity:0; transform:translateY(16px); animation:rise .55s cubic-bezier(.22,1,.36,1) .12s forwards; }
+  .vdeep .vd-glow{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(72% 60% at 50% 0%, rgba(216,184,95,.18), transparent 70%); }
+  .vdeep .vd-tag{ position:relative; z-index:1; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+  .vdeep .vd-h{ position:relative; z-index:1; font-family:'Cormorant Garamond',serif; font-size:24px; color:var(--text); font-weight:600; margin-top:8px; line-height:1.14; }
+  .vdeep .vd-shift{ position:relative; z-index:1; font-family:'Cormorant Garamond',serif; font-size:16px; color:var(--muted); margin-top:8px; }
+  .vdeep .vd-shift .arr{ color:var(--goldd); margin:0 7px; } .vdeep .vd-shift b{ color:var(--text); font-weight:600; }
+  .vdeep .vd-p{ position:relative; z-index:1; font-size:13.5px; line-height:1.56; color:var(--text2); margin-top:9px; text-wrap:pretty; }
+  .vdeep .btn{ position:relative; z-index:1; width:100%; margin-top:16px; box-shadow:0 14px 34px -12px rgba(216,184,95,.6); }
+
+  /* ===== create sheet ===== */
+  .scrim{ position:absolute; inset:0; z-index:65; background:rgba(8,14,11,.62); backdrop-filter:blur(3px); opacity:0; visibility:hidden; transition:opacity .35s ease, visibility .35s; }
+  .scrim.open{ opacity:1; visibility:visible; }
+  .sheet{ position:absolute; left:0; right:0; bottom:0; z-index:70; background:var(--screen); border-radius:24px 24px 0 0; border-top:1px solid var(--line2); box-shadow:0 -24px 60px -18px rgba(0,0,0,.7); transform:translateY(102%); transition:transform .46s cubic-bezier(.22,1,.36,1); padding:0 22px max(24px,env(safe-area-inset-bottom)); }
+  .sheet.open{ transform:translateY(0); }
+  .grabber{ width:40px; height:5px; border-radius:100px; background:var(--line2); margin:12px auto 8px; }
+  .sheet h3{ font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--text); margin-top:6px; }
+  .sheet p{ font-size:13.5px; color:var(--muted); margin-top:6px; line-height:1.5; }
+  .opts{ margin:18px 0 4px; display:flex; flex-direction:column; gap:10px; }
+  .opt{ display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:15px; cursor:pointer; font-family:inherit; transition:.18s; }
+  .opt:hover{ border-color:color-mix(in srgb,var(--gold) 36%,transparent); transform:translateY(-1px); }
+  .opt .oic{ width:42px; height:42px; flex:0 0 auto; border-radius:12px; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb,var(--gold) 14%,transparent); color:var(--goldd); }
+  .opt .oic svg{ width:21px; height:21px; } .opt .om{ flex:1; } .opt .om .t{ display:block; font-size:15px; font-weight:600; color:var(--text); } .opt .om .s{ display:block; font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4; }
+  .opt .go svg{ width:18px; height:18px; color:var(--soft); }
+  .namewrap{ margin:16px 0 4px; } .namewrap input{ width:100%; font-family:inherit; font-size:16px; color:var(--text); background:var(--field); border:1px solid var(--line2); border-radius:13px; padding:14px 15px; } .namewrap input:focus{ outline:none; border-color:color-mix(in srgb,var(--gold) 50%,transparent); }
+  .sheet .sactions{ margin-top:14px; display:flex; flex-direction:column; gap:10px; } .sheet .sactions .btn{ width:100%; } .hidden{ display:none; }
+
+  /* floating create button */
+  .fab{ position:absolute; right:18px; bottom:96px; z-index:40; display:inline-flex; align-items:center; gap:8px; background:var(--gold); color:#13211A; border:0; border-radius:100px; font-family:inherit; font-size:14px; font-weight:700; padding:14px 20px; cursor:pointer; box-shadow:0 16px 38px -12px rgba(216,184,95,.7); transition:transform .15s ease; }
+  .fab:hover{ transform:translateY(-2px); } .fab svg{ width:18px; height:18px; }
+
+  .toast{ position:absolute; left:50%; bottom:150px; transform:translate(-50%,14px); z-index:80; background:var(--surface); border:1px solid var(--line2); color:var(--text); font-size:13px; padding:11px 18px; border-radius:100px; box-shadow:var(--card-shadow); opacity:0; visibility:hidden; transition:opacity .3s ease, transform .3s ease, visibility .3s; white-space:nowrap; }
+  .toast.show{ opacity:1; visibility:visible; transform:translate(-50%,0); }
+
+  /* ===== light theme: parchment cinematic cards (dark ink) ===== */
+  html[data-theme="light"] .bcard,
+  html[data-theme="light"] .ftruth{ background:radial-gradient(130% 100% at 30% 0%, #FFFFFF, #F1E8D6 84%); border-color:color-mix(in srgb,var(--gold) 40%,transparent); box-shadow:0 22px 50px -30px rgba(60,45,15,.4); }
+  html[data-theme="light"] .bcard:hover,
+  html[data-theme="light"] .ftruth:hover{ border-color:color-mix(in srgb,var(--gold) 60%,transparent); box-shadow:0 34px 64px -28px rgba(60,45,15,.5), 0 0 46px -18px rgba(216,184,95,.4); }
+  html[data-theme="light"] .bg-glow,
+  html[data-theme="light"] .ft-glow{ background:radial-gradient(58% 46% at 50% 16%, rgba(216,184,95,.2), transparent 72%); }
+  html[data-theme="light"] .bc-quote span,
+  html[data-theme="light"] .bc-name,
+  html[data-theme="light"] .ft-body{ color:var(--text); }
+  html[data-theme="light"] .bc-count,
+  html[data-theme="light"] .bc-meta,
+  html[data-theme="light"] .ft-ref{ color:var(--muted); }
+  html[data-theme="light"] .bc-tag,
+  html[data-theme="light"] .ft-tag{ color:#9A7322; }
+  html[data-theme="light"] .ft-read{ background:color-mix(in srgb,var(--gold) 14%,transparent); border-color:color-mix(in srgb,var(--gold) 44%,transparent); color:#8A6516; }
+  html[data-theme="light"] .ft-read:hover{ background:color-mix(in srgb,var(--gold) 22%,transparent); }
+
+  .tabbar{ position:relative; z-index:30; display:flex; justify-content:space-around; align-items:flex-end; gap:2px; padding:10px 14px max(14px,env(safe-area-inset-bottom)); background:color-mix(in srgb,var(--bgfield) 90%,transparent); backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2); border-top:1px solid var(--line); }
+  .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 2px; text-decoration:none; color:var(--muted); }
+  .tab svg{ width:22px; height:22px; } .tab .tlbl{ font-size:10px; font-weight:500; } .tab.on{ color:var(--text); } .tab.on .tlbl{ color:var(--goldd); }
+  .tab.center .tdisc{ width:50px; height:50px; margin-top:-18px; border-radius:50%; background:var(--gold); color:#13211A; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px -8px rgba(216,184,95,.7); }
+  .tab.center .tdisc svg{ width:24px; height:24px; }
+  @media (min-width:481px){
+    .stage{ padding:0; align-items:stretch; } .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+    .screen{ border-radius:0; box-shadow:inset 0 0 260px var(--vignette); }
+    .tabbar{ position:fixed; top:0; left:0; right:0; height:60px; flex-direction:row; justify-content:center; align-items:center; gap:4px; padding:0 24px; border-top:0; border-bottom:1px solid var(--line); }
+    .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 14px; border-radius:11px; } .tab svg{ width:18px; height:18px; } .tab .tlbl{ font-size:13px; }
+    .tab.center .tdisc{ width:auto; height:auto; margin:0; border-radius:0; background:none; box-shadow:none; color:inherit; } .tab.center .tdisc svg{ width:18px; height:18px; }
+    .mast{ position:fixed; top:0; left:0; right:0; z-index:31; height:60px; padding:0 clamp(22px,3vw,44px); pointer-events:none; } .mast .dot,.mast .iconbtn{ pointer-events:auto; }
+    .vin{ overflow:visible; } .vscroll{ padding-top:74px; }
+    .rail{ max-width:980px; margin:0 auto; } .shelf-h, .vhero{ max-width:980px; margin-left:auto; margin-right:auto; }
+    .sheet{ max-width:520px; left:50%; transform:translate(-50%,102%); } .sheet.open{ transform:translate(-50%,0); }
+    .fab{ right:calc(50% - 470px); } .toast{ bottom:60px; }
+  }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage"><div class="phone"><div class="screen" data-screen-label="Vault Layout B">
+  <div class="topglow" aria-hidden="true"></div>
+  <div class="vin">
+    <div class="mast"><span class="dot"></span><a class="iconbtn" href="Account-A.html" aria-label="You" data-you-morph><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></a></div>
+
+    <div class="vscroll" id="scroll">
+      <div class="vhero">
+        <h1>Vault</h1>
+        <div class="sub">Return to what God has spoken over you.</div>
+        <div class="vsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" type="search" placeholder="Search your Vault&hellip;" autocomplete="off" /></div>
+      </div>
+      <div id="shelves"></div>
+    </div>
+
+    <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>New</button>
+
+    <div class="focus" id="focus"><div class="focus-glow"></div>
+      <div class="focus-top"><button class="focus-back" id="focusBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><div class="focus-h"><div class="ti" id="focusTi"></div><div class="su" id="focusSu"></div></div></div>
+      <div class="focus-in" id="focusIn"></div>
+    </div>
+
+    <div class="sheet" id="createSheet">
+      <div class="grabber"></div>
+      <div id="createStep1">
+        <h3>New collection</h3>
+        <p>Gather truths into a space of your own. How would you like to begin?</p>
+        <div class="opts">
+          <button class="opt" data-mode="journey"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-7"/><path d="M12 14c-2.2 0-3.6-1.6-3.6-3.4 0-2 1.6-3.6 3.6-3.6s3.6 1.6 3.6 3.6c0 1.8-1.4 3.4-3.6 3.4z"/><path d="M5 21h14"/></svg></span><span class="om"><span class="t">From a journey</span><span class="s">Pull every truth from a journey you&rsquo;ve walked</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+          <button class="opt" data-mode="type"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></span><span class="om"><span class="t">By kind</span><span class="s">Group scriptures, declarations, or prayers</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+          <button class="opt" data-mode="blank"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="om"><span class="t">Start empty</span><span class="s">Name it now, add truths as you go</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+        </div>
+      </div>
+      <div id="createStep2" class="hidden">
+        <h3 id="step2Title">Name your collection</h3>
+        <p id="step2Sub">Give it a name you&rsquo;ll recognize.</p>
+        <div class="namewrap"><input id="collName" type="text" placeholder="e.g. Morning declarations" /></div>
+        <div class="sactions"><button class="btn btn-primary" id="createGo">Create collection</button><button class="btn btn-ghost" id="createBack">Back</button></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="scrim" id="scrim"></div>
+
+    <nav class="tabbar">
+      <a class="tab" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+      <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+      <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+      <a class="tab on" href="Vault.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+      <a class="tab" href="Account-A.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+    </nav>
+  </div>
+</div></div></div>
+
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script src="share.js"></script>
+<script src="card-studio.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var TYPES={ verse:{label:'Scripture',tagt:'#E8C97A'}, declaration:{label:'Declaration',tagt:'#E0A45A'}, prayer:{label:'Prayer',tagt:'#9BD0A8'} };
+  function norm(t){ return t==='word'?'verse':t; }
+  function relTime(ts){ var d=(Date.now()-ts)/86400000; if(d<1) return Math.max(1,Math.round(d*24))+'h ago'; if(d<2) return 'Yesterday'; if(d<7) return Math.round(d)+' days ago'; return Math.round(d/7)+'w ago'; }
+
+  // ---- a saved struggle can grow into a 5-day journey (same bridge Results uses) ----
+  var JOURNEYS=[
+    { re:/shame|guilt|condemn/i,        struggle:'Shame & Guilt',  to:'Beloved of God' },
+    { re:/fear|anxiet|worry|panic/i,    struggle:'Fear & Anxiety', to:'Peace' },
+    { re:/grief|loss|mourn|bereav/i,    struggle:'Grief & Loss',   to:'Comfort' },
+    { re:/lonel|alone|isolat/i,         struggle:'Loneliness',     to:'Held by God' },
+    { re:/doubt|unbelief|cynic/i,       struggle:'Doubt',          to:'Faith' },
+    { re:/anger|rage|bitter|resent/i,   struggle:'Anger',          to:'Peace' },
+    { re:/burnout|exhaust|overwhelm|weary/i, struggle:'Burnout',   to:'Rest' }
+  ];
+  function journeyFor(name){ for(var i=0;i<JOURNEYS.length;i++){ if(JOURNEYS[i].re.test(name||'')) return JOURNEYS[i]; } return null; }
+
+  var SEED=[
+    {id:'1',type:'verse',verse:'There is therefore now no condemnation for those who are in Christ Jesus.',vref:'Romans 8:1',coll:'Shame & Guilt',mine:false,ts:Date.now()-216e5},
+    {id:'2',type:'declaration',text:'I am God\u2019s beloved child. I am not what I did.',coll:'Shame & Guilt',mine:false,ts:Date.now()-1008e5},
+    {id:'3',type:'prayer',prayer:'Father, when fear rises, remind me You are here. Steady my heart and let me rest.',coll:'Fear & Anxiety',mine:false,ts:Date.now()-1872e5},
+    {id:'4',type:'declaration',text:'I am held. God\u2019s peace is guarding my mind.',coll:'Fear & Anxiety',mine:false,ts:Date.now()-72e6},
+    {id:'5',type:'verse',verse:'The LORD is near to the brokenhearted and saves the crushed in spirit.',vref:'Psalm 34:18',coll:'Grief & Loss',mine:false,ts:Date.now()-432e6},
+    {id:'6',type:'verse',verse:'I can do all things through him who strengthens me.',vref:'Philippians 4:13',coll:'Morning Strength',mine:true,ts:Date.now()-36e5},
+    {id:'7',type:'declaration',text:'I am chosen, not rejected. I belong to God.',coll:'Morning Strength',mine:true,ts:Date.now()-50e5}
+  ];
+  function loadVault(){ try{ var raw=localStorage.getItem('declare-vault'); if(raw){ var a=JSON.parse(raw); if(a && a.length) return a; } }catch(e){} return SEED.slice(); }
+  var items=loadVault();
+  var query='';
+
+  function collsFor(pred){
+    var map={}, order=[];
+    items.filter(function(it){ if(!pred(it)) return false; if(!query) return true;
+      return ((it.verse||it.text||it.prayer||'')+' '+(it.vref||'')+' '+(it.coll||'')).toLowerCase().indexOf(query.toLowerCase())>=0; }).forEach(function(it){
+      var k=it.coll||'Saved'; if(!map[k]){map[k]=[];order.push(k);} map[k].push(it);
+    });
+    return order.map(function(k){ var its=map[k]; return {name:k, items:its, mine:its[0].mine, recent:its.reduce(function(m,x){return Math.max(m,x.ts);},0)}; })
+      .sort(function(a,b){return b.recent-a.recent;});
+  }
+
+  function bcard(c,i){
+    var top=c.items[0], cfg=TYPES[norm(top.type)]||TYPES.verse, body=(top.verse||top.text||top.prayer||'').replace(/[\u201C\u201D"]/g,'');
+    var sparks=''; [[20,26,2],[78,20,1.5],[64,46,1.8]].forEach(function(s,k){ sparks+='<span class="spark" style="left:'+s[0]+'%;top:'+s[1]+'%;width:'+s[2]+'px;height:'+s[2]+'px;animation-delay:'+(k*0.8)+'s"></span>'; });
+    return '<button class="bcard m-rise" data-coll="'+encodeURIComponent(c.name)+'" style="--bctag:'+cfg.tagt+'"><span class="bg-glow"></span>'+sparks
+      +'<div class="bc-top"><span class="bc-tag">'+(c.mine?'Yours':cfg.label)+'</span><span class="bc-count">'+c.items.length+'</span></div>'
+      +'<div class="bc-quote"><span>\u201C'+body.slice(0,110)+(body.length>110?'\u2026':'')+'\u201D</span></div>'
+      +'<div class="bc-name">'+c.name+'</div><div class="bc-meta">'+c.items.length+(c.items.length===1?' truth':' truths')+' &middot; '+relTime(c.recent)+'</div></button>';
+  }
+  function createCard(){ return '<button class="createcard" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">New collection</span></button>'; }
+
+  function shelf(title, colls, withCreate, delay){
+    if(!colls.length && !withCreate) return '';
+    return '<section class="shelf" style="animation-delay:'+delay+'ms"><div class="shelf-h"><span class="t">'+title+'</span></div>'
+      +'<div class="rail" data-m-stagger>'+colls.map(bcard).join('')+(withCreate?createCard():'')+'</div></section>';
+  }
+
+  function render(){
+    var recent=collsFor(function(){return true;}).slice(0,6);
+    var yours=collsFor(function(it){return it.mine;});
+    var journeys=collsFor(function(it){return !it.mine;});
+    var html='';
+    html+=shelf('Recently saved', recent, false, 0);
+    html+=shelf('Your collections', yours, true, 90);
+    html+=shelf('From your journeys', journeys, false, 180);
+    if(!recent.length){ html='<div class="empty-note">Nothing matches your search.</div>'; }
+    $('shelves').innerHTML=html;
+    $('shelves').querySelectorAll('.bcard').forEach(function(b){ b.onclick=function(){ openFocus(decodeURIComponent(b.dataset.coll)); }; });
+    var cc=$('cc-create'); if(cc) cc.onclick=openCreate;
+    if(window.DeclareMotion){ window.DeclareMotion.reveal($('shelves'), {stagger:80}); }
+  }
+
+  function openFocus(name){
+    var its=items.filter(function(it){ return (it.coll||'Saved')===name; });
+    var jrn=journeyFor(name);
+    $('focusTi').textContent=name; $('focusSu').textContent=its.length+(its.length===1?' truth':' truths');
+    var truthsHtml=its.map(function(it,i){ var t=norm(it.type), cfg=TYPES[t]||TYPES.verse, body=it.verse||it.text||it.prayer||'';
+      var foot=''; if(it.vref){ foot='<div class="ft-ref">'+it.vref+'</div>'; if(t==='verse'){ foot+='<a class="ft-read" href="TheWord.html?ref='+encodeURIComponent(it.vref)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>Read in the Word</a>'; } }
+      return '<div class="ftruth '+(t==='declaration'?'dec':t==='prayer'?'pray':'')+'" style="--tagt:'+cfg.tagt+';animation-delay:'+(i*70)+'ms"><span class="ft-glow"></span>'+
+        '<button class="ft-share" data-i="'+i+'" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>'+
+        '<span class="ft-tag">'+cfg.label+'</span><div class="ft-body">'+(t==='declaration'?body:'\u201C'+body+'\u201D')+'</div>'+foot+'</div>';
+    }).join('');
+    var ctaHtml='';
+    if(jrn){ ctaHtml='<div class="vdeep"><div class="vd-glow"></div>'
+      +'<div class="vd-tag">Be transplanted</div>'
+      +'<div class="vd-h">Don\u2019t just keep it here</div>'
+      +'<div class="vd-shift"><b>'+jrn.struggle+'</b><span class="arr">\u2192</span><b>'+jrn.to+'</b></div>'
+      +'<div class="vd-p">These are seeds. Give them five days to take root \u2014 one declaration a day \u2014 and watch the shift become real.</div>'
+      +'<button class="btn btn-primary" id="vDeepGo">Start a 5-Day Journey'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+      +'</button></div>'; }
+    $('focusIn').innerHTML = truthsHtml + ctaHtml;
+    var vgo=$('vDeepGo'); if(vgo){ vgo.onclick=function(){ try{ localStorage.setItem('declare-journey-struggle', jrn.struggle); localStorage.setItem('declare-start-journey','1'); }catch(e){} location.href='Journey.html'; }; }
+    // wire per-truth share → Card Studio, adapting to the saved kind
+    $('focusIn').querySelectorAll('.ft-share').forEach(function(b){
+      b.onclick=function(e){ e.stopPropagation();
+        var it=its[+b.getAttribute('data-i')], t=norm(it.type);
+        var stype = t==='verse'?'verse' : t==='declaration'?'declaration' : 'reading';
+        DeclareShare.open({ type:stype, text:(it.verse||it.text||it.prayer||''), ref:(it.vref || (t==='prayer'?'A prayer':'')), subtitle:(it.coll||'From your Vault'), url:location.href });
+      };
+    });
+    $('focus').classList.add('show');
+  }
+  $('focusBack').onclick=function(){ $('focus').classList.remove('show'); };
+
+  var pendingMode=null;
+  function openCreate(){ $('createStep1').classList.remove('hidden'); $('createStep2').classList.add('hidden'); $('createSheet').classList.add('open'); $('scrim').classList.add('open'); }
+  function closeSheet(){ $('createSheet').classList.remove('open'); $('scrim').classList.remove('open'); }
+  $('scrim').onclick=closeSheet; $('fab').onclick=openCreate;
+  document.querySelectorAll('.opt').forEach(function(o){ o.onclick=function(){ pendingMode=o.dataset.mode;
+    var titles={journey:'From a journey',type:'By kind',blank:'Name your collection'}, subs={journey:'We\u2019ll gather the truths from a journey you choose.',type:'We\u2019ll group all of one kind together.',blank:'Give it a name you\u2019ll recognize.'};
+    $('step2Title').textContent=titles[pendingMode]; $('step2Sub').textContent=subs[pendingMode];
+    $('createStep1').classList.add('hidden'); $('createStep2').classList.remove('hidden'); $('collName').focus(); }; });
+  $('createBack').onclick=function(){ $('createStep2').classList.add('hidden'); $('createStep1').classList.remove('hidden'); };
+  $('createGo').onclick=function(){ var nm=($('collName').value||'').trim()||'New collection'; closeSheet(); $('collName').value=''; toast('\u201C'+nm+'\u201D created'); };
+  function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove('show');},2200); }
+
+  var st; $('search').addEventListener('input',function(e){ query=e.target.value; clearTimeout(st); st=setTimeout(render,90); });
+  render();
+})();
+</script>
+</body>
+</html>

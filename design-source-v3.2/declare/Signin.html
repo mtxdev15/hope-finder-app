@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Sign in</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<style>
+  .screen{ min-height:812px; }
+  .si-in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+  /* top bar */
+  .si-top{ position:relative; z-index:5; display:flex; align-items:center; justify-content:space-between; padding:14px 22px 0; }
+  .si-back{ display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); background:none; border:0; cursor:pointer; font-family:inherit; text-decoration:none; transition:color .25s ease; }
+  .si-back:hover{ color:var(--text); }
+  .si-back .uarrow{ width:30px; height:10px; transform:scaleX(-1); overflow:visible; }
+  .si-back .uarrow path:first-child{ transform-origin:right center; transform:scaleX(.6); opacity:.6; transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .5s ease; }
+  .si-back:hover .uarrow path:first-child{ transform:scaleX(1); opacity:1; }
+  .si-dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+
+  /* body */
+  .si-body{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 34px 40px; max-width:520px; margin:0 auto; width:100%; }
+  .si-k{ font-size:10.5px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .si-h{ font-family:'Cormorant Garamond',serif; font-size:clamp(34px,9.5vw,46px); font-weight:600; color:var(--text); line-height:1.06; margin-top:14px; }
+  .si-h em{ font-style:italic; color:var(--goldd); }
+  .si-sub{ font-size:15.5px; line-height:1.6; color:var(--text2); margin-top:18px; max-width:34ch; }
+
+  /* the field — Unseen thin underline that draws in on focus */
+  .si-field{ position:relative; margin-top:38px; }
+  .si-field input{ width:100%; background:transparent; border:0; outline:0; font-family:'Cormorant Garamond',serif; font-size:27px; color:var(--text); padding:6px 2px 14px; caret-color:var(--gold); }
+  .si-field input::placeholder{ color:var(--muted); opacity:.55; }
+  .si-line{ position:relative; height:1px; background:var(--line2); }
+  .si-line::after{ content:''; position:absolute; left:0; bottom:0; height:1px; width:100%; background:linear-gradient(90deg,var(--gold),var(--goldd)); transform:scaleX(0); transform-origin:left center; transition:transform .55s cubic-bezier(.16,1,.3,1); }
+  .si-field.focus .si-line::after, .si-field.filled .si-line::after{ transform:scaleX(1); }
+  .si-flabel{ position:absolute; left:2px; top:6px; white-space:nowrap; font-family:'Cormorant Garamond',serif; font-size:27px; color:var(--muted); opacity:.5; pointer-events:none; transition:transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease, font-size .4s ease; }
+  .si-field.focus .si-flabel, .si-field.filled .si-flabel{ transform:translateY(-30px); font-size:11px; letter-spacing:.18em; text-transform:uppercase; opacity:.9; color:var(--goldd); }
+  .si-err{ font-size:12.5px; color:var(--clay,#c4644b); margin-top:12px; min-height:16px; opacity:0; transition:opacity .3s ease; }
+  .si-err.show{ opacity:1; }
+
+  /* password peek */
+  .si-peek{ position:absolute; right:0; bottom:9px; width:38px; height:34px; border:0; background:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:color .25s ease; }
+  .si-peek:hover{ color:var(--text); } .si-peek svg{ width:19px; height:19px; }
+  .si-field input{ padding-right:42px; }
+
+  /* stay-signed-in + forgot row */
+  .si-rowsplit{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:18px; }
+  .si-stay{ display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--text2); cursor:pointer; user-select:none; }
+  .si-stay input{ position:absolute; opacity:0; width:0; height:0; }
+  .si-stay .box{ width:20px; height:20px; border-radius:6px; border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; color:#15241B; background:transparent; transition:background .2s ease, border-color .2s ease; }
+  .si-stay .box svg{ width:13px; height:13px; opacity:0; transform:scale(.5); transition:.2s; }
+  .si-stay input:checked + .box{ background:var(--gold); border-color:var(--gold); }
+  .si-stay input:checked + .box svg{ opacity:1; transform:none; }
+  .si-link{ background:none; border:0; color:var(--goldd); font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer; padding:0; }
+  .si-link:hover{ text-decoration:underline; }
+
+  /* secondary: email-link-instead */
+  .si-alt{ display:block; width:100%; margin-top:22px; background:none; border:0; color:var(--text2); font-family:inherit; font-size:14px; cursor:pointer; text-align:center; transition:color .25s ease; }
+  .si-alt:hover{ color:var(--goldd); }
+
+  /* primary action — text + drawing arrow, Unseen style */
+  .si-go{ display:inline-flex; align-items:center; gap:16px; margin-top:30px; background:none; border:0; cursor:pointer; font-family:inherit; padding:6px 0; color:var(--text); }
+  .si-go .gt{ font-size:17px; font-weight:500; }
+  .si-go .uarrow{ width:46px; height:12px; color:var(--gold); overflow:visible; }
+  .si-go .uarrow path:first-child{ transform-origin:right center; transform:scaleX(.55); opacity:.6; transition:transform .55s cubic-bezier(.16,1,.3,1), opacity .5s ease; }
+  .si-go .uarrow path:last-child{ transition:transform .55s cubic-bezier(.16,1,.3,1); }
+  @media (hover:hover){ .si-go:hover .uarrow path:first-child{ transform:scaleX(1); opacity:1; } .si-go:hover .uarrow path:last-child{ transform:translateX(4px); } .si-go:hover .gt{ color:var(--goldd); } }
+  .si-go[disabled]{ opacity:.4; cursor:default; }
+
+  /* divider + providers */
+  .si-or{ display:flex; align-items:center; gap:16px; margin:38px 0 24px; color:var(--muted); font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+  .si-or::before, .si-or::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .si-prov{ display:flex; flex-direction:column; gap:12px; }
+  .prov{ display:flex; align-items:center; justify-content:center; gap:12px; padding:15px; border:1px solid var(--line2); border-radius:14px; background:transparent; color:var(--text); font-family:inherit; font-size:14.5px; font-weight:500; cursor:pointer; transition:border-color .25s ease, background .25s ease, transform .15s ease; }
+  .prov:hover{ border-color:var(--soft); background:color-mix(in srgb,var(--surface) 50%,transparent); }
+  .prov:active{ transform:scale(.99); }
+  .prov svg, .prov img{ width:19px; height:19px; flex:0 0 auto; }
+
+  .si-foot{ margin-top:34px; font-size:14px; color:var(--muted); text-align:center; }
+  .si-foot a{ color:var(--goldd); text-decoration:none; font-weight:500; }
+  .si-fine{ margin-top:22px; font-size:11.5px; line-height:1.6; color:var(--muted); text-align:center; opacity:.8; }
+  .si-fine a{ color:var(--text2); text-decoration:underline; }
+
+  /* ===== sent confirmation ===== */
+  .si-sent{ position:absolute; inset:0; z-index:20; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px;
+    background:radial-gradient(130% 90% at 50% 28%, #16271d, #0b110d 72%); }
+  html[data-theme="light"] .si-sent{ background:radial-gradient(130% 90% at 50% 28%, #fff, #F3EDE0 72%); }
+  .si-sent.show{ display:flex; animation:sentin .6s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes sentin{ from{ opacity:0; } to{ opacity:1; } }
+  .si-seal{ position:relative; width:96px; height:96px; margin-bottom:28px; }
+  .si-seal .ring{ position:absolute; inset:0; border-radius:50%; background:linear-gradient(150deg,var(--gold),rgba(216,184,95,.5)); display:flex; align-items:center; justify-content:center; box-shadow:0 0 46px -6px rgba(216,184,95,.6); transform:scale(0); animation:sealpop .55s cubic-bezier(.3,1.5,.5,1) .1s forwards; }
+  .si-seal .ring svg{ width:44px; height:44px; color:#15241B; }
+  @keyframes sealpop{ to{ transform:scale(1); } }
+  .si-sent .st-k{ font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .si-sent .st-h{ font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--text); margin-top:12px; line-height:1.1; }
+  .si-sent .st-d{ font-size:14.5px; line-height:1.62; color:var(--text2); margin-top:13px; max-width:32ch; }
+  .si-sent .st-d b{ color:var(--text); }
+  .si-sent .st-btns{ margin-top:30px; display:flex; flex-direction:column; gap:11px; width:100%; max-width:300px; }
+  .si-open{ padding:16px; border:0; border-radius:14px; background:var(--gold); color:#15241B; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; }
+  .si-resend{ padding:14px; background:none; border:0; color:var(--muted); font-family:inherit; font-size:13.5px; cursor:pointer; }
+  .si-resend:disabled{ opacity:.5; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="si-in">
+
+        <div class="si-top">
+          <div class="bar" style="position:absolute;inset:0 0 auto 0;padding:14px 22px 0"><span style="font-weight:500">9:41</span><span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+        </div>
+        <div class="si-top" style="padding-top:46px">
+          <a class="si-back" href="Hero.html?stay=1"><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg> Back</a>
+          <span class="si-dot" aria-hidden="true"></span>
+        </div>
+
+        <div class="si-body">
+          <div class="si-k m-fade">Welcome back</div>
+          <h1 class="si-h m-veil">Sign in to <em>Declare</em></h1>
+          <p class="si-sub m-rise" id="siSub">Enter your email and password to pick up where you left off.</p>
+
+          <form class="m-rise" id="siForm" novalidate>
+            <div class="si-field" id="emailField">
+              <span class="si-flabel">Email address</span>
+              <input type="email" id="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-label="Email address" />
+              <div class="si-line"></div>
+            </div>
+            <div class="si-err" id="emailErr">Please enter a valid email address.</div>
+
+            <div class="si-field" id="pwField" style="margin-top:30px">
+              <span class="si-flabel">Password</span>
+              <input type="password" id="password" autocomplete="current-password" aria-label="Password" />
+              <button type="button" class="si-peek" id="pwPeek" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <div class="si-line"></div>
+            </div>
+            <div class="si-err" id="pwErr">Enter your password.</div>
+
+            <div class="si-rowsplit">
+              <label class="si-stay"><input type="checkbox" id="staySigned" checked /><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Stay signed in</label>
+              <button type="button" class="si-link" id="forgotBtn">Forgot password?</button>
+            </div>
+
+            <button class="si-go" id="siGo" type="submit">
+              <span class="gt">Sign in</span>
+              <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
+            </button>
+          </form>
+
+          <button type="button" class="si-alt m-fade" id="magicBtn">Email me a sign-in link instead</button>
+
+          <div class="si-or m-fade">or continue with</div>
+          <div class="si-prov m-rise">
+            <button class="prov" data-prov="Apple">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.4 2.1 2.4 2 1-.1 1.3-.6 2.5-.6s1.5.6 2.6.6 1.7-1 2.4-2c.7-1.1 1-2.2 1-2.3-.1 0-1.9-.8-1.9-2.9zM14.6 6.3c.5-.7.9-1.6.8-2.6-.8 0-1.8.6-2.4 1.2-.5.6-1 1.5-.8 2.4.9.1 1.8-.4 2.4-1z"/></svg>
+              Continue with Apple
+            </button>
+            <button class="prov" data-prov="Google">
+              <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.6c-.2 1.3-1 2.4-2 3.1v2.6h3.3c1.9-1.8 3.1-4.4 3.1-7.6z"/><path fill="#34A853" d="M12 22c2.7 0 5-1 6.6-2.5l-3.3-2.6c-.9.6-2 1-3.3 1-2.6 0-4.7-1.7-5.5-4.1H3.1v2.6C4.7 19.7 8.1 22 12 22z"/><path fill="#FBBC05" d="M6.5 13.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.6H3.1C2.4 9 2 10.5 2 12s.4 3 1.1 4.4l3.4-2.6z"/><path fill="#EA4335" d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.9-2.9C16.9 3 14.7 2 12 2 8.1 2 4.7 4.3 3.1 7.6l3.4 2.6C7.3 7.8 9.4 6.1 12 6.1z"/></svg>
+              Continue with Google
+            </button>
+          </div>
+
+          <div class="si-foot m-fade">New here? <a href="Create-Account.html" id="createLink">Create an account</a></div>
+          <div class="si-fine m-fade">By continuing you agree to our <a href="Terms.html">Terms</a> &amp; <a href="Privacy.html">Privacy Policy</a>.</div>
+        </div>
+
+        <!-- magic-link sent confirmation -->
+        <div class="si-sent" id="siSent">
+          <div class="si-seal"><div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></div></div>
+          <div class="st-k" id="sentKicker">Check your inbox</div>
+          <div class="st-h" id="sentHead">Your link is on its way</div>
+          <div class="st-d" id="sentDesc">We sent a secure sign-in link to <b id="sentTo">you</b>. Tap it on this device and you&rsquo;re in.</div>
+          <div class="st-btns">
+            <a class="si-open" href="Today.html">Open Declare</a>
+            <button class="si-resend" id="siResend">Resend link <span id="resendIn"></span></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var emailField=$('emailField'), email=$('email'), emailErr=$('emailErr'),
+      pwField=$('pwField'), pw=$('password'), pwErr=$('pwErr'),
+      form=$('siForm'), sent=$('siSent'), sub=$('siSub');
+  var mode='password'; // 'password' | 'magic'
+
+  function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+  function nameFrom(v){ var l=v.split('@')[0].replace(/[._-]+/g,' ').trim(); return l.charAt(0).toUpperCase()+l.slice(1).split(' ')[0]; }
+  function remember(v){ try{ localStorage.setItem('declare-firstname', nameFrom(v)); localStorage.setItem('declare-email', v); if($('staySigned').checked) localStorage.setItem('declare-session','1'); }catch(e){} }
+
+  function wireField(field, inp, errEl){
+    inp.addEventListener('focus', function(){ field.classList.add('focus'); errEl.classList.remove('show'); });
+    inp.addEventListener('blur', function(){ field.classList.remove('focus'); field.classList.toggle('filled', !!inp.value.trim()); });
+    inp.addEventListener('input', function(){ field.classList.toggle('filled', !!inp.value.trim()); errEl.classList.remove('show'); });
+  }
+  wireField(emailField, email, emailErr);
+  wireField(pwField, pw, pwErr);
+
+  // show/hide password
+  $('pwPeek').addEventListener('click', function(){ var t=pw.type==='password'?'text':'password'; pw.type=t; this.style.color=t==='text'?'var(--goldd)':''; });
+
+  // toggle to magic-link mode
+  $('magicBtn').addEventListener('click', function(){
+    mode = mode==='password' ? 'magic' : 'password';
+    if(mode==='magic'){
+      pwField.style.display='none'; pwErr.style.display='none';
+      document.querySelector('.si-rowsplit').style.display='none';
+      $('siGo').querySelector('.gt').textContent='Send me a link';
+      sub.textContent='We\u2019ll email a secure link to sign you in \u2014 no password needed.';
+      this.textContent='Use my password instead';
+    } else {
+      pwField.style.display=''; pwErr.style.display='';
+      document.querySelector('.si-rowsplit').style.display='';
+      $('siGo').querySelector('.gt').textContent='Sign in';
+      sub.textContent='Enter your email and password to pick up where you left off.';
+      this.textContent='Email me a sign-in link instead';
+    }
+  });
+
+  function showSent(kind, addr){
+    if(kind==='reset'){ $('sentKicker').textContent='Check your inbox'; $('sentHead').textContent='Reset link sent'; $('sentDesc').innerHTML='We sent a password reset link to <b>'+addr+'</b>. Tap it to choose a new password.'; }
+    else { $('sentKicker').textContent='Check your inbox'; $('sentHead').textContent='Your link is on its way'; $('sentDesc').innerHTML='We sent a secure sign-in link to <b>'+addr+'</b>. Tap it on this device and you\u2019re in.'; }
+    sent.classList.add('show'); startResend();
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v=email.value.trim();
+    if(!isEmail(v)){ emailErr.classList.add('show'); emailField.classList.add('focus'); email.focus(); return; }
+    if(mode==='magic'){ remember(v); showSent('magic', v); return; }
+    // password mode
+    if(!pw.value){ pwErr.classList.add('show'); pwField.classList.add('focus'); pw.focus(); return; }
+    remember(v);                       // prototype: accept any non-empty password
+    location.href='Today.html';
+  });
+
+  // forgot password → magic reset link
+  $('forgotBtn').addEventListener('click', function(){
+    var v=email.value.trim();
+    if(!isEmail(v)){ emailErr.classList.add('show'); emailField.classList.add('focus'); email.focus(); emailErr.textContent='Enter your email first, then tap Forgot password.'; return; }
+    showSent('reset', v);
+  });
+
+  // providers
+  document.querySelectorAll('.prov').forEach(function(b){
+    b.addEventListener('click', function(){ try{ localStorage.setItem('declare-firstname','Friend'); localStorage.setItem('declare-session','1'); }catch(e){} location.href='Today.html'; });
+  });
+
+  // resend cooldown
+  var resendBtn=$('siResend'), resendIn=$('resendIn'), t;
+  function startResend(){ var s=20; resendBtn.disabled=true; resendIn.textContent='('+s+')'; clearInterval(t);
+    t=setInterval(function(){ s--; if(s<=0){ clearInterval(t); resendBtn.disabled=false; resendIn.textContent=''; } else { resendIn.textContent='('+s+')'; } },1000); }
+  resendBtn.addEventListener('click', function(){ if(!resendBtn.disabled) startResend(); });
+
+  setTimeout(function(){ try{ email.focus({preventScroll:true}); }catch(e){} }, 700);
+})();
+</script>
+</body>
+</html>

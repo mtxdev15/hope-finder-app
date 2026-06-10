@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Declare & Believe — sitemap
+  Covers the public marketing / SEO surface only. App screens (Today app shell,
+  Vault, Journey, The Word, Account, Results) and internal demo/spec pages
+  (App-Flow, Hero, Motion-System, Sharing-Demo, Design System, Church-Data-Spec)
+  are intentionally excluded.
+
+  NOTE for the dev: URLs below match the current static .html deployment. If the
+  Astro build serves extensionless / clean URLs (e.g. /anxiety instead of
+  /anxiety.html), regenerate this file to match, or Google will get 404s.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- Home -->
+  <url>
+    <loc>https://declareandbelieve.com/</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Primary entry: receive a word -->
+  <url>
+    <loc>https://declareandbelieve.com/Today.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- ============ Struggle landing pages (primary SEO targets) ============ -->
+  <url>
+    <loc>https://declareandbelieve.com/anxiety.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/depression.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/shame.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/grief.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/loneliness.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/doubt.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/anger.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/failure.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/purpose.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/marriage.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/unforgiveness.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/financial-pressure.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- church-hurt has a Spanish alternate; hreflang links both directions -->
+  <url>
+    <loc>https://declareandbelieve.com/church-hurt.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/church-hurt.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/heridas-de-la-iglesia.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/church-hurt.html"/>
+  </url>
+
+  <!-- Spanish landing page -->
+  <url>
+    <loc>https://declareandbelieve.com/es/heridas-de-la-iglesia.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/church-hurt.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/heridas-de-la-iglesia.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/church-hurt.html"/>
+  </url>
+
+  <!-- ============ Marketing / info ============ -->
+  <url>
+    <loc>https://declareandbelieve.com/Find-a-Church-Flow.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/About.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/FAQ.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Give.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Listen.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Help.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Release-Notes.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Terms.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/Privacy.html</loc>
+    <lastmod>2026-06-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>

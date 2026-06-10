@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Scripture for the weight you carry</title>
+<meta name="description" content="Declare gives Christians Scripture-rooted words — a verse, a short reflection, declarations to speak, and a prayer — for whatever is weighing on them. Name what's heavy. Receive His Word for this moment." />
+
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Declare" />
+<meta property="og:title" content="Declare — Scripture for the weight you carry" />
+<meta property="og:description" content="Name what's heavy. Receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<script src="account-morph.js" defer></script>
+
+
+<style>
+  /* Hero-specific */
+  .hero{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 28px 30px; }
+  .hero .kicker{ margin-bottom:22px; max-width:24ch; line-height:1.7; }
+  .hero .word{ font-size:clamp(58px,17vw,72px); line-height:.98; font-weight:600; color:var(--text); letter-spacing:.01em; text-shadow:0 0 60px rgba(222,190,100,.35); }
+  .hero .sub{ font-size:21px; font-style:italic; color:var(--soft); margin-top:22px; max-width:18ch; line-height:1.45; }
+  .hero .markwrap{ width:96px; height:96px; margin:0 auto 24px; display:flex; align-items:center; justify-content:center;
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.4)) drop-shadow(0 0 24px rgba(222,190,100,.26)); }
+  html[data-theme="light"] .hero .markwrap{ filter:drop-shadow(0 8px 16px rgba(34,56,46,.18)); }
+  .hero .markwrap img{ width:100%; height:100%; object-fit:contain; }
+  .hero .markwrap .mk-light{ display:none; }
+  html[data-theme="light"] .hero .markwrap .mk-dark{ display:none; }
+  html[data-theme="light"] .hero .markwrap .mk-light{ display:block; }
+
+  .herofoot{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:0 26px 30px; }
+  .herofoot a{ display:flex; align-items:center; gap:13px; font-size:15px; white-space:nowrap; transition:transform .16s ease; }
+  .herofoot a:active{ transform:translateY(1px); }
+  .herofoot .begin{ color:var(--text); font-weight:500; }
+  .herofoot .begin svg{ color:var(--gold); }
+  .herofoot .signin{ color:var(--muted); font-size:14px; }
+  .herofoot .uarrow{ width:34px; height:11px; overflow:visible; }
+  .herofoot .uarrow path:first-child{ transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .5s ease; transform-origin:right center; transform:scaleX(.62); opacity:.65; }
+  .herofoot .uarrow path:last-child{ transition:transform .5s cubic-bezier(.16,1,.3,1); }
+  .herofoot a:hover .uarrow path:first-child{ transform:scaleX(1); opacity:1; }
+  .herofoot a:hover .uarrow path:last-child{ transform:translateX(3px); }
+  @media (prefers-reduced-motion: reduce){ .herofoot .uarrow path{ transition:none !important; transform:none !important; opacity:1 !important; } }
+
+  /* full-screen menu */
+  .hero-menu .hm-close{ position:absolute; top:18px; right:20px; z-index:2; width:42px; height:42px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .4s var(--ease-soft), border-color .3s ease; }
+  .hero-menu.open .hm-close{ transform:rotate(0deg); }
+  .hero-menu .hm-close{ transform:rotate(-90deg); }
+  @media (hover:hover){ .hero-menu .hm-close:hover{ border-color:var(--gold); } }
+  .hero-menu .hm-inner{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:2px; padding:0 34px; max-width:640px; margin:0 auto; width:100%; }
+  .hero-menu .hm-k{ font-size:10px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); margin-bottom:26px; font-weight:600; }
+  .hero-menu .hm-item{ display:flex; align-items:center; justify-content:space-between; gap:18px; padding:11px 0; text-decoration:none;
+    border-bottom:1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+  .hero-menu .hm-item .hm-t{ font-family:'Cormorant Garamond',serif; font-size:clamp(32px,8.4vw,44px); font-weight:600; color:var(--text); line-height:1.05; white-space:nowrap; transition:color .35s var(--ease-soft), transform .45s var(--ease-reveal); }
+  .hero-menu .hm-item .uarrow{ width:38px; height:12px; color:var(--muted); opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .45s var(--ease-reveal), color .3s ease; }
+  .hero-menu .hm-item .uarrow path:first-child{ transform-origin:right center; transform:scaleX(.5); transition:transform .5s var(--ease-reveal); }
+  @media (hover:hover){
+    .hero-menu .hm-item:hover .hm-t{ color:var(--goldd); transform:translateX(8px); }
+    .hero-menu .hm-item:hover .uarrow{ opacity:1; transform:none; color:var(--goldd); }
+    .hero-menu .hm-item:hover .uarrow path:first-child{ transform:scaleX(1); }
+  }
+  .hero-menu .hm-foot{ display:flex; align-items:center; gap:14px; margin-top:30px; font-size:13.5px; }
+  .hero-menu .hm-foot a{ color:var(--muted); text-decoration:none; transition:color .25s ease; }
+  .hero-menu .hm-foot a:hover{ color:var(--text); }
+  .hero-menu .hm-foot span{ color:var(--line2); }
+  @media (prefers-reduced-motion: reduce){ .hero-menu .hm-close{ transform:none !important; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>/* entry gate: Begin is a once-a-day threshold.
+   The first open each day crosses Begin → the struggle entry;
+   every later open that day goes straight in. Brand-new visitors
+   also see it (their first day). ?stay=1 forces the landing for review. */
+(function(){try{
+  var p=new URLSearchParams(location.search);
+  if(p.has('stay')||p.has('begin'))return;
+  var today=new Date().toISOString().slice(0,10);          // YYYY-MM-DD, local enough for daily ritual
+  var crossedToday=localStorage.getItem('declare-begin-day')===today;
+  if(crossedToday){ location.replace('Today.html'); }
+}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="coreglow" aria-hidden="true"></div>
+      <div class="coreglow2" aria-hidden="true"></div>
+
+      <div class="bar">
+        <span style="font-weight:500">9:41</span>
+        <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+      </div>
+
+      <div class="mast">
+        <span class="dot" aria-hidden="true"></span>
+        <button class="menu" id="menuBtn" aria-label="Open menu" aria-expanded="false">Menu
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+
+      <div class="hero">
+        <div class="markwrap rise d1"><img class="mk-dark" src="brand/logo-dark-tight.png" alt="Declare &amp; Believe" /><img class="mk-light" src="brand/logo-light-tight.png" alt="" aria-hidden="true" /></div>
+        <div class="lbl kicker rise d2" id="heroKicker">Scripture, for the weight you carry</div>
+        <div class="serif word rise d3">Declare</div>
+        <div class="serif sub rise d4" id="heroSub">Name what&rsquo;s heavy. Receive His Word for this moment.</div>
+      </div>
+
+      <div class="herofoot rise d5">
+        <a class="begin m-breath m-press" id="beginLink" href="Today.html">Begin
+          <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
+        </a>
+        <a class="signin" href="Signin.html">Sign in
+          <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- full-screen menu overlay (Unseen-style threshold) -->
+<nav class="m-menu hero-menu" id="heroMenu" data-m-stagger aria-hidden="true">
+  <button class="hm-close" id="menuClose" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="hm-inner">
+    <div class="hm-k m-menu-item">Declare &amp; Believe</div>
+    <a class="hm-item m-menu-item" href="Today.html"><span class="hm-t">Declare</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="TheWord.html"><span class="hm-t">Word</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="Journey.html"><span class="hm-t">Journey</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="Vault.html"><span class="hm-t">Vault</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="Find-a-Church-Flow.html"><span class="hm-t">Find a Church</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="Account-A.html"><span class="hm-t" data-you-morph>You</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <div class="hm-foot m-menu-item"><a href="Give.html">Give</a><span>&middot;</span><a href="Listen.html">Listen</a><span>&middot;</span><a href="About.html">About</a></div>
+  </div>
+</nav>
+
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script>
+  document.getElementById('menuBtn').addEventListener('click', function(){
+    var m=document.getElementById('heroMenu');
+    m.querySelectorAll('.m-menu-item').forEach(function(el,i){ el.style.setProperty('--i', i); });
+    m.classList.add('open'); m.setAttribute('aria-hidden','false');
+    this.setAttribute('aria-expanded','true');
+  });
+  document.getElementById('menuClose').addEventListener('click', function(){
+    var m=document.getElementById('heroMenu');
+    m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+    document.getElementById('menuBtn').setAttribute('aria-expanded','false');
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=document.getElementById('heroMenu'); if(m.classList.contains('open')){ m.classList.remove('open'); m.setAttribute('aria-hidden','true'); document.getElementById('menuBtn').setAttribute('aria-expanded','false'); } } });
+
+  // Greet by name + part of day for a returning, signed-in user (still a daily threshold)
+  (function(){try{
+    var fn=localStorage.getItem('declare-firstname');
+    var h=new Date().getHours();
+    var part = h<12?'morning':h<18?'afternoon':'evening';
+    if(fn){
+      var k=document.getElementById('heroKicker');
+      if(k) k.textContent='Good '+part+', '+fn;
+    }
+  }catch(e){}})();
+
+  // Crossing the threshold records today's date — Begin won't reappear until tomorrow
+  function crossToday(){ try{ localStorage.setItem('declare-begin-day', new Date().toISOString().slice(0,10)); }catch(e){} }
+  document.querySelectorAll('.herofoot a, #menuBtn').forEach(function(a){ a.addEventListener('click', crossToday); });
+</script>
+</body>
+</html>

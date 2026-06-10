@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Declare — account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --text:#FBF7EF;--muted:rgba(244,240,231,.5);--soft:rgba(251,247,239,.8);
+  --gold:#D8B85F;--goldd:#E2C572;--danger:#E08A6F;
+  --glow1:rgba(222,190,100,.3);--glow2:rgba(255,238,180,.36);
+  --page:#05090700;--phone:linear-gradient(160deg,#1c2a22,#0b130e);
+  --bgfield:radial-gradient(135% 78% at 50% -8%, #1f3026, #0c130f 64%);
+  --line:rgba(244,239,230,.08);--line2:rgba(244,239,230,.16);
+  --card:rgba(255,255,255,.04);--cardbd:rgba(244,239,230,.09);--field:rgba(255,255,255,.05);--sheet:#15231b;--ring:#16241c;
+  --statusc:rgba(244,240,231,.7);
+  --phone-shadow:0 66px 150px -28px rgba(0,0,0,.9), 0 0 150px -34px rgba(222,190,100,.16);
+}
+html[data-theme="light"]{
+  --text:#22382E;--muted:rgba(34,56,46,.52);--soft:rgba(34,56,46,.74);
+  --gold:#C9A84C;--goldd:#9A7A24;--danger:#A8432E;
+  --glow1:rgba(201,168,76,.16);--glow2:rgba(255,243,210,.38);
+  --page:#E7DFD0;--phone:linear-gradient(160deg,#cfc6b4,#b4aa96);
+  --bgfield:radial-gradient(140% 88% at 50% -4%, #FFFFFF, #FAF7F2 52%, #F3EDE0 100%);
+  --line:rgba(34,56,46,.09);--line2:rgba(34,56,46,.16);
+  --card:rgba(255,255,255,.78);--cardbd:rgba(34,56,46,.1);--field:#F0E8D8;--sheet:#FFFFFF;--ring:#FFFFFF;
+  --statusc:rgba(34,56,46,.6);
+  --phone-shadow:0 50px 110px -24px rgba(34,56,46,.5), 0 16px 40px -12px rgba(34,56,46,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--page);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;transition:background .5s}
+html[data-theme="dark"] body{background:radial-gradient(140% 100% at 50% 0%,#0c1812,#05090700)}
+.serif{font-family:'Cormorant Garamond',serif}
+
+.toggle{position:fixed;bottom:18px;right:18px;display:flex;gap:3px;padding:4px;border-radius:999px;background:rgba(127,127,127,.16);backdrop-filter:blur(6px);z-index:10}
+.toggle button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;padding:7px 15px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:rgba(255,255,255,.12);color:var(--text)}
+
+.phone{width:390px;max-width:100%;background:var(--phone);border-radius:46px;padding:9px;box-shadow:var(--phone-shadow);transition:box-shadow .5s}
+.screen{position:relative;border-radius:38px;overflow:hidden;min-height:812px;background:var(--bgfield);display:flex;flex-direction:column;transition:background .5s}
+.coreglow{position:absolute;top:0;left:0;right:0;height:440px;background:radial-gradient(circle at 50% 12%,var(--glow1),transparent 46%);pointer-events:none;z-index:0}
+.coreglow2{position:absolute;top:0;left:0;right:0;height:360px;background:radial-gradient(circle at 50% 8%,var(--glow2),transparent 20%);pointer-events:none;z-index:0;opacity:.7}
+.in{position:relative;z-index:1;display:flex;flex-direction:column;flex:1;overflow:hidden}
+
+.bar{display:flex;justify-content:space-between;align-items:center;padding:16px 26px 0;font-size:12px;color:var(--statusc)}
+.batt{display:inline-block;width:18px;height:10px;border:1.5px solid currentColor;border-radius:2px}
+.masthead{display:flex;justify-content:space-between;align-items:center;padding:20px 28px 0}
+.back{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);background:none;border:0;cursor:pointer;font-family:inherit}
+.mh-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 14px rgba(216,184,95,.7)}
+
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;padding:0 28px 30px}
+.scroll::-webkit-scrollbar{display:none}
+.rise{opacity:0;transform:translateY(15px);animation:rise .65s cubic-bezier(.2,.7,.2,1) forwards}
+.d1{animation-delay:.04s}.d2{animation-delay:.1s}.d3{animation-delay:.16s}.d4{animation-delay:.22s}.d5{animation-delay:.28s}.d6{animation-delay:.34s}.d7{animation-delay:.4s}.d8{animation-delay:.46s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.rise{animation:none;opacity:1;transform:none}.scroll{scroll-behavior:auto}}
+
+/* identity hero */
+.hero{padding:40px 2px 6px;display:flex;align-items:center;gap:17px}
+.avwrap{position:relative;flex:0 0 auto}
+.avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(150deg,var(--gold),rgba(216,184,95,.5));display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:#0c130f;box-shadow:0 0 0 4px var(--ring),0 8px 24px -6px rgba(0,0,0,.45),0 0 30px -6px rgba(216,184,95,.5)}
+html[data-theme="light"] .avatar{color:#FBF6EC}
+.avedit{position:absolute;right:-2px;bottom:-2px;width:25px;height:25px;border-radius:50%;background:var(--gold);border:3px solid var(--ring);display:flex;align-items:center;justify-content:center;color:#0c130f;cursor:pointer}
+html[data-theme="light"] .avedit{color:#FBF6EC}
+.avedit svg{width:12px;height:12px}
+.htext{flex:1;min-width:0}
+.hname{font-family:'Cormorant Garamond',serif;font-size:27px;font-weight:600;color:var(--text);line-height:1.04;letter-spacing:.005em}
+.hmeta{font-size:13px;color:var(--muted);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* section + hairline rows (editorial, airy, low chrome) */
+.sect{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:500;margin:42px 0 6px}
+.group{border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:13px;padding:16px 2px;border-bottom:1px solid var(--line);cursor:pointer;transition:padding-left .25s}
+.row:hover{padding-left:6px}
+.row .ic{flex:0 0 auto;width:18px;display:flex;justify-content:center;color:var(--gold)}
+.row .l{flex:1;min-width:0}
+.row .k{font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.row .v{font-size:16px;color:var(--text);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .v.ser{font-family:'Cormorant Garamond',serif;font-size:18px}
+.row .r{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.row .act{font-size:12px;color:var(--gold)}
+.row .chev{font-size:16px;color:var(--muted)}
+.row .home{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid var(--cardbd);padding:3px 9px;border-radius:999px}
+.svg{width:17px;height:17px}
+
+/* appearance segmented — quiet glass */
+.seg{display:flex;gap:4px;padding:4px;background:var(--field);border:1px solid var(--cardbd);border-radius:13px;margin-top:8px}
+.seg button{flex:1;border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:500;color:var(--muted);padding:11px 4px;border-radius:9px;cursor:pointer;transition:.2s}
+.seg button.on{background:rgba(216,184,95,.16);color:var(--text)}
+
+/* church find — quiet */
+.find{display:flex;align-items:center;gap:11px;padding:14px 2px;border-bottom:1px solid var(--line);color:var(--muted);cursor:pointer}
+.find svg{color:var(--gold)}
+.find span{font-size:14px}
+
+.actions{margin-top:44px;display:flex;flex-direction:column;gap:0;align-items:center}
+.signout{width:100%;border:1px solid var(--line2);background:transparent;color:var(--text);border-radius:14px;padding:15px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.delete{margin-top:16px;background:none;border:0;color:var(--danger);font-family:inherit;font-size:13px;cursor:pointer;opacity:.85}
+
+/* personalize sheet */
+.sheetwrap{position:absolute;inset:0;z-index:40;display:none}
+.sheetwrap.open{display:block}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);opacity:0;animation:sfade .25s forwards}
+@keyframes sfade{to{opacity:1}}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--sheet);border-radius:26px 26px 38px 38px;padding:10px 22px 30px;transform:translateY(100%);animation:sslide .34s cubic-bezier(.2,.7,.2,1) forwards;box-shadow:0 -20px 60px -20px rgba(0,0,0,.6)}
+@keyframes sslide{to{transform:none}}
+.grab{width:42px;height:5px;border-radius:999px;background:var(--line2);margin:4px auto 14px}
+.stitle{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:600;color:var(--text);text-align:center}
+.ssub{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.src{display:flex;align-items:center;gap:15px;padding:16px 4px;border-top:1px solid var(--line);cursor:pointer;transition:padding-left .2s}
+.src:first-of-type{margin-top:16px}
+.src:hover{padding-left:6px}
+.src .si{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--field);border:1px solid var(--cardbd);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.src .si svg{width:19px;height:19px}
+.src .st{font-size:16px;color:var(--text)}
+.src .sd{font-size:12px;color:var(--muted);margin-top:2px}
+.src .schev{margin-left:auto;color:var(--muted);font-size:16px}
+.src.remove .si,.src.remove .st{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="toggle"><button id="tL">Light</button><button id="tD">Dark</button><button id="tA">Auto</button></div>
+
+<div class="phone">
+  <div class="screen">
+    <div class="coreglow" aria-hidden="true"></div>
+    <div class="coreglow2" aria-hidden="true"></div>
+    <div class="in">
+
+      <div class="bar"><span style="font-weight:500">9:41</span><span style="display:flex;gap:7px;align-items:center"><span>&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+      <div class="masthead"><button class="back">&#8592; Profile</button><span class="mh-dot" aria-hidden="true"></span></div>
+
+      <div class="scroll">
+
+        <div class="hero rise d1">
+          <div class="avwrap">
+            <div class="avatar">J</div>
+            <div class="avedit" id="editPhoto"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.6"/></svg></div>
+          </div>
+          <div class="htext">
+            <div class="hname">Jeff Martinez</div>
+            <div class="hmeta">jeff@declareandbelieve.com</div>
+          </div>
+        </div>
+
+        <div class="sect rise d2">Identity</div>
+        <div class="group rise d2">
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span><div class="l"><span class="k">Name</span><span class="v">Jeff Martinez</span></div><div class="r"><span class="act">Edit</span></div></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span><div class="l"><span class="k">Email</span><span class="v">jeff@declareandbelieve.com</span></div><div class="r"><span class="act">Edit</span></div></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span><div class="l"><span class="k">Country</span><span class="v">United States</span></div><div class="r"><span class="chev">&#8250;</span></div></div>
+        </div>
+
+        <div class="sect rise d3">Appearance</div>
+        <div class="seg rise d3"><button class="on">System</button><button>Light</button><button>Dark</button><button>Auto</button></div>
+
+        <div class="sect rise d4">Reader</div>
+        <div class="group rise d4">
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><div class="l"><span class="k">Default translation</span><span class="v">NKJV</span></div><div class="r"><span class="act">Change</span></div></div>
+          <div class="row"><span class="ic serif" style="font-weight:600;font-size:15px">Aa</span><div class="l"><span class="k">Text size</span><span class="v">Medium</span></div><div class="r"><span class="chev">&#8250;</span></div></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="l"><span class="k">Daily reminder</span><span class="v">8:00 AM</span></div><div class="r"><span class="chev">&#8250;</span></div></div>
+        </div>
+
+        <div class="sect rise d5">My church</div>
+        <div class="group rise d5">
+          <div class="find"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><span>Find a church near you&hellip;</span></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg></span><div class="l"><span class="k">Home church</span><span class="v">Grace Community Church</span></div><div class="r"><span class="home">Home</span></div></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span><div class="l"><span class="k">Recently visited</span><span class="v">Hope Chapel &middot; Orlando</span></div><div class="r"><span class="chev">&#8250;</span></div></div>
+        </div>
+
+        <div class="sect rise d6">Listen &amp; watch</div>
+        <div class="group rise d6">
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span><div class="l"><span class="k">Podcast</span><span class="v">The Declare Podcast</span></div><div class="r"><span class="act">Follow</span></div></div>
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></span><div class="l"><span class="k">YouTube</span><span class="v">Declare on YouTube</span></div><div class="r"><span class="act">Watch</span></div></div>
+        </div>
+
+        <div class="sect rise d7">Support Declare</div>
+        <div class="group rise d7">
+          <div class="row"><span class="ic"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span><div class="l"><span class="k">Give a tithe</span><span class="v">Help keep Declare free for all</span></div><div class="r"><span class="chev">&#8250;</span></div></div>
+        </div>
+
+        <div class="actions rise d8">
+          <button class="signout">Sign out</button>
+          <button class="delete">Delete account</button>
+        </div>
+
+      </div>
+
+      <!-- personalize sheet -->
+      <div class="sheetwrap" id="sheet">
+        <div class="backdrop" id="backdrop"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="stitle">Profile photo</div>
+          <div class="ssub">Choose a new profile photo</div>
+          <div class="src"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 16l-5-5L5 21"/></svg></span><div><div class="st">Choose from Photos</div><div class="sd">Pick from your photo library</div></div><span class="schev">&#8250;</span></div>
+          <div class="src"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.6"/></svg></span><div><div class="st">Take a Photo</div><div class="sd">Use your camera</div></div><span class="schev">&#8250;</span></div>
+          <div class="src"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l5-6 4 4 3-4 6 6"/><rect x="2" y="4" width="20" height="16" rx="3"/></svg></span><div><div class="st">Browse Unsplash</div><div class="sd">Free atmospheric backgrounds</div></div><span class="schev">&#8250;</span></div>
+          <div class="src remove"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><div><div class="st">Remove current</div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){var h=document.documentElement,L=document.getElementById('tL'),D=document.getElementById('tD');
+function set(t){h.setAttribute('data-theme',t);L.classList.toggle('on',t==='light');D.classList.toggle('on',t==='dark');}
+L.onclick=function(){set('light')};D.onclick=function(){set('dark')};
+document.querySelector('.seg').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');});
+(function(){var sheet=document.getElementById('sheet');if(!sheet)return;
+function open(){sheet.classList.add('open');var s=sheet.querySelector('.sheet');s.style.animation='none';void s.offsetWidth;s.style.animation='';}
+function close(){sheet.classList.remove('open');}
+var p1=document.getElementById('editPhoto');
+if(p1)p1.onclick=open;
+document.getElementById('backdrop').onclick=close;
+sheet.querySelectorAll('.src').forEach(function(s){s.onclick=close;});})();
+})();
+</script>
+
+<script>(function(){var h=document.documentElement,L=document.getElementById("tL"),D=document.getElementById("tD"),A=document.getElementById("tA");if(!L||!D||!A)return;var mq=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");function paint(m){var t=m==="auto"?((mq&&mq.matches)?"dark":"light"):m;h.setAttribute("data-theme",t);L.classList.toggle("on",m==="light");D.classList.toggle("on",m==="dark");A.classList.toggle("on",m==="auto");}var saved=null;try{saved=localStorage.getItem("declare-theme-mock");}catch(e){}var mode=(saved==="light"||saved==="dark"||saved==="auto")?saved:(h.getAttribute("data-theme")==="light"?"light":"dark");function set(m){mode=m;try{localStorage.setItem("declare-theme-mock",m);}catch(e){}paint(m);}L.onclick=function(){set("light");};D.onclick=function(){set("dark");};A.onclick=function(){set("auto");};if(mq&&mq.addEventListener)mq.addEventListener("change",function(){if(mode==="auto")paint("auto");});paint(mode);})();</script>
+</body>
+</html>

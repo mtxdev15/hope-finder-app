@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — The Word</title>
+<meta name="description" content="The Word — read and search Scripture across NKJV, NIV, NLT, KJV, WEB and ASV, with up to three translations side by side." />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — The Word" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Lora:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Lora:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<script src="account-morph.js" defer></script>
+<link rel="stylesheet" href="motion.css" />
+<link rel="stylesheet" href="share.css" />
+<link rel="stylesheet" href="card-studio.css" />
+
+
+<style>
+  .screen{ height:760px; max-height:92vh; }
+  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+
+  .whead{ display:flex; justify-content:space-between; align-items:center; padding:14px 22px 2px; color:var(--text); }
+  .whead .gear{ color:var(--muted); }
+  .whead .gear svg{ width:19px; height:19px; }
+  .wtitle{ font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; padding:4px 22px 2px; color:var(--text); }
+
+  .search{ display:flex; align-items:center; gap:11px; margin:12px 22px 0; padding:14px 16px; background:var(--surface); border-radius:16px; box-shadow:var(--card-shadow); }
+  .search svg{ flex:0 0 auto; width:17px; height:17px; color:var(--goldd); }
+  .search input{ flex:1; border:0; background:transparent; outline:none; font-family:inherit; font-size:14px; color:var(--text); }
+  .search input::placeholder{ color:var(--muted); }
+
+  .trow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:16px 22px 4px; }
+  .pill{ font-size:12px; font-weight:500; padding:8px 14px; border-radius:999px; border:1px solid var(--line2); color:var(--text); background:transparent; cursor:pointer; transition:background .2s, color .2s, border-color .2s; }
+  .pill.on{ background:var(--gold); border-color:var(--gold); color:#22382E; }
+  .pill.more{ color:var(--goldd); border-style:dashed; }
+
+  .seg{ display:flex; gap:4px; margin:14px 22px 0; padding:4px; background:var(--field); border-radius:999px; }
+  .seg button{ flex:1; border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); padding:9px; border-radius:999px; cursor:pointer; transition:.2s; }
+  .seg button.on{ background:var(--surface); color:var(--text); box-shadow:var(--card-shadow); }
+
+  .scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+
+  .grp{ padding:22px 22px 0; }
+  .grphead{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+  .grptitle{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); }
+  .grpsub{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
+  .books{ display:flex; flex-direction:column; gap:10px; }
+  .book{ display:flex; align-items:center; gap:14px; padding:15px 16px; background:var(--surface); border-radius:16px; box-shadow:var(--card-shadow); cursor:pointer; border:0; width:100%; text-align:left; font-family:inherit; transition:transform .25s; }
+  @media (hover:hover){ .book:hover{ transform:translateY(-3px); } }
+  .book .bmain{ flex:1; min-width:0; }
+  .book .bname{ display:block; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); line-height:1.1; }
+  .book .bdesc{ display:block; font-size:12.5px; color:var(--muted); margin-top:3px; }
+  .book .bchap{ display:block; font-size:11px; color:var(--text2); margin-top:5px; opacity:.8; }
+  .book .chev{ flex:0 0 auto; color:var(--goldd); display:flex; }
+  .book .chev svg{ width:18px; height:18px; }
+  .foot-sp{ height:26px; }
+
+  .searchhint{ padding:14px 22px 0; }
+  .shitem{ display:flex; align-items:center; gap:12px; padding:13px 16px; background:var(--surface); border-radius:14px; box-shadow:var(--card-shadow); cursor:pointer; border:0; width:100%; text-align:left; font-family:inherit; margin-bottom:9px; }
+  .shitem .shref{ display:block; font-size:11px; color:var(--goldd); font-weight:600; letter-spacing:.04em; flex:0 0 auto; }
+  .shitem .shlabel{ display:block; font-family:'Cormorant Garamond',serif; font-size:16px; color:var(--text); }
+
+  /* ---------- reader view (book → chapter → verse) ---------- */
+  .reader{ position:absolute; inset:0; z-index:6; background:var(--bgfield); display:none; flex-direction:column; }
+  .reader.open{ display:flex; }
+  .rtop{ position:relative; z-index:2; }
+  .rhead{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px 2px; }
+  .rbook{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); text-align:center; flex:1; }
+  .rsub{ text-align:center; font-size:11px; letter-spacing:.06em; color:var(--goldd); padding-bottom:6px; }
+  .rscroll{ position:relative; z-index:1; flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; }
+  .rscroll::-webkit-scrollbar{ display:none; }
+
+  /* chapter picker grid */
+  .chappick{ padding:10px 22px 30px; }
+  .picklbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin:8px 2px 14px; }
+  /* verse picker (mirrors the chapter grid; shown after a chapter is chosen) */
+  .versepick{ padding:10px 22px 30px; }
+  .vp-all{ display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:14px; margin:2px 0 18px; border:0; cursor:pointer;
+    background:var(--cta); color:var(--ctatext); border-radius:14px; font-family:inherit; font-size:14.5px; font-weight:600; box-shadow:0 10px 24px -10px rgba(201,168,76,.5); transition:filter .2s ease, transform .16s ease; }
+  .vp-all:hover{ filter:brightness(1.04); }
+  .vp-all:active{ transform:translateY(1px); }
+  .vp-all svg{ width:16px; height:16px; }
+  .vp-loading{ padding:18px 2px; color:var(--muted); font-size:14px; }
+  .chapgrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  .chaptile{ position:relative; aspect-ratio:1/1; border-radius:14px; border:1px solid var(--line2); background:var(--surface); box-shadow:var(--card-shadow); color:var(--text); font-family:'Cormorant Garamond',serif; font-size:19px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s, background .2s, color .2s; }
+  @media (hover:hover){ .chaptile:hover{ transform:translateY(-2px); } }
+  .chaptile.has::after{ content:''; position:absolute; bottom:7px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--gold); box-shadow:0 0 7px rgba(216,184,95,.7); }
+
+  /* reading controls */
+  .readctl{ display:flex; align-items:center; justify-content:center; gap:12px; padding:6px 18px 10px; }
+  .navchap{ width:38px; height:38px; border-radius:11px; border:1px solid var(--line2); background:transparent; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.2s; }
+  .navchap svg{ width:18px; height:18px; }
+  .navchap:disabled{ opacity:.32; cursor:default; }
+  .chaplabel{ font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:600; color:var(--text); background:var(--field); border:1px solid var(--line2); border-radius:12px; padding:9px 18px; cursor:pointer; display:inline-flex; align-items:center; gap:9px; }
+  .chaplabel svg{ width:13px; height:13px; color:var(--goldd); }
+
+  .rtrans{ display:flex; align-items:center; gap:8px; padding:0 18px 12px; }
+  .rtrans .rt{ font-size:11px; font-weight:600; letter-spacing:.06em; padding:6px 12px; border-radius:999px; border:1px solid var(--line2); color:var(--muted); background:transparent; cursor:pointer; }
+  .rtrans .rt.on{ background:rgba(216,184,95,.16); color:var(--text); border-color:rgba(216,184,95,.4); }
+  .rtrans .compare{ margin-left:auto; font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--goldd); background:none; border:0; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .rtrans .compare svg{ width:14px; height:14px; }
+
+  .rbody{ padding:6px 22px 36px; }
+  .rheading{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:15px; color:var(--muted); text-align:center; margin:4px 0 18px; }
+
+  .vrse{ display:flex; gap:11px; margin-bottom:15px; }
+  .vrse .vn{ flex:0 0 auto; font-size:11px; color:var(--goldd); font-weight:600; width:18px; text-align:right; padding-top:6px; }
+  .vrse .vt{ flex:1; font-family:'Cormorant Garamond',serif; font-size:20px; line-height:1.5; color:var(--text); padding:2px 7px; border-radius:8px; }
+  .vrse.flash .vt{ animation:vflash 1.8s ease; }
+  @keyframes vflash{ 0%,22%{ background:rgba(216,184,95,.22); } 100%{ background:transparent; } }
+
+  .pcols{ display:grid; gap:14px; }
+  .pverse{ border-top:1px solid var(--line); padding-top:13px; margin-bottom:5px; border-radius:8px; }
+  .pverse.flash{ animation:vflash 1.8s ease; }
+  .pverse .pn{ font-size:11px; color:var(--goldd); font-weight:600; margin-bottom:8px; }
+  .pgrid{ display:grid; gap:12px; }
+  .pcell .pcl{ font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .pcell .pcx{ font-family:'Cormorant Garamond',serif; font-size:16px; line-height:1.42; color:var(--text); }
+
+  .rsoon{ text-align:center; padding:40px 18px; }
+  .rsoon .ri{ width:46px; height:46px; margin:0 auto 14px; border-radius:50%; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .rsoon .ri svg{ width:21px; height:21px; }
+  .rsoon .rt2{ font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--text); }
+  .rsoon .rd{ font-size:13px; color:var(--muted); margin-top:7px; line-height:1.5; max-width:32ch; margin-left:auto; margin-right:auto; }
+
+  /* verse jump overlay */
+  .vjump{ position:absolute; inset:0; z-index:12; display:none; }
+  .vjump.open{ display:block; }
+  .vjback{ position:absolute; inset:0; background:rgba(0,0,0,.42); backdrop-filter:blur(2px); }
+  .vjsheet{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:24px 24px 0 0; padding:10px 20px calc(24px + env(safe-area-inset-bottom)); max-height:72%; overflow-y:auto; box-shadow:0 -20px 50px -18px rgba(0,0,0,.5); scrollbar-width:none; }
+  .vjsheet::-webkit-scrollbar{ display:none; }
+  .vjtitle{ text-align:center; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); margin:8px 0 16px; }
+  .vjgrid{ display:grid; grid-template-columns:repeat(6,1fr); gap:9px; }
+  .vjtile{ aspect-ratio:1/1; border-radius:11px; border:1px solid var(--line2); background:transparent; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; }
+  .vjtile:hover{ background:var(--field); }
+  .rtrans .compare.on{ color:var(--text); }
+  .rloading{ padding:8px 0; }
+  .shrow{ display:flex; gap:11px; margin-bottom:16px; align-items:flex-start; }
+  .shn{ flex:0 0 auto; width:14px; height:12px; border-radius:4px; background:var(--field); margin-top:5px; }
+  .shl{ flex:1; height:16px; border-radius:8px; background:linear-gradient(90deg, var(--field), rgba(216,184,95,.14), var(--field)); background-size:200% 100%; animation:shim 1.3s ease-in-out infinite; }
+  @keyframes shim{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+  /* reader tools — translation selector, Aa, toasts, verse actions, display */
+  .aabtn{ margin-left:auto; border:1px solid var(--line2); background:transparent; color:var(--text); border-radius:10px; min-width:38px; height:34px; cursor:pointer; font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:600; padding:0 9px; }
+  .transsel{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--text); background:var(--field); border:1px solid var(--line2); border-radius:999px; padding:8px 14px; cursor:pointer; font-family:inherit; }
+  .transsel svg{ width:13px; height:13px; color:var(--goldd); }
+
+  .wtoast{ position:absolute; left:50%; bottom:30px; transform:translate(-50%,16px); background:var(--surface); color:var(--text); padding:11px 17px; border-radius:13px; box-shadow:var(--card-shadow); font-size:13px; display:flex; align-items:center; gap:9px; opacity:0; pointer-events:none; transition:opacity .28s, transform .28s; z-index:50; white-space:nowrap; }
+  .wtoast.show{ opacity:1; transform:translate(-50%,0); }
+  .wtoast svg{ width:15px; height:15px; color:var(--goldd); }
+
+  .dim{ position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; z-index:8; transition:opacity .2s; }
+
+  .vrse .vt{ cursor:pointer; }
+  .pverse{ cursor:pointer; }
+  .vrse.sel .vt{ box-shadow:0 0 0 2px rgba(216,184,95,.55); }
+  .pverse.sel{ box-shadow:0 0 0 2px rgba(216,184,95,.45); }
+  .vrse.hl .vt, .pverse.hl{ background:rgba(216,184,95,.2); }
+
+  .vbar{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:22px 22px 0 0; box-shadow:0 -18px 50px -18px rgba(0,0,0,.5); padding:6px 16px calc(16px + env(safe-area-inset-bottom)); z-index:36; display:none; touch-action:none; }
+  .vbar.open{ display:block; animation:vbup .28s cubic-bezier(.2,.7,.2,1); }
+  @keyframes vbup{ from{ opacity:0; transform:translateY(40px); } to{ opacity:1; transform:none; } }
+  .vbar .grabber{ margin:2px auto 8px; }
+  .dspreview{ text-align:center; padding:2px 4px 18px; color:var(--text); line-height:1.4; min-height:34px; }
+  .vbref{ font-size:11px; letter-spacing:.04em; color:var(--goldd); font-weight:600; text-align:center; padding:4px 0 9px; }
+  .vbacts{ display:flex; gap:4px; }
+  .vbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 4px; border:0; background:transparent; color:var(--text); cursor:pointer; border-radius:12px; font-family:inherit; font-size:10.5px; transition:background .2s; }
+  .vbtn:hover{ background:var(--field); }
+  .vbtn svg{ width:19px; height:19px; color:var(--goldd); }
+  .vbtn.on svg{ color:var(--gold); fill:rgba(216,184,95,.25); }
+
+  .rsheet{ position:absolute; inset:0; z-index:34; display:none; }
+  .rsheet.open{ display:block; }
+  .rsback{ position:absolute; inset:0; background:rgba(0,0,0,.42); backdrop-filter:blur(2px); }
+  .rspanel{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:24px 24px 0 0; padding:10px 20px calc(24px + env(safe-area-inset-bottom)); box-shadow:0 -20px 50px -18px rgba(0,0,0,.5); animation:vbup .3s cubic-bezier(.2,.7,.2,1); }
+  .rstitle{ text-align:center; font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); margin:8px 0 16px; }
+  .tmrow{ display:flex; align-items:center; justify-content:space-between; padding:15px 4px; border-top:1px solid var(--line); cursor:pointer; }
+  .tmrow .tmn{ font-size:16px; color:var(--text); }
+  .tmrow .tmd{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .tmrow .tmck{ color:var(--gold); display:none; }
+  .tmrow.on .tmck{ display:flex; }
+  .tmrow .tmck svg{ width:18px; height:18px; }
+  .dssec{ margin-bottom:18px; }
+  .dslbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin-bottom:9px; }
+  .dsseg{ display:flex; gap:5px; }
+  .dsseg button{ flex:1; border:1px solid var(--line2); background:transparent; color:var(--text); border-radius:11px; padding:11px 4px; cursor:pointer; font-family:inherit; transition:.2s; }
+  .dsseg button.on{ background:rgba(216,184,95,.16); border-color:rgba(216,184,95,.45); }
+  .dsseg .sz1{ font-size:13px; } .dsseg .sz2{ font-size:16px; } .dsseg .sz3{ font-size:19px; }
+  .bright{ display:flex; align-items:center; gap:13px; }
+  .bright svg{ width:18px; height:18px; color:var(--muted); flex:0 0 auto; }
+  .bright input[type=range]{ flex:1; -webkit-appearance:none; appearance:none; height:5px; border-radius:999px; background:var(--line2); outline:none; }
+  .bright input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--gold); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .bright input[type=range]::-moz-range-thumb{ width:20px; height:20px; border:0; border-radius:50%; background:var(--gold); cursor:pointer; }
+
+  .rbody.fs-s .vrse .vt{ font-size:17px; } .rbody.fs-s .pcell .pcx{ font-size:14px; }
+  .rbody.fs-m .vrse .vt{ font-size:20px; } .rbody.fs-m .pcell .pcx{ font-size:16px; }
+  .rbody.fs-l .vrse .vt{ font-size:24px; line-height:1.55; } .rbody.fs-l .pcell .pcx{ font-size:19px; }
+  .rbody.ff-lora .vrse .vt, .rbody.ff-lora .pcell .pcx{ font-family:'Lora',serif; }
+  .rbody.ff-sans .vrse .vt, .rbody.ff-sans .pcell .pcx{ font-family:'DM Sans',sans-serif; font-size:.92em; }
+  .ff-cormorant{ font-family:'Cormorant Garamond',serif; } .ff-lora{ font-family:'Lora',serif; } .ff-sans{ font-family:'DM Sans',sans-serif; }
+
+  /* share sheet — Open/Superpower editorial rows */
+  .sharprev{ background:var(--field); border:1px solid var(--line2); border-radius:14px; padding:14px 16px; margin-bottom:8px; }
+  .sharprev .sp-v{ font-family:'Cormorant Garamond',serif; font-size:17px; line-height:1.42; color:var(--text); }
+  .sharprev .sp-r{ font-size:11px; letter-spacing:.05em; color:var(--goldd); font-weight:600; margin-top:9px; }
+  .sopt{ display:flex; align-items:center; gap:15px; padding:16px 4px; border-top:1px solid var(--line); cursor:pointer; width:100%; background:none; border-left:0; border-right:0; border-bottom:0; text-align:left; font-family:inherit; transition:padding-left .2s; }
+  .sopt:hover{ padding-left:6px; }
+  .sopt .si{ flex:0 0 auto; width:22px; display:flex; justify-content:center; color:var(--gold); }
+  .sopt .si svg{ width:19px; height:19px; }
+  .sopt .sl{ flex:1; font-size:16px; color:var(--text); }
+  .sopt .sc{ flex:0 0 auto; color:var(--muted); display:flex; }
+  .sopt .sc svg{ width:16px; height:16px; }
+
+  /* in-reader bottom tab bar — jump to any section without backing out */
+  .reader .rbody{ padding-bottom:24px; }
+  .reader .chappick{ padding-bottom:24px; }
+  .reader .tabbar{ position:relative; z-index:3; flex:0 0 auto; }
+  .reader .vbar{ bottom:78px; border-radius:22px; left:10px; right:10px; }
+  .reader .wtoast{ bottom:96px; }
+  @media (max-width:480px){ .screen{ height:100dvh; max-height:none; } }
+</style>
+
+<style id="__desktop_responsive__">
+/* DESKTOP / TABLET (>=481px): drop the phone bezel, turn the bottom tab bar into
+   a top nav bar, and center content in a column. Mobile (<=480px) unchanged. */
+@media (min-width:481px){
+  .stage{ padding:0; align-items:stretch; }
+  .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+  .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
+  .bar{ display:none; }
+  /* tab bar -> top app bar */
+  .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
+    flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
+    background:color-mix(in srgb, var(--bgfield) 82%, transparent);
+    backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2); border-bottom:1px solid var(--line); }
+  .tabbar .arc{ display:none; }
+  .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 13px; border-radius:11px; color:var(--muted); transition:color .2s ease; position:relative; }
+  .tab:hover{ color:var(--text); }
+  .tab svg{ width:18px; height:18px; }
+  .tab .tlbl{ opacity:1; font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; }
+  .tab.on{ color:var(--text); }
+  .tab.center{ flex:0 0 auto; margin:0; }
+  .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; background:none; box-shadow:none; border-radius:0; display:flex; }
+  .tab.center svg{ width:18px; height:18px; }
+  .tab.center.on{ color:var(--goldd); }
+  .tab.center.on .tdisc{ color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.5)); }
+  .tab.center.on::after{ content:''; position:absolute; left:13px; right:13px; bottom:2px; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+  /* main content column, cleared of the top bar */
+  .in{ max-width:720px; margin:0 auto; width:100%; padding-top:78px; }
+  /* The Word reader overlay: sit below the nav, center its content */
+  .reader{ top:60px; }
+  .reader .tabbar{ display:none; }
+  .reader .rtop > *, .reader .rscroll > *{ max-width:720px; margin-left:auto; margin-right:auto; }
+}
+@media (min-width:1100px){ .in{ max-width:760px; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="in" id="browse">
+
+        <div class="bar">
+          <span style="font-weight:500">9:41</span>
+          <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+        </div>
+
+        <div class="whead">
+          <span class="lbl">The library</span>
+          <a class="gear" href="Account-A.html" aria-label="Reader settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4"/><circle cx="15" cy="17" r="2.4"/></svg></a>
+        </div>
+        <div class="wtitle">The Word</div>
+
+        <form class="search" id="searchForm" autocomplete="off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input id="searchInput" placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" />
+        </form>
+
+        <div class="lbl" style="padding:16px 22px 0">Default translation</div>
+        <div class="trow" id="pills">
+          <button class="pill on" data-t="KJV">KJV</button>
+          <button class="pill" data-t="WEB">WEB</button>
+          <button class="pill" data-t="ASV">ASV</button>
+          <button class="pill" data-t="NKJV">NKJV</button>
+          <button class="pill" data-t="NIV">NIV</button>
+          <button class="pill" data-t="NLT">NLT</button>
+        </div>
+
+        <div class="seg" id="testament">
+          <button data-t="OT">Old Testament</button>
+          <button class="on" data-t="NT">New Testament</button>
+        </div>
+
+        <div class="scroll" id="browseScroll">
+          <div class="searchhint" id="searchHint" style="display:none"></div>
+          <div id="groups"></div>
+          <div class="foot-sp"></div>
+        </div>
+      </div>
+
+      <!-- reader -->
+      <div class="reader" id="reader">
+        <div class="topglow" aria-hidden="true"></div>
+        <div class="rtop">
+          <div class="bar">
+            <span style="font-weight:500">9:41</span>
+            <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+          </div>
+          <div class="rhead">
+            <button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <span class="rbook" id="rbook">John</span>
+            <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+          <div class="rsub" id="rsub">21 chapters</div>
+          <div class="readctl" id="readctl" hidden>
+            <button class="navchap" id="prevChap" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+          <div class="rtrans" id="rtrans" hidden></div>
+        </div>
+        <div class="rscroll" id="rscroll">
+          <div class="chappick" id="chapPick">
+            <div class="picklbl">Choose a chapter</div>
+            <div class="chapgrid" id="chapgrid"></div>
+          </div>
+          <div class="versepick" id="versePick" hidden>
+            <button class="vp-all" id="readAll">Read the whole chapter <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            <div class="picklbl">Or jump to a verse</div>
+            <div class="chapgrid" id="versegrid"></div>
+          </div>
+          <div class="rbody" id="rbody" hidden></div>
+        </div>
+
+        <!-- in-reader tab bar: jump straight to any section -->
+        <nav class="tabbar" aria-label="Primary">
+          <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+          <a class="tab on" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+          <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+          <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+          <a class="tab" href="Vault.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+          <a class="tab" href="Account-A.html"><svg data-you-morph viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+        </nav>
+        <div class="vjump" id="vjump">
+          <div class="vjback" id="vjback"></div>
+          <div class="vjsheet">
+            <div class="grabber"></div>
+            <div class="vjtitle">Jump to a verse</div>
+            <div class="vjgrid" id="vjgrid"></div>
+          </div>
+        </div>
+
+        <!-- verse action bar -->
+        <div class="vbar" id="vbar">
+          <div class="grabber"></div>
+          <div class="vbref" id="vbref">Verse</div>
+          <div class="vbacts">
+            <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"/><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"/></svg><span>Highlight</span></button>
+            <button class="vbtn" id="vbSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg><span>Save</span></button>
+            <button class="vbtn" id="vbCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Copy</span></button>
+            <button class="vbtn" id="vbShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg><span>Share</span></button>
+            <button class="vbtn" id="vbClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Close</span></button>
+          </div>
+        </div>
+
+        <!-- translation menu -->
+        <div class="rsheet" id="tmenu">
+          <div class="rsback"></div>
+          <div class="rspanel"><div class="grabber"></div><div class="rstitle">Translation</div><div id="tmlist"></div></div>
+        </div>
+
+        <!-- display sheet -->
+        <div class="rsheet" id="dsheet">
+          <div class="rsback"></div>
+          <div class="rspanel">
+            <div class="grabber"></div>
+            <div class="rstitle">Display</div>
+            <div class="dspreview" id="dsPreview">For God so loved the world that he gave his only Son.</div>
+            <div class="dssec">
+              <div class="dslbl">Brightness</div>
+              <div class="bright">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 6.5V6M6.5 12H6M12 17.5v.5M17.5 12h.5"/></svg>
+                <input type="range" id="brightRange" min="40" max="100" value="100" aria-label="Brightness" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>
+              </div>
+            </div>
+            <div class="dssec">
+              <div class="dslbl">Text size</div>
+              <div class="dsseg" id="sizeSeg">
+                <button class="sz1" data-s="Small">A</button>
+                <button class="sz2 on" data-s="Medium">A</button>
+                <button class="sz3" data-s="Large">A</button>
+              </div>
+            </div>
+            <div class="dssec">
+              <div class="dslbl">Font style</div>
+              <div class="dsseg" id="fontSeg">
+                <button class="ff-cormorant on" data-f="cormorant">Cormorant</button>
+                <button class="ff-lora" data-f="lora">Lora</button>
+                <button class="ff-sans" data-f="sans">DM&nbsp;Sans</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- share sheet -->
+        <div class="rsheet" id="sharesheet">
+          <div class="rsback"></div>
+          <div class="rspanel">
+            <div class="grabber"></div>
+            <div class="rstitle">Share this verse</div>
+            <div class="sharprev" id="sharePrev"></div>
+            <button class="sopt" id="shSystem"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg></span><span class="sl">Share via…</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="sopt" id="shMsg"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg></span><span class="sl">Message</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="sopt" id="shMail"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span><span class="sl">Email</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="sopt" id="shX"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14M19 5L5 19"/></svg></span><span class="sl">Post to X</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="sopt" id="shCopy"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span><span class="sl">Copy verse</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="sopt" id="shLink"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></span><span class="sl">Copy link</span><span class="sc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+          </div>
+        </div>
+
+        <div class="dim" id="dim" aria-hidden="true"></div>
+        <div class="wtoast" id="wtoast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span id="wtoastMsg"></span></div>
+      </div>
+
+      <!-- tab bar (The Word active) -->
+      <nav class="tabbar" id="tabbar" aria-label="Primary">
+        <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+        <a class="tab on" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+        <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+        <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+        <a class="tab" href="Vault.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+        <a class="tab" href="Account-A.html"><svg data-you-morph viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+      </nav>
+
+    </div>
+  </div>
+</div>
+
+<script src="bible-data.js"></script>
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script src="share.js"></script>
+<script src="card-studio.js"></script>
+<script>
+(function(){
+  var B=window.DECLARE_BIBLE;
+  var testament='NT';
+
+  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* pills (max 3 active) */
+  var pills=document.getElementById('pills');
+  function paintPills(){ pills.querySelectorAll('.pill').forEach(function(p){ p.classList.toggle('on', p.dataset.t===readT); }); }
+  pills.addEventListener('click', function(e){
+    var p=e.target.closest('.pill'); if(!p) return;
+    var t=p.dataset.t;
+    if(['NKJV','NIV','NLT'].indexOf(t)>=0){ toast(t+' streams at launch'); return; }
+    readT=t; try{ localStorage.setItem('declare-translation', t); }catch(err){}
+    paintPills();
+  });
+
+  /* testament segmented */
+  var seg=document.getElementById('testament');
+  seg.addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); testament=b.dataset.t; renderGroups();
+  });
+
+  /* browse groups */
+  var groupsEl=document.getElementById('groups');
+  function renderGroups(){
+    groupsEl.innerHTML = B.groups[testament].map(function(g){
+      return '<div class="grp"><div class="grphead"><span class="grptitle">'+esc(g.title)+'</span><span class="grpsub">'+esc(g.sub)+'</span></div><div class="books">'+
+        g.books.map(function(bk){
+          return '<button class="book" data-book="'+esc(bk[0])+'" data-chaps="'+bk[2]+'"><span class="bmain"><span class="bname">'+esc(bk[0])+'</span><span class="bdesc">'+esc(bk[1])+'</span><span class="bchap">'+bk[2]+' chapters</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>';
+        }).join('')+'</div></div>';
+    }).join('');
+  }
+  renderGroups();
+
+  groupsEl.addEventListener('click', function(e){
+    var bk=e.target.closest('.book'); if(!bk) return;
+    openReader(bk.dataset.book, parseInt(bk.dataset.chaps,10));
+  });
+
+  /* deep link: ?ref=Book Chapter:Verse  (from the Vault "Read in the Word") */
+  setTimeout(function(){ try{
+    var rp=new URLSearchParams(location.search).get('ref'); if(!rp) return;
+    rp=rp.split('\u00b7')[0].trim();
+    var rm=rp.match(/^(.+?)\s+(\d+)(?::(\d+))?/); if(!rm) return;
+    var rbk=rm[1].trim(), rc=parseInt(rm[2],10)||1, rv=rm[3]?parseInt(rm[3],10):0;
+    var cand=[rbk, rbk+'s', rbk.replace(/s$/,'')], rch=0;
+    for(var ci=0;ci<cand.length;ci++){ var cc=bookChaps(cand[ci]); if(cc){ rbk=cand[ci]; rch=cc; break; } }
+    if(rch){ openReader(rbk, rch); readChapter(rc, rv||null); }
+  }catch(e){} }, 0);
+
+  /* search (phrase map + book name filter) */
+  var sForm=document.getElementById('searchForm'), sInput=document.getElementById('searchInput'), sHint=document.getElementById('searchHint');
+  function bookChaps(name){ var n=null; ['OT','NT'].forEach(function(t){ B.groups[t].forEach(function(g){ g.books.forEach(function(bk){ if(bk[0].toLowerCase()===name.toLowerCase()) n=bk[2]; }); }); }); return n; }
+  function doSearch(q){
+    q=q.trim().toLowerCase();
+    if(!q){ sHint.style.display='none'; sHint.innerHTML=''; groupsEl.style.display=''; return; }
+    var hits=[];
+    B.search.forEach(function(s){ if(s.q.some(function(k){ return q.indexOf(k)>=0 || k.indexOf(q)>=0; })) hits.push({ref:s.ref,label:s.label}); });
+    // book name matches
+    ['OT','NT'].forEach(function(t){ B.groups[t].forEach(function(g){ g.books.forEach(function(bk){
+      if(bk[0].toLowerCase().indexOf(q)>=0) hits.push({ref:bk[0]+' 1', label:bk[0], book:bk[0], chaps:bk[2]});
+    }); }); });
+    var seen={}, uniq=hits.filter(function(h){ if(seen[h.ref])return false; seen[h.ref]=true; return true; }).slice(0,6);
+    groupsEl.style.display = uniq.length ? 'none' : '';
+    sHint.style.display = uniq.length ? 'block' : 'none';
+    sHint.innerHTML = uniq.map(function(h){
+      return '<button class="shitem" data-ref="'+esc(h.ref)+'"><span class="shref">'+esc(h.ref)+'</span><span class="shlabel">'+esc(h.label)+'</span></button>';
+    }).join('');
+  }
+  sInput.addEventListener('input', function(){ doSearch(this.value); });
+  sForm.addEventListener('submit', function(e){ e.preventDefault(); var first=sHint.querySelector('.shitem'); if(first) first.click(); });
+  sHint.addEventListener('click', function(e){
+    var it=e.target.closest('.shitem'); if(!it) return;
+    var ref=it.dataset.ref, m=ref.match(/^(.*)\s+(\d+)$/);
+    if(m){ openReader(m[1], bookChaps(m[1])||1, parseInt(m[2],10)); }
+  });
+
+  /* ---------- reader (book → chapter → verse) ---------- */
+  var reader=document.getElementById('reader');
+  var rbook=document.getElementById('rbook'), rsub=document.getElementById('rsub'),
+      chapgrid=document.getElementById('chapgrid'), chapPick=document.getElementById('chapPick'),
+      versePick=document.getElementById('versePick'), versegrid=document.getElementById('versegrid'), readAllBtn=document.getElementById('readAll'),
+      rscroll=document.getElementById('rscroll'), rbody=document.getElementById('rbody'),
+      readctl=document.getElementById('readctl'), rtrans=document.getElementById('rtrans'),
+      chapLabelText=document.getElementById('chapLabelText'),
+      prevChapBtn=document.getElementById('prevChap'), nextChapBtn=document.getElementById('nextChap'),
+      verseJump=document.getElementById('verseJump'),
+      vjump=document.getElementById('vjump'), vjgrid=document.getElementById('vjgrid');
+  var AVAIL=['KJV','WEB','ASV'];
+  var curBook='John', curChaps=21, curChap=1, compare=false;
+  var readT=(function(){ try{ var d=localStorage.getItem('declare-translation'); return AVAIL.indexOf(d)>=0?d:'KJV'; }catch(e){ return 'KJV'; } })();
+  var cmpSet=['KJV','WEB'];
+  var CACHE={}, reqId=0;
+
+  function fetchChapter(book, chap, trans){
+    var key=book+'|'+chap+'|'+trans;
+    if(CACHE[key]) return Promise.resolve(CACHE[key]);
+    var url='https://bible-api.com/'+encodeURIComponent(book+' '+chap)+'?translation='+trans.toLowerCase();
+    return fetch(url).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+      if(!j||!j.verses) return null;
+      var vs=j.verses.map(function(v){ return { n:v.verse, t:(v.text||'').replace(/\s+/g,' ').trim() }; });
+      CACHE[key]=vs; return vs;
+    }).catch(function(){ return null; });
+  }
+
+  function openReader(book, chaps, chap){
+    curBook=book; curChaps=chaps||1; compare=false;
+    reader.classList.add('open'); rbook.textContent=book;
+    showPicker();
+    if(chap) readChapter(chap);
+  }
+  function showPicker(){
+    var h=''; for(var i=1;i<=curChaps;i++){ h+='<button class="chaptile" data-c="'+i+'">'+i+'</button>'; }
+    chapgrid.innerHTML=h;
+    rsub.textContent=curChaps+(curChaps===1?' chapter':' chapters');
+    chapPick.hidden=false; versePick.hidden=true; rbody.hidden=true; readctl.hidden=true; rtrans.hidden=true; verseJump.style.visibility='hidden';
+    rscroll.scrollTop=0;
+  }
+  // Choosing a chapter lands here: a verse picker (same grid UX), available for every book.
+  function openChapter(ch){
+    curChap=ch;
+    chapPick.hidden=true; rbody.hidden=true; versePick.hidden=false; readctl.hidden=false; rtrans.hidden=true;
+    chapLabelText.textContent='Chapter '+ch;
+    prevChapBtn.disabled = ch<=1; nextChapBtn.disabled = ch>=curChaps;
+    verseJump.style.visibility='hidden';
+    rscroll.scrollTop=0;
+    versegrid.innerHTML='<div class="vp-loading">Loading verses\u2026</div>';
+    fetchChapter(curBook, ch, readT).then(function(vs){
+      if(curChap!==ch || versePick.hidden) return;
+      if(vs && vs.length){
+        versegrid.innerHTML=vs.map(function(v){ return '<button class="chaptile" data-v="'+v.n+'">'+v.n+'</button>'; }).join('');
+      } else {
+        versegrid.innerHTML='<div class="vp-loading">Tap \u201CRead the whole chapter\u201D to begin.</div>';
+      }
+    });
+  }
+  // Reading view (optionally scrolled to a specific verse).
+  function readChapter(ch, toVerse){
+    curChap=ch;
+    chapPick.hidden=true; versePick.hidden=true; rbody.hidden=false; readctl.hidden=false; rtrans.hidden=false;
+    chapLabelText.textContent='Chapter '+ch;
+    prevChapBtn.disabled = ch<=1; nextChapBtn.disabled = ch>=curChaps;
+    renderTrans(); renderBody(); rscroll.scrollTop=0;
+    if(toVerse){ var tries=0; (function seek(){
+      var el=rbody.querySelector('[data-n="'+toVerse+'"]');
+      if(el){ var tr=el.getBoundingClientRect(), cr=rscroll.getBoundingClientRect(); rscroll.scrollTop += (tr.top-cr.top)-90; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); return; }
+      if(tries++<40) setTimeout(seek,150);
+    })(); }
+  }
+  chapgrid.addEventListener('click', function(e){ var t=e.target.closest('.chaptile'); if(t) openChapter(parseInt(t.dataset.c,10)); });
+  versegrid.addEventListener('click', function(e){ var t=e.target.closest('.chaptile'); if(t) readChapter(curChap, parseInt(t.dataset.v,10)); });
+  readAllBtn.addEventListener('click', function(){ readChapter(curChap); });
+  document.getElementById('chapLabel').addEventListener('click', showPicker);
+  prevChapBtn.addEventListener('click', function(){ if(curChap>1) readChapter(curChap-1); });
+  nextChapBtn.addEventListener('click', function(){ if(curChap<curChaps) readChapter(curChap+1); });
+  document.getElementById('readerBack').addEventListener('click', function(){
+    if(!rbody.hidden){ openChapter(curChap); }
+    else if(!versePick.hidden){ showPicker(); }
+    else { reader.classList.remove('open'); }
+  });
+  document.getElementById('readerBack').addEventListener('click', function(){
+    if(!rbody.hidden){ showPicker(); } else { reader.classList.remove('open'); }
+  });
+
+  function renderTrans(){
+    var cmpIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h13M8 7l3-3M8 7l3 3M16 17H3M16 17l-3-3M16 17l-3 3"/></svg>';
+    var aa='<button class="aabtn" id="aaBtn" aria-label="Display options">Aa</button>';
+    if(compare){
+      rtrans.innerHTML = AVAIL.map(function(t){ return '<button class="rt'+(cmpSet.indexOf(t)>=0?' on':'')+'" data-t="'+t+'">'+t+'</button>'; }).join('')
+        + aa + '<button class="compare on" id="cmp">Done '+cmpIcon+'</button>';
+    } else {
+      rtrans.innerHTML = '<button class="transsel" id="transsel">'+readT+' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+        + aa + '<button class="compare" id="cmp">Compare '+cmpIcon+'</button>';
+    }
+  }
+  rtrans.addEventListener('click', function(e){
+    var rt=e.target.closest('.rt');
+    if(rt){ var t=rt.dataset.t, i=cmpSet.indexOf(t);
+      if(i>=0){ if(cmpSet.length>1) cmpSet.splice(i,1); } else { cmpSet.push(t); if(cmpSet.length>3) cmpSet.shift(); }
+      renderTrans(); renderBody(); return; }
+    if(e.target.closest('#transsel')){ openTmenu(); return; }
+    if(e.target.closest('#aaBtn')){ openDsheet(); return; }
+    if(e.target.closest('#cmp')){
+      compare=!compare;
+      if(compare && cmpSet.length<2){ cmpSet=[readT].concat(AVAIL.filter(function(x){ return x!==readT; })).slice(0,2); }
+      renderTrans(); renderBody();
+    }
+  });
+
+  function loadingPanel(){
+    var rows=''; for(var i=0;i<6;i++){ rows+='<div class="shrow"><span class="shn"></span><span class="shl" style="width:'+(70+(i%3)*9)+'%"></span></div>'; }
+    return '<div class="rloading">'+rows+'</div>';
+  }
+  function panel(title, msg){
+    return '<div class="rsoon"><div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div><div class="rt2">'+esc(title)+'</div><div class="rd">'+esc(msg)+'</div></div>';
+  }
+
+  function renderBody(){
+    var myReq=++reqId;
+    rbody.innerHTML=loadingPanel();
+    if(!compare){
+      fetchChapter(curBook, curChap, readT).then(function(vs){
+        if(myReq!==reqId) return;
+        if(!vs){ rbody.innerHTML=panel(curBook+' '+curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility='hidden'; return; }
+        rbody.innerHTML = vs.map(function(v){
+          return '<div class="vrse m-veil" data-n="'+v.n+'"><span class="vn">'+v.n+'</span><span class="vt">'+esc(v.t)+'</span></div>';
+        }).join('');
+        if(window.DeclareMotion){ rbody.style.setProperty('--m-stagger','34ms'); rbody.style.setProperty('--m-premium','640ms'); window.DeclareMotion.reveal(rbody,{stagger:30}); }
+        updateVerseJump(vs);
+        applyHighlights();
+      });
+    } else {
+      Promise.all(cmpSet.map(function(t){ return fetchChapter(curBook, curChap, t).then(function(vs){ return { t:t, vs:vs||[] }; }); })).then(function(res){
+        if(myReq!==reqId) return;
+        var base=null; for(var i=0;i<res.length;i++){ if(res[i].vs.length){ base=res[i].vs; break; } }
+        if(!base){ rbody.innerHTML=panel(curBook+' '+curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility='hidden'; return; }
+        var maps={}; res.forEach(function(r){ var m={}; r.vs.forEach(function(v){ m[v.n]=v.t; }); maps[r.t]=m; });
+        rbody.innerHTML = '<div class="pcols">' + base.map(function(v){
+          return '<div class="pverse" data-n="'+v.n+'"><div class="pn">Verse '+v.n+'</div><div class="pgrid" style="grid-template-columns:repeat('+cmpSet.length+',1fr)">'+
+            cmpSet.map(function(t){ return '<div class="pcell"><div class="pcl">'+t+'</div><div class="pcx">'+esc((maps[t]&&maps[t][v.n])||'—')+'</div></div>'; }).join('')+
+          '</div></div>';
+        }).join('') + '</div>';
+        updateVerseJump(base);
+        applyHighlights();
+      });
+    }
+  }
+
+  /* verse jump (book → chapter → verse) */
+  function updateVerseJump(vs){
+    if(vs && vs.length){
+      verseJump.style.visibility='visible';
+      vjgrid.innerHTML=vs.map(function(v){ return '<button class="vjtile" data-n="'+v.n+'">'+v.n+'</button>'; }).join('');
+    } else { verseJump.style.visibility='hidden'; }
+  }
+  verseJump.addEventListener('click', function(){ if(verseJump.style.visibility!=='hidden') vjump.classList.add('open'); });
+  document.getElementById('vjback').addEventListener('click', function(){ vjump.classList.remove('open'); });
+  vjgrid.addEventListener('click', function(e){
+    var t=e.target.closest('.vjtile'); if(!t) return;
+    vjump.classList.remove('open');
+    var target=rbody.querySelector('[data-n="'+t.dataset.n+'"]'); if(!target) return;
+    var tr=target.getBoundingClientRect(), cr=rscroll.getBoundingClientRect();
+    rscroll.scrollTop += (tr.top - cr.top) - 90;
+    target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
+  });
+
+  /* ---------- reader tools: toast · translation menu · display · verse actions ---------- */
+  var wtoast=document.getElementById('wtoast'), wtoastMsg=document.getElementById('wtoastMsg'), _wtt;
+  function toast(m){ if(!wtoast) return; wtoastMsg.textContent=m; wtoast.classList.add('show'); clearTimeout(_wtt); _wtt=setTimeout(function(){ wtoast.classList.remove('show'); },1800); }
+
+  var dim=document.getElementById('dim');
+  var tmenu=document.getElementById('tmenu'), tmlist=document.getElementById('tmlist'), dsheet=document.getElementById('dsheet');
+  var vbar=document.getElementById('vbar'), vbref=document.getElementById('vbref'), vbHl=document.getElementById('vbHl');
+  var selEl=null, selN=null;
+
+  document.querySelectorAll('.rsheet .rsback').forEach(function(b){ b.addEventListener('click', function(){ b.closest('.rsheet').classList.remove('open'); }); });
+
+  function openTmenu(){
+    var desc={KJV:'King James Version',WEB:'World English Bible',ASV:'American Standard Version'};
+    tmlist.innerHTML=AVAIL.map(function(t){ return '<div class="tmrow'+(t===readT?' on':'')+'" data-t="'+t+'"><div><div class="tmn">'+t+'</div><div class="tmd">'+desc[t]+'</div></div><span class="tmck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>'; }).join('');
+    tmenu.classList.add('open');
+  }
+  tmlist.addEventListener('click', function(e){ var r=e.target.closest('.tmrow'); if(!r) return; readT=r.dataset.t; try{ localStorage.setItem('declare-translation', readT); }catch(err){} paintPills(); tmenu.classList.remove('open'); renderTrans(); renderBody(); });
+
+  function openDsheet(){ dsheet.classList.add('open'); }
+
+  function applyDisplay(){
+    var size='Medium', font='cormorant', bright=100;
+    try{ size=localStorage.getItem('declare-textsize')||'Medium'; }catch(e){}
+    try{ font=localStorage.getItem('declare-fontstyle')||'cormorant'; }catch(e){}
+    try{ var b=parseInt(localStorage.getItem('declare-brightness'),10); if(!isNaN(b)) bright=b; }catch(e){}
+    var fs={Small:'fs-s',Medium:'fs-m',Large:'fs-l'}[size]||'fs-m';
+    rbody.className='rbody '+fs+' ff-'+font;
+    if(dim) dim.style.opacity=((100-bright)/100*0.62).toFixed(3);
+    var br=document.getElementById('brightRange'); if(br) br.value=bright;
+    var ss=document.getElementById('sizeSeg'); if(ss) ss.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.s===size); });
+    var fsg=document.getElementById('fontSeg'); if(fsg) fsg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===font); });
+    var dp=document.getElementById('dsPreview');
+    if(dp){ var fam={cormorant:"'Cormorant Garamond',serif",lora:"'Lora',serif",sans:"'DM Sans',sans-serif"}, sz={Small:'18px',Medium:'22px',Large:'27px'};
+      dp.style.fontFamily=fam[font]||fam.cormorant; dp.style.fontSize=sz[size]||sz.Medium; }
+  }
+  function enableSwipeDown(el, onClose){
+    if(!el) return; var sy=null, dy=0;
+    el.addEventListener('touchstart', function(e){ sy=e.touches[0].clientY; dy=0; el.style.transition='none'; }, {passive:true});
+    el.addEventListener('touchmove', function(e){ if(sy===null) return; dy=e.touches[0].clientY-sy; if(dy>0) el.style.transform='translateY('+dy+'px)'; }, {passive:true});
+    el.addEventListener('touchend', function(){ el.style.transition=''; var doClose=dy>80; el.style.transform=''; sy=null; dy=0; if(doClose) onClose(); });
+  }
+  (function(){
+    var br=document.getElementById('brightRange');
+    if(br) br.addEventListener('input', function(){ try{ localStorage.setItem('declare-brightness', this.value); }catch(e){} if(dim) dim.style.opacity=((100-this.value)/100*0.62).toFixed(3); });
+    var ss=document.getElementById('sizeSeg');
+    if(ss) ss.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; try{ localStorage.setItem('declare-textsize', b.dataset.s); }catch(err){} applyDisplay(); });
+    var fsg=document.getElementById('fontSeg');
+    if(fsg) fsg.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; try{ localStorage.setItem('declare-fontstyle', b.dataset.f); }catch(err){} applyDisplay(); });
+  })();
+
+  /* highlights */
+  function getHL(){ try{ return JSON.parse(localStorage.getItem('declare-highlights')||'{}'); }catch(e){ return {}; } }
+  function hlKey(n){ return curBook+' '+curChap+':'+n; }
+  function isHL(n){ return !!getHL()[hlKey(n)]; }
+  function applyHighlights(){ rbody.querySelectorAll('[data-n]').forEach(function(el){ el.classList.toggle('hl', isHL(el.dataset.n)); }); }
+
+  /* verse selection + actions */
+  function closeVbar(){ vbar.classList.remove('open'); if(selEl) selEl.classList.remove('sel'); selEl=null; selN=null; }
+  function verseText(el){ var v=el.querySelector('.vt'); if(v) return v.textContent.trim().replace(/^[\u201C"]|[\u201D"]$/g,''); var c=el.querySelector('.pcell .pcx'); return c?c.textContent.trim():''; }
+  function curRef(){ return curBook+' '+curChap+':'+selN; }
+  rbody.addEventListener('click', function(e){
+    if(e.target.closest('a,button')) return;
+    var el=e.target.closest('.vrse,.pverse'); if(!el || el.dataset.n===undefined) return;
+    if(el.classList.contains('sel')){ closeVbar(); return; }
+    rbody.querySelectorAll('.sel').forEach(function(x){ x.classList.remove('sel'); });
+    el.classList.add('sel'); selEl=el; selN=el.dataset.n;
+    vbref.textContent=curRef()+'  \u00b7  '+readT;
+    vbHl.classList.toggle('on', isHL(selN));
+    vbar.classList.add('open');
+  });
+  document.getElementById('vbClose').addEventListener('click', closeVbar);
+  vbHl.addEventListener('click', function(){
+    if(!selEl) return; var o=getHL(), k=hlKey(selN);
+    if(o[k]){ delete o[k]; vbHl.classList.remove('on'); toast('Highlight removed'); }
+    else { o[k]=1; vbHl.classList.add('on'); toast('Verse highlighted'); }
+    try{ localStorage.setItem('declare-highlights', JSON.stringify(o)); }catch(e){}
+    applyHighlights();
+  });
+  document.getElementById('vbSave').addEventListener('click', function(){
+    if(!selEl) return; var txt=verseText(selEl);
+    try{ var a=JSON.parse(localStorage.getItem('declare-anchor')||'[]'); var id='verse:'+curRef();
+      if(!a.some(function(x){return x.id===id;})){ a.unshift({ id:id, type:'verse', ref:curRef(), text:txt, struggle:null, ts:Date.now() }); localStorage.setItem('declare-anchor', JSON.stringify(a)); }
+    }catch(e){}
+    toast('Saved to Anchor');
+  });
+  document.getElementById('vbCopy').addEventListener('click', function(){
+    if(!selEl) return; var s='\u201C'+verseText(selEl)+'\u201D \u2014 '+curRef()+' ('+readT+')';
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(function(){ toast('Copied'); }, function(){ toast('Copied'); }); }
+    else { toast('Copied'); }
+  });
+  var sharesheet=document.getElementById('sharesheet'), sharePrev=document.getElementById('sharePrev');
+  var shareTxt='', shareRef='', shareTrans='';
+  function shareFull(){ return '\u201C'+shareTxt+'\u201D \u2014 '+shareRef+' ('+shareTrans+')'; }
+  function openShare(){
+    if(!selEl) return;
+    shareTxt=verseText(selEl); shareRef=curRef(); shareTrans=readT;
+    closeVbar();
+    if(window.DeclareShare){
+      DeclareShare.open({ type:'verse', text:shareTxt, ref:shareRef+' \u00b7 '+shareTrans, url:location.href });
+      return;
+    }
+    sharePrev.innerHTML='<div class="sp-v">\u201C'+esc(shareTxt)+'\u201D</div><div class="sp-r">'+esc(shareRef)+' \u00b7 '+shareTrans+'</div>';
+    var sys=document.getElementById('shSystem'); if(sys) sys.style.display = navigator.share ? '' : 'none';
+    sharesheet.classList.add('open');
+  }
+  document.getElementById('vbShare').addEventListener('click', openShare);
+  document.getElementById('shSystem').addEventListener('click', function(){ if(navigator.share){ navigator.share({ title:'Declare', text:shareFull() }).then(function(){},function(){}); } sharesheet.classList.remove('open'); });
+  document.getElementById('shMsg').addEventListener('click', function(){ window.location.href='sms:?&body='+encodeURIComponent(shareFull()); sharesheet.classList.remove('open'); });
+  document.getElementById('shMail').addEventListener('click', function(){ window.location.href='mailto:?subject='+encodeURIComponent('A verse for you')+'&body='+encodeURIComponent(shareFull()); sharesheet.classList.remove('open'); });
+  document.getElementById('shX').addEventListener('click', function(){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareFull()),'_blank','noopener'); sharesheet.classList.remove('open'); });
+  document.getElementById('shCopy').addEventListener('click', function(){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(shareFull()); } toast('Verse copied'); sharesheet.classList.remove('open'); });
+  document.getElementById('shLink').addEventListener('click', function(){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText('https://declareandbelieve.com'); } toast('Link copied'); sharesheet.classList.remove('open'); });
+  enableSwipeDown(sharesheet.querySelector('.rspanel'), function(){ sharesheet.classList.remove('open'); });
+
+  applyDisplay();
+  paintPills();
+  enableSwipeDown(vbar, closeVbar);
+  enableSwipeDown(dsheet.querySelector('.rspanel'), function(){ dsheet.classList.remove('open'); });
+  enableSwipeDown(tmenu.querySelector('.rspanel'), function(){ tmenu.classList.remove('open'); });
+  enableSwipeDown(document.querySelector('#vjump .vjsheet'), function(){ vjump.classList.remove('open'); });
+
+  // Deep-link: open directly to a passage handed from another screen
+  // (e.g. Results "Read the full passage"). Reads + clears declare-open-ref,
+  // opens the book/chapter, then scrolls to and flashes the verse once it loads.
+  (function deepLink(){
+    var ref; try{ ref=localStorage.getItem('declare-open-ref'); }catch(e){}
+    if(!ref) return;
+    try{ localStorage.removeItem('declare-open-ref'); }catch(e){}
+    var m=String(ref).split('\u00b7')[0].trim().match(/^(.+?)\s+(\d+):(\d+)$/);
+    if(!m) return;
+    var book=m[1].trim(), chap=parseInt(m[2],10), verse=parseInt(m[3],10);
+    var chaps=bookChaps(book); if(!chaps) return;
+    openReader(book, chaps, chap);
+    var tries=0;
+    (function seek(){
+      var el=rbody.querySelector('[data-n="'+verse+'"]');
+      if(el){
+        var tr=el.getBoundingClientRect(), cr=rscroll.getBoundingClientRect();
+        rscroll.scrollTop += (tr.top-cr.top)-90;
+        el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+        return;
+      }
+      if(tries++<40) setTimeout(seek,150);
+    })();
+  })();
+})();
+</script>
+</body>
+</html>

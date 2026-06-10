@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Church Data &amp; Claim Flow Spec</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<style>
+  html,body{ background:var(--bgfield); }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 28px; }
+
+  /* top bar */
+  .top{ position:sticky; top:0; z-index:20; padding:16px 0; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); background:linear-gradient(to bottom, rgba(12,19,15,.72), transparent); }
+  html[data-theme="light"] .top{ background:linear-gradient(to bottom, rgba(250,247,242,.82), transparent); }
+  .topin{ max-width:760px; margin:0 auto; padding:0 28px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+  .brand .wm{ font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600; color:var(--text); }
+  .top .back{ font-size:13px; color:var(--text2); display:inline-flex; align-items:center; gap:7px; }
+  .top .back svg{ width:14px; height:14px; }
+
+  /* hero */
+  .hero{ padding:54px 0 8px; }
+  .kicker{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .hero h1{ font-family:'Cormorant Garamond',serif; font-size:clamp(36px,6.4vw,54px); font-weight:600; color:var(--text); margin-top:14px; line-height:1.04; }
+  .hero .meta{ font-size:13px; color:var(--muted); margin-top:16px; display:flex; gap:16px; flex-wrap:wrap; }
+  .hero .meta b{ color:var(--text2); font-weight:600; }
+  .lead{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:21px; line-height:1.5; color:var(--soft); margin:28px 0 6px; }
+
+  /* recommendation callout */
+  .tldr{ margin:30px 0 8px; border-radius:18px; background:linear-gradient(150deg, rgba(216,184,95,.13), rgba(216,184,95,.04)); border:1px solid rgba(216,184,95,.28); padding:22px 24px; box-shadow:var(--card-shadow); }
+  .tldr .tl-k{ display:flex; align-items:center; gap:9px; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+  .tldr .tl-k svg{ width:16px; height:16px; }
+  .tldr p{ font-size:16px; line-height:1.66; color:var(--text); margin-top:11px; }
+  .tldr p b{ color:var(--text); font-weight:600; }
+
+  /* document body */
+  .doc{ padding:8px 0 90px; }
+  .sec{ margin-top:46px; }
+  .sec > .eyebrow{ font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .doc h2{ font-family:'Cormorant Garamond',serif; font-size:29px; font-weight:600; color:var(--text); margin:7px 0 14px; line-height:1.1; }
+  .doc h3{ font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600; color:var(--text); margin:24px 0 8px; }
+  .doc p{ font-size:15.5px; line-height:1.72; color:var(--text2); margin-bottom:14px; }
+  .doc p b, .doc li b{ color:var(--text); font-weight:600; }
+  .doc ul{ margin:0 0 14px; padding-left:0; list-style:none; }
+  .doc li{ font-size:15.5px; line-height:1.62; color:var(--text2); margin-bottom:10px; padding-left:26px; position:relative; }
+  .doc li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--gold); }
+  .doc a{ color:var(--goldd); font-weight:600; }
+  code{ font-family:'JetBrains Mono',monospace; font-size:12.5px; background:var(--field); border:1px solid var(--line2); border-radius:6px; padding:2px 6px; color:var(--text); }
+
+  /* model comparison */
+  .models{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:18px; }
+  .model{ position:relative; border-radius:16px; background:var(--surface); box-shadow:var(--card-shadow); padding:20px 22px; border:1px solid var(--line); }
+  .model.pick{ border-color:rgba(216,184,95,.45); box-shadow:var(--card-shadow), 0 0 0 1px rgba(216,184,95,.35); }
+  .model .m-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .model .m-name{ font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600; color:var(--text); }
+  .model .m-tag{ font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; padding:5px 11px; border-radius:999px; }
+  .m-tag.no{ color:var(--muted); border:1px solid var(--line2); }
+  .m-tag.rec{ color:#15241B; background:var(--gold); }
+  .model .m-d{ font-size:14px; line-height:1.6; color:var(--text2); margin-top:9px; }
+  .model .m-pc{ display:grid; grid-template-columns:1fr 1fr; gap:7px 22px; margin-top:14px; }
+  .model .m-pc div{ font-size:13px; line-height:1.45; color:var(--text2); padding-left:22px; position:relative; }
+  .model .m-pc .pro::before{ content:'+'; position:absolute; left:4px; top:-1px; color:#3E8E6E; font-weight:700; }
+  .model .m-pc .con::before{ content:'\2013'; position:absolute; left:4px; top:-1px; color:var(--clay,#B5614A); font-weight:700; }
+
+  /* data model table */
+  .tbl{ margin-top:16px; border-radius:14px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--card-shadow); }
+  .tbl .tr{ display:grid; grid-template-columns:1.1fr 0.8fr 1.5fr; gap:0; border-top:1px solid var(--line); }
+  .tbl .tr:first-child{ border-top:0; }
+  .tbl .th{ background:var(--field); }
+  .tbl .td{ padding:12px 15px; font-size:13.5px; line-height:1.5; color:var(--text2); border-left:1px solid var(--line); }
+  .tbl .td:first-child{ border-left:0; }
+  .tbl .th .td{ font-weight:600; color:var(--text); font-size:12px; letter-spacing:.04em; }
+  .tbl .td code{ font-size:11.5px; }
+  .src-g{ color:#6FA8DC; font-weight:600; }
+  .src-c{ color:var(--goldd); font-weight:600; }
+
+  /* claim steps */
+  .steps{ margin-top:18px; counter-reset:s; }
+  .step{ position:relative; padding:18px 0 18px 56px; border-top:1px solid var(--line); }
+  .step:first-child{ border-top:0; }
+  .step::before{ counter-increment:s; content:counter(s); position:absolute; left:0; top:18px; width:36px; height:36px; border-radius:50%; background:var(--field); border:1px solid var(--line2); color:var(--goldd); font-family:'Cormorant Garamond',serif; font-weight:700; font-size:17px; display:flex; align-items:center; justify-content:center; }
+  .step .st-t{ font-size:16.5px; font-weight:600; color:var(--text); }
+  .step .st-d{ font-size:14.5px; line-height:1.62; color:var(--text2); margin-top:5px; }
+  .step .st-tag{ display:inline-block; margin-top:9px; font-size:11px; color:var(--goldd); background:rgba(216,184,95,.1); border:1px solid rgba(216,184,95,.24); padding:4px 11px; border-radius:999px; }
+
+  /* verification methods */
+  .vmeth{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:14px; }
+  .vm{ display:flex; gap:14px; align-items:flex-start; padding:15px 16px; border-radius:14px; background:var(--surface); box-shadow:var(--card-shadow); }
+  .vm .vi{ flex:0 0 auto; width:38px; height:38px; border-radius:11px; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .vm .vi svg{ width:19px; height:19px; }
+  .vm .vt{ font-size:15px; font-weight:600; color:var(--text); }
+  .vm .vd{ font-size:13.5px; line-height:1.55; color:var(--text2); margin-top:3px; }
+  .vm .vb{ margin-left:auto; flex:0 0 auto; align-self:center; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; padding:5px 10px; border-radius:999px; color:#15241B; background:var(--gold); }
+  .vm .vb.soft{ background:none; color:var(--muted); border:1px solid var(--line2); }
+
+  /* phases */
+  .phases{ margin-top:18px; display:grid; gap:12px; }
+  .ph{ display:grid; grid-template-columns:auto 1fr; gap:16px; padding:18px 20px; border-radius:16px; background:var(--surface); box-shadow:var(--card-shadow); border-left:3px solid var(--gold); }
+  .ph .ph-n{ font-family:'Cormorant Garamond',serif; font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--goldd); writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; }
+  .ph .ph-t{ font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); }
+  .ph .ph-d{ font-size:14px; line-height:1.6; color:var(--text2); margin-top:5px; }
+  .ph .ph-d b{ color:var(--text); }
+
+  /* endpoint chips */
+  .api{ margin-top:14px; border-radius:14px; background:var(--surface); box-shadow:var(--card-shadow); overflow:hidden; border:1px solid var(--line); }
+  .ep{ display:flex; align-items:center; gap:12px; padding:13px 16px; border-top:1px solid var(--line); }
+  .ep:first-child{ border-top:0; }
+  .ep .verb{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; flex:0 0 auto; }
+  .ep .verb.get{ color:#6FA8DC; background:rgba(111,168,220,.12); }
+  .ep .verb.post{ color:#7FBF8F; background:rgba(127,191,143,.12); }
+  .ep .path{ font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text); }
+  .ep .ep-d{ margin-left:auto; font-size:12px; color:var(--muted); text-align:right; }
+
+  /* open questions */
+  .q{ display:grid; gap:11px; margin-top:16px; }
+  .qi{ display:flex; gap:13px; padding:16px 18px; border-radius:14px; background:var(--field); border:1px solid var(--line2); }
+  .qi .qn{ flex:0 0 auto; color:var(--goldd); font-family:'Cormorant Garamond',serif; font-weight:700; font-size:18px; }
+  .qi .qt{ font-size:14.5px; line-height:1.6; color:var(--text); }
+  .qi .qt b{ color:var(--text); font-weight:600; }
+
+  .rise{ opacity:0; transform:translateY(16px); animation:rise .7s cubic-bezier(.2,.72,.2,1) forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .rise{ opacity:1!important; transform:none!important; animation:none!important; } }
+
+  @media (min-width:620px){
+    .models{ grid-template-columns:repeat(3,1fr); }
+    .vmeth{ grid-template-columns:1fr 1fr; }
+  }
+  @media print{
+    .top{ display:none; } .rise{ animation:none; opacity:1; transform:none; }
+    html,body{ background:#fff; }
+    .model,.vm,.ph,.api,.tbl,.tldr{ break-inside:avoid; }
+    .sec{ break-inside:avoid-page; }
+  }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="top">
+  <div class="topin">
+    <a class="brand" href="Home.html"><span class="dot" aria-hidden="true"></span><span class="wm">Declare</span></a>
+    <a class="back" href="Find-a-Church-Flow.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg> Find a Church</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="hero rise">
+    <div class="kicker">Product &amp; Engineering Spec</div>
+    <h1>Church data &amp; the Claim flow</h1>
+    <div class="meta"><span><b>Owner</b> &nbsp;Product</span><span><b>Status</b> &nbsp;Draft for sign-off</span><span><b>Updated</b> &nbsp;June 2026</span></div>
+  </section>
+
+  <p class="lead rise">Google can tell us <em>where</em> a church is. Only the church can tell us when it gathers and whether it streams. This spec decides who owns that data &mdash; and how we collect it without drowning your team.</p>
+
+  <div class="tldr rise">
+    <div class="tl-k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/></svg> Recommendation</div>
+    <p><b>Go hybrid, in phases.</b> Seed a launch region with team-curated data so the map is never empty, then open a self-serve <b>&ldquo;Claim your church&rdquo;</b> flow so churches maintain their own service times and online status. Discovery stays 100% Google &mdash; we only ever store the two things Google can&rsquo;t give us: <b>service times</b> and <b>online/livestream status</b>.</p>
+  </div>
+
+  <div class="doc">
+
+    <!-- DECISION -->
+    <section class="sec rise">
+      <div class="eyebrow">The decision</div>
+      <h2>Who owns the enrichment data?</h2>
+      <p>Three ways to fill the gap between a Google listing and a Declare church profile. They are not mutually exclusive &mdash; the recommendation is to sequence them.</p>
+      <div class="models">
+        <div class="model">
+          <div class="m-top"><span class="m-name">Team-curated</span><span class="m-tag no">Phase 1</span></div>
+          <div class="m-d">Your team enters service times &amp; online status in an internal admin.</div>
+          <div class="m-pc">
+            <div class="pro">Total quality control</div>
+            <div class="pro">Live on day one</div>
+            <div class="con">Doesn&rsquo;t scale past a region</div>
+            <div class="con">Goes stale without upkeep</div>
+          </div>
+        </div>
+        <div class="model pick">
+          <div class="m-top"><span class="m-name">Hybrid</span><span class="m-tag rec">Recommended</span></div>
+          <div class="m-d">Seed with the team, then hand upkeep to churches via Claim. Best of both.</div>
+          <div class="m-pc">
+            <div class="pro">Never an empty map</div>
+            <div class="pro">Scales &amp; self-freshens</div>
+            <div class="pro">Churches become stakeholders</div>
+            <div class="con">Two surfaces to build</div>
+          </div>
+        </div>
+        <div class="model">
+          <div class="m-top"><span class="m-name">Self-serve only</span><span class="m-tag no">Phase 2</span></div>
+          <div class="m-d">Churches claim and fill everything; nothing curated.</div>
+          <div class="m-pc">
+            <div class="pro">Scales infinitely</div>
+            <div class="pro">Owners keep it fresh</div>
+            <div class="con">Cold start &mdash; sparse early</div>
+            <div class="con">Needs moderation</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DATA FLOW -->
+    <section class="sec rise">
+      <div class="eyebrow">How it fits together</div>
+      <h2>One record, two sources</h2>
+      <p>Every church the app shows is a Google place <em>merged</em> with an optional enrichment record we own. The app already does this merge in <code>church-api.js</code> &mdash; this spec defines what fills the enrichment half. Discovery (search, map, address, website, phone) never touches our database.</p>
+      <div class="tbl">
+        <div class="tr th"><div class="td">Field</div><div class="td">Source</div><div class="td">Notes</div></div>
+        <div class="tr"><div class="td"><code>placeId</code></div><div class="td"><span class="src-g">Google</span></div><div class="td">Primary key. Joins the two halves.</div></div>
+        <div class="tr"><div class="td">name, address, location, website, phone</div><div class="td"><span class="src-g">Google</span></div><div class="td">Always live from Places. We never edit these.</div></div>
+        <div class="tr"><div class="td"><code>online</code></div><div class="td"><span class="src-c">Claimed</span></div><div class="td">Does it livestream? Drives the Online filter &amp; badge.</div></div>
+        <div class="tr"><div class="td"><code>serviceTimes[]</code></div><div class="td"><span class="src-c">Claimed</span></div><div class="td">Real worship times. Google hours = office hours, not services.</div></div>
+        <div class="tr"><div class="td"><code>livestreamUrl</code></div><div class="td"><span class="src-c">Claimed</span></div><div class="td">YouTube / site link for &ldquo;Watch Live.&rdquo;</div></div>
+        <div class="tr"><div class="td">lang, style, pastor, desc, tag</div><div class="td"><span class="src-c">Claimed</span></div><div class="td">Optional polish. All degrade gracefully if absent.</div></div>
+        <div class="tr"><div class="td"><code>status</code>, <code>verifiedAt</code></div><div class="td"><span class="src-c">System</span></div><div class="td"><code>unclaimed&middot;pending&middot;verified</code> + trust timestamps.</div></div>
+      </div>
+    </section>
+
+    <!-- CLAIM FLOW -->
+    <section class="sec rise">
+      <div class="eyebrow">The product</div>
+      <h2>The &ldquo;Claim your church&rdquo; flow</h2>
+      <p>Reached from any church profile via a quiet <b>&ldquo;Is this your church?&rdquo;</b> link. Five steps, mobile-first, in Declare&rsquo;s voice.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="st-t">Find &amp; select the church</div>
+          <div class="st-d">They search the same Google-backed directory and pick their church. If it already has an owner, we route to &ldquo;suggest an edit&rdquo; instead.</div>
+        </div>
+        <div class="step">
+          <div class="st-t">Verify ownership</div>
+          <div class="st-d">The trust gate. They prove they represent the church via one of the methods below before anything publishes.</div>
+          <span class="st-tag">Gate &mdash; nothing goes live until this passes</span>
+        </div>
+        <div class="step">
+          <div class="st-t">Add the details</div>
+          <div class="st-d">A short, friendly form: service times (day + time rows), the online toggle + livestream link, language, and an optional welcome blurb. This is the data the app has been missing.</div>
+        </div>
+        <div class="step">
+          <div class="st-t">Review &amp; submit</div>
+          <div class="st-d">A preview of exactly how their profile will look in Declare. One tap to submit; status becomes <code>pending</code>.</div>
+        </div>
+        <div class="step">
+          <div class="st-t">Published</div>
+          <div class="st-d">On approval (auto for trusted verification, else a quick admin pass) it goes live &mdash; with the gold success moment we already built. They get an editor link to keep it fresh.</div>
+          <span class="st-tag">Re-confirm every 6 months to stay &ldquo;verified&rdquo;</span>
+        </div>
+      </div>
+
+      <h3>Verification methods</h3>
+      <div class="vmeth">
+        <div class="vm"><span class="vi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span><div><div class="vt">Email at the church domain</div><div class="vd">Code sent to <code>name@thatchurch.org</code>. Instant, auto-approves.</div></div><span class="vb">Best</span></div>
+        <div class="vm"><span class="vi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 4.2 2 2 0 0 1 5.1 2h3a2 2 0 0 1 2 1.7c.6 3 .9 4 .2 5L8.1 9.9a16 16 0 0 0 6 6l1.2-2.2c.6-.7 1.6-.5 4.6.2A2 2 0 0 1 22 16.9z"/></svg></span><div><div class="vt">Phone callback</div><div class="vd">Automated code to the Google-listed number.</div></div><span class="vb">Best</span></div>
+        <div class="vm"><span class="vi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span><div><div class="vt">Postcard code</div><div class="vd">Mailed to the address &mdash; the Google Business gold standard.</div></div><span class="vb soft">Slow</span></div>
+        <div class="vm"><span class="vi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg></span><div><div class="vd" style="margin-top:0">Manual review &mdash; submit a website/social link; an admin confirms.</div><div class="vt" style="margin-top:4px">Fallback</div></div><span class="vb soft">Manual</span></div>
+      </div>
+    </section>
+
+    <!-- BACKEND -->
+    <section class="sec rise">
+      <div class="eyebrow">Engineering</div>
+      <h2>The thin backend</h2>
+      <p>Small and boring on purpose. One read endpoint the app already calls, plus the write/verify surface for Claim and admin. The app stays provider-agnostic &mdash; see <a href="CHURCH-API-INTEGRATION.md">CHURCH-API-INTEGRATION.md</a>.</p>
+      <div class="api">
+        <div class="ep"><span class="verb get">GET</span><span class="path">/enrich?placeIds=&hellip;</span><span class="ep-d">App reads merged data (built)</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="path">/claims</span><span class="ep-d">Start a claim for a placeId</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="path">/claims/:id/verify</span><span class="ep-d">Submit email/phone/postcard code</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="path">/claims/:id/profile</span><span class="ep-d">Save service times, online, blurb</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="path">/admin/queue</span><span class="ep-d">Pending claims &amp; edit suggestions</span></div>
+      </div>
+      <h3>Data store</h3>
+      <p>A single <code>church_profiles</code> table keyed by <code>placeId</code> covers everything &mdash; the claimed fields, an <code>owners</code> list, <code>status</code>, and an <code>edits</code> audit trail. No need for a heavyweight CMS.</p>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="sec rise">
+      <div class="eyebrow">Internal tooling</div>
+      <h2>The admin (kept minimal)</h2>
+      <ul>
+        <li><b>Seed editor</b> &mdash; search a place, type its service times + online status. This is the Phase 1 launch tool.</li>
+        <li><b>Claim queue</b> &mdash; approve / reject pending claims that didn&rsquo;t auto-verify; one-click approve for domain-email matches.</li>
+        <li><b>Edit suggestions</b> &mdash; lightweight inbox for &ldquo;suggest an edit&rdquo; from non-owners (wrong time, closed, etc.).</li>
+        <li><b>Freshness flags</b> &mdash; surface profiles past their 6-month re-confirm so they can be nudged or de-verified.</li>
+      </ul>
+    </section>
+
+    <!-- TRUST -->
+    <section class="sec rise">
+      <div class="eyebrow">Trust &amp; freshness</div>
+      <h2>Keeping it honest</h2>
+      <ul>
+        <li><b>Nothing publishes unverified.</b> Step 2 is a hard gate; <code>pending</code> data never reaches the app.</li>
+        <li><b>Verified badge with a half-life.</b> Owners re-confirm every 6 months; lapse drops the badge, not the data.</li>
+        <li><b>Crowd corrections.</b> Any user can &ldquo;suggest an edit&rdquo; &mdash; queued, never auto-applied.</li>
+        <li><b>One owner, many editors.</b> A church can add staff without re-verifying each person.</li>
+        <li><b>Audit trail.</b> Every change is attributed and reversible.</li>
+      </ul>
+    </section>
+
+    <!-- PHASING -->
+    <section class="sec rise">
+      <div class="eyebrow">Sequencing</div>
+      <h2>How we roll it out</h2>
+      <div class="phases">
+        <div class="ph"><div class="ph-n">Phase 1</div><div><div class="ph-t">Seed &amp; launch</div><div class="ph-d">Google discovery goes live. Team curates <b>service times + online</b> for the launch region via the seed editor. Users get a complete map immediately. <b>No claim flow yet.</b></div></div></div>
+        <div class="ph"><div class="ph-n">Phase 2</div><div><div class="ph-t">Open the Claim flow</div><div class="ph-d">Ship &ldquo;Is this your church?&rdquo; with domain-email + phone verification. Churches start maintaining their own profiles; coverage expands beyond the seed region on its own.</div></div></div>
+        <div class="ph"><div class="ph-n">Phase 3</div><div><div class="ph-t">Self-sustaining</div><div class="ph-d">Add postcard verification, edit suggestions, and freshness nudges. The directory now grows and stays current with little team effort. <b>Events stay out of scope.</b></div></div></div>
+      </div>
+    </section>
+
+    <!-- OPEN QUESTIONS -->
+    <section class="sec rise">
+      <div class="eyebrow">Before we build</div>
+      <h2>Decisions I need from you</h2>
+      <div class="q">
+        <div class="qi"><span class="qn">1</span><span class="qt"><b>Launch region.</b> Which metro do we seed first? (Earlier you were anchored around Orlando &mdash; confirm or change.)</span></div>
+        <div class="qi"><span class="qn">2</span><span class="qt"><b>Auto-approve threshold.</b> Should a matching church-domain email publish instantly, or always pass an admin&rsquo;s eyes first?</span></div>
+        <div class="qi"><span class="qn">3</span><span class="qt"><b>Who curates Phase 1?</b> Your team, or do we recruit a few partner churches to seed their own as a pilot?</span></div>
+        <div class="qi"><span class="qn">4</span><span class="qt"><b>Build the Claim flow next?</b> I can mock the five screens as a working Declare prototype &mdash; say the word.</span></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script src="theme.js"></script>
+</body>
+</html>

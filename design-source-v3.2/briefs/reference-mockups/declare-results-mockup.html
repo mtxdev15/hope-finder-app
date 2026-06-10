@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Declare — results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{--text:#22382E;--text2:#465A50;--muted:#7E8E84;--soft:rgba(34,56,46,.78);--gold:#C9A84C;--goldd:#9A7A24;--dot:#C9A84C;--clay:#B5703F;--glow1:rgba(201,168,76,.30);--glow2:rgba(255,243,210,.5);--page:#E7DFD0;--phone:linear-gradient(160deg,#cfc6b4,#b4aa96);--bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);--bg:#FAF7F2;--screen:#FBF8F3;--surface:#FFFFFF;--line:rgba(34,56,46,.08);--line2:rgba(34,56,46,.16);--field:#F4ECDB;--chipbg:#FFFFFF;--topglow:rgba(201,168,76,.26);--botglow:rgba(201,168,76,.12);--prayer:#F3EAD4;--pglow:rgba(201,168,76,.42);--receive:#F7EFDC;--return:#F3EAD4;--rglow:rgba(201,168,76,.3);--spine:#CDB05A;--playbg:#2D4A3E;--playicon:#FAF7F2;--cta:#2D4A3E;--ctatext:#FAF7F2;--statusc:rgba(34,56,46,.6);--tg-verse-b:#F4ECD9;--tg-verse-t:#9A7A24;--tg-dec-b:#F3E5D9;--tg-dec-t:#A35C2E;--tg-pray-b:#E4EDE6;--tg-pray-t:#3E6B52;--vignette:transparent;--card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 12px -3px rgba(34,56,46,.1), inset 0 1px 0 rgba(255,255,255,.7);--chip-shadow:0 6px 16px -6px rgba(34,56,46,.16), inset 0 1px 0 rgba(255,255,255,.6);--return-shadow:0 22px 54px -14px rgba(154,122,36,.34), 0 6px 16px -3px rgba(34,56,46,.12), inset 0 1px 0 rgba(255,255,255,.6);--prayer-shadow:0 28px 64px -14px rgba(154,122,36,.42), 0 8px 20px -4px rgba(34,56,46,.14), inset 0 1px 0 rgba(255,255,255,.6);--phone-shadow:0 50px 110px -24px rgba(34,56,46,.5), 0 16px 40px -12px rgba(34,56,46,.3);}
+html[data-theme="dark"]{--text:#F3EFE6;--text2:#C7D6CD;--muted:#92A89E;--soft:rgba(244,240,231,.6);--gold:#D8B85F;--goldd:#E2C572;--dot:#D8B85F;--clay:#D08A5B;--glow1:rgba(222,190,100,.5);--glow2:rgba(255,238,180,.5);--page:#05090700;--phone:linear-gradient(160deg,#1c2a22,#0b130e);--bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);--bg:#0E1A14;--screen:#13211A;--surface:#1b2c23;--line:rgba(244,239,230,.09);--line2:rgba(244,239,230,.2);--field:rgba(255,255,255,.05);--chipbg:#1b2c23;--topglow:rgba(222,190,100,.5);--botglow:rgba(216,184,95,.22);--prayer:#1D2E25;--pglow:rgba(222,190,100,.55);--receive:rgba(255,255,255,.05);--return:#22352B;--rglow:rgba(222,190,100,.34);--spine:#D8B85F;--playbg:#D8B85F;--playicon:#13211A;--cta:#D0AE54;--ctatext:#13211A;--statusc:rgba(244,239,230,.72);--tg-verse-b:rgba(220,188,99,.18);--tg-verse-t:#E2C572;--tg-dec-b:rgba(208,138,91,.2);--tg-dec-t:#E2A87A;--tg-pray-b:rgba(120,180,140,.18);--tg-pray-t:#8FCBB2;--vignette:rgba(0,0,0,.46);--card-shadow:0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22), inset 0 1px 0 rgba(255,255,255,.06);--chip-shadow:0 8px 20px -8px rgba(0,0,0,.6), 0 0 0 1px rgba(244,239,230,.05), inset 0 1px 0 rgba(255,255,255,.05);--return-shadow:0 26px 64px -16px rgba(0,0,0,.78), 0 0 0 1px rgba(222,190,100,.18), 0 0 70px -6px rgba(222,190,100,.32), inset 0 1px 0 rgba(255,255,255,.06);--prayer-shadow:0 30px 78px -16px rgba(0,0,0,.82), 0 0 0 1px rgba(222,190,100,.2), 0 0 96px -2px rgba(222,190,100,.5), inset 0 1px 0 rgba(255,255,255,.07);--phone-shadow:0 66px 150px -28px rgba(0,0,0,.9), 0 0 150px -34px rgba(222,190,100,.18);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--page);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;transition:background .5s ease}
+html[data-theme="dark"] body{background:radial-gradient(140% 100% at 50% 0%,#0c1812,#05090700)}
+.serif{font-family:'Cormorant Garamond',serif}
+.lbl{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--goldd);font-weight:500}
+
+.toggle{position:fixed;bottom:18px;right:18px;display:flex;gap:3px;padding:4px;border-radius:999px;background:rgba(127,127,127,.16);backdrop-filter:blur(6px);z-index:10}
+.toggle button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;letter-spacing:.04em;padding:7px 15px;border-radius:999px;cursor:pointer;transition:.2s}
+.toggle button.on{background:var(--screen);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+
+.phone{width:390px;max-width:100%;background:linear-gradient(160deg,#1c2a22,#0b130e);border-radius:46px;padding:9px;box-shadow:var(--phone-shadow);transition:box-shadow .5s ease}
+html[data-theme="light"] .phone{background:linear-gradient(160deg,#cfc6b4,#b4aa96)}
+.screen{position:relative;border-radius:38px;overflow:hidden;background:var(--bgfield);box-shadow:inset 0 0 130px var(--vignette);transition:background .5s ease}
+.topglow{position:absolute;top:0;left:0;right:0;height:540px;background:radial-gradient(56% 36% at 50% 1%,var(--glow2),transparent 42%),radial-gradient(122% 78% at 50% 2%,var(--topglow),transparent 60%);pointer-events:none;z-index:0}
+.botglow{position:absolute;bottom:64px;left:0;right:0;height:360px;background:radial-gradient(120% 78% at 50% 112%,var(--botglow),transparent 58%);pointer-events:none;z-index:0}
+
+.bar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 0;font-size:12px;color:var(--statusc)}
+.bar .ic{display:flex;gap:7px}
+.head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 22px 4px;color:var(--text)}
+.head .mid{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.intro{position:relative;z-index:1;text-align:center;padding:14px 28px 26px}
+.intro .serif{font-size:27px;font-style:italic;color:var(--text);line-height:1.34}
+
+.journey{position:relative;z-index:1;padding:0 22px 24px}
+.spine{position:absolute;left:19px;top:8px;bottom:96px;width:2px;background:linear-gradient(var(--spine),rgba(201,168,76,.2));box-shadow:0 0 18px 1px rgba(216,184,95,.6);border-radius:2px}
+.stn{position:relative;padding-left:52px;padding-bottom:32px;opacity:0;transform:translateY(16px);animation:rise .75s cubic-bezier(.2,.7,.2,1) forwards}
+.stn:nth-child(2){animation-delay:.05s}.stn:nth-child(3){animation-delay:.17s}.stn:nth-child(4){animation-delay:.29s}.stn:nth-child(5){animation-delay:.41s}
+@keyframes rise{to{opacity:1;transform:none}}
+.node{position:absolute;left:5px;top:-1px;width:30px;height:30px;border-radius:50%;background:var(--screen);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--goldd);font-size:16px;box-shadow:0 0 0 5px var(--screen),0 0 22px 2px rgba(216,184,95,.55);z-index:2}
+
+.verse{font-size:27px;line-height:1.34;color:var(--text);margin-top:14px}
+.ref{font-size:12px;letter-spacing:.05em;color:var(--goldd);margin-top:11px;font-weight:500}
+.card{background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow);transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s ease}
+.card:hover{transform:translateY(-4px)}
+.receive{display:flex;align-items:center;gap:12px;margin-top:18px;padding:15px 16px;background:var(--receive);border-radius:14px;border:1px solid var(--line);box-shadow:var(--card-shadow)}
+.receive .pl{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--goldd);box-shadow:0 0 14px rgba(216,184,95,.4)}
+.receive span{flex:1;font-size:13px;color:var(--muted)}
+.body{font-size:14.5px;line-height:1.66;color:var(--text2);margin-top:13px}
+.more{font-size:13px;color:var(--goldd);margin-top:11px;font-weight:500;cursor:pointer}
+.speak{display:flex;flex-direction:column;gap:11px;margin-top:15px}
+.srow{display:flex;align-items:center;gap:14px;padding:15px 16px}
+.srow .play{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--playbg);display:flex;align-items:center;justify-content:center;color:var(--playicon);box-shadow:0 6px 16px -3px rgba(0,0,0,.3),0 0 20px -2px rgba(216,184,95,.5)}
+.srow .dec{flex:1;font-size:18px;color:var(--text);line-height:1.3}
+.praywrap{position:relative;margin-top:18px}
+.prayglow{position:absolute;inset:-26px;background:radial-gradient(circle at 50% 42%,var(--pglow),transparent 70%);pointer-events:none}
+.pray{position:relative;background:var(--prayer);border-radius:20px;padding:30px 24px;text-align:center;box-shadow:var(--prayer-shadow);border:1px solid var(--line)}
+.pray .serif{font-size:20px;font-style:italic;line-height:1.52;color:var(--text)}
+.amen{font-size:22px;font-weight:600;color:var(--goldd);margin-top:18px;letter-spacing:.05em;text-shadow:0 0 22px rgba(216,184,95,.5)}
+.foot{position:relative;z-index:1;display:flex;gap:10px;padding:0 22px 28px}
+.foot button{font-family:inherit;font-size:14px;font-weight:500;border-radius:14px;padding:15px;cursor:pointer}
+.foot .save{flex:1;border:1px solid var(--line2);background:transparent;color:var(--text)}
+.foot .again{flex:0 0 auto;border:0;background:var(--cta);color:var(--ctatext);padding:15px 20px;box-shadow:0 8px 22px -6px rgba(216,184,95,.5)}
+</style>
+</head>
+<body>
+
+<div class="toggle" role="group" aria-label="Theme">
+  <button id="tL">Light</button>
+  <button id="tD" class="on">Dark</button>
+</div>
+
+<div class="phone">
+  <div class="screen">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="botglow" aria-hidden="true"></div>
+
+    <div class="bar">
+      <span style="font-weight:500">9:41</span>
+      <span class="ic"><i style="display:inline-block;width:17px;height:9px;border:1.5px solid currentColor;border-radius:2px"></i></span>
+    </div>
+
+    <div class="head">
+      <span style="font-size:21px;line-height:1">&#8592;</span>
+      <span class="mid">For fear &amp; anxiety</span>
+      <span style="font-size:19px;line-height:1">&#9734;</span>
+    </div>
+
+    <div class="intro"><div class="serif">Walk through this slowly.</div></div>
+
+    <div class="journey">
+      <div class="spine" aria-hidden="true"></div>
+
+      <div class="stn">
+        <span class="node serif" style="font-weight:600">&#10013;</span>
+        <div class="lbl" style="padding-top:6px">Scripture</div>
+        <div class="serif verse">&ldquo;Fear thou not; for I am with thee: be not dismayed; for I am thy God.&rdquo;</div>
+        <div class="ref">Isaiah 41:10 &middot; KJV</div>
+        <div class="receive">
+          <span class="pl">+</span>
+          <span>Psalm 34:4 &mdash; <span class="serif" style="font-style:italic">tap to receive this verse</span></span>
+        </div>
+      </div>
+
+      <div class="stn">
+        <span class="node">&#9728;</span>
+        <div class="lbl" style="padding-top:6px">Mindset</div>
+        <div class="body">Fear says you&rsquo;re carrying this alone. Scripture answers with a Person, not a pep talk &mdash; God himself, near and holding on to you. You don&rsquo;t have to summon courage; you have to remember who is with you.</div>
+        <div class="more">Read more</div>
+      </div>
+
+      <div class="stn">
+        <span class="node">&#9834;</span>
+        <div class="lbl" style="padding-top:6px">Speak it aloud</div>
+        <div class="speak">
+          <div class="card srow"><span class="play">&#9654;</span><span class="serif dec">I am not alone. God is with me.</span></div>
+          <div class="card srow"><span class="play">&#9654;</span><span class="serif dec">I will not be afraid; He holds me.</span></div>
+        </div>
+      </div>
+
+      <div class="stn">
+        <span class="node">&#128591;</span>
+        <div class="lbl" style="padding-top:6px">Prayer</div>
+        <div class="praywrap">
+          <div class="prayglow" aria-hidden="true"></div>
+          <div class="pray">
+            <div class="serif">Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness.</div>
+            <div class="serif amen">Amen.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="save">Save this word</button>
+      <button class="again">Begin again</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  var h=document.documentElement,L=document.getElementById('tL'),D=document.getElementById('tD');
+  function set(t){h.setAttribute('data-theme',t);L.classList.toggle('on',t==='light');D.classList.toggle('on',t==='dark');}
+  L.onclick=function(){set('light')};D.onclick=function(){set('dark')};
+})();
+</script>
+
+<script>(function(){var h=document.documentElement,L=document.getElementById("tL"),D=document.getElementById("tD"),A=document.getElementById("tA");if(!L||!D||!A)return;var mq=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");function paint(m){var t=m==="auto"?((mq&&mq.matches)?"dark":"light"):m;h.setAttribute("data-theme",t);L.classList.toggle("on",m==="light");D.classList.toggle("on",m==="dark");A.classList.toggle("on",m==="auto");}var saved=null;try{saved=localStorage.getItem("declare-theme-mock");}catch(e){}var mode=(saved==="light"||saved==="dark"||saved==="auto")?saved:(h.getAttribute("data-theme")==="light"?"light":"dark");function set(m){mode=m;try{localStorage.setItem("declare-theme-mock",m);}catch(e){}paint(m);}L.onclick=function(){set("light");};D.onclick=function(){set("dark");};A.onclick=function(){set("auto");};if(mq&&mq.addEventListener)mq.addEventListener("change",function(){if(mode==="auto")paint("auto");});paint(mode);})();</script>
+</body>
+</html>

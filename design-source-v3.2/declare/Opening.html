@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — From the weight to the Word</title>
+<meta name="description" content="The thoughts that weigh on you, gathered into Declare and answered by His Word — name a struggle, receive Scripture, a reflection, declarations, and a prayer. Romans 12:2." />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — From the weight to the Word" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+
+
+<style>
+  html,body{ background:var(--bgfield); }
+  .pre,.post{ height:70vh; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .pre .hint,.post .hint{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--muted); }
+
+  .seq{ position:relative; height:760vh; }
+  .pin{ position:sticky; top:0; height:100vh; height:100dvh; overflow:hidden; perspective:1400px; }
+  .seqglow{ position:absolute; top:48%; left:50%; transform:translate(-50%,-50%); width:min(1000px,120vw); height:min(820px,110vh); z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 50% 50%, var(--glow1), transparent 42%), radial-gradient(circle at 50% 50%, var(--glow2), transparent 15%); opacity:.3; }
+
+  .field{ position:absolute; inset:0; z-index:2; }
+  .thought{ position:absolute; left:0; top:0; will-change:transform,opacity; pointer-events:none; white-space:nowrap;
+    font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.7vw,21px); color:var(--text);
+    background:linear-gradient(160deg, rgba(40,52,44,.92), rgba(26,34,28,.92)); border:1px solid rgba(216,184,95,.22);
+    padding:9px 16px; border-radius:999px; box-shadow:0 10px 26px -10px rgba(0,0,0,.7), 0 0 22px -8px rgba(216,184,95,.3); }
+  html[data-theme="light"] .thought{ background:linear-gradient(160deg, #FFFFFF, #F4ECDB); border-color:rgba(154,123,42,.22); }
+
+  .device{ position:absolute; top:50%; left:50%; z-index:3; width:min(300px,74vw); transform:translate(-50%,-50%); transform-style:preserve-3d; will-change:transform; }
+  /* titanium-rail iPhone 15 Pro look */
+  .dframe{ position:relative; border-radius:48px; padding:9px;
+    background:linear-gradient(135deg,#5b6660 0%,#9aa49d 14%,#3c453f 30%,#7e8881 50%,#2f3733 70%,#8b958e 86%,#454d48 100%);
+    box-shadow:0 50px 90px -24px rgba(0,0,0,.95), 0 18px 40px -16px rgba(0,0,0,.85), 0 0 130px -30px rgba(216,184,95,.3), inset 0 0 0 1px rgba(255,255,255,.22); }
+  html[data-theme="light"] .dframe{ background:linear-gradient(135deg,#cfd2cb 0%,#f3f1ea 16%,#bcc0b8 32%,#e9e6dd 52%,#b3b7af 72%,#efece3 88%,#c6c9c1 100%);
+    box-shadow:0 44px 78px -22px rgba(34,56,46,.45), 0 14px 30px -14px rgba(34,56,46,.3), inset 0 0 0 1px rgba(255,255,255,.7); }
+  /* inner black gasket between rail and screen */
+  .dframe::before{ content:''; position:absolute; inset:5px; border-radius:42px; background:#050806; z-index:0; }
+  /* bottom edge face — revealed when the phone tilts flat (USB-C + speakers) */
+  .dbottom{ position:absolute; left:5.5%; right:5.5%; bottom:0; height:36px; z-index:5; transform-origin:center top; transform:rotateX(-90deg); transform-style:preserve-3d;
+    background:linear-gradient(180deg,#c8cdc6 0%,#9aa49d 22%,#6f7872 52%,#3c453f 80%,#222a26 100%); border-radius:0 0 17px 17px;
+    display:flex; align-items:center; justify-content:center; gap:22px; box-shadow:inset 0 2px 4px rgba(255,255,255,.5), inset 0 -4px 9px rgba(0,0,0,.55); }
+  html[data-theme="light"] .dbottom{ background:linear-gradient(180deg,#f4f2ec 0%,#d6d8d0 30%,#bcc0b8 60%,#a3a79f 100%); }
+  .dbottom .usbc{ width:30px; height:10px; border-radius:999px; background:linear-gradient(180deg,#05070a,#161b1f); box-shadow:inset 0 2px 3px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.18); }
+  .dbottom .spk{ display:flex; gap:3px; }
+  .dbottom .spk i{ width:3px; height:3px; border-radius:50%; background:#05070a; display:block; box-shadow:inset 0 0 1px rgba(0,0,0,.9); }
+  .dscreen{ position:relative; z-index:1; border-radius:38px; overflow:hidden; height:min(600px,66vh); background:var(--bgfield); }
+  html[data-theme="dark"] .dscreen{ background:radial-gradient(120% 85% at 50% 0%, #21312a, #131e18 60%); }
+  /* Dynamic Island */
+  .island{ position:absolute; z-index:6; top:20px; left:50%; transform:translateX(-50%); width:34%; height:26px; background:#050806; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.04); display:flex; align-items:center; justify-content:flex-end; padding-right:9px; }
+  .island .cam{ width:9px; height:9px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #2a3b4a, #060a0d 70%); box-shadow:0 0 0 1px rgba(255,255,255,.05); }
+  /* faint antenna band on the bottom rail */
+  .dframe::after{ content:''; position:absolute; left:30%; right:30%; bottom:3px; height:2px; z-index:2; background:rgba(255,255,255,.14); border-radius:2px; }
+  /* titanium side buttons */
+  .btn-s{ position:absolute; z-index:2; width:3px; border-radius:2px; background:linear-gradient(90deg, rgba(255,255,255,.25), rgba(0,0,0,.25)); }
+  .btn-s.vol-up{ left:-3px; top:30%; height:8%; } .btn-s.vol-dn{ left:-3px; top:41%; height:8%; } .btn-s.action{ left:-3px; top:21%; height:5%; }
+  .btn-s.power{ right:-3px; top:32%; height:12%; left:auto; }
+  .dscreen .dglow{ position:absolute; top:0; left:0; right:0; height:60%; pointer-events:none; background:radial-gradient(70% 60% at 50% 8%, var(--glow2), transparent 44%), radial-gradient(120% 80% at 50% 4%, var(--topglow), transparent 60%); opacity:.4; }
+
+  /* in-phone panels — the whole app in motion */
+  .pn{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:58px 22px 30px; opacity:0; will-change:opacity,transform; }
+  .pn .lbl{ font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+
+  /* hero panel (shown while laid down) */
+  .pn-hero{ gap:0; }
+  .pn-hero .mk{ width:46px; height:46px; margin-bottom:18px; opacity:.92; }
+  .pn-hero .mk img{ width:100%; height:100%; object-fit:contain; }
+  .pn-hero .wm{ font-family:'Cormorant Garamond',serif; font-size:46px; font-weight:600; color:var(--text); line-height:1; text-shadow:0 0 50px rgba(222,190,100,.35); }
+  .pn-hero .tg{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:15px; color:var(--soft); margin-top:14px; }
+
+  /* entry panel */
+  .pn-entry{ justify-content:flex-start; padding-top:60px; }
+  .pn-entry .ask{ font-family:'Cormorant Garamond',serif; font-size:23px; font-weight:600; color:var(--text); line-height:1.18; }
+  .pn-entry .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:26px; }
+  .pn-entry .chip{ font-size:12.5px; padding:9px 14px; border-radius:999px; background:var(--surface); color:var(--text); box-shadow:var(--chip-shadow); }
+  .pn-entry .chip.sel{ background:var(--gold); color:#22382E; box-shadow:0 0 0 4px rgba(216,184,95,.18), 0 10px 24px -6px rgba(216,184,95,.6); }
+  .pn-entry .cta{ margin-top:auto; align-self:stretch; text-align:center; padding:13px; border-radius:13px; background:var(--cta); color:var(--ctatext); font-size:13.5px; font-weight:600; }
+
+  /* verse */
+  .pn-verse .v{ font-family:'Cormorant Garamond',serif; font-size:clamp(22px,2.5vw,27px); line-height:1.34; color:var(--text); }
+  .pn-verse .r{ display:block; margin-top:16px; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .pn-verse .r::before{ content:''; display:block; width:24px; height:1px; margin:0 auto 12px; background:var(--gold); opacity:.7; }
+
+  /* mindset */
+  .pn-mind .m{ font-size:15.5px; line-height:1.66; color:var(--text2); }
+
+  /* declarations */
+  .pn-decl .rows{ display:flex; flex-direction:column; gap:11px; width:100%; }
+  .pn-decl .row{ display:flex; align-items:center; gap:13px; background:var(--surface); border-radius:14px; padding:13px 14px; box-shadow:var(--card-shadow); text-align:left; }
+  .pn-decl .row .pl{ flex:0 0 auto; width:32px; height:32px; border-radius:50%; background:var(--playbg); color:var(--playicon); display:flex; align-items:center; justify-content:center; }
+  .pn-decl .row .pl svg{ width:12px; height:12px; }
+  .pn-decl .row span{ font-family:'Cormorant Garamond',serif; font-size:16px; color:var(--text); line-height:1.25; }
+
+  /* prayer */
+  .pn-pray .pwrap{ position:relative; }
+  .pn-pray .pg{ position:absolute; inset:-20px; background:radial-gradient(circle at 50% 42%, var(--pglow), transparent 70%); pointer-events:none; }
+  .pn-pray .pcard{ position:relative; background:var(--prayer); border-radius:18px; padding:26px 20px; box-shadow:var(--prayer-shadow); border:1px solid var(--line); }
+  .pn-pray .pt{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; line-height:1.5; color:var(--text); }
+  .pn-pray .amen{ font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600; color:var(--goldd); margin-top:13px; letter-spacing:.04em; }
+
+  /* left phase captions */
+  .seqlabel{ position:absolute; left:max(40px,6vw); top:50%; transform:translateY(-50%); z-index:4; width:min(320px,30vw); pointer-events:none; }
+  .seqlabel .sl{ position:absolute; left:0; right:0; opacity:0; transform:translateY(12px); transition:opacity .5s ease, transform .5s ease; will-change:opacity,transform; }
+  .seqlabel .sl .tag{ display:inline-block; white-space:nowrap; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:#13211A; background:var(--gold); padding:5px 12px; border-radius:6px; font-weight:600; }
+  .seqlabel .sl h2{ font-family:'Cormorant Garamond',serif; font-size:clamp(28px,3.4vw,44px); font-weight:600; color:var(--text); line-height:1.06; margin-top:22px; }
+  .seqlabel .sl p{ font-size:15px; line-height:1.6; color:var(--text2); margin-top:14px; max-width:30ch; }
+  @media (max-width:880px){
+    .seqlabel{ left:0; right:0; top:auto; bottom:7vh; transform:none; width:auto; text-align:center; padding:0 24px; }
+    .seqlabel .sl p{ margin-left:auto; margin-right:auto; }
+  }
+
+  .seqcap{ position:absolute; left:0; right:0; bottom:7vh; z-index:5; text-align:center; pointer-events:none; }
+  .seqcap .begin{ display:inline-flex; align-items:center; gap:9px; padding:15px 28px; border-radius:14px; background:var(--cta); color:var(--ctatext); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; box-shadow:0 14px 34px -12px rgba(216,184,95,.55); opacity:0; pointer-events:none; will-change:opacity; }
+  .seqcap .begin svg{ width:16px; height:16px; }
+
+  .pn-verse .w{ display:inline-block; margin-right:.26em; opacity:0; transform:translateY(10px); }
+  .rmfallback{ display:none; }
+  @media (prefers-reduced-motion: reduce){
+    .seq{ display:none; }
+    .rmfallback{ display:block; max-width:760px; margin:0 auto; padding:60px 24px; }
+    .rmframe{ text-align:center; padding:36px 0; border-top:1px solid var(--line); }
+    .rmframe:first-child{ border-top:0; }
+    .rmframe .rmlbl{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+    .rmframe .rmh{ font-family:'Cormorant Garamond',serif; font-size:25px; font-weight:600; color:var(--text); margin-top:12px; }
+    .rmframe .rmt{ font-size:15px; line-height:1.6; color:var(--text2); margin-top:10px; }
+  }
+</style>
+<style>
+/* __mobile_fix_v2__ — showcase fit on small screens */
+@media (max-width:680px){
+  .device{ width:min(224px,58vw) !important; top:52% !important; }
+  .dscreen{ height:auto !important; aspect-ratio:9 / 19.5 !important; }
+  .thought{ font-size:clamp(12px,3.3vw,15px) !important; padding:7px 13px !important; }
+  .field{ z-index:6 !important; }
+  .thought{ text-shadow:0 1px 10px rgba(8,14,11,.55); }
+  .seqlabel{ left:0 !important; right:0 !important; top:auto !important; bottom:3.4vh !important; transform:none !important; width:auto !important; text-align:center; padding:0 22px; }
+  .seqlabel .sl .tag{ font-size:9px !important; padding:4px 10px !important; }
+  .seqlabel .sl h2{ font-size:21px !important; margin-top:11px !important; }
+  .seqlabel .sl p{ display:none !important; }
+  .seqcap{ bottom:3.4vh !important; }
+  .seqcap .begin{ padding:14px 26px !important; font-size:14.5px !important; }
+}
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+
+<div class="pre"><span class="hint">&darr; scroll slowly</span></div>
+
+<section class="seq" id="seq" aria-label="From the weight to the Word">
+  <div class="pin">
+    <div class="seqglow" id="seqglow" aria-hidden="true"></div>
+
+    <div class="field" id="field">
+      <span class="thought" data-sx="18" data-sy="15" data-d="0">&ldquo;I&rsquo;m not enough.&rdquo;</span>
+      <span class="thought" data-sx="70" data-sy="12" data-d="0.05">&ldquo;I keep failing.&rdquo;</span>
+      <span class="thought" data-sx="32" data-sy="28" data-d="0.1">&ldquo;Nobody really sees me.&rdquo;</span>
+      <span class="thought" data-sx="64" data-sy="30" data-d="0.04">&ldquo;I can&rsquo;t shake this anxiety.&rdquo;</span>
+      <span class="thought" data-sx="46" data-sy="8" data-d="0.08">&ldquo;I&rsquo;m so tired of pretending.&rdquo;</span>
+      <span class="thought" data-sx="72" data-sy="44" data-d="0.14">&ldquo;I can&rsquo;t keep it together.&rdquo;</span>
+      <span class="thought" data-sx="22" data-sy="43" data-d="0.12">&ldquo;What if God&rsquo;s done with me?&rdquo;</span>
+      <span class="thought" data-sx="50" data-sy="24" data-d="0.16">&ldquo;Maybe this is just who I am now.&rdquo;</span>
+      <span class="thought" data-sx="14" data-sy="31" data-d="0.18">&ldquo;I should have it together by now.&rdquo;</span>
+    </div>
+
+    <div class="device" id="device">
+      <!-- FUTURE (post-launch): a scroll-scrubbed photoreal 3D render (MP4/WebM or Lottie/Rive) of an iPhone tilting flat & rising could replace the CSS device below. Not used in the shipped product. -->
+      <span class="btn-s action" aria-hidden="true"></span><span class="btn-s vol-up" aria-hidden="true"></span><span class="btn-s vol-dn" aria-hidden="true"></span><span class="btn-s power" aria-hidden="true"></span>
+      <div class="dframe">
+        <div class="dbottom" aria-hidden="true"><span class="spk"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="usbc"></span><span class="spk"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="dscreen">
+          <div class="island" aria-hidden="true"><span class="cam"></span></div>
+          <div class="dglow" aria-hidden="true"></div>
+
+          <div class="pn pn-hero" data-pn="hero">
+            <div class="mk"><img src="brand/mark.png" alt="" /></div>
+            <div class="wm">Declare</div>
+            <div class="tg">Name what&rsquo;s heavy.</div>
+          </div>
+
+          <div class="pn pn-entry" data-pn="entry">
+            <div class="lbl">Declare</div>
+            <div class="ask" style="margin-top:12px">What&rsquo;s weighing<br>on your heart?</div>
+            <div class="chips">
+              <span class="chip sel">Fear &amp; Anxiety</span><span class="chip">Shame &amp; Guilt</span><span class="chip">Loneliness</span><span class="chip">Doubt</span><span class="chip">Grief &amp; Loss</span>
+            </div>
+            <div class="cta">Receive the Word</div>
+          </div>
+
+          <div class="pn pn-verse" data-pn="verse">
+            <div class="v">&ldquo;Don&rsquo;t be afraid, for I am with you. Don&rsquo;t be discouraged, for I am your God. I will strengthen you and help you. I will hold you with my victorious right hand.&rdquo;<span class="r">Isaiah 41:10 &middot; NLT</span></div>
+          </div>
+
+          <div class="pn pn-mind" data-pn="mind">
+            <div class="lbl" style="margin-bottom:14px">Mindset</div>
+            <div class="m">Anxiety insists it&rsquo;s all on you &mdash; that if you stop bracing, it falls apart. But fear is a liar about who&rsquo;s holding it. You were never the one keeping the world together; He is. You don&rsquo;t have to be unshakable. You have to remember Whose hand is under you.</div>
+          </div>
+
+          <div class="pn pn-decl" data-pn="decl">
+            <div class="lbl" style="margin-bottom:16px">Speak it aloud</div>
+            <div class="rows">
+              <div class="row"><span class="pl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span>I am not the one holding it together &mdash; I am held.</span></div>
+              <div class="row"><span class="pl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span>I am God&rsquo;s, and fear has no claim on me.</span></div>
+            </div>
+          </div>
+
+          <div class="pn pn-pray" data-pn="pray">
+            <div class="pwrap"><div class="pg" aria-hidden="true"></div><div class="pcard"><div class="pt">Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness.</div><div class="amen">Amen.</div></div></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="seqlabel" id="seqlabel">
+      <div class="sl" data-ph="0"><span class="tag">The weight</span><h2>Carrying what&rsquo;s heavy.</h2><p>The burdens that don&rsquo;t lift on their own &mdash; and a soul that needs the Word to be made new.</p></div>
+      <div class="sl" data-ph="1"><span class="tag">Declare receives</span><h2>Bring it all here.</h2><p>Name what&rsquo;s heavy. The noise gathers into Declare, and quiets.</p></div>
+      <div class="sl" data-ph="2"><span class="tag">Name it</span><h2>Pick what fits.</h2><p>Start with what&rsquo;s real &mdash; like Fear &amp; Anxiety.</p></div>
+      <div class="sl" data-ph="3"><span class="tag">Receive the Word</span><h2>His Word, for this.</h2><p>Scripture spoken to exactly what you carry.</p></div>
+      <div class="sl" data-ph="4"><span class="tag">Mindset</span><h2>Renew your mind.</h2><p>A short reflection to see it new. Romans 12:2.</p></div>
+      <div class="sl" data-ph="5"><span class="tag">Speak it aloud</span><h2>Say it over yourself.</h2><p>Declarations of truth, in your own voice.</p></div>
+      <div class="sl" data-ph="6"><span class="tag">Pray</span><h2>A prayer to carry you out.</h2><p>Honest words when you have none of your own.</p></div>
+    </div>
+
+    <div class="seqcap" id="seqcap"><a class="begin" id="capbegin" href="Today.html">Begin <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+  </div>
+</section>
+
+<div class="rmfallback">
+  <div class="rmframe"><div class="rmlbl">01 &middot; The weight</div><div class="rmh">Carrying what&rsquo;s heavy.</div><div class="rmt">&ldquo;I&rsquo;m not enough.&rdquo; &middot; &ldquo;I keep failing.&rdquo; &middot; &ldquo;Nobody really sees me.&rdquo; &middot; &ldquo;I can&rsquo;t shake this anxiety.&rdquo; &middot; &ldquo;I&rsquo;m so tired of pretending.&rdquo; &middot; &ldquo;I can&rsquo;t keep it together.&rdquo; &middot; &ldquo;What if God&rsquo;s done with me?&rdquo; &middot; &ldquo;Maybe this is just who I am now.&rdquo; &middot; &ldquo;I should have it together by now.&rdquo;</div></div>
+  <div class="rmframe"><div class="rmlbl">02 &middot; Name it</div><div class="rmh">Pick what fits.</div><div class="rmt">Start with what&rsquo;s real &mdash; like Fear &amp; Anxiety.</div></div>
+  <div class="rmframe"><div class="rmlbl">03 &middot; Receive the Word</div><div class="rmh">&ldquo;Don&rsquo;t be afraid, for I am with you.&rdquo;</div><div class="rmt">Isaiah 41:10 &middot; NLT</div></div>
+  <div class="rmframe"><div class="rmlbl">04 &middot; Mindset</div><div class="rmt">Fear says you&rsquo;re carrying this alone. Scripture answers with a Person &mdash; God himself, near.</div></div>
+  <div class="rmframe"><div class="rmlbl">05 &middot; Speak it aloud</div><div class="rmt">I am not the one holding it together &mdash; I am held. &middot; I am God&rsquo;s, and fear has no claim on me.</div></div>
+  <div class="rmframe"><div class="rmlbl">06 &middot; Pray</div><div class="rmt">Father, steady my heart, and let me rest in your nearness. <em>Amen.</em></div></div>
+</div>
+
+<div class="post"><span class="hint">&hellip; light breaks in.</span></div>
+
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="theme.js"></script>
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced) return;
+  var seq=document.getElementById('seq'), pin=seq.querySelector('.pin');
+  var device=document.getElementById('device'), seqglow=document.getElementById('seqglow');
+  var capbegin=document.getElementById('capbegin');
+  var seqlabelEl=document.getElementById('seqlabel');
+  var labels=[].slice.call(document.querySelectorAll('.seqlabel .sl'));
+  var thoughts=[].slice.call(document.querySelectorAll('.thought'));
+  var pn={}; [].forEach.call(document.querySelectorAll('.pn'), function(e){ pn[e.dataset.pn]=e; });
+  // word-by-word reveal: split the resolved verse into word spans (keep the reference)
+  var vEl=pn.verse.querySelector('.v'), vRef=vEl.querySelector('.r');
+  var vText=((vEl.childNodes[0]&&vEl.childNodes[0].textContent)||'').trim();
+  var vWords=vText.split(/\s+/);
+  vEl.innerHTML=vWords.map(function(w){ return '<span class="w">'+w+'</span>'; }).join('')+' ';
+  vEl.appendChild(vRef);
+  var wordEls=[].slice.call(vEl.querySelectorAll('.w'));
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  // fade in over [a,b], hold, fade out over [c,d]
+  function band(p,a,b,c,d){ var up=clamp((p-a)/(b-a),0,1); var dn=d?(1-clamp((p-c)/(d-c),0,1)):1; return up*dn; }
+
+  var W=0,H=0, throatX=0, throatY=0;
+  function measure(){
+    var pr=pin.getBoundingClientRect(); W=pr.width; H=pr.height;
+    throatX=W*0.5; throatY=H*0.52;
+    thoughts.forEach(function(t){ t._sx=(parseFloat(t.dataset.sx)/100)*W; t._sy=(parseFloat(t.dataset.sy)/100)*H; });
+  }
+  var ticking=false;
+  function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(update); } }
+  function update(){
+    ticking=false;
+    if(!W) measure();
+    var rect=seq.getBoundingClientRect();
+    var total=seq.offsetHeight - window.innerHeight;
+    var p=clamp((-rect.top)/total, 0, 1);
+
+    var appear=clamp(p/0.04,0,1);
+    var pour=clamp((p-0.07)/0.13, 0, 1);
+    var lay=clamp((p-0.04)/0.09, 0, 1);     // lay flat early (hero showing)
+    var rise=clamp((p-0.30)/0.10, 0, 1);    // hold flat, then rise upright before entry
+
+    var rotateX = 74*lay - 74*rise;
+    var scale = 0.9 + rise*0.08;
+    device.style.transform='translate(-50%,-50%) rotateX('+rotateX.toFixed(2)+'deg) scale('+scale.toFixed(3)+')';
+
+    thoughts.forEach(function(t){
+      var d=parseFloat(t.dataset.d)||0;
+      var fp=clamp((pour - d*0.5)/(1 - d*0.5), 0, 1);
+      var ease=fp*fp*fp;                       // accelerate hard INTO the phone
+      // GENIE FUNNEL: pull X to the centre column FIRST (forms the funnel neck),
+      // then suck down into the phone with a vertical stretch + curl toward centre.
+      var xEase=Math.sqrt(fp);                 // horizontal converge runs ahead
+      var halfW=t.offsetWidth/2, baseX=clamp(t._sx, halfW+10, W-halfW-10);
+      var x=baseX + (throatX - baseX)*xEase;
+      var y=t._sy + (throatY - t._sy)*ease;
+      var stretch=1 + ease*1.4;                // genie elongation as it's drawn in
+      var squeeze=1 - 0.94*ease;               // collapses to a thread
+      var rot=(t._sx - throatX) * 0.012 * ease;// curl toward the neck
+      var tin=clamp((p - d*0.4)/0.04,0,1);
+      var blur=(ease*ease*2.6).toFixed(2);
+      t.style.transformOrigin='center bottom';
+      t.style.transform='translate('+(x-(t.offsetWidth/2)).toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+rot.toFixed(2)+'deg) scale('+squeeze.toFixed(3)+','+(squeeze*stretch).toFixed(3)+')';
+      t.style.filter='blur('+blur+'px)';
+      t.style.opacity=(appear*tin*(1-ease*0.99)).toFixed(3);
+    });
+    seqglow.style.opacity=(0.28 + rise*0.5).toFixed(3);
+
+    // in-phone panels advance: hero → entry → verse → mind → decl → pray
+    pn.hero.style.opacity  = band(p, 0.00,0.03, 0.30,0.37);
+    pn.entry.style.opacity = band(p, 0.37,0.43, 0.50,0.55);
+    pn.verse.style.opacity = band(p, 0.55,0.61, 0.66,0.71);
+    // word-by-word verse reveal, reverent pacing
+    var vp=clamp((p-0.55)/0.13,0,1);
+    for(var wi=0; wi<wordEls.length; wi++){ var tw=clamp((vp - wi/(wordEls.length+5))*1.7,0,1); wordEls[wi].style.opacity=tw; wordEls[wi].style.transform='translateY('+((1-tw)*10).toFixed(1)+'px)'; }
+    pn.mind.style.opacity  = band(p, 0.71,0.76, 0.80,0.84);
+    pn.decl.style.opacity  = band(p, 0.84,0.88, 0.91,0.94);
+    pn.pray.style.opacity  = band(p, 0.94,0.97, 1.2,1.3);
+
+    // captions phase
+    var ph = p<0.26?0 : p<0.37?1 : p<0.55?2 : p<0.71?3 : p<0.84?4 : p<0.94?5 : 6;
+    labels.forEach(function(l){ var on=+l.dataset.ph===ph; l.style.opacity=on?1:0; l.style.transform=on?'translateY(0)':'translateY(12px)'; });
+
+    var capP=clamp((p-0.95)/0.04,0,1);
+    capbegin.style.opacity=capP; capbegin.style.pointerEvents=capP>0.6?'auto':'none';
+    if(seqlabelEl) seqlabelEl.style.opacity=(1-capP).toFixed(3);
+  }
+  window.addEventListener('resize', function(){ measure(); onScroll(); }, {passive:true});
+  capbegin.style.opacity=0;
+  // Lenis momentum smoothing for a buttery pinned scrub (reduced-motion already returned early)
+  if(window.Lenis){
+    var lenis=new Lenis({ duration:1.1, smoothWheel:true });
+    lenis.on('scroll', onScroll);
+    (function raf(t){ lenis.raf(t); requestAnimationFrame(raf); })();
+  } else {
+    window.addEventListener('scroll', onScroll, {passive:true});
+  }
+  setTimeout(function(){ measure(); update(); }, 60);
+})();
+</script>
+</body>
+</html>

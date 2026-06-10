@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Motion System</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="motion.css" />
+<script src="account-morph.js" defer></script>
+<style>
+  html,body{ background:var(--bgfield); }
+  .wrap{ max-width:880px; margin:0 auto; padding:0 28px; }
+
+  .top{ position:sticky; top:0; z-index:60; padding:15px 0; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    background:linear-gradient(to bottom, rgba(12,19,15,.74), transparent); }
+  html[data-theme="light"] .top{ background:linear-gradient(to bottom, rgba(250,247,242,.84), transparent); }
+  .topin{ max-width:880px; margin:0 auto; padding:0 28px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+  .brand .wm{ font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); }
+  .top .rm{ font-size:12px; color:var(--text2); display:inline-flex; align-items:center; gap:9px; }
+  .rm .sw{ position:relative; width:38px; height:22px; border-radius:999px; background:var(--line2); cursor:pointer; transition:background .3s; }
+  .rm .sw::after{ content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .3s var(--ease-soft); }
+  .rm .sw.on{ background:var(--gold); } .rm .sw.on::after{ transform:translateX(16px); }
+
+  .hero{ padding:60px 0 10px; }
+  .kicker{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .hero h1{ font-family:'Cormorant Garamond',serif; font-size:clamp(40px,7vw,62px); font-weight:600; color:var(--text); margin-top:14px; line-height:1.02; }
+  .hero h1 em{ font-style:italic; color:var(--goldd); }
+  .lead{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:21px; line-height:1.5; color:var(--soft); margin:24px 0 0; max-width:60ch; }
+
+  .sec{ margin-top:56px; }
+  .eyebrow{ font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  h2{ font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--text); margin:7px 0 8px; line-height:1.1; }
+  .sub{ font-size:15.5px; line-height:1.7; color:var(--text2); margin-bottom:18px; max-width:64ch; }
+  code{ font-family:'JetBrains Mono',monospace; font-size:12.5px; background:var(--field); border:1px solid var(--line2); border-radius:6px; padding:2px 6px; color:var(--text); }
+
+  .panel{ background:var(--surface); border-radius:18px; box-shadow:var(--card-shadow); padding:22px; border:1px solid var(--line); }
+  .replay{ display:inline-flex; align-items:center; gap:8px; font-family:inherit; font-size:12.5px; font-weight:600; color:var(--goldd);
+    background:rgba(216,184,95,.1); border:1px solid rgba(216,184,95,.26); border-radius:999px; padding:8px 15px; cursor:pointer; }
+  .replay:active{ transform:scale(.96); }
+  .replay svg{ width:14px; height:14px; }
+
+  /* duration tiers */
+  .tiers{ display:grid; gap:12px; }
+  .tier{ display:grid; grid-template-columns:96px 1fr 92px; align-items:center; gap:16px; }
+  .tier .tn{ font-size:13.5px; font-weight:600; color:var(--text); } .tier .tn span{ display:block; font-size:11px; color:var(--muted); font-weight:400; margin-top:1px; }
+  .track{ position:relative; height:8px; border-radius:999px; background:var(--field); overflow:hidden; }
+  .track .fill{ position:absolute; inset:0 100% 0 0; border-radius:999px; background:linear-gradient(90deg, rgba(216,184,95,.5), var(--gold)); }
+  .tier .tv{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--goldd); text-align:right; }
+  .run .track .fill{ animation:fillrun var(--d) var(--e) forwards; }
+  @keyframes fillrun{ to{ inset:0 0 0 0; } }
+
+  /* easing curves */
+  .curves{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (max-width:560px){ .curves{ grid-template-columns:1fr; } }
+  .curve{ background:var(--field); border-radius:14px; padding:16px; border:1px solid var(--line2); }
+  .curve .cn{ font-size:13px; font-weight:600; color:var(--text); } .curve .cc{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .curve .ctrack{ position:relative; height:46px; margin-top:12px; border-bottom:1px dashed var(--line2); }
+  .curve .ball{ position:absolute; bottom:0; left:0; width:14px; height:14px; border-radius:50%; background:var(--gold); box-shadow:0 0 14px rgba(216,184,95,.6); }
+  .run .curve .ball{ animation:ballmove 1.4s var(--ce) infinite; }
+  @keyframes ballmove{ 0%{ left:0; } 55%,100%{ left:calc(100% - 14px); } }
+
+  /* reveal demo */
+  .demogrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:8px; }
+  @media (max-width:560px){ .demogrid{ grid-template-columns:1fr; } }
+  .demoslot{ background:var(--field); border:1px solid var(--line2); border-radius:14px; padding:18px; min-height:120px; display:flex; flex-direction:column; justify-content:flex-end; }
+  .demoslot .dk{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .demoslot .dv{ font-family:'Cormorant Garamond',serif; font-size:19px; color:var(--text); margin-top:6px; line-height:1.25; }
+
+  /* stagger demo */
+  .stag-demo{ display:flex; flex-direction:column; gap:9px; margin-top:6px; }
+  .stag-demo .line{ background:var(--field); border:1px solid var(--line2); border-radius:11px; padding:13px 16px; font-size:14.5px; color:var(--text); display:flex; align-items:center; gap:11px; }
+  .stag-demo .line .n{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--goldd); }
+
+  /* card demo */
+  .carddemo{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (max-width:560px){ .carddemo{ grid-template-columns:1fr; } }
+  .scard{ background:var(--field); border:1px solid var(--line2); border-radius:16px; padding:20px; }
+  .scard .sk{ font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .scard .sv{ font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--text); margin-top:8px; line-height:1.3; }
+  .hint{ font-size:12px; color:var(--muted); margin-top:10px; }
+
+  /* menu demo */
+  .menu-demo-btn{ font-family:inherit; font-size:14px; font-weight:600; color:#15241B; background:var(--gold); border:0; border-radius:12px; padding:13px 22px; cursor:pointer; }
+  .m-menu .mm-inner{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:0 40px; max-width:880px; margin:0 auto; width:100%; }
+  .m-menu .mm-close{ position:absolute; top:22px; right:24px; width:44px; height:44px; border-radius:50%; border:1px solid var(--line2); background:var(--surface); color:var(--text); cursor:pointer; font-size:20px; }
+  .m-menu .m-menu-item{ font-family:'Cormorant Garamond',serif; font-size:clamp(34px,8vw,56px); font-weight:600; color:var(--text); text-decoration:none; padding:6px 0; }
+  .m-menu .m-menu-item:hover{ color:var(--goldd); }
+  .m-menu .mm-k{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); margin-bottom:18px; font-family:'DM Sans',sans-serif; }
+
+  /* spec table */
+  .tbl{ border-radius:14px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--card-shadow); }
+  .tr{ display:grid; grid-template-columns:1fr 1.6fr; border-top:1px solid var(--line); }
+  .tr:first-child{ border-top:0; }
+  .th{ background:var(--field); }
+  .td{ padding:13px 16px; font-size:13.5px; line-height:1.55; color:var(--text2); border-left:1px solid var(--line); }
+  .td:first-child{ border-left:0; font-weight:600; color:var(--text); }
+  .th .td{ font-size:12px; letter-spacing:.04em; color:var(--text); }
+  .td b{ color:var(--text); } .td code{ font-size:11.5px; }
+
+  /* tabbar demo frame */
+  .tbframe{ position:relative; height:150px; border-radius:18px; overflow:hidden; border:1px solid var(--line2);
+    background:radial-gradient(120% 80% at 50% 0, #16271d, #0b110d 70%); }
+  .tbframe declare-tabbar{ position:absolute !important; }
+
+  footer{ margin:70px 0 60px; padding-top:24px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); text-align:center; }
+  footer a{ color:var(--goldd); }
+  @media print{ .top,.replay,.menu-demo-btn{ display:none; } .m-rise,.m-veil,.m-scale,.m-fade{ opacity:1 !important; transform:none !important; filter:none !important; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="top">
+  <div class="topin">
+    <a class="brand" href="Home.html"><span class="dot"></span><span class="wm">Declare</span></a>
+    <label class="rm">Reduce motion <span class="sw" id="rmSw" role="switch" tabindex="0" aria-label="Simulate reduced motion"></span></label>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker m-fade">Motion System</div>
+    <h1 class="m-veil">Motion is the quiet hand<br>that reveals the <em>Word</em></h1>
+    <p class="lead m-rise">A calm, premium motion language for Declare &amp; Believe. Reverent, never flashy — Scripture is always the hero; motion only ushers it in. Tuned to ~40% of agency-grade intensity, and it stands fully aside when a reader asks for less.</p>
+  </section>
+
+  <!-- DURATIONS -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Foundations</div>
+    <h2 class="m-rise">Four speeds of grace</h2>
+    <p class="sub m-rise">Every motion picks one of four durations. Smaller, functional changes move quickly; thresholds and revelations breathe.</p>
+    <div class="panel m-rise" id="tierPanel">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="replay" data-replay="tier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg> Replay</button></div>
+      <div class="tiers">
+        <div class="tier" style="--d:150ms;--e:cubic-bezier(.2,.7,.2,1)"><div class="tn">Fast<span>taps, toggles</span></div><div class="track"><div class="fill"></div></div><div class="tv">150ms</div></div>
+        <div class="tier" style="--d:300ms;--e:cubic-bezier(.2,.7,.2,1)"><div class="tn">Normal<span>hovers, states</span></div><div class="track"><div class="fill"></div></div><div class="tv">300ms</div></div>
+        <div class="tier" style="--d:600ms;--e:cubic-bezier(.16,1,.3,1)"><div class="tn">Premium<span>cards, reveals</span></div><div class="track"><div class="fill"></div></div><div class="tv">600ms</div></div>
+        <div class="tier" style="--d:900ms;--e:cubic-bezier(.16,1,.3,1)"><div class="tn">Cinematic<span>thresholds</span></div><div class="track"><div class="fill"></div></div><div class="tv">900ms</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EASINGS -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Foundations</div>
+    <h2 class="m-rise">Easing — the feel of the hand</h2>
+    <p class="sub m-rise">Nothing moves at a constant speed. Reveals ride an expo-out so they arrive and settle softly; exits accelerate gently away.</p>
+    <div class="panel m-rise" id="curvePanel">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="replay" data-replay="curve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg> Replay</button></div>
+      <div class="curves">
+        <div class="curve" style="--ce:cubic-bezier(.2,.7,.2,1)"><div class="cn">Soft &mdash; house curve</div><div class="cc">cubic-bezier(.2,.7,.2,1)</div><div class="ctrack"><span class="ball"></span></div></div>
+        <div class="curve" style="--ce:cubic-bezier(.16,1,.3,1)"><div class="cn">Reveal &mdash; expo-out</div><div class="cc">cubic-bezier(.16,1,.3,1)</div><div class="ctrack"><span class="ball"></span></div></div>
+        <div class="curve" style="--ce:cubic-bezier(.4,0,.2,1)"><div class="cn">Calm &mdash; symmetric</div><div class="cc">cubic-bezier(.4,0,.2,1)</div><div class="ctrack"><span class="ball"></span></div></div>
+        <div class="curve" style="--ce:cubic-bezier(.4,0,1,1)"><div class="cn">Exit &mdash; accelerate</div><div class="cc">cubic-bezier(.4,0,1,1)</div><div class="ctrack"><span class="ball"></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVEALS -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Patterns</div>
+    <h2 class="m-rise">How content arrives</h2>
+    <p class="sub m-rise">Three reveal primitives. Content never just appears &mdash; it rises, unveils from a soft blur, or settles from a hair of scale. Apply a class; <code>motion.js</code> fires it as it enters view.</p>
+    <div class="panel m-rise">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="replay" data-replay="reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg> Replay</button></div>
+      <div class="demogrid" id="revealDemo">
+        <div class="demoslot"><div class="dr m-rise"><span class="dk">.m-rise</span><div class="dv">Rises into place</div></div></div>
+        <div class="demoslot"><div class="dr m-veil"><span class="dk">.m-veil</span><div class="dv">Unveils from blur</div></div></div>
+        <div class="demoslot"><div class="dr m-scale"><span class="dk">.m-scale</span><div class="dv">Settles from 97%</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGGER -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Patterns</div>
+    <h2 class="m-rise">Stagger &mdash; the cascade</h2>
+    <p class="sub m-rise">Grouped items reveal one after another, ~90ms apart. This is the heartbeat of the Declare flow: chip &rarr; Scripture &rarr; reflection &rarr; declarations &rarr; prayer, each arriving as the last settles. Add <code>data-m-stagger</code> to a parent; children index automatically.</p>
+    <div class="panel m-rise">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="replay" data-replay="stag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg> Replay</button></div>
+      <div class="stag-demo" id="stagDemo" data-m-stagger>
+        <div class="line m-rise"><span class="n">01</span> Scripture rises first</div>
+        <div class="line m-rise"><span class="n">02</span> Reflection follows</div>
+        <div class="line m-rise"><span class="n">03</span> Declarations assemble</div>
+        <div class="line m-rise"><span class="n">04</span> Prayer closes the movement</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BREATH + CARD -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Patterns</div>
+    <h2 class="m-rise">Living presence &amp; tangible cards</h2>
+    <p class="sub m-rise">Key elements breathe almost imperceptibly so the screen feels alive, not static. Cards lift on hover with a soft gold glow &mdash; tangible and sacred, never harsh.</p>
+    <div class="panel m-rise">
+      <div class="carddemo">
+        <div class="scard m-card"><span class="sk">Scripture card</span><div class="sv">&ldquo;Fear thou not; for I am with thee.&rdquo;</div><div class="hint">Hover / tap &mdash; elevation + glow</div></div>
+        <div class="scard m-card m-breath"><span class="sk">Breathing CTA</span><div class="sv">Receive your Word</div><div class="hint">.m-breath &mdash; barely-perceptible life</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Components</div>
+    <h2 class="m-rise">The navigation overlay</h2>
+    <p class="sub m-rise">Not a drawer &mdash; a threshold. The background blurs as a full-screen veil fades in and items reveal one by one in large, reverent type. Closing reverses the sequence.</p>
+    <div class="panel m-rise"><button class="menu-demo-btn" id="openMenu">Open the menu</button></div>
+  </section>
+
+  <!-- TAB BAR -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Components</div>
+    <h2 class="m-rise">The bottom tab bar</h2>
+    <p class="sub m-rise">Five movements of the app: <b>Word · Journey · Declare · Vault · You</b>. Declare is the raised gold center &mdash; the hero action &mdash; with a gently breathing halo. The bar itself rises into place on load.</p>
+    <div class="panel m-rise">
+      <div class="tbframe"><declare-tabbar active="declare"></declare-tabbar></div>
+    </div>
+  </section>
+
+  <!-- SCREEN SPEC -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Specification</div>
+    <h2 class="m-rise">Screen by screen</h2>
+    <p class="sub m-rise">How the system maps onto the real screens. Every transition uses the View Transitions scaffold already in each file &mdash; calm dissolves, never a white flash.</p>
+    <div class="tbl m-rise">
+      <div class="tr th"><div class="td">Screen</div><div class="td">Motion</div></div>
+      <div class="tr"><div class="td">Begin <span style="font-weight:400;color:var(--muted)">(Hero)</span></div><div class="td">&ldquo;Begin&rdquo; <b>breathes</b>; wordmark &amp; tagline <b>veil</b> in on load. Tap crosses a <b>threshold</b> (900ms expo-out dissolve) into Landing &mdash; no page-load flash.</div></div>
+      <div class="tr"><div class="td">Landing <span style="font-weight:400;color:var(--muted)">(Home)</span></div><div class="td">Wordmark, tagline, search, chips, CTA <b>rise</b> in stagger. CTA carries a breathing <b>halo</b>. Sections reveal on scroll; imagery settles 98&rarr;100%.</div></div>
+      <div class="tr"><div class="td">Declare <span style="font-weight:400;color:var(--muted)">(Today &rarr; Results)</span></div><div class="td">Center orb expands into the flow shell. On struggle select: other chips <b>fade</b>, chosen chip <b>expands</b>, then the <b>cascade</b> &mdash; Scripture &rarr; reflection &rarr; declarations &rarr; prayer, ~90ms apart.</div></div>
+      <div class="tr"><div class="td">Word</div><div class="td">Chapter text <b>veils</b> in; selecting a verse lifts a calm action bar. Verse-share opens the Card Studio over a dissolve.</div></div>
+      <div class="tr"><div class="td">Journey</div><div class="td">Day content rises in stagger; the daily ritual ends on the prayer movement; completion card celebrates with a soft gold bloom.</div></div>
+      <div class="tr"><div class="td">Vault</div><div class="td">Saved cards <b>rise</b> in a gentle grid stagger; opening a collection cross-fades into the focus view.</div></div>
+      <div class="tr"><div class="td">You</div><div class="td">Grouped settings <b>rise</b> in sequence; sheets slide from the bottom on the soft curve.</div></div>
+      <div class="tr"><div class="td">Tab &rarr; Tab</div><div class="td">Any-to-any via the View Transition dissolve; the active tab&rsquo;s dot springs in, the orb keeps breathing.</div></div>
+    </div>
+  </section>
+
+  <!-- REDUCED MOTION -->
+  <section class="sec">
+    <div class="eyebrow m-fade">Accessibility</div>
+    <h2 class="m-rise">When a reader asks for less</h2>
+    <p class="sub m-rise">Under <code>prefers-reduced-motion: reduce</code>, all travel, blur, scale and looping breath are dropped &mdash; content arrives with a quick, gentle opacity fade only. Nothing is hidden, nothing moves that could unsettle. Toggle the switch up top to preview it live.</p>
+  </section>
+
+  <footer>
+    Declare &amp; Believe &mdash; Motion System. CSS-first; <code>motion.css</code> + <code>motion.js</code> + <code>declare-tabbar.js</code>.
+    <br>Pairs with the View Transitions scaffold in every page. <a href="Home.html">Back to Home</a>
+  </footer>
+</div>
+
+<!-- menu overlay (demo) -->
+<nav class="m-menu" id="menuOverlay" data-m-stagger>
+  <button class="mm-close" id="closeMenu" aria-label="Close">&times;</button>
+  <div class="mm-inner">
+    <div class="mm-k m-menu-item">Declare &amp; Believe</div>
+    <a class="m-menu-item" href="TheWord.html">Word</a>
+    <a class="m-menu-item" href="Journey.html">Journey</a>
+    <a class="m-menu-item" href="Today.html">Declare</a>
+    <a class="m-menu-item" href="Vault.html">Vault</a>
+    <a class="m-menu-item" href="Account-A.html" data-you-morph>You</a>
+  </div>
+</nav>
+
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script src="declare-tabbar.js"></script>
+<script>
+(function(){
+  // replay buttons: toggle a .run class to restart CSS animations
+  document.querySelectorAll('[data-replay]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key=btn.getAttribute('data-replay');
+      var map={ tier:'#tierPanel', curve:'#curvePanel', reveal:'#revealDemo', stag:'#stagDemo' };
+      var host=document.querySelector(map[key]);
+      if(key==='reveal' || key==='stag'){
+        host.querySelectorAll('.m-rise,.m-veil,.m-scale,.m-fade').forEach(function(el){ el.classList.remove('m-in'); });
+        void host.offsetWidth;
+        window.DeclareMotion.reveal(host, {stagger: key==='stag'?160:120});
+      } else {
+        host.classList.remove('run'); void host.offsetWidth; host.classList.add('run');
+      }
+    });
+  });
+  // auto-run the tier + curve demos once on load
+  setTimeout(function(){ var t=document.getElementById('tierPanel'); if(t) t.classList.add('run'); var c=document.getElementById('curvePanel'); if(c) c.classList.add('run'); }, 600);
+
+  // menu overlay
+  var overlay=document.getElementById('menuOverlay');
+  document.getElementById('openMenu').addEventListener('click', function(){
+    overlay.classList.add('open');
+    overlay.querySelectorAll('.m-menu-item').forEach(function(el,i){ el.style.setProperty('--i', i); });
+  });
+  document.getElementById('closeMenu').addEventListener('click', function(){ overlay.classList.remove('open'); });
+
+  // reduced-motion simulator: toggles a class that mirrors the media query
+  var sw=document.getElementById('rmSw');
+  function applyRM(on){
+    document.documentElement.classList.toggle('force-reduce', on);
+  }
+  sw.addEventListener('click', function(){ sw.classList.toggle('on'); applyRM(sw.classList.contains('on')); });
+  sw.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); sw.click(); } });
+})();
+</script>
+<style>
+  /* reduced-motion simulator: hard-stop all motion when forced on */
+  html.force-reduce *, html.force-reduce *::before, html.force-reduce *::after{
+    animation:none !important; transition:opacity .25s linear !important; transform:none !important; filter:none !important;
+  }
+  html.force-reduce .m-rise, html.force-reduce .m-veil, html.force-reduce .m-scale, html.force-reduce .m-fade{ opacity:1 !important; }
+</style>
+</body>
+</html>

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}.rl-overlay{opacity:0!important;visibility:hidden!important;}.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Account · Grouped</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<link rel="stylesheet" href="rate.css" />
+<link rel="stylesheet" href="waitlist.css" />
+<link rel="stylesheet" href="motion.css" />
+<script src="account-morph.js" defer></script>
+
+<style>
+  :root{ --danger:#A8432E; }
+  html[data-theme="dark"]{ --danger:#E08A6F; }
+  .screen{ min-height:812px; }
+  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+  .topabs{ position:absolute; top:0; left:0; right:0; z-index:5; }
+  .masthead{ display:flex; justify-content:space-between; align-items:center; padding:14px 22px 0; }
+  .backlink{ display:flex; align-items:center; gap:7px; font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); background:none; border:0; cursor:pointer; font-family:inherit; padding:6px 0; }
+  .backlink svg{ width:14px; height:14px; }
+  .mh-dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+
+  .scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:54px 20px calc(34px + env(safe-area-inset-bottom)); scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+
+  /* hero */
+  .ahero{ padding:14px 4px 2px; display:flex; align-items:center; gap:16px; }
+  .avwrap{ position:relative; flex:0 0 auto; }
+  .aavatar{ width:66px; height:66px; border-radius:50%; background:linear-gradient(150deg,var(--gold),rgba(216,184,95,.5));
+    display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-size:29px; font-weight:600; color:#0c130f;
+    box-shadow:0 0 0 4px var(--bg),0 8px 24px -6px rgba(0,0,0,.45),0 0 30px -6px rgba(216,184,95,.5); }
+  html[data-theme="light"] .aavatar{ color:#FBF6EC; box-shadow:0 0 0 4px #fff,0 8px 24px -8px rgba(34,56,46,.4),0 0 26px -6px rgba(201,168,76,.5); }
+  .avedit{ position:absolute; right:-3px; bottom:-3px; width:25px; height:25px; border-radius:50%; background:var(--gold); border:3px solid var(--bg); display:flex; align-items:center; justify-content:center; color:#0c130f; cursor:pointer; box-shadow:0 3px 10px -2px rgba(0,0,0,.4); }
+  html[data-theme="light"] .avedit{ border-color:#fff; }
+  .avedit svg{ width:12px; height:12px; }
+  .htext{ flex:1; min-width:0; }
+  .hname{ font-family:'Cormorant Garamond',serif; font-size:27px; font-weight:600; color:var(--text); line-height:1.04; }
+  .hmeta{ font-size:12.5px; color:var(--muted); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* group */
+  .group{ margin-top:26px; }
+  .glabel{ font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin:0 4px 9px; }
+  .mlist{ background:var(--surface); border-radius:16px; box-shadow:var(--card-shadow); overflow:hidden; }
+  .mrow{ display:flex; align-items:center; gap:13px; padding:14px 15px; cursor:pointer; border:0; background:none; width:100%; text-align:left; font-family:inherit; border-top:1px solid var(--line); transition:background .22s ease, padding-left .26s cubic-bezier(.2,.7,.2,1); }
+  .mrow:first-child{ border-top:0; }
+  @media (hover:hover){ .mrow:hover{ background:var(--field); padding-left:19px; } }
+  .mrow:active{ background:var(--field); }
+  .mrow .mi{ flex:0 0 auto; width:32px; height:32px; border-radius:10px; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); transition:transform .26s cubic-bezier(.2,.7,.2,1); }
+  @media (hover:hover){ .mrow:hover .mi{ transform:scale(1.08); } }
+  .mrow .mi svg{ width:17px; height:17px; }
+  .mrow .mi.serif{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:16px; }
+  .mrow .ml{ flex:1; min-width:0; }
+  .mrow .mt{ display:block; font-size:14.5px; font-weight:500; color:var(--text); }
+  .mrow .md{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mrow .mr{ flex:0 0 auto; display:flex; align-items:center; gap:8px; }
+  .mrow .mv{ font-size:13px; color:var(--text2); white-space:nowrap; flex:0 0 auto; }
+  .mrow .badge{ font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--goldd); border:1px solid var(--line2); padding:3px 8px; border-radius:999px; }
+  .mrow .mc{ flex:0 0 auto; color:var(--muted); display:flex; transition:transform .26s cubic-bezier(.2,.7,.2,1), color .2s ease; }
+  @media (hover:hover){ .mrow:hover .mc{ transform:translateX(3px); color:var(--goldd); } }
+  .mrow .mc svg{ width:16px; height:16px; }
+
+  /* toggle switch */
+  .tgl{ position:relative; width:46px; height:28px; border-radius:999px; background:var(--line2); border:0; cursor:pointer; transition:background .22s ease; flex:0 0 auto; }
+  .tgl::after{ content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .22s cubic-bezier(.2,.7,.2,1); box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .tgl.on{ background:var(--gold); }
+  .tgl.on::after{ transform:translateX(18px); }
+
+  /* password sheet field */
+  .pwfield{ position:relative; margin-top:12px; }
+  .pwfield input{ width:100%; padding:15px 44px 15px 16px; border-radius:14px; border:1px solid var(--line2); background:var(--field); color:var(--text); font-family:inherit; font-size:16px; outline:none; }
+  .pwfield input:focus{ border-color:rgba(216,184,95,.5); }
+  .pwfield .peek{ position:absolute; right:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:0; background:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .pwfield .peek svg{ width:18px; height:18px; }
+  .orlink{ display:block; width:100%; text-align:center; margin-top:14px; background:none; border:0; color:var(--goldd); font-family:inherit; font-size:13px; cursor:pointer; }
+
+  /* appearance segmented inside card */
+  .appcard{ padding:6px; }
+  .appcard .themectl{ position:static; inset:auto; z-index:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:4px; width:100%; padding:0; border-radius:12px; background:transparent; border:0; backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .appcard .themectl button{ font-size:13px; font-weight:500; padding:12px 4px; border-radius:10px; color:var(--muted); letter-spacing:0; }
+  .appcard .themectl button.on{ background:rgba(216,184,95,.16); color:var(--text); box-shadow:none; }
+
+  .actions{ margin-top:30px; }
+  .signout{ width:100%; display:block; text-align:center; text-decoration:none; border:1px solid var(--line2); background:transparent; color:var(--text); border-radius:14px; padding:15px; font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; }
+  .delete{ display:block; margin:16px auto 0; background:none; border:0; color:var(--danger); font-family:inherit; font-size:12.5px; cursor:pointer; opacity:.85; }
+  .vno{ text-align:center; font-size:10px; letter-spacing:.14em; color:var(--muted); margin-top:22px; opacity:.7; }
+
+  /* ===== picker sheet (shared) ===== */
+  .sheetwrap{ position:fixed; inset:0; z-index:40; display:none; }
+  .sheetwrap.open{ display:block; }
+  .backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.52); backdrop-filter:blur(2px); opacity:0; animation:afade .25s forwards; }
+  @keyframes afade{ to{ opacity:1; } }
+  .asheet{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:26px 26px 0 0; padding:8px 20px calc(26px + env(safe-area-inset-bottom));
+    transform:translateY(100%); animation:aslide .36s cubic-bezier(.2,.7,.2,1) forwards; box-shadow:0 -20px 60px -20px rgba(0,0,0,.6); max-height:84%; overflow-y:auto; scrollbar-width:none; }
+  .asheet::-webkit-scrollbar{ display:none; }
+  @keyframes aslide{ to{ transform:none; } }
+  .grab{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:4px auto 14px; }
+  .stitle{ font-family:'Cormorant Garamond',serif; font-size:23px; font-weight:600; color:var(--text); text-align:center; }
+  .ssub{ font-size:11.5px; color:var(--muted); text-align:center; margin-top:3px; }
+
+  /* live text-size preview */
+  .preview{ margin:16px 0 6px; padding:18px; border-radius:16px; background:var(--field); border:1px solid var(--line2); text-align:center; }
+  .preview .pv-ref{ font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); }
+  .preview .pv-txt{ font-family:'Cormorant Garamond',serif; color:var(--text); line-height:1.34; margin-top:8px; transition:font-size .2s ease; }
+
+  /* option rows */
+  .opts{ margin-top:12px; display:flex; flex-direction:column; }
+  .opt{ display:flex; align-items:center; gap:13px; padding:14px 6px; border:0; background:none; width:100%; text-align:left; font-family:inherit; cursor:pointer; border-top:1px solid var(--line); transition:padding-left .2s ease; }
+  .opt:first-child{ border-top:0; }
+  .opt:hover{ padding-left:9px; }
+  .opt .ol{ flex:1; min-width:0; }
+  .opt .ot{ display:block; font-size:15.5px; color:var(--text); font-weight:500; }
+  .opt .od{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .opt .ock{ flex:0 0 auto; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#0c130f; background:var(--gold); opacity:0; transform:scale(.6); transition:.2s; }
+  .opt.sel .ock{ opacity:1; transform:none; }
+  .opt.sel .ot{ color:var(--text); }
+  .opt .ock svg{ width:13px; height:13px; }
+
+  /* photo source rows */
+  .src{ display:flex; align-items:center; gap:14px; padding:15px 4px; cursor:pointer; transition:padding-left .2s; border-top:1px solid var(--line); }
+  .src:first-of-type{ margin-top:10px; }
+  .src:hover{ padding-left:6px; }
+  .src .si{ flex:0 0 auto; width:38px; height:38px; border-radius:11px; background:var(--field); border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; color:var(--gold); }
+  .src .si svg{ width:18px; height:18px; }
+  .src .st{ font-size:15px; color:var(--text); }
+  .src .sd{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .src .schev{ margin-left:auto; color:var(--muted); display:flex; }
+  .src .schev svg{ width:15px; height:15px; }
+  .src.remove .si, .src.remove .st{ color:var(--muted); }
+
+  @media (min-width:481px){
+    .stage{ padding:clamp(32px,5vh,72px) 24px; }
+  }
+
+  /* ---- desktop / tablet: app-shell adaptations specific to Account ---- */
+  .acct-nav{ display:none; }            /* phones use the back arrow, not the top bar */
+  @media (min-width:481px){
+    .acct-nav{ display:flex; }
+    .topabs{ display:none; }            /* back-arrow masthead replaced by the top bar */
+    .scroll{ max-width:680px; margin:0 auto; width:100%; padding:96px 24px calc(60px + env(safe-area-inset-bottom)); }
+    /* two-column settings grid on wide screens for a true desktop feel */
+    .ahero{ padding:6px 4px 10px; }
+
+    /* bottom sheet -> centered modal */
+    .sheetwrap{ z-index:60; }
+    .sheetwrap .backdrop{ background:rgba(0,0,0,.6); }
+    .asheet{ left:50%; right:auto; bottom:auto; top:50%; width:min(480px,92vw); max-height:84vh;
+      border-radius:24px; transform:translate(-50%,-50%); animation:adesk .4s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes adesk{ from{ opacity:0; transform:translate(-50%,-44%) scale(.97); } to{ opacity:1; transform:translate(-50%,-50%) scale(1); } }
+  }
+
+  /* custom reminder date/time fields */
+  .dtfield{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 4px; border-top:1px solid var(--line); }
+  .dtfield:first-of-type{ border-top:0; margin-top:12px; }
+  .dtfield label{ font-size:15px; color:var(--text); font-weight:500; }
+  .dtfield input{ font-family:inherit; font-size:15px; color:var(--text); background:var(--field); border:1px solid var(--line2); border-radius:11px; padding:11px 13px; outline:none; transition:border-color .2s; }
+  .dtfield input:focus{ border-color:color-mix(in srgb,var(--gold) 55%,transparent); }
+
+  /* coming-soon toast */
+  .acct-toast{ position:fixed; left:50%; bottom:34px; transform:translate(-50%,16px); z-index:90; opacity:0; pointer-events:none;
+    background:var(--surface); color:var(--text); border:1px solid var(--line2); font-size:13.5px; font-weight:500;
+    padding:12px 18px; border-radius:13px; box-shadow:0 16px 40px -10px rgba(0,0,0,.5); transition:opacity .25s, transform .25s; max-width:82%; text-align:center; }
+  .acct-toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  /* inline "see a preview" link */
+  .np-link{ border:0; background:none; padding:0; font:inherit; color:var(--goldd); font-weight:600; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+  .np-link:hover{ color:var(--gold); }
+
+  /* encouraging Journey check-in — a real iOS-style notification preview */
+  .notif-preview{ position:fixed; top:14px; left:50%; transform:translate(-50%,-150%); z-index:92; width:min(380px,92vw);
+    background:color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter:blur(20px) saturate(1.3); -webkit-backdrop-filter:blur(20px) saturate(1.3);
+    border:1px solid var(--line2); border-radius:18px; box-shadow:0 20px 54px -14px rgba(0,0,0,.55); padding:13px 15px;
+    display:flex; gap:12px; align-items:flex-start; opacity:0; cursor:pointer; transition:transform .5s cubic-bezier(.2,.9,.3,1), opacity .4s; }
+  .notif-preview.show{ transform:translate(-50%,0); opacity:1; }
+  .np-icon{ flex:0 0 auto; width:40px; height:40px; border-radius:11px; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px -2px rgba(0,0,0,.4); }
+  .np-icon img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .np-body{ flex:1; min-width:0; }
+  .np-top{ display:flex; justify-content:space-between; align-items:center; }
+  .np-app{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .np-time{ font-size:11px; color:var(--soft); }
+  .np-title{ font-size:14px; font-weight:600; color:var(--text); margin-top:3px; }
+  .np-msg{ font-size:13px; color:var(--text2); line-height:1.42; margin-top:2px; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage app-shell">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="in">
+
+        <div class="topabs">
+          <div class="bar"><span style="font-weight:500">9:41</span><span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+          <div class="masthead">
+            <a class="backlink" href="Today.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg> Profile</a>
+            <span class="mh-dot" aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <div class="scroll">
+
+          <div class="ahero rise d1">
+            <div class="avwrap">
+              <div class="aavatar" data-you-morph>J</div>
+              <button class="avedit" id="editPhoto" aria-label="Edit photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
+            </div>
+            <div class="htext">
+              <div class="hname" id="heroName">Jeff</div>
+              <div class="hmeta" id="heroMeta">jeff@declareandbelieve.com</div>
+            </div>
+          </div>
+
+          <div class="group rise d2">
+            <div class="glabel">Profile</div>
+            <div class="mlist">
+              <button class="mrow" data-edit="firstname">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
+                <span class="ml"><span class="mt">First name</span><span class="md">How we greet you</span></span>
+                <span class="mr"><span class="mv" data-val="firstname">Jeff</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+              <button class="mrow" data-picker="country">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span>
+                <span class="ml"><span class="mt">Country</span><span class="md">For local churches &amp; times</span></span>
+                <span class="mr"><span class="mv" data-val="country">United States</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="group rise d3">
+            <div class="glabel">Sign-in &amp; security</div>
+            <div class="mlist">
+              <button class="mrow" data-edit="email">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+                <span class="ml"><span class="mt">Email</span><span class="md" data-val="email">jeff@declareandbelieve.com</span></span>
+                <span class="mr"><span class="badge">Verified</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+              <button class="mrow" data-sheet="password">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                <span class="ml"><span class="mt">Password</span><span class="md">Optional &mdash; sign in faster</span></span>
+                <span class="mr"><span class="mv" id="pwVal">Not set</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+              <div class="mrow" style="cursor:default">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8z"/><path d="M5 15l.8 2.2L8 18l-2.2.8L5 21l-.8-2.2L2 18l2.2-.8z"/></svg></span>
+                <span class="ml"><span class="mt">Magic-link sign-in</span><span class="md">One-tap email link if you skip a password</span></span>
+                <span class="mr"><button class="tgl on" id="magicTgl" aria-label="Toggle magic-link sign-in"></button></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="group rise d3">
+            <div class="glabel">Appearance</div>
+            <div class="mlist appcard">
+              <nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+            </div>
+          </div>
+
+          <div class="group rise d3">
+            <div class="glabel">Reader</div>
+            <div class="mlist">
+              <button class="mrow" data-picker="translation">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                <span class="ml"><span class="mt">Translation</span><span class="md">Used across every reading</span></span>
+                <span class="mr"><span class="mv" data-val="translation">NKJV</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+              <button class="mrow" data-picker="size">
+                <span class="mi serif">Aa</span>
+                <span class="ml"><span class="mt">Text size</span><span class="md">Comfortable reading scale</span></span>
+                <span class="mr"><span class="mv" data-val="size">Medium</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="group rise d4">
+            <div class="glabel">My church</div>
+            <div class="mlist">
+              <a class="mrow" id="homeChurchRow" href="Find-a-Church-Flow.html?church=grace-community">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg></span>
+                <span class="ml"><span class="mt">Home church</span><span class="md" id="homeChurchName">Grace Community Church</span></span>
+                <span class="mr"><span class="badge">Home</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </a>
+              <a class="mrow" href="Find-a-Church-Flow.html">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+                <span class="ml"><span class="mt">Find a church</span><span class="md">Discover a fellowship near you</span></span>
+                <span class="mr"><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </a>
+            </div>
+          </div>
+
+          <div class="group rise d4">
+            <div class="glabel">Reminders</div>
+            <div class="mlist">
+              <button class="mrow" data-picker="reminder">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+                <span class="ml"><span class="mt">Reminder</span><span class="md">A daily nudge — or a custom date &amp; time</span></span>
+                <span class="mr"><span class="mv" data-val="reminder">8:00 AM</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="group rise d4">
+            <div class="glabel">Notifications</div>
+            <div class="mlist">
+              <div class="mrow" style="cursor:default">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+                <span class="ml"><span class="mt">Push notifications</span><span class="md">Alerts on this device</span></span>
+                <span class="mr"><button class="tgl on" data-store="declare-notif-push" data-default="1" aria-label="Toggle push notifications"></button></span>
+              </div>
+              <div class="mrow" style="cursor:default">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span>
+                <span class="ml"><span class="mt">Journey check-ins</span><span class="md">Encouraging nudges to keep going<span id="npPreviewWrap" style="display:none"> · <button id="npPreview" class="np-link" type="button">see a preview</button></span></span></span>
+                <span class="mr"><button class="tgl on" data-store="declare-notif-journey" data-default="1" aria-label="Toggle journey check-ins"></button></span>
+              </div>
+              <div class="mrow" style="cursor:default">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
+                <span class="ml"><span class="mt">What’s new &amp; updates</span><span class="md">Occasional product news</span></span>
+                <span class="mr"><button class="tgl on" data-store="declare-notif-updates" data-default="1" aria-label="Toggle updates"></button></span>
+              </div>
+              <div class="mrow" data-soon style="cursor:pointer">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+                <span class="ml"><span class="mt">Email from Declare</span><span class="md">A gentle weekly email</span></span>
+                <span class="mr"><span class="badge">Soon</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="group rise d5">
+            <div class="glabel">More</div>
+            <div class="mlist">
+              <button class="mrow" id="iosWaitRow" data-dw-row>
+                <span class="mi"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.8-3.5 2.1-1.5 2.6-.4 6.4 1.1 8.5.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.67 2.7-.67 1.2 0 1.6.67 2.7.65 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.81-2.1-3.2zM14.3 6.3c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .08 1.9-.5 2.5-1.2z"/></svg></span>
+                <span class="ml"><span class="mt">Declare for iPhone</span><span class="md">Get the iOS app — join the waitlist</span></span>
+                <span class="mr"><span class="badge">Soon</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+              <a class="mrow" href="#">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+                <span class="ml"><span class="mt">Listen &amp; watch</span><span class="md">Podcast, YouTube, declarations</span></span>
+                <span class="mr"><span class="badge">Soon</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </a>
+              <a class="mrow" href="Give.html">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
+                <span class="ml"><span class="mt">Support Declare</span><span class="md">Help keep it free for all</span></span>
+                <span class="mr"><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </a>
+              <a class="mrow" href="Release-Notes.html">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
+                <span class="ml"><span class="mt">What&rsquo;s new</span><span class="md">Release notes &amp; updates</span></span>
+                <span class="mr"><span class="badge">v3.2</span><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </a>
+              <button class="mrow" id="rateRow">
+                <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l2.85 6.06 6.65.83-4.9 4.54 1.27 6.57L12 17.9l-5.87 3.3 1.27-6.57-4.9-4.54 6.65-.83z"/></svg></span>
+                <span class="ml"><span class="mt">Rate Declare</span><span class="md">Tell us how it has met you</span></span>
+                <span class="mr"><span class="mc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="actions rise d6">
+            <a class="signout" href="Hero.html">Sign out</a>
+            <button class="delete" id="del">Delete account</button>
+          </div>
+          <div class="vno rise d6">DECLARE · VERSION 3.2</div>
+
+        </div>
+
+        <!-- shared sheet -->
+        <div class="sheetwrap" id="sheet">
+          <div class="backdrop" id="backdrop"></div>
+          <div class="asheet" id="asheet"></div>
+        </div>
+
+      </div>
+
+      <!-- desktop/tablet top app bar (hidden on phones, which use the back arrow) -->
+      <nav class="tabbar acct-nav" aria-label="Primary">
+        <a class="tab" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+        <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+        <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+        <a class="tab" href="Vault.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+        <a class="tab on" href="Account-A.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<script src="theme.js"></script>
+<script>
+(function(){
+  var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+
+  // sample verse for the text-size preview, per translation
+  var VERSE={
+    NKJV:'Fear not, for I am with you; be not dismayed, for I am your God.',
+    NIV:'So do not fear, for I am with you; do not be dismayed, for I am your God.',
+    NLT:'Don\u2019t be afraid, for I am with you. Don\u2019t be discouraged, for I am your God.',
+    KJV:'Fear thou not; for I am with thee: be not dismayed; for I am thy God.',
+    ESV:'Fear not, for I am with you; be not dismayed, for I am your God.',
+    WEB:'Don\u2019t be afraid, for I am with you. Don\u2019t be dismayed, for I am your God.'
+  };
+  var SIZE_PX={ Small:16, Medium:19, Large:23 };
+
+  var PICKERS={
+    translation:{
+      title:'Translation', sub:'His Word, in the voice you read best', store:'declare-translation',
+      preview:true,
+      opts:[
+        {v:'NKJV', d:'New King James Version'},
+        {v:'NIV',  d:'New International Version'},
+        {v:'NLT',  d:'New Living Translation'},
+        {v:'ESV',  d:'English Standard Version'},
+        {v:'KJV',  d:'King James Version'},
+        {v:'WEB',  d:'World English Bible'}
+      ]
+    },
+    size:{
+      title:'Text size', sub:'Set a comfortable reading scale', store:'declare-textsize',
+      preview:true,
+      opts:[
+        {v:'Small',  d:'Compact'},
+        {v:'Medium', d:'Recommended'},
+        {v:'Large',  d:'Easy on the eyes'}
+      ]
+    },
+    reminder:{
+      title:'Daily reminder', sub:'When should we nudge you back?', store:'declare-reminder',
+      opts:[
+        {v:'7:00 AM', d:'Morning light'},
+        {v:'8:00 AM', d:'Start of the day'},
+        {v:'12:00 PM',d:'Midday pause'},
+        {v:'9:00 PM', d:'Evening rest'},
+        {v:'Off',     d:'No reminders'}
+      ]
+    },
+    country:{
+      title:'Country', sub:'Used for local churches & times', store:'declare-country',
+      opts:[
+        {v:'United States'},{v:'United Kingdom'},{v:'Canada'},{v:'Australia'},
+        {v:'Nigeria'},{v:'South Africa'},{v:'Philippines'},{v:'Mexico'}
+      ]
+    },
+    country:{
+      title:'Country', sub:'Used for local churches & times', store:'declare-country',
+      opts:[
+        {v:'United States'},{v:'United Kingdom'},{v:'Canada'},{v:'Australia'},
+        {v:'Nigeria'},{v:'South Africa'},{v:'Philippines'},{v:'Mexico'}
+      ]
+    }
+  };
+
+  var sheet=document.getElementById('sheet'), body=document.getElementById('asheet');
+
+  function valEl(key){ return document.querySelector('[data-val="'+key+'"]'); }
+  function current(key){
+    var cfg=PICKERS[key]; var el=valEl(key);
+    try{ var s=localStorage.getItem(cfg.store); if(s) return s; }catch(e){}
+    return el?el.textContent.trim():cfg.opts[0].v;
+  }
+
+  // hydrate saved values on load
+  Object.keys(PICKERS).forEach(function(k){ var el=valEl(k); if(el){ el.textContent=current(k); } });
+
+  // hydrate identity, security & home church
+  (function(){
+    try{
+      var fn=localStorage.getItem('declare-firstname');
+      if(fn){ document.getElementById('heroName').textContent=fn; var fv=valEl('firstname'); if(fv) fv.textContent=fn; var av=document.querySelector('.aavatar'); if(av) av.textContent=(fn[0]||'J').toUpperCase(); }
+      var em=localStorage.getItem('declare-email');
+      if(em){ document.getElementById('heroMeta').textContent=em; var ev=document.querySelector('[data-val="email"]'); if(ev) ev.textContent=em; }
+      if(localStorage.getItem('declare-haspw')==='1'){ var pv=document.getElementById('pwVal'); if(pv) pv.textContent='\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'; }
+      var ml=localStorage.getItem('declare-magiclink'), mt=document.getElementById('magicTgl'); if(mt && ml!==null) mt.classList.toggle('on', ml==='1');
+      var CHURCHES={ 'kingdom-culture':'Kingdom Culture Church','grace-community':'Grace Community Church','hope-chapel':'Hope Chapel','iglesia-vida':'Iglesia Vida Nueva','living-water':'Living Water Fellowship','liberty-hill':'Liberty Hill Church','redeemer-atl':'Redeemer Atlanta' };
+      var mine=localStorage.getItem('declare-church'), row=document.getElementById('homeChurchRow'), nm=document.getElementById('homeChurchName');
+      if(mine && CHURCHES[mine]){ if(nm) nm.textContent=CHURCHES[mine]; if(row) row.setAttribute('href','Find-a-Church-Flow.html?church='+mine); }
+    }catch(e){}
+  })();
+
+  function renderPreview(key, sel){
+    var cfg=PICKERS[key]; if(!cfg.preview) return '';
+    var size = key==='size' ? sel : current('size');
+    var tr   = key==='translation' ? sel : current('translation');
+    var px = SIZE_PX[size]||19;
+    return '<div class="preview"><div class="pv-ref">Isaiah 41:10 · '+tr+'</div>'+
+           '<div class="pv-txt" id="pvTxt" style="font-size:'+px+'px">\u201C'+(VERSE[tr]||VERSE.NKJV)+'\u201D</div></div>';
+  }
+
+  function open(key){
+    if(key==='reminder'){ openReminder(); return; }
+    var cfg=PICKERS[key]; var sel=current(key);
+    var html='<div class="grab"></div>'+
+      '<div class="stitle">'+cfg.title+'</div>'+
+      '<div class="ssub">'+cfg.sub+'</div>'+
+      renderPreview(key, sel)+
+      '<div class="opts">'+ cfg.opts.map(function(o){
+        return '<button class="opt'+(o.v===sel?' sel':'')+'" data-v="'+o.v+'">'+
+          '<span class="ol"><span class="ot">'+o.v+'</span>'+(o.d?'<span class="od">'+o.d+'</span>':'')+'</span>'+
+          '<span class="ock">'+CHECK+'</span></button>';
+      }).join('')+'</div>';
+    body.innerHTML=html;
+    sheet.classList.add('open');
+    body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+
+    body.querySelectorAll('.opt').forEach(function(b){
+      b.addEventListener('click', function(){
+        var v=b.getAttribute('data-v');
+        body.querySelectorAll('.opt').forEach(function(x){ x.classList.toggle('sel', x===b); });
+        try{ localStorage.setItem(cfg.store, v); }catch(e){}
+        var el=valEl(key); if(el) el.textContent=v;
+        // live preview reaction, then settle + close
+        var pv=document.getElementById('pvTxt');
+        if(pv){
+          if(key==='size'){ pv.style.fontSize=(SIZE_PX[v]||19)+'px'; }
+          if(key==='translation'){ pv.firstChild; pv.textContent='\u201C'+(VERSE[v]||VERSE.NKJV)+'\u201D'; var ref=body.querySelector('.pv-ref'); if(ref) ref.textContent='Isaiah 41:10 · '+v; }
+          setTimeout(close, 360);
+        } else {
+          setTimeout(close, 200);
+        }
+      });
+    });
+  }
+
+  function fmtReminder(d, t){
+    // d=YYYY-MM-DD, t=HH:MM(24h) -> "Jun 12 · 9:30 AM"
+    var p=d.split('-'), dt=new Date(+p[0], +p[1]-1, +p[2]);
+    var mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()];
+    var hh=+t.split(':')[0], mm=t.split(':')[1], ap=hh>=12?'PM':'AM', h12=hh%12||12;
+    return mon+' '+dt.getDate()+' \u00b7 '+h12+':'+mm+' '+ap;
+  }
+
+  function openReminder(){
+    var store='declare-reminder', sel=current('reminder');
+    var presets=[
+      {v:'7:00 AM',  d:'Morning light'},
+      {v:'8:00 AM',  d:'Start of the day'},
+      {v:'12:00 PM', d:'Midday pause'},
+      {v:'9:00 PM',  d:'Evening rest'},
+      {v:'Off',      d:'No reminders'}
+    ];
+    function presetView(){
+      var html='<div class="grab"></div>'+
+        '<div class="stitle">Reminder</div>'+
+        '<div class="ssub">When should we nudge you back?</div>'+
+        '<div class="opts">'+ presets.map(function(o){
+          return '<button class="opt'+(o.v===sel?' sel':'')+'" data-v="'+o.v+'">'+
+            '<span class="ol"><span class="ot">'+o.v+'</span><span class="od">'+o.d+'</span></span>'+
+            '<span class="ock">'+CHECK+'</span></button>';
+        }).join('')+
+        '<button class="opt" id="reminderCustom">'+
+          '<span class="ol"><span class="ot">Custom date &amp; time</span><span class="od">Pick an exact day and time</span></span>'+
+          '<span class="mc" style="color:var(--muted);display:flex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>'+
+        '</div>';
+      body.innerHTML=html; sheet.classList.add('open');
+      body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+      body.querySelectorAll('.opt[data-v]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var v=b.getAttribute('data-v');
+          body.querySelectorAll('.opt').forEach(function(x){ x.classList.toggle('sel', x===b); });
+          try{ localStorage.setItem(store, v); }catch(e){}
+          var el=valEl('reminder'); if(el) el.textContent=v;
+          setTimeout(close, 220);
+        });
+      });
+      document.getElementById('reminderCustom').addEventListener('click', customView);
+    }
+    function customView(){
+      var now=new Date(), dd=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      body.innerHTML='<div class="grab"></div>'+
+        '<div class="stitle">Custom reminder</div>'+
+        '<div class="ssub">Choose the exact day and time</div>'+
+        '<div class="dtfield"><label for="rDate">Date</label><input id="rDate" type="date" value="'+dd+'" /></div>'+
+        '<div class="dtfield"><label for="rTime">Time</label><input id="rTime" type="time" value="09:00" /></div>'+
+        '<button id="rSet" class="btn btn-primary btn-full" style="margin-top:16px">Set reminder</button>'+
+        '<button class="orlink" id="rBack">Back to presets</button>';
+      body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+      document.getElementById('rBack').onclick=presetView;
+      document.getElementById('rSet').onclick=function(){
+        var d=document.getElementById('rDate').value, t=document.getElementById('rTime').value;
+        if(!d || !t) return;
+        var label=fmtReminder(d, t);
+        try{ localStorage.setItem(store, label); }catch(e){}
+        var el=valEl('reminder'); if(el) el.textContent=label;
+        close();
+      };
+    }
+    presetView();
+  }
+
+  function openPhoto(){
+    var html='<div class="grab"></div>'+
+      '<div class="stitle">Profile photo</div>'+
+      '<div class="ssub">Choose a new profile photo</div>'+
+      '<div class="src"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 16l-5-5L5 21"/></svg></span><div><div class="st">Choose from Photos</div><div class="sd">Pick from your photo library</div></div><span class="schev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>'+
+      '<div class="src"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.6"/></svg></span><div><div class="st">Take a Photo</div><div class="sd">Use your camera</div></div><span class="schev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>'+
+      '<div class="src remove"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><div><div class="st">Remove current</div></div></div>';
+    body.innerHTML=html;
+    sheet.classList.add('open');
+    body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+    body.querySelectorAll('.src').forEach(function(s){ s.onclick=close; });
+  }
+
+  function openEdit(field){
+    var labels={ firstname:['First name','Jeff','declare-firstname'], email:['Email','jeff@declareandbelieve.com','declare-email'] };
+    var L=labels[field]; if(!L) return;
+    var saved; try{ saved=localStorage.getItem(L[2]); }catch(e){}
+    var val=saved||L[1];
+    var html='<div class="grab"></div>'+
+      '<div class="stitle">Edit '+L[0].toLowerCase()+'</div>'+
+      '<div class="ssub">'+(field==='email'?'We’ll send a link to verify it':'How we greet you across Declare')+'</div>'+
+      '<div style="margin:18px 0 6px"><input id="editInput" type="'+(field==='email'?'email':'text')+'" value="'+val+'" style="width:100%;padding:15px 16px;border-radius:14px;border:1px solid var(--line2);background:var(--field);color:var(--text);font-family:inherit;font-size:16px;outline:none" /></div>'+
+      '<button id="saveEdit" class="btn btn-primary btn-full" style="margin-top:8px">Save</button>';
+    body.innerHTML=html; sheet.classList.add('open');
+    body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+    var inp=document.getElementById('editInput'); setTimeout(function(){ try{inp.focus();}catch(e){} },120);
+    document.getElementById('saveEdit').onclick=function(){
+      var v=inp.value.trim(); if(!v){ close(); return; }
+      try{ localStorage.setItem(L[2], v); }catch(e){}
+      if(field==='firstname'){
+        document.getElementById('heroName').textContent=v;
+        var fv=valEl('firstname'); if(fv) fv.textContent=v;
+        var av=document.querySelector('.aavatar'); if(av) av.textContent=(v[0]||'J').toUpperCase();
+      } else {
+        document.getElementById('heroMeta').textContent=v;
+        var ev=document.querySelector('[data-val="email"]'); if(ev) ev.textContent=v;
+      }
+      close();
+    };
+  }
+
+  function openPassword(){
+    var has; try{ has=localStorage.getItem('declare-haspw')==='1'; }catch(e){}
+    body.innerHTML='<div class="grab"></div>'+
+      '<div class="stitle">'+(has?'Change password':'Set a password')+'</div>'+
+      '<div class="ssub">Add a password to sign in faster &mdash; or skip and use a magic link.</div>'+
+      '<div class="pwfield"><input id="pw1" type="password" placeholder="New password" autocomplete="new-password" /><button class="peek" id="peek1" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>'+
+      '<div class="pwfield"><input id="pw2" type="password" placeholder="Confirm password" autocomplete="new-password" /></div>'+
+      '<button id="savePw" class="btn btn-primary btn-full" style="margin-top:16px">'+(has?'Update password':'Save password')+'</button>'+
+      '<button class="orlink" id="skipPw">Email me a magic link instead</button>';
+    sheet.classList.add('open');
+    body.style.animation='none'; void body.offsetWidth; body.style.animation='';
+    var pw1=document.getElementById('pw1'), pw2=document.getElementById('pw2');
+    document.getElementById('peek1').onclick=function(){ var t=pw1.type==='password'?'text':'password'; pw1.type=t; pw2.type=t; };
+    document.getElementById('savePw').onclick=function(){
+      if(!pw1.value){ pw1.focus(); return; }
+      if(pw1.value!==pw2.value){ pw2.focus(); pw2.style.borderColor='var(--danger)'; return; }
+      try{ localStorage.setItem('declare-haspw','1'); }catch(e){}
+      var pv=document.getElementById('pwVal'); if(pv) pv.textContent='••••••••';
+      close();
+    };
+    document.getElementById('skipPw').onclick=function(){
+      try{ localStorage.setItem('declare-magiclink','1'); }catch(e){}
+      var mt=document.getElementById('magicTgl'); if(mt) mt.classList.add('on');
+      close();
+    };
+  }
+
+  function close(){ sheet.classList.remove('open'); }
+
+  document.querySelectorAll('[data-picker]').forEach(function(b){ b.addEventListener('click', function(){ open(b.getAttribute('data-picker')); }); });
+  document.querySelectorAll('[data-edit]').forEach(function(b){ b.addEventListener('click', function(){ openEdit(b.getAttribute('data-edit')); }); });
+  document.querySelectorAll('[data-sheet="password"]').forEach(function(b){ b.addEventListener('click', openPassword); });
+  document.getElementById('magicTgl').addEventListener('click', function(){ var on=this.classList.toggle('on'); try{ localStorage.setItem('declare-magiclink', on?'1':'0'); }catch(e){} });
+  document.getElementById('editPhoto').onclick=openPhoto;
+  document.getElementById('backdrop').onclick=close;
+
+  document.getElementById('del').addEventListener('click', function(){
+    if(confirm('Delete your account? This cannot be undone.')) location.href='Hero.html';
+  });
+
+  var rateRow=document.getElementById('rateRow');
+  if(rateRow) rateRow.addEventListener('click', function(){ if(window.DeclareRate) DeclareRate.open({ source:'account' }); });
+
+  var iosRow=document.getElementById('iosWaitRow');
+  if(iosRow) iosRow.addEventListener('click', function(){
+    if(!window.DeclareWaitlist) return;
+    var em=''; try{ em=localStorage.getItem('declare-email')||''; }catch(e){}
+    if(!em){ var hm=document.getElementById('heroMeta'); if(hm && /@/.test(hm.textContent)) em=hm.textContent.trim(); }
+    DeclareWaitlist.open({ source:'account', email:em, signedIn:true });
+  });
+
+  // Notification & reminder toggles — hydrate from storage (data-default when unset) and persist on tap.
+  [].forEach.call(document.querySelectorAll('.tgl[data-store]'), function(t){
+    var key=t.getAttribute('data-store'), def=t.getAttribute('data-default')==='1', on;
+    try{ var s=localStorage.getItem(key); on = (s===null) ? def : (s==='1'); }catch(e){ on=def; }
+    t.classList.toggle('on', on);
+    t.addEventListener('click', function(){
+      var n=t.classList.toggle('on'); try{ localStorage.setItem(key, n?'1':'0'); }catch(e){}
+    });
+  });
+
+  // ---- lightweight toast (used for "coming soon" features) ----
+  var _toast;
+  function toast(msg){
+    if(!_toast){ _toast=document.createElement('div'); _toast.className='acct-toast'; document.body.appendChild(_toast); }
+    _toast.textContent=msg; _toast.classList.add('show');
+    clearTimeout(_toast._t); _toast._t=setTimeout(function(){ _toast.classList.remove('show'); }, 2600);
+  }
+  // coming-soon rows (dead # links, e.g. Listen & watch — and any [data-soon] row)
+  [].forEach.call(document.querySelectorAll('.mrow[href="#"], [data-soon]'), function(a){
+    a.addEventListener('click', function(e){ e.preventDefault();
+      var name=(a.querySelector('.mt')||{}).textContent||'This'; toast(name+' is coming soon'); });
+  });
+
+  // ---- Journey check-in: an encouraging notification preview ----
+  // Copy is written to fight the battle in the mind: name the lie, speak the truer thing.
+  var CHECKINS=[
+    {t:'He\u2019s not finished with you', m:'You showed up yesterday. Receive today\u2019s word \u2014 two minutes with Him.'},
+    {t:'Fear is loud, but it isn\u2019t true', m:'Let\u2019s answer it together. Your next declaration is ready.'},
+    {t:'The lie gets quieter each day', m:'Every truth you speak takes root. Continue your journey.'},
+    {t:'You\u2019re becoming who God says', m:'One verse can change the whole day. Come and see.'},
+    {t:'Grace is daily \u2014 so is the vine', m:'Today\u2019s truth is waiting. Take the next step with Him.'}
+  ];
+  var _np;
+  function showCheckin(){
+    if(!_np){
+      _np=document.createElement('div'); _np.className='notif-preview';
+      _np.innerHTML='<div class="np-icon"><img src="brand/icon-512.png" alt="Declare" /></div>'+
+        '<div class="np-body"><div class="np-top"><span class="np-app">Declare</span><span class="np-time">now</span></div>'+
+        '<div class="np-title"></div><div class="np-msg"></div></div>';
+      document.body.appendChild(_np);
+      _np.addEventListener('click', function(){ _np.classList.remove('show'); });
+    }
+    var c=CHECKINS[Math.floor(Math.random()*CHECKINS.length)];
+    _np.querySelector('.np-title').textContent=c.t;
+    _np.querySelector('.np-msg').textContent=c.m;
+    _np.classList.add('show');
+    clearTimeout(_np._t); _np._t=setTimeout(function(){ _np.classList.remove('show'); }, 4600);
+  }
+  var npLink=document.getElementById('npPreview');
+  if(npLink) npLink.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); showCheckin(); });
+  // The check-in preview is an ADMIN/dev aid only — not shown to regular users.
+  // Admins enable it for themselves: localStorage.setItem('declare-admin','1').
+  try{ if(localStorage.getItem('declare-admin')==='1'){ var _pw=document.getElementById('npPreviewWrap'); if(_pw) _pw.style.display='inline'; } }catch(e){}
+})();
+</script>
+<script src="rate.js"></script>
+<script src="waitlist.js"></script>
+</body>
+</html>

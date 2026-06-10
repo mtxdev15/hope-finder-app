@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Listen</title>
+<meta name="description" content="Declarations to speak, teaching, and the Word — for your ears. The Declare Podcast and videos." />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — Listen" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+<script src="account-morph.js" defer></script>
+<link rel="stylesheet" href="share.css" />
+<style>
+  .lhead{ position:relative; }
+  .lshare{ position:absolute; top:2px; right:0; width:42px; height:42px; border-radius:50%; border:1px solid var(--line2); background:var(--surface); box-shadow:var(--card-shadow); display:flex; align-items:center; justify-content:center; color:var(--text); cursor:pointer; transition:transform .16s ease, color .2s ease; }
+  .lshare:active{ transform:scale(.92); }
+  .lshare:hover{ color:var(--goldd); }
+  .lshare svg{ width:18px; height:18px; }
+</style>
+
+
+<style>
+  .screen{ min-height:760px; }
+  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  .lhead{ padding:14px 24px 0; }
+  .lhead .t{ font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:var(--text); }
+  .lhead .c{ font-size:13px; color:var(--muted); margin-top:5px; }
+  .scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 22px 24px; scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+  .seclbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin:0 0 12px; }
+  .seclbl.mt{ margin-top:28px; }
+
+  /* featured spoken card */
+  .feat{ position:relative; background:var(--return); border-radius:22px; padding:22px; box-shadow:var(--return-shadow); overflow:hidden; display:flex; align-items:center; gap:18px; }
+  .feat .fg{ position:absolute; inset:-20px; background:radial-gradient(circle at 78% 14%,var(--rglow),transparent 64%); pointer-events:none; }
+  .feat .fin{ position:relative; flex:1; }
+  .feat .cap{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
+  .feat .ft{ font-family:'Cormorant Garamond',serif; font-size:23px; font-weight:600; color:var(--text); margin-top:7px; line-height:1.16; }
+  .feat .fd{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+  .feat .fplay{ position:relative; flex:0 0 auto; width:58px; height:58px; border:0; cursor:pointer; border-radius:50%; background:var(--gold);
+    display:flex; align-items:center; justify-content:center; color:#1c2a22; box-shadow:0 10px 26px -6px rgba(216,184,95,.7); transition:transform .16s ease; }
+  .feat .fplay:active{ transform:scale(.94); }
+  .feat .fplay svg{ width:22px; height:22px; margin-left:2px; }
+  .feat.playing .fplay svg{ margin-left:0; }
+
+  .speak{ display:flex; flex-direction:column; gap:10px; }
+  .srow{ display:flex; align-items:center; gap:13px; background:var(--surface); border-radius:15px; padding:13px 15px; box-shadow:var(--card-shadow); }
+  .srow .play{ flex:0 0 auto; width:34px; height:34px; border:0; cursor:pointer; border-radius:50%; background:var(--playbg); display:flex; align-items:center; justify-content:center; color:var(--playicon); box-shadow:0 5px 14px -3px rgba(0,0,0,.25); transition:transform .2s ease, box-shadow .2s ease; }
+  .srow .play:active{ transform:scale(.9); }
+  .srow .play svg{ width:13px; height:13px; }
+  .srow.speaking .play{ box-shadow:0 0 0 4px rgba(216,184,95,.2),0 5px 14px -3px rgba(216,184,95,.6); }
+  .srow .dec{ flex:1; font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--text); line-height:1.3; }
+
+  /* podcast episode rows */
+  .ep{ display:flex; align-items:center; gap:14px; padding:14px 15px; background:var(--surface); border-radius:15px; box-shadow:var(--card-shadow); margin-bottom:10px; cursor:pointer; width:100%; border:0; text-align:left; font-family:inherit; transition:transform .26s cubic-bezier(.2,.7,.2,1); }
+  @media (hover:hover){ .ep:hover{ transform:translateY(-3px); } }
+  .ep .epnum{ flex:0 0 auto; width:38px; height:38px; border-radius:11px; background:var(--field); display:flex; align-items:center; justify-content:center; color:var(--goldd); font-family:'Cormorant Garamond',serif; font-size:17px; font-weight:600; }
+  .ep .epmid{ flex:1; min-width:0; }
+  .ep .ept{ font-size:15px; color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ep .epd{ font-size:12px; color:var(--muted); margin-top:3px; }
+  .ep .eparr{ flex:0 0 auto; color:var(--gold); display:flex; }
+  .ep .eparr svg{ width:18px; height:18px; }
+
+  /* watch cards */
+  .watch{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .vcard{ display:block; border-radius:16px; overflow:hidden; box-shadow:var(--card-shadow); background:var(--surface); }
+  .vthumb{ position:relative; height:96px; background:linear-gradient(150deg,#2c4334,#15231b); display:flex; align-items:center; justify-content:center; }
+  html[data-theme="light"] .vthumb{ background:linear-gradient(150deg,#3a5544,#24382c); }
+  .vthumb .vg{ position:absolute; inset:0; background:radial-gradient(80% 70% at 50% 0%, var(--glow1), transparent 60%); }
+  .vthumb .vp{ position:relative; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.9); display:flex; align-items:center; justify-content:center; color:#1c2a22; }
+  .vthumb .vp svg{ width:16px; height:16px; margin-left:2px; }
+  .vmeta{ padding:12px 13px 14px; }
+  .vmeta .vt{ font-size:13.5px; color:var(--text); font-weight:500; line-height:1.3; }
+  .vmeta .vd{ font-size:11.5px; color:var(--muted); margin-top:5px; }
+
+  .toast{ position:fixed; left:50%; bottom:96px; transform:translate(-50%,20px); background:var(--surface); color:var(--text);
+    padding:12px 18px; border-radius:14px; box-shadow:var(--card-shadow); font-size:13.5px; display:flex; align-items:center; gap:9px;
+    opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease; z-index:60; }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .toast svg{ width:16px; height:16px; color:var(--goldd); }
+</style>
+
+<style id="__desktop_responsive__">
+/* DESKTOP / TABLET (>=481px): drop the phone bezel, turn the bottom tab bar into
+   a top nav bar, and center content in a column. Mobile (<=480px) unchanged. */
+@media (min-width:481px){
+  .stage{ padding:0; align-items:stretch; }
+  .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+  .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
+  .bar{ display:none; }
+  /* tab bar -> top app bar */
+  .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
+    flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
+    background:color-mix(in srgb, var(--bgfield) 82%, transparent);
+    backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2); border-bottom:1px solid var(--line); }
+  .tabbar .arc{ display:none; }
+  .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 13px; border-radius:11px; color:var(--muted); transition:color .2s ease; position:relative; }
+  .tab:hover{ color:var(--text); }
+  .tab svg{ width:18px; height:18px; }
+  .tab .tlbl{ opacity:1; font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; }
+  .tab.on{ color:var(--text); }
+  .tab.center{ flex:0 0 auto; margin:0; }
+  .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; background:none; box-shadow:none; border-radius:0; display:flex; }
+  .tab.center svg{ width:18px; height:18px; }
+  .tab.center.on{ color:var(--goldd); }
+  .tab.center.on .tdisc{ color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.5)); }
+  .tab.center.on::after{ content:''; position:absolute; left:13px; right:13px; bottom:2px; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+  /* main content column, cleared of the top bar */
+  .in{ max-width:720px; margin:0 auto; width:100%; padding-top:78px; }
+  /* The Word reader overlay: sit below the nav, center its content */
+  .reader{ top:60px; }
+  .reader .rtop > *, .reader .rscroll > *{ max-width:720px; margin-left:auto; margin-right:auto; }
+}
+@media (min-width:1100px){ .in{ max-width:760px; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="in">
+
+        <div class="bar">
+          <span style="font-weight:500">9:41</span>
+          <span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span>
+        </div>
+
+        <div class="lhead">
+          <div class="t">Listen</div>
+          <div class="c">Declarations, teaching, and the Word &mdash; for your ears</div>
+          <button class="lshare" id="pageShare" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
+        </div>
+
+        <div class="scroll">
+
+          <div class="seclbl rise d1">Speak over yourself</div>
+          <div class="feat rise d1" id="feat">
+            <div class="fg" aria-hidden="true"></div>
+            <div class="fin">
+              <div class="cap">Today &middot; spoken aloud</div>
+              <div class="ft">Declarations for a steady heart</div>
+              <div class="fd">3 declarations &middot; about a minute</div>
+            </div>
+            <button class="fplay" id="featPlay" aria-label="Play declarations">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+
+          <div class="seclbl mt rise d2">Declarations to speak</div>
+          <div class="speak rise d2" id="speak">
+            <div class="srow"><button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button><span class="dec">I am not alone. God is with me.</span></div>
+            <div class="srow"><button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button><span class="dec">I will not be afraid; He holds me.</span></div>
+            <div class="srow"><button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button><span class="dec">I am safe in His care, today and always.</span></div>
+          </div>
+
+          <div class="seclbl mt rise d3">The Declare Podcast</div>
+          <button class="ep rise d3" data-ep="Renewing the mind"><span class="epnum">12</span><span class="epmid"><span class="ept">Renewing the mind</span><span class="epd">Romans 12:2 &middot; 24 min</span></span><span class="eparr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>
+          <button class="ep rise d4" data-ep="When fear comes at 3am"><span class="epnum">11</span><span class="epmid"><span class="ept">When fear comes at 3am</span><span class="epd">On anxiety &amp; trust &middot; 31 min</span></span><span class="eparr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>
+          <button class="ep rise d5" data-ep="The weight a man carries"><span class="epnum">10</span><span class="epmid"><span class="ept">The weight a man carries</span><span class="epd">Shame &amp; grace &middot; 28 min</span></span><span class="eparr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+          <div class="seclbl mt rise d6">Watch</div>
+          <div class="watch rise d6">
+            <a class="vcard" href="https://www.youtube.com" target="_blank" rel="noopener">
+              <span class="vthumb"><span class="vg" aria-hidden="true"></span><span class="vp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></span>
+              <span class="vmeta"><span class="vt">A word for the weary</span><span class="vd">8 min &middot; YouTube</span></span>
+            </a>
+            <a class="vcard" href="https://www.youtube.com" target="_blank" rel="noopener">
+              <span class="vthumb"><span class="vg" aria-hidden="true"></span><span class="vp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></span>
+              <span class="vmeta"><span class="vt">Declarations to start the day</span><span class="vd">5 min &middot; YouTube</span></span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- tab bar (Listen active) -->
+      <nav class="tabbar" aria-label="Primary">
+        <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"/></svg>
+        <a class="tab" href="TheWord.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="tlbl">Word</span></a>
+        <a class="tab" href="Journey.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg><span class="tlbl">Journey</span></a>
+        <a class="tab center" href="Today.html"><span class="tdisc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"/></svg></span><span class="tlbl">Declare</span></a>
+        <a class="tab on" href="Vault.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 5V3.5M16 5V3.5M12 13.2v3"/><circle cx="12" cy="12.4" r="1.3"/></svg><span class="tlbl">Vault</span></a>
+        <a class="tab" href="Account-A.html"><svg data-you-morph viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="tlbl">You</span></a>
+      </nav>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg><span id="toastMsg"></span></div>
+
+<script src="theme.js"></script>
+<script src="share.js"></script>
+<script>
+(function(){
+  var toast=document.getElementById('toast'), toastMsg=document.getElementById('toastMsg'), tt;
+  function flash(m){ toastMsg.textContent=m; toast.classList.add('show'); clearTimeout(tt); tt=setTimeout(function(){ toast.classList.remove('show'); },1900); }
+
+  var playIcon='<path d="M8 5v14l11-7z"/>', pauseIcon='<rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="14" y="5" width="3.6" height="14" rx="1"/>';
+  function stopRows(){ document.querySelectorAll('.srow.speaking').forEach(function(r){ r.classList.remove('speaking'); var s=r.querySelector('.play svg'); s.innerHTML=playIcon; s.setAttribute('fill','currentColor'); }); }
+
+  // single declaration read-aloud
+  document.getElementById('speak').addEventListener('click', function(e){
+    var btn=e.target.closest('.play'); if(!btn) return;
+    var row=btn.closest('.srow'), text=row.querySelector('.dec').textContent.trim();
+    var isThis=row.classList.contains('speaking');
+    if(window.speechSynthesis) window.speechSynthesis.cancel(); stopRows(); resetFeat();
+    if(isThis) return; if(!window.speechSynthesis) return;
+    var u=new SpeechSynthesisUtterance(text); u.rate=0.9; u.onend=stopRows;
+    row.classList.add('speaking'); btn.querySelector('svg').innerHTML=pauseIcon;
+    window.speechSynthesis.speak(u);
+  });
+
+  // featured: speak all declarations in sequence
+  var feat=document.getElementById('feat'), featPlay=document.getElementById('featPlay');
+  function resetFeat(){ feat.classList.remove('playing'); featPlay.querySelector('svg').innerHTML=playIcon; }
+  featPlay.addEventListener('click', function(){
+    var playing=feat.classList.contains('playing');
+    if(window.speechSynthesis) window.speechSynthesis.cancel(); stopRows(); resetFeat();
+    if(playing) return; if(!window.speechSynthesis){ flash('Audio needs a supported browser'); return; }
+    feat.classList.add('playing'); featPlay.querySelector('svg').innerHTML=pauseIcon;
+    var lines=[].map.call(document.querySelectorAll('#speak .dec'), function(d){ return d.textContent.trim(); });
+    var i=0;
+    (function next(){
+      if(i>=lines.length){ resetFeat(); return; }
+      var u=new SpeechSynthesisUtterance(lines[i++]); u.rate=0.9; u.onend=next; window.speechSynthesis.speak(u);
+    })();
+  });
+
+  // podcast episodes — honest placeholder (no fake media)
+  document.querySelectorAll('.ep').forEach(function(ep){
+    ep.addEventListener('click', function(){ flash('“' + ep.dataset.ep + '” streams at launch'); });
+  });
+
+  // share this page
+  var ps=document.getElementById('pageShare');
+  if(ps) ps.addEventListener('click', function(){
+    DeclareShare.open({ type:'page', title:'The Declare Podcast', subtitle:'Declarations, teaching & the Word — for your ears', url:location.href, embed:false });
+  });
+})();
+</script>
+</body>
+</html>

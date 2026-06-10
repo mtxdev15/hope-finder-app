@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — See how it works</title>
+<meta name="description" content="See how Declare works: name what's heavy, receive His Word, speak declarations aloud, and pray — a verse, reflection, declarations, and prayer for this moment." />
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — See how it works" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+
+
+<style>
+  html,body{ background:var(--bgfield); }
+  /* spacer so you can scroll into and out of the story while reviewing standalone */
+  .pre,.post{ height:60vh; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .pre .hint,.post .hint{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--muted); }
+
+  /* ---------- scroll story ---------- */
+  .story{ position:relative; }
+  .stage{ position:sticky; top:0; height:100vh; height:100dvh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .stage .glow{ position:absolute; top:8%; left:50%; transform:translateX(-50%); width:min(900px,120vw); height:70%; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 50% 42%, var(--glow1), transparent 46%), radial-gradient(circle at 50% 40%, var(--glow2), transparent 16%);
+    opacity:.5; transition:opacity .8s ease, transform .8s ease; }
+  .stage[data-beat="1"] .glow{ opacity:1; transform:translateX(-50%) scale(1.08); }
+  .stage[data-beat="2"] .glow{ opacity:.78; }
+  .stage[data-beat="3"] .glow{ opacity:.92; transform:translateX(-50%) scale(1.04); }
+
+  .rig{ position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:clamp(20px,5vw,80px); width:100%; max-width:1180px; padding:0 24px; }
+
+  /* side copy (desktop left/right of phone) */
+  .copyslot{ flex:1 1 0; min-width:0; max-width:380px; display:grid; align-content:center; }
+  .copyslot.left{ text-align:right; justify-items:end; }
+  .copyslot.right{ text-align:left; justify-items:start; }
+  .beatcopy{ grid-area:1/1; opacity:0; transform:translateY(14px); transition:opacity .55s ease, transform .55s cubic-bezier(.2,.7,.2,1); pointer-events:none; width:min(360px,38vw); }
+  .beatcopy.on{ opacity:1; transform:none; pointer-events:auto; }
+  .beatcopy .bnum{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .beatcopy h2{ font-family:'Cormorant Garamond',serif; font-size:clamp(30px,4vw,46px); font-weight:600; color:var(--text); line-height:1.06; margin-top:12px; }
+  .beatcopy p{ font-size:16px; line-height:1.6; color:var(--text2); margin-top:14px; }
+  .copyslot.left .beatcopy p{ margin-left:auto; max-width:30ch; }
+  .copyslot.right .beatcopy p{ max-width:30ch; }
+  .beatcopy .begin{ display:inline-flex; align-items:center; gap:9px; margin-top:22px; padding:14px 24px; border-radius:14px; background:var(--cta); color:var(--ctatext); font-size:15px; font-weight:600; box-shadow:0 14px 32px -12px rgba(216,184,95,.5); opacity:0; transform:translateY(8px); transition:opacity .5s ease .2s, transform .5s ease .2s; }
+  .stage[data-beat="3"] .beatcopy .begin{ opacity:1; transform:none; }
+  .beatcopy .begin svg{ width:16px; height:16px; }
+
+  /* phone */
+  .phone{ position:relative; z-index:2; flex:0 0 auto; width:300px; background:linear-gradient(160deg,#1c2a22,#0b130e); border-radius:42px; padding:8px; box-shadow:0 50px 110px -28px rgba(0,0,0,.85), 0 0 120px -30px rgba(216,184,95,.3); }
+  html[data-theme="light"] .phone{ background:linear-gradient(160deg,#cfc6b4,#b4aa96); }
+  .screen2{ position:relative; border-radius:36px; overflow:hidden; height:600px; background:var(--bgfield); }
+  .pglow{ position:absolute; top:0; left:0; right:0; height:55%; z-index:0; pointer-events:none; background:radial-gradient(70% 60% at 50% 6%, var(--glow2), transparent 42%), radial-gradient(120% 80% at 50% 4%, var(--topglow), transparent 60%); opacity:.7; transition:opacity .7s ease; }
+  .stage[data-beat="1"] .pglow,.stage[data-beat="3"] .pglow{ opacity:1; }
+
+  /* in-phone beat panels — cross fade */
+  .panel{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; padding:30px 22px; opacity:0; transform:translateY(14px) scale(.99); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); pointer-events:none; }
+  .panel.on{ opacity:1; transform:none; }
+  .plabel{ font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+
+  /* beat 0 — name it */
+  .p0 .ask{ font-family:'Cormorant Garamond',serif; font-size:25px; font-weight:600; color:var(--text); line-height:1.18; margin-top:14px; }
+  .p0 .chips{ display:flex; flex-wrap:wrap; gap:9px; margin-top:24px; }
+  .p0 .chip{ font-size:13px; padding:10px 15px; border-radius:999px; background:var(--surface); color:var(--text); box-shadow:var(--chip-shadow); cursor:pointer; transition:transform .2s ease, background .35s ease, color .35s ease, box-shadow .35s ease; }
+  .p0 .chip.sel{ background:var(--gold); color:#22382E; box-shadow:0 0 0 4px rgba(216,184,95,.18), 0 10px 24px -6px rgba(216,184,95,.6); transform:translateY(-1px); }
+  .p0 .cta{ margin-top:auto; text-align:center; padding:14px; border-radius:14px; background:var(--cta); color:var(--ctatext); font-size:14px; font-weight:600; }
+
+  /* beat 1 — receive the word */
+  .p1{ justify-content:center; text-align:center; }
+  .p1 .verse{ font-family:'Cormorant Garamond',serif; font-size:27px; line-height:1.34; color:var(--text); }
+  .p1 .ref{ display:block; margin-top:18px; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .p1 .ref::before{ content:''; display:block; width:26px; height:1px; margin:0 auto 13px; background:var(--gold); opacity:.7; }
+
+  /* beat 2 — speak it aloud */
+  .p2 .rows{ display:flex; flex-direction:column; gap:11px; margin-top:18px; }
+  .p2 .row{ display:flex; align-items:center; gap:13px; background:var(--surface); border-radius:15px; padding:13px 14px; box-shadow:var(--card-shadow); opacity:0; transform:translateY(10px); }
+  .panel.on.p2 .row{ animation:rowin .5s cubic-bezier(.2,.7,.2,1) forwards; }
+  .panel.on.p2 .row:nth-child(2){ animation-delay:.12s; } .panel.on.p2 .row:nth-child(3){ animation-delay:.24s; }
+  @keyframes rowin{ to{ opacity:1; transform:none; } }
+  .p2 .row .pl{ flex:0 0 auto; width:34px; height:34px; border-radius:50%; background:var(--playbg); color:var(--playicon); display:flex; align-items:center; justify-content:center; }
+  .p2 .row .pl svg{ width:13px; height:13px; }
+  .p2 .row span{ font-family:'Cormorant Garamond',serif; font-size:16px; color:var(--text); line-height:1.25; }
+
+  /* beat 3 — pray */
+  .p3{ justify-content:center; }
+  .praywrap{ position:relative; }
+  .praywrap .pg{ position:absolute; inset:-22px; background:radial-gradient(circle at 50% 42%, var(--pglow), transparent 70%); pointer-events:none; }
+  .pray{ position:relative; background:var(--prayer); border-radius:20px; padding:28px 22px; text-align:center; box-shadow:var(--prayer-shadow); border:1px solid var(--line); }
+  .pray .pt{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.5; color:var(--text); }
+  .pray .amen{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--goldd); margin-top:15px; letter-spacing:.05em; opacity:0; }
+  .panel.on.p3 .amen{ animation:amenin .7s ease .35s forwards; }
+  @keyframes amenin{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+
+  /* progress dots */
+  .dots{ position:absolute; z-index:3; bottom:28px; left:50%; transform:translateX(-50%); display:flex; gap:9px; }
+  .dots span{ width:7px; height:7px; border-radius:50%; background:var(--line2); transition:background .3s ease, width .3s ease; }
+  .dots span.on{ background:var(--gold); width:22px; border-radius:999px; }
+
+  /* beat scroll markers */
+  .markers{ position:relative; }
+  .marker{ height:100vh; height:100dvh; }
+
+  /* mobile: copy stacks above phone, both slots overlap at top */
+  @media (max-width:780px){
+    .rig{ flex-direction:column; gap:0; }
+    .copyslot{ position:absolute; top:4vh; left:0; right:0; max-width:none; display:grid; justify-items:center !important; text-align:center !important; align-content:start; height:150px; }
+    .beatcopy{ width:min(420px,86vw); }
+    .copyslot.left .beatcopy p, .copyslot.right .beatcopy p{ margin:14px auto 0; }
+    .phone{ width:268px; margin-top:158px; }
+    .screen2{ height:530px; }
+    .beatcopy h2{ font-size:29px; }
+  }
+
+  /* ---------- reduced motion: static labeled steps ---------- */
+  @media (prefers-reduced-motion: reduce){
+    .story .stage{ position:static; height:auto; }
+    .story .markers{ display:none; }
+    .rig{ flex-direction:column; gap:30px; }
+    .copyslot{ position:static; max-width:none; text-align:center !important; height:auto; }
+    .copyslot.left{ display:none; }
+    .beatcopy{ position:static; opacity:1 !important; transform:none !important; width:auto; margin:0 auto 8px; }
+    .beatcopy .begin{ opacity:1 !important; transform:none !important; }
+    .dots{ display:none; }
+    .panel{ position:static; opacity:1 !important; transform:none !important; }
+    .panel.on.p2 .row, .panel.on.p3 .amen{ animation:none; opacity:1; transform:none; }
+    .stage{ flex-direction:column; }
+    .reduced-steps{ display:block; }
+    .glow,.stage .glow{ opacity:.5 !important; }
+  }
+  .reduced-steps{ display:none; }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+
+<div class="pre"><span class="hint">&darr; scroll into the story</span></div>
+
+<section class="story" id="story" aria-label="See how it works">
+  <div class="stage" id="stage" data-beat="0">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="rig">
+
+      <!-- left copy slot (beats 0 & 2 on desktop) -->
+      <div class="copyslot left">
+        <div class="beatcopy bc0"><div class="bnum">01 &middot; Name it</div><h2>Name what&rsquo;s heavy</h2><p>Tell Him what&rsquo;s heavy &mdash; or pick what fits.</p></div>
+        <div class="beatcopy bc2"><div class="bnum">03 &middot; Speak it aloud</div><h2>Say it over yourself</h2><p>Declarations to speak aloud, in your own voice.</p></div>
+      </div>
+
+      <!-- phone -->
+      <div class="phone">
+        <div class="screen2">
+          <div class="pglow" aria-hidden="true"></div>
+
+          <div class="panel p0 on">
+            <div class="plabel">Declare</div>
+            <div class="ask">What&rsquo;s weighing<br>on your heart?</div>
+            <div class="chips" id="chips">
+              <span class="chip" data-i="0">Fear &amp; Anxiety</span>
+              <span class="chip" data-i="1">Shame &amp; Guilt</span>
+              <span class="chip" data-i="2">Loneliness</span>
+              <span class="chip" data-i="3">Doubt</span>
+              <span class="chip" data-i="4">Grief &amp; Loss</span>
+            </div>
+            <div class="cta">Receive the Word</div>
+          </div>
+
+          <div class="panel p1">
+            <div class="verse">&ldquo;Fear thou not; for I am with thee: be not dismayed; for I am thy God.&rdquo;<span class="ref">Isaiah 41:10 &middot; KJV</span></div>
+          </div>
+
+          <div class="panel p2">
+            <div class="plabel">Speak it aloud</div>
+            <div class="rows">
+              <div class="row"><span class="pl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span>I am not alone. God is with me.</span></div>
+              <div class="row"><span class="pl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span>I will not be afraid; He holds me.</span></div>
+              <div class="row"><span class="pl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span>I am safe in His care, always.</span></div>
+            </div>
+          </div>
+
+          <div class="panel p3">
+            <div class="praywrap">
+              <div class="pg" aria-hidden="true"></div>
+              <div class="pray"><div class="pt">Father, when fear rises, remind me you are here. Steady my heart, and let me rest in your nearness.</div><div class="amen">Amen.</div></div>
+            </div>
+          </div>
+
+          <div class="dots" id="dots"><span class="on"></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <!-- right copy slot (beats 1 & 3 on desktop; shared slot on mobile) -->
+      <div class="copyslot right">
+        <div class="beatcopy bc1"><div class="bnum">02 &middot; Receive the Word</div><h2>His Word, for this</h2><p>Scripture spoken to exactly what you carry.</p></div>
+        <div class="beatcopy bc3"><div class="bnum">04 &middot; Pray</div><h2>A prayer to carry you out</h2><p>Honest words when you have none of your own.</p><a class="begin" href="Today.html">Begin <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      </div>
+
+    </div>
+
+    <!-- static fallback for reduced-motion -->
+    <div class="reduced-steps"></div>
+  </div>
+
+  <!-- scroll sentinels: one viewport per beat -->
+  <div class="markers" id="markers" aria-hidden="true">
+    <div class="marker" data-beat="0"></div>
+    <div class="marker" data-beat="1"></div>
+    <div class="marker" data-beat="2"></div>
+    <div class="marker" data-beat="3"></div>
+  </div>
+</section>
+
+<div class="post"><span class="hint">the story rests here</span></div>
+
+<script src="theme.js"></script>
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var panels=[...document.querySelectorAll('.panel')]; // p0..p3 by order
+  var copies={ 0:document.querySelector('.bc0'), 1:document.querySelector('.bc1'), 2:document.querySelector('.bc2'), 3:document.querySelector('.bc3') };
+  var dots=[...document.querySelectorAll('#dots span')];
+  var chips=[...document.querySelectorAll('#chips .chip')];
+  var current=-1;
+
+  function setBeat(n){
+    if(n===current) return; current=n;
+    stage.setAttribute('data-beat', n);
+    panels.forEach(function(p,i){ p.classList.toggle('on', i===n); });
+    Object.keys(copies).forEach(function(k){ copies[k].classList.toggle('on', +k===n); });
+    dots.forEach(function(d,i){ d.classList.toggle('on', i===n); });
+    // reflect the chosen chip on beat 0
+    if(n===0) selectChip(selectedChip);
+  }
+
+  // IntersectionObserver on the four full-height markers — active = the one crossing center
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduced){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ setBeat(+e.target.getAttribute('data-beat')); } });
+    }, { rootMargin:'-50% 0px -50% 0px', threshold:0 });
+    document.querySelectorAll('#markers .marker').forEach(function(m){ io.observe(m); });
+    setBeat(0);
+  }
+
+  // tappable chips replay / explore — picking one jumps to beat 0 then plays forward visually
+  var selectedChip=0;
+  function selectChip(i){ chips.forEach(function(c,idx){ c.classList.toggle('sel', idx===i); }); }
+  selectChip(0);
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      selectedChip=+c.dataset.i; selectChip(selectedChip);
+      // gentle auto-replay: cycle the four beats once for explorers
+      var seq=[0,1,2,3], k=0; setBeat(0);
+      clearInterval(window.__db); 
+      window.__db=setInterval(function(){ k++; if(k>=seq.length){ clearInterval(window.__db); return; } setBeat(seq[k]); }, 1100);
+    });
+  });
+})();
+</script>
+</body>
+</html>

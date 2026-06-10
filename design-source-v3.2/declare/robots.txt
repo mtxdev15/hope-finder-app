@@ -1,0 +1,27 @@
+# Declare & Believe — robots.txt
+# Public marketing + landing pages are open to crawlers. Internal app screens,
+# prototypes, and design/spec pages are kept out of the index.
+
+User-agent: *
+Allow: /
+
+# Internal demo / prototype / spec pages (not for search)
+Disallow: /App-Flow.html
+Disallow: /Hero.html
+Disallow: /Motion-System.html
+Disallow: /Sharing-Demo.html
+Disallow: /Design%20System.html
+Disallow: /Church-Data-Spec.html
+Disallow: /Opening.html
+Disallow: /ScrollStory.html
+Disallow: /Loading.html
+
+# Authenticated / user-specific app screens (no SEO value, keep private)
+Disallow: /Vault.html
+Disallow: /Journey.html
+Disallow: /Results.html
+Disallow: /Account-A.html
+Disallow: /Create-Account.html
+Disallow: /Signin.html
+
+Sitemap: https://declareandbelieve.com/sitemap.xml

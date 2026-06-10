@@ -1,0 +1,90 @@
+/* ============================================================
+   Declare — Rate / Testimony sheet  (DeclareRate)
+   Warm, on-brand rating with a quiet hybrid funnel:
+     glad hearts (4–5★) are invited to the App Store;
+     tender ones (1–3★) route to private feedback (never the store).
+   Namespaced `dr-`. Mounts into the phone .screen (else .app / body).
+   ============================================================ */
+
+.dr-scrim{ position:fixed; inset:0; z-index:95; display:flex; flex-direction:column; justify-content:flex-end; }
+.dr-bd{ position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(3px); opacity:0; animation:dr-fade .28s ease forwards; }
+@keyframes dr-fade{ to{ opacity:1; } }
+
+.dr-sheet{ position:relative; background:var(--surface); border-radius:26px 26px 0 0;
+  padding:10px 22px calc(26px + env(safe-area-inset-bottom)); max-height:90%; overflow-y:auto;
+  scrollbar-width:none; box-shadow:0 -22px 64px -20px rgba(0,0,0,.62);
+  transform:translateY(100%); animation:dr-slide .42s cubic-bezier(.2,.74,.2,1) forwards; }
+.dr-sheet::-webkit-scrollbar{ display:none; }
+@keyframes dr-slide{ to{ transform:none; } }
+
+.dr-grab{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:4px auto 6px; }
+.dr-close{ position:absolute; top:12px; right:14px; width:32px; height:32px; border:0; border-radius:50%;
+  background:var(--field); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.2s; }
+.dr-close:hover{ color:var(--text); background:var(--line); }
+.dr-close svg{ width:16px; height:16px; }
+
+/* step transitions */
+.dr-step{ animation:dr-in .42s cubic-bezier(.2,.8,.25,1) both; }
+@keyframes dr-in{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+.dr-eyebrow{ text-align:center; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:700; margin-top:6px; }
+.dr-h{ font-family:'Cormorant Garamond',serif; font-size:27px; line-height:1.16; font-weight:600; color:var(--text); text-align:center; margin-top:8px; text-wrap:balance; }
+.dr-sub{ font-size:13.5px; line-height:1.55; color:var(--muted); text-align:center; margin-top:9px; max-width:300px; margin-left:auto; margin-right:auto; text-wrap:pretty; }
+
+/* ---- stars ---- */
+.dr-stars{ display:flex; justify-content:center; gap:8px; margin:22px 0 6px; }
+.dr-star{ border:0; background:none; padding:4px; cursor:pointer; color:var(--line2); transition:transform .15s cubic-bezier(.34,1.56,.64,1), color .2s ease; }
+.dr-star svg{ width:38px; height:38px; display:block; }
+.dr-star:hover{ transform:scale(1.12); }
+.dr-star.lit{ color:var(--gold); filter:drop-shadow(0 3px 10px rgba(216,184,95,.4)); }
+.dr-star.pop{ animation:dr-pop .42s cubic-bezier(.34,1.56,.64,1); }
+@keyframes dr-pop{ 0%{ transform:scale(.7); } 60%{ transform:scale(1.25); } 100%{ transform:scale(1); } }
+.dr-scale{ display:flex; justify-content:space-between; max-width:230px; margin:2px auto 0; font-size:10.5px; color:var(--soft); letter-spacing:.04em; }
+
+/* ---- chips ---- */
+.dr-lbl{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--goldd); font-weight:700; margin:20px 2px 11px; }
+.dr-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.dr-chip{ border:1px solid var(--line2); background:var(--field); color:var(--text2); border-radius:100px;
+  padding:9px 14px; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:.18s; }
+.dr-chip:hover{ border-color:color-mix(in srgb,var(--gold) 45%,transparent); color:var(--text); }
+.dr-chip.on{ background:color-mix(in srgb,var(--gold) 16%,var(--field)); border-color:var(--gold); color:var(--text); font-weight:600; }
+
+/* ---- note ---- */
+.dr-note{ width:100%; margin-top:16px; min-height:84px; resize:none; font-family:inherit; font-size:14.5px; line-height:1.5;
+  color:var(--text); background:var(--field); border:1px solid var(--line2); border-radius:14px; padding:13px 15px; transition:border-color .2s; }
+.dr-note::placeholder{ color:var(--soft); }
+.dr-note:focus{ outline:none; border-color:color-mix(in srgb,var(--gold) 55%,transparent); }
+
+/* ---- buttons ---- */
+.dr-actions{ display:flex; flex-direction:column; gap:9px; margin-top:20px; }
+.dr-btn{ width:100%; padding:15px; border-radius:14px; border:0; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.dr-btn svg{ width:17px; height:17px; }
+.dr-btn.primary{ background:var(--gold); color:#0c130f; box-shadow:0 14px 34px -12px rgba(216,184,95,.6); }
+.dr-btn.primary:hover{ filter:brightness(1.05); }
+.dr-btn.ghost{ background:none; color:var(--muted); padding:11px; }
+.dr-btn.ghost:hover{ color:var(--text); }
+.dr-btn[disabled]{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+
+/* ---- thank you ---- */
+.dr-done{ text-align:center; padding:14px 0 4px; }
+.dr-mark{ position:relative; width:74px; height:74px; margin:6px auto 4px; border-radius:50%;
+  background:radial-gradient(circle at 50% 38%, color-mix(in srgb,var(--gold) 34%,var(--surface)), var(--surface) 72%);
+  display:flex; align-items:center; justify-content:center; color:var(--gold);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 30%,transparent), 0 16px 40px -16px rgba(216,184,95,.5); animation:dr-pop .5s cubic-bezier(.34,1.56,.64,1); }
+.dr-mark svg{ width:34px; height:34px; }
+.dr-vref{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; color:var(--text2); margin-top:16px; line-height:1.45; }
+.dr-vref .ref{ display:block; font-style:normal; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); margin-top:8px; }
+
+/* ============================================================
+   Inline testimony prompt — drops into the Journey-complete screen.
+   <div class="dr-jprompt" data-dr-prompt data-dr-source="journey-complete">
+   ============================================================ */
+.dr-jprompt{ margin:4px auto 0; max-width:330px; text-align:center; padding:16px 18px;
+  border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--chip-shadow); }
+.dr-jprompt .jp-h{ font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:600; color:var(--text); }
+.dr-jprompt .jp-s{ font-size:12px; color:var(--muted); margin-top:3px; }
+.dr-jprompt .dr-stars{ margin:13px 0 2px; gap:6px; }
+.dr-jprompt .dr-star svg{ width:30px; height:30px; }
+.jp-later{ display:block; margin:10px auto 0; border:0; background:none; cursor:pointer;
+  font-family:inherit; font-size:12.5px; color:var(--soft); padding:6px 10px; transition:color .2s; }
+.jp-later:hover{ color:var(--muted); }

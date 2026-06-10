@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Declare — choose what fits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{--text:#22382E;--text2:#465A50;--muted:#7E8E84;--soft:rgba(34,56,46,.78);--gold:#C9A84C;--goldd:#9A7A24;--dot:#C9A84C;--clay:#B5703F;--glow1:rgba(201,168,76,.30);--glow2:rgba(255,243,210,.5);--page:#E7DFD0;--phone:linear-gradient(160deg,#cfc6b4,#b4aa96);--bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);--bg:#FAF7F2;--screen:#FBF8F3;--surface:#FFFFFF;--line:rgba(34,56,46,.08);--line2:rgba(34,56,46,.16);--field:#F4ECDB;--chipbg:#FFFFFF;--topglow:rgba(201,168,76,.26);--botglow:rgba(201,168,76,.12);--prayer:#F3EAD4;--pglow:rgba(201,168,76,.42);--receive:#F7EFDC;--return:#F3EAD4;--rglow:rgba(201,168,76,.3);--spine:#CDB05A;--playbg:#2D4A3E;--playicon:#FAF7F2;--cta:#2D4A3E;--ctatext:#FAF7F2;--statusc:rgba(34,56,46,.6);--tg-verse-b:#F4ECD9;--tg-verse-t:#9A7A24;--tg-dec-b:#F3E5D9;--tg-dec-t:#A35C2E;--tg-pray-b:#E4EDE6;--tg-pray-t:#3E6B52;--vignette:transparent;--card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 12px -3px rgba(34,56,46,.1), inset 0 1px 0 rgba(255,255,255,.7);--chip-shadow:0 6px 16px -6px rgba(34,56,46,.16), inset 0 1px 0 rgba(255,255,255,.6);--return-shadow:0 22px 54px -14px rgba(154,122,36,.34), 0 6px 16px -3px rgba(34,56,46,.12), inset 0 1px 0 rgba(255,255,255,.6);--prayer-shadow:0 28px 64px -14px rgba(154,122,36,.42), 0 8px 20px -4px rgba(34,56,46,.14), inset 0 1px 0 rgba(255,255,255,.6);--phone-shadow:0 50px 110px -24px rgba(34,56,46,.5), 0 16px 40px -12px rgba(34,56,46,.3);}
+html[data-theme="dark"]{--text:#F3EFE6;--text2:#C7D6CD;--muted:#92A89E;--soft:rgba(244,240,231,.6);--gold:#D8B85F;--goldd:#E2C572;--dot:#D8B85F;--clay:#D08A5B;--glow1:rgba(222,190,100,.5);--glow2:rgba(255,238,180,.5);--page:#05090700;--phone:linear-gradient(160deg,#1c2a22,#0b130e);--bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);--bg:#0E1A14;--screen:#13211A;--surface:#1b2c23;--line:rgba(244,239,230,.09);--line2:rgba(244,239,230,.2);--field:rgba(255,255,255,.05);--chipbg:#1b2c23;--topglow:rgba(222,190,100,.5);--botglow:rgba(216,184,95,.22);--prayer:#1D2E25;--pglow:rgba(222,190,100,.55);--receive:rgba(255,255,255,.05);--return:#22352B;--rglow:rgba(222,190,100,.34);--spine:#D8B85F;--playbg:#D8B85F;--playicon:#13211A;--cta:#D0AE54;--ctatext:#13211A;--statusc:rgba(244,239,230,.72);--tg-verse-b:rgba(220,188,99,.18);--tg-verse-t:#E2C572;--tg-dec-b:rgba(208,138,91,.2);--tg-dec-t:#E2A87A;--tg-pray-b:rgba(120,180,140,.18);--tg-pray-t:#8FCBB2;--vignette:rgba(0,0,0,.46);--card-shadow:0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22), inset 0 1px 0 rgba(255,255,255,.06);--chip-shadow:0 8px 20px -8px rgba(0,0,0,.6), 0 0 0 1px rgba(244,239,230,.05), inset 0 1px 0 rgba(255,255,255,.05);--return-shadow:0 26px 64px -16px rgba(0,0,0,.78), 0 0 0 1px rgba(222,190,100,.18), 0 0 70px -6px rgba(222,190,100,.32), inset 0 1px 0 rgba(255,255,255,.06);--prayer-shadow:0 30px 78px -16px rgba(0,0,0,.82), 0 0 0 1px rgba(222,190,100,.2), 0 0 96px -2px rgba(222,190,100,.5), inset 0 1px 0 rgba(255,255,255,.07);--phone-shadow:0 66px 150px -28px rgba(0,0,0,.9), 0 0 150px -34px rgba(222,190,100,.18);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--page);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;transition:background .5s}
+html[data-theme="dark"] body{background:radial-gradient(140% 100% at 50% 0%,#0c1812,#05090700)}
+.serif{font-family:'Cormorant Garamond',serif}
+
+.toggle{position:fixed;bottom:18px;right:18px;display:flex;gap:3px;padding:4px;border-radius:999px;background:rgba(127,127,127,.16);backdrop-filter:blur(6px);z-index:10}
+.toggle button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;padding:7px 15px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:rgba(255,255,255,.12);color:var(--text)}
+
+.phone{width:390px;max-width:100%;background:var(--phone);border-radius:46px;padding:9px;box-shadow:var(--phone-shadow)}
+.screen{position:relative;border-radius:38px;overflow:hidden;min-height:740px;background:var(--bgfield);display:flex;flex-direction:column}
+.topglow{position:absolute;top:0;left:0;right:0;height:540px;background:radial-gradient(56% 36% at 50% 1%,var(--glow2),transparent 42%),radial-gradient(122% 78% at 50% 2%,var(--topglow),transparent 60%);pointer-events:none;z-index:0}
+.grabber{position:relative;z-index:1;width:42px;height:5px;border-radius:999px;background:var(--line2);margin:12px auto 0}
+
+.shead{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:14px 22px 2px}
+.shead .t{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--text)}
+.shead .x{width:32px;height:32px;border-radius:50%;background:var(--surface);box-shadow:var(--chip-shadow);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px}
+
+.scroll{position:relative;z-index:1;flex:1;overflow-y:auto;padding:0 22px 8px}
+.scroll::-webkit-scrollbar{display:none}
+
+.input{display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 14px 14px 18px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow)}
+.input .ph{flex:1;font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;color:var(--muted)}
+.input .send{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#22382E;font-size:18px;box-shadow:0 6px 14px -3px rgba(201,168,76,.55)}
+
+.cat{margin-top:26px}
+.catlbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--goldd);font-weight:500;margin-bottom:13px}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{font-size:13.5px;padding:10px 15px;border-radius:999px;background:var(--chipbg);color:var(--text);box-shadow:var(--chip-shadow)}
+.chip.on{background:var(--gold);color:#22382E;box-shadow:0 8px 18px -6px rgba(201,168,76,.5)}
+
+.crisis{display:flex;align-items:center;justify-content:center;gap:8px;margin:24px 0 6px;font-size:13px;color:var(--text);opacity:.82;text-decoration:none}
+.crisis svg{color:var(--gold)}
+
+.ctawrap{position:relative;z-index:1;padding:14px 22px 24px;background:linear-gradient(to top,var(--screen) 70%,transparent)}
+.cta{width:100%;border:0;background:var(--cta);color:var(--ctatext);border-radius:16px;padding:16px;font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;box-shadow:0 12px 30px -10px rgba(201,168,76,.5);display:flex;align-items:center;justify-content:center;gap:8px}
+.cta .n{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+
+<div class="toggle"><button id="tL">Light</button><button id="tD">Dark</button><button id="tA">Auto</button></div>
+
+<div class="phone">
+  <div class="screen">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="grabber" aria-hidden="true"></div>
+
+    <div class="shead">
+      <span class="t">What's on your heart?</span>
+      <span class="x">&#10005;</span>
+    </div>
+
+    <div class="scroll">
+      <div class="input">
+        <span class="ph">Or write it in your own words&hellip;</span>
+        <span class="send">&#8593;</span>
+      </div>
+
+      <div class="cat">
+        <div class="catlbl">Mind &amp; emotion</div>
+        <div class="chips">
+          <span class="chip on">Fear &amp; anxiety</span><span class="chip">Anger</span><span class="chip">Overwhelm</span><span class="chip">Discouragement</span><span class="chip">Doubt</span>
+        </div>
+      </div>
+
+      <div class="cat">
+        <div class="catlbl">Identity &amp; worth</div>
+        <div class="chips">
+          <span class="chip">Not enough</span><span class="chip">Failure</span><span class="chip">Comparison</span><span class="chip">Insecurity</span><span class="chip">Purpose</span>
+        </div>
+      </div>
+
+      <div class="cat">
+        <div class="catlbl">Relationships</div>
+        <div class="chips">
+          <span class="chip">Loneliness</span><span class="chip">Marriage strain</span><span class="chip">Conflict</span><span class="chip">Fatherhood</span><span class="chip">Betrayal</span>
+        </div>
+      </div>
+
+      <div class="cat">
+        <div class="catlbl">Faith &amp; spirit</div>
+        <div class="chips">
+          <span class="chip">Far from God</span><span class="chip">Temptation</span><span class="chip">Guilt</span><span class="chip">Waiting on God</span><span class="chip">Unanswered prayer</span>
+        </div>
+      </div>
+
+      <div class="cat">
+        <div class="catlbl">Trials &amp; seasons</div>
+        <div class="chips">
+          <span class="chip">Grief &amp; loss</span><span class="chip">Money stress</span><span class="chip">Work pressure</span><span class="chip">Health</span><span class="chip">Addiction</span>
+        </div>
+      </div>
+
+      <a href="#" class="crisis">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"/><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"/><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"/></svg>
+        <span>In crisis? Find help now</span>
+        <span style="font-size:15px">&#8594;</span>
+      </a>
+    </div>
+
+    <div class="ctawrap">
+      <button class="cta">Receive the Word <span class="n">&middot; Fear &amp; anxiety</span></button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){var h=document.documentElement,L=document.getElementById('tL'),D=document.getElementById('tD');
+function set(t){h.setAttribute('data-theme',t);L.classList.toggle('on',t==='light');D.classList.toggle('on',t==='dark');}
+L.onclick=function(){set('light')};D.onclick=function(){set('dark')};})();
+</script>
+
+<script>(function(){var h=document.documentElement,L=document.getElementById("tL"),D=document.getElementById("tD"),A=document.getElementById("tA");if(!L||!D||!A)return;var mq=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");function paint(m){var t=m==="auto"?((mq&&mq.matches)?"dark":"light"):m;h.setAttribute("data-theme",t);L.classList.toggle("on",m==="light");D.classList.toggle("on",m==="dark");A.classList.toggle("on",m==="auto");}var saved=null;try{saved=localStorage.getItem("declare-theme-mock");}catch(e){}var mode=(saved==="light"||saved==="dark"||saved==="auto")?saved:(h.getAttribute("data-theme")==="light"?"light":"dark");function set(m){mode=m;try{localStorage.setItem("declare-theme-mock",m);}catch(e){}paint(m);}L.onclick=function(){set("light");};D.onclick=function(){set("dark");};A.onclick=function(){set("auto");};if(mq&&mq.addEventListener)mq.addEventListener("change",function(){if(mode==="auto")paint("auto");});paint(mode);})();</script>
+</body>
+</html>

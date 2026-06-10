@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Find a Church</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="declare.css" />
+<script src="account-morph.js" defer></script>
+<link rel="stylesheet" href="church-shared.css" />
+<link rel="stylesheet" href="search.css" />
+<link rel="stylesheet" href="share.css" />
+<style>
+  .screen{ min-height:812px; }
+  .in-shell{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  /* in the flow, the detail's own set button is replaced by the reserve bar */
+  .scr.modal .dsetwrap, #scrDetail .dsetwrap{ display:none; }
+  .bar{ position:relative; z-index:8; }
+
+  /* ============================================================
+     DESKTOP / TABLET  —  drop the phone bezel, present as a web app.
+     741px+  : full-bleed shell, centered columns, floating nav.
+     1060px+ : Results becomes a two-pane list + persistent map.
+     ============================================================ */
+  @media (min-width:741px){
+    .stage{ padding:0; align-items:stretch; }
+    .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
+    .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 280px var(--vignette); }
+    .bar{ display:none; }
+
+    /* --- Explore: center content, widen rails --- */
+    .ex-head{ padding:18px clamp(22px,4vw,48px) 14px; }
+    .ex-greet, .searchpill, .cats{ max-width:1040px; margin-left:auto; margin-right:auto; }
+    .ex-greet{ padding-top:8px; }
+    #exRows .row{ max-width:1080px; margin-left:auto; margin-right:auto; }
+    .row-head, .rail{ padding-left:clamp(22px,4vw,48px); padding-right:clamp(22px,4vw,48px); }
+    .ex-scroll{ padding-bottom:120px; }
+    .lcard{ width:248px; }
+
+    /* --- floating segmented nav pill --- */
+    .bnav{ left:50%; right:auto; transform:translateX(-50%); bottom:26px; width:auto; gap:6px;
+      padding:7px 9px; border-radius:999px; border:1px solid var(--line);
+      background:color-mix(in srgb, var(--surface) 92%, transparent);
+      box-shadow:0 20px 46px -18px rgba(0,0,0,.55); }
+    .bn{ flex:0 0 auto; flex-direction:row; gap:9px; padding:10px 18px; border-radius:999px; }
+    .bn svg{ width:19px; height:19px; }
+    .bn .bl{ font-size:13px; }
+    .bn.on{ background:color-mix(in srgb, var(--gold) 16%, transparent); }
+
+    /* --- Search panel: center its content --- */
+    .ss-top{ padding:18px clamp(22px,4vw,48px) 8px; }
+    .ss-top .ss-title{ font-size:15px; }
+    .ss-scroll{ padding-left:0; padding-right:0; }
+    .ss-scroll > *{ max-width:620px; margin-left:auto; margin-right:auto; }
+    .ss-foot{ justify-content:center; gap:24px; padding-left:0; padding-right:0; }
+    .ss-foot > *{ flex:0 0 auto; }
+
+    /* --- Results: center the single-column list (tablet) --- */
+    .rs-top{ padding:18px clamp(22px,4vw,48px) 12px; }
+    .rs-bar, .rs-count{ max-width:760px; margin-left:auto; margin-right:auto; }
+    .rs-list{ max-width:760px; margin-left:auto; margin-right:auto; width:100%; }
+
+    /* --- Detail: center column --- */
+    .dtop{ padding:18px clamp(22px,4vw,48px) 0; max-width:720px; margin-left:auto; margin-right:auto; }
+    .dscroll{ max-width:680px; margin-left:auto; margin-right:auto; width:100%; }
+    .reserve-bar{ justify-content:center; gap:26px; }
+    .reserve-bar > *{ flex:0 0 auto; }
+
+    /* --- Confirm + states centered --- */
+    .cf-sheet{ left:50%; transform:translateX(-50%) translateY(100%); width:min(440px,92vw); border-radius:26px; }
+    .cf-sheet{ animation:cfupc .4s cubic-bezier(.2,.7,.2,1) forwards; }
+    @keyframes cfupc{ to{ transform:translateX(-50%); } }
+  }
+
+  /* --- 1060px+ : two-pane Results (list left, persistent map right) --- */
+  @media (min-width:1060px){
+    #scrResults{ display:grid; grid-template-columns:minmax(440px,560px) 1fr;
+      grid-template-rows:auto 1fr; grid-template-areas:"top top" "list map"; }
+    #scrResults .rs-top{ grid-area:top; }
+    #scrResults .rs-bar, #scrResults .rs-count{ max-width:none; }
+    #scrResults .rs-list{ grid-area:list; max-width:none; margin:0; padding:14px 22px 30px; }
+    #scrResults .rs-map{ grid-area:map; position:relative; inset:auto; display:block; z-index:1; }
+    #scrResults .rs-map #rmap{ position:absolute; inset:0; }
+    #scrResults .map-carousel{ display:none; }
+    #scrResults .fab{ display:none; }
+    /* empty/error overlays still cover the whole results area */
+    #scrResults .state{ z-index:40; }
+  }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="in-shell">
+        <div class="bar"><span style="font-weight:500">9:41</span><span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+
+        <div class="app">
+
+          <!-- ============ EXPLORE (base) ============ -->
+          <section class="scr base in" id="scrExplore" data-screen-label="Explore">
+            <div class="ex-scroll">
+              <div class="ex-head">
+                <div class="ex-greet">
+                  <div class="g-l"><div class="eg-k">Find a church</div><div class="eg-t">Welcome, <span id="egName">friend</span></div></div>
+                  <a class="g-r" href="Account-A.html" id="avInit" data-you-morph>J</a>
+                </div>
+                <button class="searchpill" id="openSearch">
+                  <span class="sp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+                  <span class="sp-t"><span class="sp-main">Find your church</span><span class="sp-sub">Anywhere &middot; Any service &middot; Add what matters</span></span>
+                  <span class="sp-tune"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg></span>
+                </button>
+                <div class="cats" id="cats"></div>
+              </div>
+              <div id="exRows"></div>
+
+              <!-- subtle demo entry points for the edge states -->
+              <div class="row" style="margin-top:30px">
+                <div class="row-head"><div class="rh-t" style="font-size:15px;color:var(--muted)">Preview every state</div></div>
+                <div style="display:flex; gap:9px; flex-wrap:wrap; padding:0 18px">
+                  <button class="dchip" id="demoEmpty" style="font-size:12.5px">No results</button>
+                  <button class="dchip" id="demo500" style="font-size:12.5px">Error 500</button>
+                  <button class="dchip" id="demoOffline" style="font-size:12.5px">Offline</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- bottom nav -->
+            <nav class="bnav" id="bnav">
+              <button class="bn on" data-nav="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><span class="bl">Explore</span></button>
+              <button class="bn" data-nav="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15.2 3.5 9.2C3.5 6.3 5.7 4.5 8 4.5c1.7 0 3.1 1 4 2.3.9-1.3 2.3-2.3 4-2.3 2.3 0 4.5 1.8 4.5 4.7 0 6-8.5 11.3-8.5 11.3z"/></svg><span class="bl">Saved</span></button>
+              <button class="bn" data-nav="mine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg><span class="bl">My church</span></button>
+            </nav>
+          </section>
+
+          <!-- ============ SEARCH SHEET (modal) ============ -->
+          <section class="scr modal" id="scrSearch" data-screen-label="Search">
+            <div class="ss-top">
+              <button class="iconbtn-c" id="ssClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <div class="ss-title">Find your church</div>
+              <div style="width:40px"></div>
+            </div>
+            <div class="ss-scroll" id="ssScroll"></div>
+            <div class="ss-foot">
+              <button class="ss-clear" id="ssClear">Clear all</button>
+              <button class="ss-go" id="ssGo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg> Search</button>
+            </div>
+          </section>
+
+          <!-- ============ RESULTS (push) ============ -->
+          <section class="scr push" id="scrResults" data-screen-label="Results">
+            <div class="rs-top">
+              <div class="rs-bar">
+                <button class="iconbtn-c" id="rsBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+                <button class="rs-summary" id="rsSummary">
+                  <span class="rs-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+                  <span class="rs-tt"><span class="rs-main" id="rsSummaryMain">Nearby</span><span class="rs-sub" id="rsSummarySub">Churches near you</span></span>
+                  <span class="rs-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg></span>
+                </button>
+              </div>
+              <div class="rs-count" id="rsCount"></div>
+            </div>
+            <div class="rs-list" id="rsList"></div>
+
+            <!-- map overlay -->
+            <div class="rs-map" id="rsMap"><div id="rmap"></div><div class="map-carousel" id="mapCarousel"></div></div>
+
+            <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Map</button>
+
+            <!-- empty -->
+            <div class="state" id="emptyState">
+              <div class="st-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/><path d="M8 11h6"/></svg></div>
+              <div class="st-t">No churches found here yet</div>
+              <div class="st-d">We couldn&rsquo;t find a match for these filters. Try widening your search &mdash; or explore online congregations.</div>
+              <button class="st-btn" id="emptyReset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg> Reset filters</button>
+            </div>
+            <!-- error -->
+            <div class="state" id="errorState"></div>
+          </section>
+
+          <!-- ============ DETAIL (push) ============ -->
+          <section class="scr push detail" id="scrDetail" data-screen-label="Church detail" style="display:flex">
+            <div class="dtop">
+              <button class="iconbtn-c" id="dBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+              <button class="iconbtn-c" id="dShare" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg></button>
+            </div>
+            <div class="dscroll" id="dScroll"></div>
+            <div class="reserve-bar" id="reserveBar"></div>
+          </section>
+
+          <!-- confirm + success + toast -->
+          <div class="confirm-scrim" id="confirmScrim"></div>
+          <div class="success" id="successScr"></div>
+          <div class="toast" id="toast"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="theme.js"></script>
+<script src="church-shared.js"></script>
+<script src="church-api.js"></script>
+<script src="share.js"></script>
+<script src="search-flow.js"></script>
+</body>
+</html>

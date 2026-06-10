@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — What&rsquo;s New</title>
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="declare.css" />
+
+<style>
+  .screen{ min-height:760px; }
+  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  .sub-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:12px 16px 0; }
+  .sub-top .ttl{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+  .scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 24px 44px; scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+
+  .whead{ text-align:center; padding:16px 0 8px; }
+  .whead .kick{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+  .whead h1{ font-family:'Cormorant Garamond',serif; font-size:36px; font-weight:600; color:var(--text); margin-top:9px; text-shadow:0 0 50px rgba(222,190,100,.24); }
+  .whead .tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--soft); margin-top:8px; }
+
+  /* version timeline */
+  .rel{ position:relative; padding-left:26px; margin-top:30px; }
+  .rel::before{ content:''; position:absolute; left:7px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(180deg,var(--gold),color-mix(in srgb,var(--gold) 12%,transparent)); opacity:.5; }
+  .rel:last-child::before{ background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 40%,transparent),transparent); }
+  .rel .node{ position:absolute; left:0; top:4px; width:16px; height:16px; border-radius:50%;
+    background:var(--surface); border:2px solid var(--gold); box-shadow:0 0 0 4px var(--bg); }
+  .rel.now .node{ background:var(--gold); box-shadow:0 0 0 4px var(--bg), 0 0 16px 2px rgba(216,184,95,.6); }
+
+  .rel .vrow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .rel .vtag{ font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text); }
+  .rel .vdate{ font-size:11.5px; color:var(--muted); }
+  .rel .vnow{ font-size:9px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:#0c130f; background:var(--gold); padding:3px 8px; border-radius:100px; }
+  .rel .vname{ font-family:'Cormorant Garamond',serif; font-size:23px; font-weight:600; color:var(--text); margin-top:8px; line-height:1.18; }
+  .rel .vsum{ font-size:14px; line-height:1.6; color:var(--text2); margin-top:7px; text-wrap:pretty; }
+
+  .changes{ list-style:none; margin:14px 0 4px; display:flex; flex-direction:column; gap:11px; }
+  .changes li{ display:flex; gap:12px; }
+  .changes .ci{ flex:0 0 auto; width:30px; height:30px; border-radius:9px; background:var(--field); border:1px solid var(--line2);
+    display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+  .changes .ci svg{ width:16px; height:16px; }
+  .changes .cb{ flex:1; min-width:0; padding-top:1px; }
+  .changes .ct{ font-size:14px; font-weight:600; color:var(--text); }
+  .changes .cd{ font-size:12.5px; color:var(--muted); margin-top:2px; line-height:1.5; }
+
+  .relblock{ margin-bottom:34px; }
+  .credit{ text-align:center; font-size:11px; letter-spacing:.06em; color:var(--muted); margin-top:14px; line-height:1.7; }
+
+  /* readable column once the showcase frame is gone on larger screens is handled by .phone max-width;
+     here we just keep long-form text comfortable */
+  @media (min-width:481px){ .scroll{ padding-left:30px; padding-right:30px; } }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="stage"><div class="phone"><div class="screen">
+  <div class="topglow" aria-hidden="true"></div>
+  <div class="in">
+    <div class="bar"><span style="font-weight:500">9:41</span><span class="right"><span style="letter-spacing:1px">&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+    <div class="sub-top">
+      <a class="iconbtn" href="Account-A.html" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+      <span class="ttl">What&rsquo;s new</span>
+      <span class="iconbtn" style="visibility:hidden"></span>
+    </div>
+    <div class="scroll">
+
+      <div class="whead rise d1">
+        <div class="kick">Release notes</div>
+        <h1>What&rsquo;s new</h1>
+        <div class="tag">Every update, in plain words.</div>
+      </div>
+
+      <!-- ===== v3.2 — current redesign ===== -->
+      <div class="relblock rise d2">
+        <div class="rel now">
+          <span class="node" aria-hidden="true"></span>
+          <div class="vrow"><span class="vtag">Version 3.2</span><span class="vnow">New</span><span class="vdate">June 9, 2026</span></div>
+          <div class="vname">Rooted</div>
+          <p class="vsum">A warmer, faster Declare &mdash; redesigned around the moment you actually need a word, and the journey of becoming who God says you are.</p>
+          <ul class="changes">
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 21v-4M5 8l7-5 7 5M7 21h10"/></svg></span>
+              <div class="cb"><div class="ct">A gentler way into Journeys</div><div class="cd">Choose your transformation and we plant a tree you walk for five days &mdash; one declaration at a time.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></span>
+              <div class="cb"><div class="ct">Your account, one graceful tap away</div><div class="cd">Your avatar now flows smoothly into your profile from anywhere in the app.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18l7-4 7 4V3z"/></svg></span>
+              <div class="cb"><div class="ct">Go deeper from your Vault</div><div class="cd">Turn a saved verse into a full 5-day Journey, so the truth takes root.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l2.85 6.06 6.65.83-4.9 4.54 1.27 6.57L12 17.9l-5.87 3.3 1.27-6.57-4.9-4.54 6.65-.83z"/></svg></span>
+              <div class="cb"><div class="ct">Share your testimony</div><div class="cd">Tell us how Declare has met you &mdash; from your account, or after finishing a Journey.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></span>
+              <div class="cb"><div class="ct">Calmer &amp; quicker throughout</div><div class="cd">Smoother transitions, cleaner screens, and a lighter, faster feel across the whole app.</div></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ===== v3.1 ===== -->
+      <div class="relblock rise d3">
+        <div class="rel">
+          <span class="node" aria-hidden="true"></span>
+          <div class="vrow"><span class="vtag">Version 3.1</span><span class="vdate">June 3, 2026</span></div>
+          <div class="vname">Carry the Word with you</div>
+          <ul class="changes">
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></span>
+              <div class="cb"><div class="ct">Card Studio</div><div class="cd">Create and share beautiful verse, declaration, and prayer cards.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5-7-11a7 7 0 0 1 14 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+              <div class="cb"><div class="ct">Find a Church</div><div class="cd">Discover a fellowship near you and set your home church.</div></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ===== v3.0 ===== -->
+      <div class="relblock rise d4">
+        <div class="rel">
+          <span class="node" aria-hidden="true"></span>
+          <div class="vrow"><span class="vtag">Version 3.0</span><span class="vdate">May 28, 2026</span></div>
+          <div class="vname">A place to return to</div>
+          <ul class="changes">
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 5V3.5M16 5V3.5"/></svg></span>
+              <div class="cb"><div class="ct">The Vault</div><div class="cd">Save the verses, declarations, and prayers that meet you &mdash; in one quiet place.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+              <div class="cb"><div class="ct">Daily reminders</div><div class="cd">A gentle nudge to return to the Word each day.</div></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ===== v1.0 — the original production app ===== -->
+      <div class="relblock rise d5">
+        <div class="rel">
+          <span class="node" aria-hidden="true"></span>
+          <div class="vrow"><span class="vtag">Version 1.0</span><span class="vdate">May 21, 2026</span></div>
+          <div class="vname">Where it began</div>
+          <p class="vsum">The first Declare &amp; Believe &mdash; a single, quiet page that meets you with God&rsquo;s Word the moment you name what you&rsquo;re carrying. Built on Romans 12:2.</p>
+          <ul class="changes">
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+              <div class="cb"><div class="ct">Name it, receive the Word</div><div class="cd">Pick a struggle or describe it in your own words, and get up to three Bible verses for that exact moment.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></span>
+              <div class="cb"><div class="ct">Explanation, declarations &amp; prayer</div><div class="cd">A faith-filled explanation, &ldquo;I am&rdquo; declarations to speak aloud, and a personal prayer for what you&rsquo;re facing.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span>
+              <div class="cb"><div class="ct">Three translations</div><div class="cd">Read it in NKJV, NLT, or NIV &mdash; whichever speaks to you best.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7 8l5-5 5 5"/></svg></span>
+              <div class="cb"><div class="ct">Copy, share &amp; save</div><div class="cd">Take the Word with you, or send it to someone who needs it.</div></div>
+            </li>
+            <li>
+              <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.2-8.4C1 9.3 2.5 6 6 6c2 0 3 1.2 3.8 2.3C10.6 7.2 11.6 6 13.7 6c3.5 0 5 3.3 3.2 6.6C18.7 16.4 12 21 12 21Z"/></svg></span>
+              <div class="cb"><div class="ct">Help in crisis</div><div class="cd">Immediate access to the 988 Lifeline and Crisis Text Line for anyone in danger &mdash; compassion first.</div></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="credit rise d6">Declare &middot; Version 3.2<br>Made for the Kingdom &middot; JC Kingdom Ventures</div>
+    </div>
+  </div>
+</div></div></div>
+<script src="theme.js"></script>
+</body>
+</html>

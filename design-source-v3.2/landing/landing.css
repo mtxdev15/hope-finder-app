@@ -1,0 +1,143 @@
+/* Declare & Believe — SEO landing pages (warm, on-brand, mobile-first).
+   Static, indexable marketing pages that funnel into the app. Tokens mirror
+   the app so the pages feel native to declareandbelieve.com. */
+
+:root{
+  --bg:#F7F3EC;
+  --surface:#FBF8F2;
+  --cream:#FEFCF8;
+  --parchment:#ECE4D5;
+  --gold:#C9A84C;
+  --gold-light:#E8C97A;
+  --gold-dark:#9B7A2E;
+  --gold-pale:#F6EFDB;
+  --forest:#2D4A3E;
+  --forest-light:#3D6356;
+  --forest-pale:#E8F0ED;
+  --text:#1A1A18;
+  --muted:#6B6355;
+  --light:#9B9080;
+  --raise:7px 7px 16px rgba(190,176,150,0.38), -7px -7px 16px rgba(255,255,255,0.95);
+  --raise-sm:4px 4px 9px rgba(190,176,150,0.34), -4px -4px 9px rgba(255,255,255,0.9);
+  --raise-xs:3px 3px 6px rgba(190,176,150,0.32), -2px -2px 6px rgba(255,255,255,0.88);
+  --inset-sm:inset 4px 4px 8px rgba(190,176,150,0.42), inset -4px -4px 8px rgba(255,255,255,0.95);
+  --forest-press:inset 4px 4px 9px rgba(20,38,30,0.55), inset -4px -4px 9px rgba(74,103,90,0.55);
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+html{ background:var(--bg); -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'DM Sans', system-ui, sans-serif; font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+::selection{ background:var(--gold-pale); }
+a{ color:var(--forest); text-decoration:none; }
+img{ max-width:100%; }
+
+.wrap{ max-width:760px; margin:0 auto; padding:0 22px; }
+
+/* top brand bar */
+.lp-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:18px 0 6px; }
+.lp-brand{ display:flex; align-items:center; gap:11px; }
+.lp-mark{ width:40px; height:40px; border-radius:12px; background:var(--forest); color:var(--cream);
+  display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:22px; box-shadow:var(--raise-xs); }
+.lp-brandname{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:20px; color:var(--forest); line-height:1; }
+.lp-brandsub{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-dark); }
+.lp-topcta{ font-size:13.5px; font-weight:600; color:var(--forest); padding:9px 16px; border-radius:999px; background:var(--surface); box-shadow:var(--raise-xs); transition:transform .12s, box-shadow .14s; }
+.lp-topcta:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+
+/* hero */
+.lp-hero{ padding:30px 0 14px; text-align:center; }
+.lp-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-dark); margin:0 0 14px; }
+.lp-h1{ font-family:'Cormorant Garamond', serif; font-weight:600; font-size:clamp(34px,8vw,52px); line-height:1.14; color:var(--forest); margin:0 0 18px; letter-spacing:.004em; }
+.lp-lede{ font-size:clamp(17px,4.2vw,19px); color:var(--muted); margin:6px auto 0; max-width:36ch; }
+
+/* the up-front direct answer (AEO / featured-snippet fuel) */
+.lp-answer{ margin:26px 0 6px; padding:22px 24px; border-radius:20px; background:var(--surface); box-shadow:var(--raise-sm); }
+.lp-answer p{ margin:0; font-size:16.5px; line-height:1.6; color:var(--text); }
+.lp-answer strong{ color:var(--forest); }
+
+/* section scaffold */
+.lp-sec{ margin:42px 0; }
+.lp-seclabel{ display:flex; align-items:center; gap:14px; font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-dark); margin-bottom:20px; }
+.lp-seclabel::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(201,168,76,.4), transparent); }
+.lp-h2{ font-family:'Cormorant Garamond', serif; font-weight:600; font-size:clamp(26px,6vw,34px); color:var(--forest); margin:0 0 8px; line-height:1.15; }
+
+/* translation toggle */
+.lp-trans{ display:flex; gap:8px; margin-bottom:18px; }
+.lp-tpill{ min-height:38px; padding:0 16px; border-radius:999px; background:var(--surface); box-shadow:var(--raise-xs); font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--muted); cursor:pointer; transition:box-shadow .14s, color .14s; }
+.lp-tpill.on{ background:var(--forest); color:var(--cream); box-shadow:var(--forest-press); }
+
+/* scripture cards */
+.lp-verses{ display:flex; flex-direction:column; gap:16px; }
+.lp-verse{ border-radius:24px; background:linear-gradient(160deg, var(--gold-pale), var(--cream)); box-shadow:var(--raise); padding:30px 28px 24px; text-align:center; }
+.lp-vtext{ font-family:'Cormorant Garamond', serif; font-weight:500; font-size:clamp(21px,5.4vw,27px); line-height:1.36; color:var(--text); }
+.lp-vref{ display:block; margin-top:16px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-dark); }
+.lp-vref::before{ content:''; display:block; width:30px; height:1px; background:var(--gold); margin:0 auto 12px; opacity:.6; }
+
+/* mindset / prayer prose blocks */
+.lp-block{ padding:26px 28px; border-radius:22px; box-shadow:var(--raise-sm); }
+.lp-block.mind{ background:var(--forest-pale); }
+.lp-block.pray{ background:var(--surface); }
+.lp-block p{ margin:0; font-size:17px; line-height:1.66; color:var(--text); }
+.lp-block.pray p{ font-family:'Cormorant Garamond', serif; font-size:20px; font-style:italic; line-height:1.55; color:var(--forest); }
+
+/* declarations */
+.lp-decls{ display:flex; flex-direction:column; gap:12px; list-style:none; margin:0; padding:0; }
+.lp-decl{ display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:var(--surface); box-shadow:var(--raise-xs); }
+.lp-decl-q{ font-family:'Cormorant Garamond',serif; font-weight:700; font-size:30px; line-height:.8; color:var(--gold); flex:0 0 auto; }
+.lp-decl-t{ font-size:17px; font-weight:500; color:var(--text); line-height:1.4; }
+
+/* more scriptures compact list */
+.lp-more{ display:flex; flex-direction:column; gap:12px; }
+.lp-more-item{ padding:16px 18px; border-radius:14px; background:var(--surface); box-shadow:var(--raise-xs); }
+.lp-more-ref{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-dark); display:block; margin-bottom:4px; }
+.lp-more-text{ font-family:'Cormorant Garamond',serif; font-size:18px; line-height:1.45; color:var(--text); }
+
+/* email capture — the strong moment */
+.lp-capture{ margin:46px 0; padding:34px 30px; border-radius:26px; background:var(--forest); color:var(--cream); text-align:center; box-shadow:var(--raise); }
+.lp-capture-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); margin:0 0 12px; }
+.lp-capture-h{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:clamp(24px,5.6vw,30px); line-height:1.2; margin:0 0 8px; color:#FBF7EE; }
+.lp-capture-sub{ font-size:15px; color:rgba(245,239,228,.82); margin:0 auto 22px; max-width:40ch; }
+.lp-form{ display:flex; gap:10px; max-width:440px; margin:0 auto; flex-wrap:wrap; }
+.lp-form input{ flex:1; min-width:0; min-height:54px; border:none; border-radius:14px; padding:0 18px; font-family:inherit; font-size:16px; background:rgba(255,255,255,.95); color:var(--text); }
+.lp-form input::placeholder{ color:var(--light); }
+.lp-form button{ min-height:54px; padding:0 24px; border:none; border-radius:14px; background:var(--gold); color:#3a2c0c; font-family:inherit; font-size:15.5px; font-weight:700; cursor:pointer; transition:transform .12s, filter .14s; }
+.lp-form button:active{ transform:translateY(1px); }
+.lp-form button:hover{ filter:brightness(1.04); }
+.lp-capture-fine{ font-size:12px; color:rgba(245,239,228,.6); margin:14px 0 0; }
+.lp-capture.done .lp-form, .lp-capture.done .lp-capture-sub{ display:none; }
+.lp-capture-thanks{ display:none; font-size:17px; font-weight:600; color:#FBF7EE; }
+.lp-capture.done .lp-capture-thanks{ display:block; }
+
+/* app CTA band */
+.lp-appcta{ margin:42px 0; padding:28px 26px; border-radius:22px; background:linear-gradient(150deg, var(--gold-pale), var(--cream)); box-shadow:var(--raise-sm); display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center; text-align:center; }
+.lp-appcta-tx{ flex:1; min-width:220px; }
+.lp-appcta-h{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:23px; color:var(--forest); margin:0 0 4px; }
+.lp-appcta-p{ font-size:14.5px; color:var(--muted); margin:0; }
+.lp-appbtn{ display:inline-flex; align-items:center; gap:9px; min-height:54px; padding:0 26px; border-radius:16px; background:var(--forest); color:var(--cream); font-size:16px; font-weight:600; box-shadow:var(--raise-sm); transition:transform .12s, box-shadow .14s; }
+.lp-appbtn:active{ box-shadow:var(--forest-press); transform:translateY(1px); }
+
+/* FAQ */
+.lp-faq{ display:flex; flex-direction:column; gap:14px; }
+.lp-faq-item{ padding:22px 24px; border-radius:18px; background:var(--surface); box-shadow:var(--raise-xs); }
+.lp-faq-q{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:21px; color:var(--forest); margin:0 0 8px; line-height:1.25; }
+.lp-faq-a{ font-size:16px; line-height:1.6; color:var(--text); margin:0; }
+
+/* related struggles */
+.lp-related{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.lp-rel{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 18px; border-radius:14px; background:var(--surface); box-shadow:var(--raise-xs); font-size:15px; font-weight:600; color:var(--forest); transition:transform .12s, box-shadow .14s; }
+.lp-rel:hover{ transform:translateY(-1px); }
+.lp-rel:active{ box-shadow:var(--inset-sm); }
+.lp-rel span{ color:var(--gold-dark); }
+@media (max-width:520px){ .lp-related{ grid-template-columns:1fr; } }
+
+/* footer */
+.lp-footer{ margin-top:50px; padding:30px 0 46px; border-top:1px solid rgba(155,144,128,.22); text-align:center; }
+.lp-footer-links{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 0; margin-bottom:16px; }
+.lp-footer-links a{ font-size:13px; font-weight:600; color:var(--forest); padding:6px 15px; position:relative; }
+.lp-footer-links a:not(:last-child)::after{ content:''; position:absolute; right:0; top:50%; transform:translateY(-50%); width:1px; height:12px; background:rgba(155,144,128,.4); }
+.lp-footer-copy{ font-size:12.5px; color:var(--light); }
+.lp-footer-copy b{ color:var(--muted); font-weight:600; }
