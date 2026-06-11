@@ -1,3 +1,12 @@
 name = "hope-finder-worker"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
+
+# Bible reader cache (public-domain WEB text, cached forever).
+# SETUP (you must run this — it touches your Cloudflare account):
+#   cd worker && npx wrangler kv namespace create BIBLE_KV
+# then paste the printed id below (replace PASTE_KV_ID_HERE). Optional preview id
+# for `wrangler dev`: npx wrangler kv namespace create BIBLE_KV --preview
+[[kv_namespaces]]
+binding = "BIBLE_KV"
+id = "823458f407a74de29402b6e88bba5a1e"

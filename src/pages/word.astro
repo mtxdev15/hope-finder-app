@@ -1,0 +1,243 @@
+---
+// /word — the Word reader (slice 1: read a book/chapter in WEB end to end).
+// Static Astro page on DeclareLayout; all behaviour is vanilla JS (matches the
+// design source). The browser asks the Cloudflare Worker's /bible route for a
+// chapter; the Worker fetches WEB from API.Bible (key server-side) and caches it
+// forever in KV. WEB only this slice — translation switching, verse-jump, compare,
+// and the Aa sheet are deferred to later slices.
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+import { DB_BIBLE } from '../data/bible.js';
+import { USFM } from '../data/usfm.js';
+
+// flatten the grouped book data for server-rendering the list
+const sections = [
+  { testament: 'OT', groups: DB_BIBLE.OT.groups },
+  { testament: 'NT', groups: DB_BIBLE.NT.groups },
+];
+const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+---
+<DeclareLayout
+  title="Declare — The Word"
+  description="Read the Bible — the World English Bible, free and ad-free."
+  activeTab="word"
+>
+  <main class="word">
+    <div class="topglow" aria-hidden="true"></div>
+
+    {/* ---------- book list ---------- */}
+    <div class="w-bookview" id="bookView">
+      <div class="w-col">
+        <div class="wtitle rise d1">The Word</div>
+        <div class="wsub rise d1">World English Bible &middot; free &amp; ad-free</div>
+
+        {sections.map((sec) => sec.groups.map((g) => (
+          <section class="grp">
+            <div class="grphead">
+              <span class="grptitle">{g.title}</span>
+              <span class="grpsub">{g.sub}</span>
+            </div>
+            <div class="books">
+              {g.books.map((b) => (
+                <button class="book" data-usfm={USFM[b.name]} data-chaps={b.chapters} data-name={b.name}>
+                  <span class="bmain">
+                    <span class="bname">{b.name}</span>
+                    {b.tag && <span class="bdesc">{b.tag}</span>}
+                    <span class="bchap">{b.chapters} {b.chapters === 1 ? 'chapter' : 'chapters'}</span>
+                  </span>
+                  <span class="chev" set:html={chev} />
+                </button>
+              ))}
+            </div>
+          </section>
+        )))}
+        <div class="foot-sp"></div>
+      </div>
+    </div>
+
+    {/* ---------- reader overlay ---------- */}
+    <div class="w-reader" id="reader">
+      <div class="topglow" aria-hidden="true"></div>
+      <div class="rtop">
+        <div class="rhead">
+          <button class="iconbtn" id="readerBack" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <span class="rbook" id="rbook">John</span>
+          <span class="iconbtn-spacer" aria-hidden="true"></span>
+        </div>
+        <div class="rsub" id="rsub">21 chapters</div>
+        <div class="readctl" id="readctl" hidden>
+          <button class="navchap" id="prevChap" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="rtransnote" id="rtransnote" hidden>World English Bible (WEB) &middot; public domain</div>
+      </div>
+      <div class="rscroll" id="rscroll">
+        <div class="chappick" id="chapPick">
+          <div class="picklbl">Choose a chapter</div>
+          <div class="chapgrid" id="chapgrid"></div>
+        </div>
+        <div class="rbody" id="rbody" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <script is:inline>
+    (function () {
+      var WORKER = 'https://hope-finder-worker.thinktoro.workers.dev/bible';
+      var $ = function (id) { return document.getElementById(id); };
+      var esc = function (s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+
+      var reader = $('reader'), bookView = $('bookView');
+      var rbook = $('rbook'), rsub = $('rsub'), chapgrid = $('chapgrid'), chapPick = $('chapPick'),
+          rbody = $('rbody'), readctl = $('readctl'), rtransnote = $('rtransnote'),
+          chapLabelText = $('chapLabelText'), prevChapBtn = $('prevChap'), nextChapBtn = $('nextChap'),
+          rscroll = $('rscroll');
+
+      var curName = '', curUsfm = '', curChaps = 1, curChap = 1;
+      var CACHE = {}, reqId = 0;
+
+      function fetchChapter(usfm, chap) {
+        var key = usfm + '.' + chap;
+        if (CACHE[key]) return Promise.resolve(CACHE[key]);
+        var url = WORKER + '?translation=web&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
+        return fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j || !j.verses) return null;
+          CACHE[key] = j.verses; return j.verses;
+        }).catch(function () { return null; });
+      }
+
+      function openReader(name, usfm, chaps) {
+        curName = name; curUsfm = usfm; curChaps = chaps || 1;
+        rbook.textContent = name;
+        reader.classList.add('open');
+        showPicker();
+      }
+      function showPicker() {
+        var h = ''; for (var i = 1; i <= curChaps; i++) { h += '<button class="chaptile" data-c="' + i + '">' + i + '</button>'; }
+        chapgrid.innerHTML = h;
+        rsub.textContent = curChaps + (curChaps === 1 ? ' chapter' : ' chapters');
+        chapPick.hidden = false; rbody.hidden = true; readctl.hidden = true; rtransnote.hidden = true;
+        rscroll.scrollTop = 0;
+      }
+      function readChapter(ch) {
+        curChap = ch;
+        chapPick.hidden = true; rbody.hidden = false; readctl.hidden = false; rtransnote.hidden = false;
+        chapLabelText.textContent = 'Chapter ' + ch;
+        prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
+        rscroll.scrollTop = 0;
+        renderBody();
+      }
+      function loadingPanel() {
+        var rows = ''; for (var i = 0; i < 6; i++) { rows += '<div class="shrow"><span class="shn"></span><span class="shl" style="width:' + (70 + (i % 3) * 9) + '%"></span></div>'; }
+        return '<div class="rloading">' + rows + '</div>';
+      }
+      function errorPanel() {
+        return '<div class="rsoon"><div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div>'
+          + '<div class="rt2">' + esc(curName + ' ' + curChap) + '</div>'
+          + '<div class="rd">Couldn’t load this chapter. Check your connection and try again.</div></div>';
+      }
+      function renderBody() {
+        var myReq = ++reqId;
+        rbody.innerHTML = loadingPanel();
+        fetchChapter(curUsfm, curChap).then(function (vs) {
+          if (myReq !== reqId) return;
+          if (!vs || !vs.length) { rbody.innerHTML = errorPanel(); return; }
+          rbody.innerHTML = vs.map(function (v) {
+            return '<div class="vrse" data-n="' + esc(v.n) + '"><span class="vn">' + esc(v.n) + '</span><span class="vt">' + esc(v.t) + '</span></div>';
+          }).join('');
+        });
+      }
+
+      chapgrid.addEventListener('click', function (e) { var t = e.target.closest('.chaptile'); if (t) readChapter(parseInt(t.dataset.c, 10)); });
+      $('chapLabel').addEventListener('click', showPicker);
+      prevChapBtn.addEventListener('click', function () { if (curChap > 1) readChapter(curChap - 1); });
+      nextChapBtn.addEventListener('click', function () { if (curChap < curChaps) readChapter(curChap + 1); });
+      $('readerBack').addEventListener('click', function () {
+        if (!rbody.hidden) { showPicker(); }       // reading -> chapter picker
+        else { reader.classList.remove('open'); }   // chapter picker -> book list
+      });
+
+      bookView.addEventListener('click', function (e) {
+        var b = e.target.closest('.book'); if (!b) return;
+        openReader(b.dataset.name, b.dataset.usfm, parseInt(b.dataset.chaps, 10));
+      });
+    })();
+  </script>
+
+  <style>
+    /* page-local Word reader styles (subset of TheWord.html; .topglow / .btn /
+       .rise / tokens come from global declare.css). Slice 1: book + chapter + read. */
+    .word { position: relative; min-height: 100dvh; }
+
+    /* ---------- book list ---------- */
+    .w-bookview { position: relative; z-index: 1; }
+    .w-col {
+      width: 100%; max-width: 680px; margin: 0 auto;
+      padding: 0 22px calc(120px + env(safe-area-inset-bottom, 0));
+    }
+    .wtitle { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 600; color: var(--text); padding: 34px 2px 0; text-align: center; }
+    .wsub { text-align: center; font-size: 12px; letter-spacing: .04em; color: var(--goldd); margin-top: 6px; }
+
+    .grp { padding: 26px 0 0; }
+    .grphead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+    .grptitle { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); }
+    .grpsub { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 500; }
+    .books { display: flex; flex-direction: column; gap: 10px; }
+    .book { display: flex; align-items: center; gap: 14px; padding: 15px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; transition: transform .25s; }
+    @media (hover: hover) { .book:hover { transform: translateY(-3px); } }
+    .book .bmain { flex: 1; min-width: 0; }
+    .book .bname { display: block; font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.1; }
+    .book .bdesc { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .book .bchap { display: block; font-size: 11px; color: var(--text2); margin-top: 5px; opacity: .8; }
+    .book .chev { flex: 0 0 auto; color: var(--goldd); display: flex; }
+    .book .chev svg { width: 18px; height: 18px; }
+    .foot-sp { height: 26px; }
+
+    /* ---------- reader overlay ---------- */
+    .w-reader { position: fixed; inset: 0; z-index: 40; background: var(--bgfield); display: none; flex-direction: column; }
+    .w-reader.open { display: flex; }
+    .rtop { position: relative; z-index: 2; flex: 0 0 auto; padding-top: env(safe-area-inset-top, 0); }
+    .rhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px 2px; }
+    .rhead .iconbtn, .rhead .iconbtn-spacer { width: 38px; height: 38px; flex: 0 0 auto; }
+    .rhead .iconbtn { border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+    .rhead .iconbtn svg { width: 20px; height: 20px; }
+    .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 1; }
+    .rsub { text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--goldd); padding-bottom: 6px; }
+    .rtransnote { text-align: center; font-size: 10.5px; letter-spacing: .04em; color: var(--muted); padding: 0 0 10px; }
+
+    .readctl { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 18px 10px; }
+    .navchap { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line2); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .2s; }
+    .navchap svg { width: 18px; height: 18px; }
+    .navchap:disabled { opacity: .32; cursor: default; }
+    .chaplabel { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 9px 18px; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; }
+    .chaplabel svg { width: 13px; height: 13px; color: var(--goldd); }
+
+    .rscroll { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0)); }
+    .rscroll::-webkit-scrollbar { display: none; }
+
+    .chappick { padding: 10px 22px 30px; max-width: 680px; margin: 0 auto; width: 100%; }
+    .picklbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin: 8px 2px 14px; }
+    .chapgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .chaptile { aspect-ratio: 1/1; border-radius: 14px; border: 1px solid var(--line2); background: var(--surface); box-shadow: var(--card-shadow); color: var(--text); font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .2s; }
+    @media (hover: hover) { .chaptile:hover { transform: translateY(-2px); } }
+
+    .rbody { padding: 6px 22px 36px; max-width: 680px; margin: 0 auto; width: 100%; }
+    .vrse { display: flex; gap: 11px; margin-bottom: 15px; }
+    .vrse .vn { flex: 0 0 auto; font-size: 11px; color: var(--goldd); font-weight: 600; width: 18px; text-align: right; padding-top: 6px; }
+    .vrse .vt { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 20px; line-height: 1.5; color: var(--text); }
+
+    /* loading shimmer + error panel */
+    .rloading { padding: 8px 22px; max-width: 680px; margin: 0 auto; }
+    .shrow { display: flex; gap: 11px; margin-bottom: 16px; align-items: flex-start; }
+    .shn { flex: 0 0 auto; width: 14px; height: 12px; border-radius: 4px; background: var(--field); margin-top: 5px; }
+    .shl { flex: 1; height: 16px; border-radius: 8px; background: linear-gradient(90deg, var(--field), rgba(216, 184, 95, .14), var(--field)); background-size: 200% 100%; animation: wshim 1.3s ease-in-out infinite; }
+    @keyframes wshim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .rsoon { text-align: center; padding: 40px 18px; }
+    .rsoon .ri { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .rsoon .ri svg { width: 21px; height: 21px; }
+    .rsoon .rt2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); }
+    .rsoon .rd { font-size: 13px; color: var(--muted); margin-top: 7px; line-height: 1.5; max-width: 32ch; margin-left: auto; margin-right: auto; }
+  </style>
+</DeclareLayout>
