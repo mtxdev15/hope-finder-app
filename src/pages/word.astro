@@ -93,7 +93,10 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="rhead">
           <button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
           <button class="rbook" id="rbook" aria-label="Back to the library">John</button>
-          <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
+          <span class="rh-actions">
+            <button class="iconbtn rsglass" id="readerSearch" aria-label="Search the Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
+            <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
+          </span>
         </div>
         <div class="rsub" id="rsub">21 chapters</div>
         <div class="readctl" id="readctl" hidden>
@@ -139,6 +142,20 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           <button class="vbtn" id="vbCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span>Copy</span></button>
           <button class="vbtn" id="vbShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg><span>Share</span></button>
           <button class="vbtn" id="vbClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg><span>Close</span></button>
+        </div>
+      </div>
+
+      {/* in-reader Scripture search */}
+      <div class="rsheet" id="rsearch">
+        <div class="rsback"></div>
+        <div class="rspanel rs-search">
+          <div class="grabber"></div>
+          <div class="rstitle">Search the Word</div>
+          <form class="search rs-field" id="rsForm" autocomplete="off">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+            <input id="rsInput" placeholder="A verse, a reference, or a story&hellip;" aria-label="Search Scripture" />
+          </form>
+          <div class="rs-results" id="rsResults"></div>
         </div>
       </div>
 
@@ -247,29 +264,138 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       return [...document.querySelectorAll('.book')].find((b) => (b.dataset.name || '').toLowerCase() === n) || null;
     }
 
-    /* ---------- library: real Scripture search (Worker /bible/search) ---------- */
-    const sInput = $('searchInput'), sHint = $('searchHint'), sNote = $('searchNote');
-    let sTimer = null, sReq = 0;
-    function clearSearch() { sHint.style.display = 'none'; sHint.innerHTML = ''; sNote.style.display = 'none'; groupsEl.style.display = ''; }
-    function runSearch(q) {
-      const myReq = ++sReq;
-      sHint.style.display = 'block'; groupsEl.style.display = 'none'; sNote.style.display = 'none';
-      sHint.innerHTML = '<div class="vp-loading">Searching the Word&hellip;</div>';
+    /* ---------- Scripture search: references + stories + full text ----------
+       Searches the WHOLE Bible (both testaments — the OT/NT toggle only filters
+       the browse list) in the user's selected translation. Three layers:
+       1. reference fast-path — "Psalms 21", "proverbs 1:5", "1 john 4" open
+          the book/chapter/verse instantly, no network;
+       2. story map — the design's phrase search, expanded: "daniel in the den",
+          "water into wine", "prodigal son" land on the famous passage;
+       3. full-text — Worker /bible/search (API.Bible) for everything else. */
+    const STORIES = [
+      { q: ['water into wine', 'wedding', 'cana', 'first miracle'], ref: 'John 2', label: 'Water into wine' },
+      { q: ['fear not', 'do not fear', 'afraid', 'anxiety', 'anxious'], ref: 'Isaiah 41', label: 'Fear not, I am with you' },
+      { q: ['shepherd', 'valley', 'green pastures', 'psalm 23'], ref: 'Psalms 23', label: 'The Lord is my shepherd' },
+      { q: ['in the beginning', 'creation', 'let there be light'], ref: 'Genesis 1', label: 'In the beginning' },
+      { q: ['word made flesh', 'in the beginning was the word', 'logos'], ref: 'John 1', label: 'The Word made flesh' },
+      { q: ['more than conquerors', 'nothing can separate'], ref: 'Romans 8', label: 'Nothing can separate us' },
+      { q: ['be anxious for nothing', 'do not worry', 'peace of god'], ref: 'Philippians 4', label: 'The peace of God' },
+      { q: ['come to me', 'rest', 'weary', 'burdened'], ref: 'Matthew 11', label: 'Come to me, and rest' },
+      { q: ['lions den', 'lions in the den', 'daniel in the den', 'daniel and the lions'], ref: 'Daniel 6', label: 'Daniel in the lions’ den' },
+      { q: ['fiery furnace', 'shadrach', 'meshach', 'abednego'], ref: 'Daniel 3', label: 'The fiery furnace' },
+      { q: ['david and goliath', 'goliath', 'giant'], ref: '1 Samuel 17', label: 'David and Goliath' },
+      { q: ['prodigal son', 'lost son'], ref: 'Luke 15', label: 'The prodigal son' },
+      { q: ['good samaritan'], ref: 'Luke 10', label: 'The good Samaritan' },
+      { q: ['noahs ark', 'noah', 'the flood', 'ark'], ref: 'Genesis 6', label: 'Noah and the ark' },
+      { q: ['red sea', 'parted the sea', 'crossing the sea'], ref: 'Exodus 14', label: 'Crossing the Red Sea' },
+      { q: ['burning bush'], ref: 'Exodus 3', label: 'The burning bush' },
+      { q: ['ten commandments', 'commandments'], ref: 'Exodus 20', label: 'The Ten Commandments' },
+      { q: ['jonah', 'whale', 'great fish'], ref: 'Jonah 1', label: 'Jonah and the great fish' },
+      { q: ['feeding the five thousand', 'loaves and fish', 'five loaves'], ref: 'John 6', label: 'Feeding the five thousand' },
+      { q: ['walking on water', 'walks on water'], ref: 'Matthew 14', label: 'Walking on the water' },
+      { q: ['lazarus', 'raised from the dead'], ref: 'John 11', label: 'The raising of Lazarus' },
+      { q: ['resurrection', 'empty tomb', 'he is risen'], ref: 'Matthew 28', label: 'The resurrection' },
+      { q: ['birth of jesus', 'christmas', 'manger', 'nativity'], ref: 'Luke 2', label: 'The birth of Jesus' },
+      { q: ['armor of god', 'armour of god'], ref: 'Ephesians 6', label: 'The armor of God' },
+      { q: ['love is patient', 'love chapter', 'love is kind'], ref: '1 Corinthians 13', label: 'Love is patient' },
+      { q: ['faith chapter', 'by faith', 'hall of faith'], ref: 'Hebrews 11', label: 'By faith' },
+      { q: ['sermon on the mount', 'beatitudes', 'blessed are'], ref: 'Matthew 5', label: 'The Sermon on the Mount' },
+      { q: ['lords prayer', 'our father'], ref: 'Matthew 6', label: 'The Lord’s Prayer' },
+      { q: ['garden of eden', 'adam and eve'], ref: 'Genesis 2', label: 'The garden of Eden' },
+      { q: ['crucifixion', 'the cross', 'calvary', 'golgotha'], ref: 'John 19', label: 'The crucifixion' },
+      { q: ['pentecost', 'holy spirit came', 'tongues of fire'], ref: 'Acts 2', label: 'Pentecost' },
+      { q: ['valley of dry bones', 'dry bones'], ref: 'Ezekiel 37', label: 'The valley of dry bones' },
+    ];
+    const BOOK_ALIASES = { 'psalm': 'Psalms', 'song of songs': 'Song of Solomon', 'songs of solomon': 'Song of Solomon', 'revelations': 'Revelation' };
+    function norm(s) { return s.toLowerCase().replace(/[’'".,!?]/g, '').replace(/\s+/g, ' ').trim(); }
+    // "psalms 21", "proverbs 1:5", "1 john 4" -> { btn, chapter?, verse? }
+    function parseRefQuery(q) {
+      const m = norm(q).match(/^([1-3]?\s?[a-z ]+?)\s*(\d{1,3})?\s*(?:[:.]\s*(\d{1,3}))?$/);
+      if (!m || !m[1] || m[1].trim().length < 3) return null;
+      const name = m[1].trim();
+      const resolved = BOOK_ALIASES[name] || name;
+      let btn = bookByName(resolved);
+      if (!btn) { // prefix match: "prover" -> Proverbs (unique only)
+        const cands = [...document.querySelectorAll('.book')].filter((b) => (b.dataset.name || '').toLowerCase().startsWith(resolved.toLowerCase()));
+        if (cands.length === 1) btn = cands[0]; else return null;
+      }
+      const chaps = parseInt(btn.dataset.chaps, 10);
+      const chapter = m[2] ? parseInt(m[2], 10) : null;
+      if (chapter && (chapter < 1 || chapter > chaps)) return null;
+      return { btn, chapter, verse: m[3] ? parseInt(m[3], 10) : null };
+    }
+    function storyHits(q) {
+      const n = norm(q);
+      if (n.length < 3) return [];
+      return STORIES.filter((s) => s.q.some((k) => n.indexOf(k) >= 0 || k.indexOf(n) >= 0)).slice(0, 3);
+    }
+    function shitemHTML(i, book, chapter, verse, kicker, label) {
+      return '<button class="shitem" style="animation-delay:' + (i * 34) + 'ms" data-book="' + esc(book) + '" data-chapter="' + (chapter || '') + '" data-verse="' + (verse || '') + '">'
+        + '<span class="shref">' + esc(kicker) + '</span><span class="shlabel">' + esc(label) + '</span></button>';
+    }
+    // local layers (instant, no network): reference + stories
+    function localResultsHTML(q) {
+      let html = '', i = 0;
+      const ref = parseRefQuery(q);
+      if (ref) {
+        const name = ref.btn.dataset.name;
+        const kicker = name + (ref.chapter ? ' ' + ref.chapter : '') + (ref.verse ? ':' + ref.verse : '');
+        html += shitemHTML(i++, name, ref.chapter || 1, ref.verse, kicker, ref.chapter ? 'Open this ' + (ref.verse ? 'verse' : 'chapter') + ' →' : 'Open ' + name + ' →');
+      }
+      storyHits(q).forEach((s) => {
+        const m = s.ref.match(/^(.+?)\s+(\d+)$/);
+        if (m && bookByName(m[1])) html += shitemHTML(i++, m[1], parseInt(m[2], 10), null, s.ref, s.label);
+      });
+      return html;
+    }
+    function searchClickHandler(e, inReader) {
+      const it = e.target.closest('.shitem'); if (!it) return;
+      const btn = bookByName(it.dataset.book); if (!btn) return;
+      const ch = parseInt(it.dataset.chapter, 10) || 1;
+      const v = parseInt(it.dataset.verse, 10) || null;
+      if (inReader) { rsearch.classList.remove('open'); }
+      curBook = btn.dataset.name; curUsfm = btn.dataset.usfm; curChaps = parseInt(btn.dataset.chaps, 10); compare = false;
+      reader.classList.add('open'); rbook.textContent = curBook;
+      readChapter(ch, v);
+    }
+    // shared search engine: paints local layers instantly, streams API results in below
+    function searchInto(q, hintEl, noteEl, reqRef) {
+      const myReq = ++reqRef.n;
+      const local = localResultsHTML(q);
+      hintEl.innerHTML = local + '<div class="sh-api"><div class="vp-loading">Searching the Word&hellip;</div></div>';
+      if (noteEl) { noteEl.style.display = 'none'; }
       fetch(WORKER + '/bible/search?translation=' + readT + '&q=' + encodeURIComponent(q))
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
-          if (myReq !== sReq) return;
-          if (!j || !j.results) { sHint.innerHTML = '<div class="vp-loading">Search is unavailable right now.</div>'; return; }
-          if (!j.results.length) { sHint.innerHTML = '<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '.</div>'; return; }
-          sHint.innerHTML = j.results.map((r, i) => {
-            const txt = r.text.replace(/¶\s*/g, ''); // KJV paragraph marks (chapter route strips these server-side)
-            return '<button class="shitem" style="animation-delay:' + (i * 34) + 'ms" data-book="' + esc(r.book) + '" data-chapter="' + r.chapter + '" data-verse="' + r.verse + '">'
-              + '<span class="shref">' + esc(r.ref) + '</span><span class="shlabel">' + esc(txt.length > 90 ? txt.slice(0, 90) + '…' : txt) + '</span></button>';
+          if (myReq !== reqRef.n) return;
+          const api = hintEl.querySelector('.sh-api'); if (!api) return;
+          if (!j || !j.results) { api.innerHTML = local ? '' : '<div class="vp-loading">Search is unavailable right now.</div>'; return; }
+          if (!j.results.length) {
+            api.innerHTML = local ? '' : '<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '. Try a reference like &ldquo;Psalms 21&rdquo; or a phrase like &ldquo;water into wine&rdquo;.</div>';
+            return;
+          }
+          const base = hintEl.querySelectorAll('.shitem').length;
+          api.innerHTML = j.results.map((r, i) => {
+            const txt = r.text.replace(/¶\s*/g, '');
+            return shitemHTML(base + i, r.book, r.chapter, r.verse, r.ref, txt.length > 90 ? txt.slice(0, 90) + '…' : txt);
           }).join('');
-          if (j.copyright) { sNote.textContent = j.copyright; sNote.style.display = 'block'; }
+          if (noteEl && j.copyright) { noteEl.textContent = j.copyright; noteEl.style.display = 'block'; }
           if (j.fumsToken) fireFums(j.fumsToken); // copyrighted snippets are a licensed display
         })
-        .catch(() => { if (myReq === sReq) sHint.innerHTML = '<div class="vp-loading">Search is unavailable right now.</div>'; });
+        .catch(() => {
+          if (myReq !== reqRef.n) return;
+          const api = hintEl.querySelector('.sh-api');
+          if (api) api.innerHTML = local ? '' : '<div class="vp-loading">Search is unavailable right now.</div>';
+        });
+    }
+
+    /* library search */
+    const sInput = $('searchInput'), sHint = $('searchHint'), sNote = $('searchNote');
+    let sTimer = null; const sReq = { n: 0 };
+    function clearSearch() { sHint.style.display = 'none'; sHint.innerHTML = ''; sNote.style.display = 'none'; groupsEl.style.display = ''; }
+    function runSearch(q) {
+      sHint.style.display = 'block'; groupsEl.style.display = 'none';
+      searchInto(q, sHint, sNote, sReq);
     }
     sInput.addEventListener('input', function () {
       const q = this.value.trim();
@@ -282,12 +408,29 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       const q = sInput.value.trim();
       if (q.length >= 3) { clearTimeout(sTimer); runSearch(q); }
     });
-    sHint.addEventListener('click', (e) => {
-      const it = e.target.closest('.shitem'); if (!it) return;
-      const btn = bookByName(it.dataset.book); if (!btn) return;
-      openReader(btn.dataset.name, btn.dataset.usfm, parseInt(btn.dataset.chaps, 10));
-      readChapter(parseInt(it.dataset.chapter, 10), parseInt(it.dataset.verse, 10) || null);
+    sHint.addEventListener('click', (e) => searchClickHandler(e, false));
+
+    /* in-reader search (magnifier in the reader header) */
+    const rsearch = $('rsearch'), rsInput = $('rsInput'), rsResults = $('rsResults');
+    let rsTimer = null; const rsReq = { n: 0 };
+    $('readerSearch').addEventListener('click', () => {
+      rsearch.classList.add('open');
+      rsResults.innerHTML = '<div class="vp-loading">Search the whole Bible — a verse, a reference, or a story.</div>';
+      rsInput.value = '';
+      setTimeout(() => rsInput.focus(), 60);
     });
+    rsInput.addEventListener('input', function () {
+      const q = this.value.trim();
+      clearTimeout(rsTimer);
+      if (q.length < 3) { rsResults.innerHTML = '<div class="vp-loading">Keep typing&hellip;</div>'; return; }
+      rsTimer = setTimeout(() => searchInto(q, rsResults, null, rsReq), 320);
+    });
+    $('rsForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = rsInput.value.trim();
+      if (q.length >= 3) { clearTimeout(rsTimer); searchInto(q, rsResults, null, rsReq); }
+    });
+    rsResults.addEventListener('click', (e) => searchClickHandler(e, true));
 
     /* ---------- FUMS (required view tracking for copyrighted text) ---------- */
     let fumsReady = false, fumsLoading = false, fumsQueue = [];
@@ -668,6 +811,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     enableSwipeDown(dsheet.querySelector('.rspanel'), () => dsheet.classList.remove('open'));
     enableSwipeDown(tmenu.querySelector('.rspanel'), () => tmenu.classList.remove('open'));
     enableSwipeDown(sharesheet.querySelector('.rspanel'), () => sharesheet.classList.remove('open'));
+    enableSwipeDown(rsearch.querySelector('.rspanel'), () => rsearch.classList.remove('open'));
     enableSwipeDown(document.querySelector('#vjump .vjsheet'), () => vjump.classList.remove('open'));
 
     /* deep-link: /word?book=Psalms&chapter=34&verse=18 (from /today + search) */
@@ -734,12 +878,25 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .word .foot-sp { height: 26px; }
 
     .word .searchhint { padding: 14px 22px 0; }
-    .word .shitem { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--surface); border-radius: 14px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; margin-bottom: 9px; transition: transform .2s; }
-    @media (hover: hover) { .word .shitem:hover { transform: translateY(-2px); } }
-    .word .shitem .shref { display: block; font-size: 11px; color: var(--goldd); font-weight: 600; letter-spacing: .04em; flex: 0 0 auto; }
-    .word .shitem .shlabel { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); }
+    .word .shitem, .w-reader .shitem { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--surface); border-radius: 14px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; margin-bottom: 9px; transition: transform .2s; }
+    @media (hover: hover) { .word .shitem:hover, .w-reader .shitem:hover { transform: translateY(-2px); } }
+    .word .shitem .shref, .w-reader .shitem .shref { display: block; font-size: 11px; color: var(--goldd); font-weight: 600; letter-spacing: .04em; flex: 0 0 auto; }
+    .word .shitem .shlabel, .w-reader .shitem .shlabel { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); }
     .word .searchnote { padding: 8px 26px 0; font-size: 10.5px; line-height: 1.55; color: var(--muted); }
-    .word .vp-loading { padding: 18px 22px; color: var(--muted); font-size: 14px; }
+    .word .vp-loading, .w-reader .rs-results .vp-loading { padding: 18px 22px; color: var(--muted); font-size: 14px; }
+
+    /* in-reader search: animated magnifier + sheet/modal field */
+    .w-reader .rh-actions { display: flex; align-items: center; gap: 2px; }
+    .w-reader .rsglass svg { transition: transform .34s var(--ease-reveal, cubic-bezier(.16, 1, .3, 1)); }
+    @media (hover: hover) { .w-reader .rsglass:hover svg { transform: scale(1.14) rotate(-8deg); color: var(--goldd); } }
+    .w-reader .rsglass:active svg { transform: scale(.92); }
+    .w-reader .rs-search { display: flex; flex-direction: column; max-height: 76vh; }
+    .w-reader .rs-field { display: flex; align-items: center; gap: 11px; margin: 2px 0 12px; padding: 13px 16px; background: var(--field); border: 1px solid var(--line2); border-radius: 14px; }
+    .w-reader .rs-field svg { flex: 0 0 auto; width: 17px; height: 17px; color: var(--goldd); }
+    .w-reader .rs-field input { flex: 1; border: 0; background: transparent; outline: none; font-family: inherit; font-size: 14.5px; color: var(--text); }
+    .w-reader .rs-field input::placeholder { color: var(--muted); }
+    .w-reader .rs-results { flex: 1; min-height: 120px; overflow-y: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
+    .w-reader .rs-results::-webkit-scrollbar { display: none; }
 
     /* ===== reader overlay ===== */
     .w-reader { position: fixed; inset: 0; z-index: 40; background: var(--bgfield); display: none; flex-direction: column; }

@@ -241,7 +241,7 @@ async function handleBibleSearch(request, env) {
   }
   const data = await apiRes.json();
   const verses = (data && data.data && data.data.verses) || [];
-  const results = verses.map((v) => {
+  let results = verses.map((v) => {
     const m = (v.reference || '').match(/^(.+?)\s+(\d+):(\d+)/);
     return {
       ref: v.reference,
@@ -251,6 +251,21 @@ async function handleBibleSearch(request, env) {
       verse: m ? parseInt(m[3], 10) : null,
     };
   }).filter((r) => r.book);
+  // Reference-style queries ("Psalms 21", "John 3:16-18") come back as passages,
+  // not verses — map those too so a typed reference always resolves.
+  if (!results.length && data && data.data && Array.isArray(data.data.passages)) {
+    results = data.data.passages.map((p) => {
+      const m = (p.reference || '').match(/^(.+?)\s+(\d+)(?::(\d+))?/);
+      const text = (p.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return {
+        ref: p.reference,
+        text: text.slice(0, 160),
+        book: m ? m[1] : null,
+        chapter: m ? parseInt(m[2], 10) : null,
+        verse: m && m[3] ? parseInt(m[3], 10) : null,
+      };
+    }).filter((r) => r.book);
+  }
   const copyrighted = !!COPYRIGHTED[translation];
   return jsonResponse({
     query: q,
