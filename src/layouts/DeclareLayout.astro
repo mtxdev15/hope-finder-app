@@ -58,7 +58,14 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link rel="stylesheet" href="/declare/motion.css" />
 <link rel="stylesheet" href="/declare/route-loader.css" />
 </head>
-<body>
+<body class="app-shell">
+  <!-- design mast: brand dot + avatar entry to /you (design-source product pages) -->
+  <div class="mast">
+    <span class="dot" aria-hidden="true"></span>
+    <a class="avatar" href="/you" aria-label="You">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path></svg>
+    </a>
+  </div>
   <slot />
   <TabBar active={activeTab} />
 
@@ -67,6 +74,41 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   <script is:inline src="/declare/theme.js"></script>
   <script is:inline src="/declare/motion.js"></script>
   <script is:inline src="/declare/route-loader.js" defer></script>
-  <script is:inline src="/declare/declare-tabbar.js"></script>
+
+  <style is:global>
+    /* cinematic smooth scrolling (design system; reduced-motion forces auto) */
+    html { scroll-behavior: smooth; }
+    /* ── shell adaptation: design pages render inside a .screen flex column; our
+       pages scroll the document. Pin the design tabbar to the viewport bottom on
+       mobile (the design's own full-bleed treatment), and let declare.css's
+       .app-shell rules (body class) reflow it into the fixed top bar at >=481px. */
+    @media (max-width: 480px) {
+      .tabbar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+        background: color-mix(in srgb, var(--bgfield) 90%, transparent);
+        backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+        border-top: 1px solid var(--line);
+        padding-left: 14px; padding-right: 14px; padding-top: 10px;
+      }
+    }
+    /* mast: in-flow on mobile (declare.css base), pinned into the top band on desktop
+       (design Today.html/Vault.html desktop treatment) */
+    @media (min-width: 481px) {
+      .mast { position: fixed; top: 0; left: 0; right: 0; z-index: 31; height: 60px;
+        margin: 0; padding: 0 clamp(22px, 3vw, 44px);
+        display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+      .mast .dot { pointer-events: auto; }
+      /* desktop: the top bar already carries the You tab — hide the mast avatar
+         (duplicate profile icon, per review) */
+      .mast .avatar { display: none; }
+      /* design Today.html: the active center tab carries a slim gold underline in the top bar */
+      .app-shell .tab.center.on::after { content: ''; position: absolute; left: 13px; right: 13px; bottom: 2px; height: 2px; border-radius: 2px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+      /* clear the fixed top bar on pages that start content at the top */
+      .word .w-col { padding-top: 64px; }
+      .you .you-col { padding-top: 64px; }
+      .vault .vhero { padding-top: 96px; }
+    }
+  </style>
 </body>
 </html>

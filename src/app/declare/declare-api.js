@@ -1,7 +1,7 @@
 /* Declare & Believe — the pastoral-response "brain" (single source of truth).
    The system/user prompts, the Worker call, the SSE streaming parse, the
    defensive JSON slice, and isCompleteResult all live HERE. Both the live app
-   at / (src/app/app.jsx) and the v3.2 island at /today (DeclareToday.jsx) import
+   at / (src/app/app.jsx) and the v3.2 page at /today (src/pages/today.astro) import
    from this module — there is no second copy.
 
    Temperature is a per-caller option (no behavior is hidden in a default):

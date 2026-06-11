@@ -1,16 +1,824 @@
 ---
-// /today — the Declare hero. Mounts the React island that ports the proven v1
-// Declare flow (struggle -> Worker -> verses/reflection/declarations/prayer) into
-// the v3.2 dark-cinematic design. The brain (declare-api) is unchanged from v1.
+// /today — Declare. SURFACE rebuilt verbatim from the design source
+// (design-source-v3.2/declare/Today.html input + Results.html results); the
+// proven MACHINERY (declare-api.js: prompt, streaming, crisis logic) is injected
+// unchanged. Declare flow default translation: NLT (per the Bible Integration
+// Spec). Saves are device-local (vault-store.js, 'declare-vault-v1').
+// The design's "Start a 5-Day Journey" card is included (review ruling) and leads
+// to /journey, a branded coming-soon page until the Journey chapter ships.
+// Single page: entry ⇄ results swap in place.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
-import DeclareToday from '../app/declare/DeclareToday.jsx';
 ---
 <DeclareLayout
   title="Declare — Today"
   description="Name what's heavy and receive His Word for this moment."
   activeTab="declare"
 >
-  <main>
-    <DeclareToday client:load />
+  <main class="today">
+    <div class="topglow" aria-hidden="true"></div>
+
+    {/* ============ ENTRY (design: Today.html) ============ */}
+    <div class="in" id="entryView">
+      <div class="entryhero rise d1">
+        <div class="heading">What&rsquo;s weighing on your heart?</div>
+        <div class="sub">Name it, and receive His Word for this moment.</div>
+      </div>
+
+      <form class="input entry-input rise d2" id="writeForm" autocomplete="off">
+        <textarea id="writeInput" rows="1" placeholder="Or write what&rsquo;s on your heart&hellip;" aria-label="Write what's on your heart"></textarea>
+        <button class="send" type="submit" aria-label="Receive the Word">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+        </button>
+      </form>
+
+      <div class="divider entry-div rise d3"><span></span><em>or choose what fits</em><span></span></div>
+
+      <div class="chips entry-chips rise d4" id="chips">
+        <button class="chip on" data-struggle="Fear &amp; Anxiety">Fear &amp; Anxiety</button>
+        <button class="chip" data-struggle="Shame &amp; Guilt">Shame &amp; Guilt</button>
+        <button class="chip" data-struggle="Loneliness">Loneliness</button>
+        <button class="chip" data-struggle="Anger &amp; Bitterness">Anger &amp; Bitterness</button>
+        <button class="chip" data-struggle="Doubt">Doubt</button>
+        <button class="chip" data-struggle="Grief &amp; Loss">Grief &amp; Loss</button>
+        <button class="chip more" id="moreBtn">More +</button>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button class="btn btn-primary btn-full rise d5" id="receiveBtn">Receive the Word</button>
+
+      <a class="crisis entry-crisis rise d6" href="/crisis">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
+        <span>In crisis? Find help now</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </a>
+    </div>
+
+    {/* ============ RESULTS (design: Results.html) ============ */}
+    <div class="results" id="resultsView" hidden>
+      <div class="botglow" aria-hidden="true"></div>
+
+      <div class="head">
+        <button class="iconbtn" id="resultsBack" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span class="mid" id="forLabel">For fear &amp; anxiety</span>
+        <button class="iconbtn bm" id="saveWord" aria-label="Save this word" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg>
+        </button>
+      </div>
+
+      <div id="resultsBody">
+        <div class="intro m-rise"><div class="serif">Walk through this slowly.</div></div>
+
+        <div class="journey" data-m-stagger style="--m-stagger:240ms; --m-premium:820ms">
+          {/* Scripture */}
+          <div class="stn m-veil">
+            <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span>
+            <div class="stnhead"><span class="lbl">Scripture</span></div>
+            <div class="serif verse" id="verse1"></div>
+            <div class="ref" id="ref1"></div>
+            <div id="receives"></div>
+          </div>
+
+          {/* Mindset */}
+          <div class="stn m-veil">
+            <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6"></path><path d="M10 20.5h4"></path><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"></path></svg></span>
+            <div class="stnhead"><span class="lbl">Mindset</span></div>
+            <div class="mind" id="mind">
+              <div class="body" id="mindBody"></div>
+              <div class="more-body"><div class="more-in">
+                <div class="body" style="margin-top:0" id="mindMore"></div>
+              </div></div>
+              <button class="more" id="more" aria-expanded="false">
+                <span class="more-lbl">Read more</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Speak it aloud */}
+          <div class="stn m-veil">
+            <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path><path d="M12 17.5V21"></path></svg></span>
+            <div class="stnhead"><span class="lbl">Speak it aloud</span></div>
+            <div class="speak" id="speak"></div>
+          </div>
+
+          {/* Prayer */}
+          <div class="stn m-veil">
+            <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"></path><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"></path></svg></span>
+            <div class="stnhead"><span class="lbl">Prayer</span></div>
+            <div class="praywrap">
+              <div class="prayglow" aria-hidden="true"></div>
+              <div class="pray">
+                <div class="ptext" id="ptext"></div>
+                <div class="amen" id="amen">Amen.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="foot">
+          <button class="save" id="saveWord2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg>
+            <span class="sw-lbl">Save this word</span>
+          </button>
+          <button class="share" id="shareWord">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"></path><path d="M8 7l4-4 4 4"></path><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"></path></svg>
+            <span>Share</span>
+          </button>
+        </div>
+
+        <div class="startjourney m-rise">
+          <div class="sj-glow" aria-hidden="true"></div>
+          <div class="sj-tag">Be transplanted</div>
+          <div class="sj-h">Don&rsquo;t just declare it today</div>
+          <div class="sj-p">Be rooted in it. Start a 5-day journey and let this truth grow real where <b id="sjStruggle">fear &amp; anxiety</b> has been &mdash; one declaration at a time.</div>
+          <button class="btn btn-primary btn-full" id="startJourney">Start a 5-Day Journey
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+
+        <div class="nextsteps m-rise">
+          <div class="ns-lbl">Carry it with you</div>
+          <div class="nslist">
+            <a class="nscard" id="readPassage" href="/word"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span><span class="nsm"><span class="nst">Read the full passage</span><span class="nsd">Open it in The Word and keep reading</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></a>
+            <a class="nscard" href="/vault"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><path d="M8 5V3.5M16 5V3.5M12 13.2v3"></path><circle cx="12" cy="12.4" r="1.3"></circle></svg></span><span class="nsm"><span class="nst">Return to it later</span><span class="nsd">Everything you saved lives in your Vault</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></a>
+            <button class="nscard" id="anotherWord"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span><span class="nsm"><span class="nst">Receive another word</span><span class="nsd">For whatever else is heavy</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultsError" hidden>
+        <div class="rsoon">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></div>
+          <div class="rt2">Something interrupted this</div>
+          <div class="rd">The Word is still here &mdash; let&rsquo;s try again.</div>
+          <div class="err-actions">
+            <button class="btn btn-primary" id="tryAgain">Try again</button>
+            <button class="btn btn-ghost" id="errBack">Go back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* ============ More sheet (design: Today.html, verbatim) ============ */}
+    <div class="sheet-scrim" id="scrim"></div>
+    <section class="sheet" id="sheet" aria-label="Choose what fits" aria-hidden="true">
+      <div class="sheetglow" aria-hidden="true"></div>
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="shead">
+        <span class="t serif">What&rsquo;s on your heart?</span>
+        <button class="x" id="sheetClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+      <div class="ssscroll">
+        <form class="input" id="sheetForm" autocomplete="off" style="margin-top:16px">
+          <input type="text" placeholder="Or write it in your own words&hellip;" aria-label="Write it in your own words" />
+          <button class="send" type="submit" aria-label="Receive the Word">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+          </button>
+        </form>
+
+        <div class="scat">
+          <div class="catlbl">Identity &amp; worth</div>
+          <div class="chips" data-cat>
+            <button class="chip" data-struggle="Shame &amp; Guilt">Shame &amp; Guilt</button><button class="chip" data-struggle="Feeling Like a Failure">Feeling Like a Failure</button><button class="chip" data-struggle="Comparison">Comparison</button><button class="chip" data-struggle="Feeling Unworthy">Feeling Unworthy</button><button class="chip" data-struggle="Broken Identity">Broken Identity</button><button class="chip" data-struggle="Feeling Lost">Feeling Lost</button><button class="chip" data-struggle="People Pleasing">People Pleasing</button>
+          </div>
+        </div>
+        <div class="scat">
+          <div class="catlbl">Wounds &amp; relationships</div>
+          <div class="chips" data-cat>
+            <button class="chip" data-struggle="Emotional &amp; Verbal Abuse">Emotional &amp; Verbal Abuse</button><button class="chip" data-struggle="Rejection &amp; Abandonment">Rejection &amp; Abandonment</button><button class="chip" data-struggle="Betrayal">Betrayal</button><button class="chip" data-struggle="Self-Sabotage">Self-Sabotage</button><button class="chip" data-struggle="Unforgiveness">Unforgiveness</button><button class="chip" data-struggle="Family Conflict">Family Conflict</button><button class="chip" data-struggle="Marriage Struggles">Marriage Struggles</button><button class="chip" data-struggle="Divorce / Separation">Divorce / Separation</button><button class="chip" data-struggle="Grief &amp; Loss">Grief &amp; Loss</button><button class="chip" data-struggle="Loneliness">Loneliness</button>
+          </div>
+        </div>
+        <div class="scat">
+          <div class="catlbl">Mind &amp; emotion</div>
+          <div class="chips" data-cat>
+            <button class="chip on" data-struggle="Fear &amp; Anxiety">Fear &amp; Anxiety</button><button class="chip" data-struggle="Overthinking">Overthinking</button><button class="chip" data-struggle="Depression">Depression</button><button class="chip" data-struggle="Anger &amp; Bitterness">Anger &amp; Bitterness</button><button class="chip" data-struggle="Doubt">Doubt</button><button class="chip" data-struggle="Control">Control</button><button class="chip" data-struggle="Perfectionism">Perfectionism</button><button class="chip" data-struggle="Stress &amp; Burnout">Stress &amp; Burnout</button>
+          </div>
+        </div>
+        <div class="scat">
+          <div class="catlbl">Trials &amp; Seasons</div>
+          <div class="chips" data-cat>
+            <button class="chip" data-struggle="Spiritual Dryness">Spiritual Dryness</button><button class="chip" data-struggle="Waiting on God">Waiting on God</button><button class="chip" data-struggle="Financial Stress">Financial Stress</button><button class="chip" data-struggle="Sexual Temptation">Sexual Temptation</button><button class="chip" data-struggle="Addiction">Addiction</button><button class="chip" data-struggle="Faith Crisis">Faith Crisis</button><button class="chip" data-struggle="Feeling Spiritually Attacked">Feeling Spiritually Attacked</button><button class="chip" data-struggle="Drifting from God">Drifting from God</button>
+          </div>
+        </div>
+
+        <a class="crisis sheet-crisis" href="/crisis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
+          <span>In crisis? Find help now</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      </div>
+      <div class="ctawrap">
+        <button class="btn btn-primary btn-full" id="sheetCta">Receive the Word <span class="cta-n">&middot; Fear &amp; Anxiety</span></button>
+      </div>
+    </section>
+
+    {/* share chooser (design: Results.html .sps) */}
+    <div class="sps-scrim" id="spsScrim"></div>
+    <section class="sps" id="sps" aria-hidden="true" aria-label="Choose what to share">
+      <div class="grab" aria-hidden="true"></div>
+      <h3>Share this word</h3>
+      <div class="sps-sub">Choose what to send</div>
+      <div id="spsRows"></div>
+    </section>
+
+    {/* toast (design: Results.html) */}
+    <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg><span id="toastMsg">Saved to Vault.</span></div>
   </main>
+
+  <script>
+    import { generateContent, isCompleteResult } from '../app/declare/declare-api.js';
+    import { saveItem, removeItem, isSaved, wordId } from '../app/declare/vault-store.js';
+
+    // The Declare flow default per the Bible Integration Spec. The brain call,
+    // prompts, streaming, and crisis logic in declare-api.js are unchanged.
+    const TRANSLATION = 'NLT';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const entryView = $('entryView'), resultsView = $('resultsView');
+    const resultsBody = $('resultsBody'), resultsError = $('resultsError');
+    const chips = $('chips'), writeInput = $('writeInput');
+    const sheet = $('sheet'), scrim = $('scrim'), sheetCta = $('sheetCta');
+    const toast = $('toast'), toastMsg = $('toastMsg');
+
+    let selected = 'Fear & Anxiety';
+    let activeStruggle = '';
+    let content = null, currentId = null;
+    let usedRefs = [];
+    let reqId = 0;
+    let speakingIdx = -1;
+    let toastTimer = null;
+
+    /* ---------- helpers ---------- */
+    function showToast(msg) {
+      toastMsg.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+    function showView(view) {
+      [entryView, resultsView].forEach((v) => { v.hidden = v !== view; });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    function stopSpeak() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      speakingIdx = -1;
+      document.querySelectorAll('.srow.speaking').forEach((el) => el.classList.remove('speaking'));
+    }
+    function splitPrayer(prayer) {
+      const m = (prayer || '').match(/^([\s\S]*?)([\w'’ ]*\bamen\b\.?)\s*$/i);
+      if (m && m[2]) return { body: m[1].trim().replace(/[,;]\s*$/, '.'), amen: m[2].trim().replace(/\.?$/, '.') };
+      return { body: (prayer || '').trim(), amen: '' };
+    }
+    function splitExplanation(text) {
+      const sentences = (text || '').match(/[^.!?]+[.!?]+(\s+|$)/g) || [text || ''];
+      if (sentences.length <= 2) return { body: text, more: '' };
+      return { body: sentences.slice(0, 2).join('').trim(), more: sentences.slice(2).join('').trim() };
+    }
+    // "Psalm 34:18" -> /word?book=Psalms&chapter=34&verse=18 — the reader opens the
+    // chapter, scrolls to the verse, and highlights it so reading begins there.
+    const BOOK_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Songs of Solomon': 'Song of Solomon', 'Revelations': 'Revelation' };
+    function passageLink(ref) {
+      const m = (ref || '').match(/^(.*?)\s+(\d+)\s*:\s*(\d+)/);
+      if (!m) return '/word';
+      const book = BOOK_ALIASES[m[1].trim()] || m[1].trim();
+      return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
+    }
+
+    /* ---------- entry: chips (design behavior) ---------- */
+    chips.addEventListener('click', (e) => {
+      const c = e.target.closest('.chip'); if (!c) return;
+      if (c.id === 'moreBtn') { openSheet(); return; }
+      chips.querySelectorAll('.chip:not(.more)').forEach((x) => x.classList.remove('on'));
+      c.classList.add('on');
+      selected = c.dataset.struggle.replace(/&amp;/g, '&');
+      syncSheet(selected);
+    });
+
+    /* composer: grow with the text, submit on Enter (Shift+Enter = newline) */
+    function autogrow() { writeInput.style.height = 'auto'; writeInput.style.height = Math.min(writeInput.scrollHeight, 168) + 'px'; }
+    writeInput.addEventListener('input', autogrow);
+    writeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const f = $('writeForm');
+        if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
+    });
+    $('writeForm').addEventListener('submit', (e) => { e.preventDefault(); go(writeInput.value.trim()); });
+    $('receiveBtn').addEventListener('click', () => go(writeInput.value.trim()));
+
+    /* deep-link: ?struggle=… pre-selects (design behavior, for SEO pages later) */
+    function preselect(s) {
+      s = (s || '').trim(); if (!s) return;
+      const main = [...chips.querySelectorAll('.chip:not(.more)')];
+      let match = null;
+      main.forEach((x) => { if (x.dataset.struggle.replace(/&amp;/g, '&') === s) match = x; });
+      main.forEach((x) => x.classList.remove('on'));
+      if (match) { match.classList.add('on'); }
+      else {
+        const b = document.createElement('button');
+        b.className = 'chip on'; b.setAttribute('data-struggle', s); b.textContent = s;
+        chips.insertBefore(b, chips.firstChild);
+      }
+      selected = s;
+      syncSheet(s);
+    }
+    try { const inc = new URLSearchParams(location.search).get('struggle'); if (inc) preselect(inc); } catch (e) {}
+
+    /* ---------- More sheet (design behavior) ---------- */
+    function openSheet() { sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false'); }
+    function closeSheet() { sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); }
+    $('sheetClose').addEventListener('click', closeSheet);
+    scrim.addEventListener('click', closeSheet);
+    function syncMain(s) {
+      let matched = false;
+      chips.querySelectorAll('.chip:not(.more)').forEach((x) => {
+        const on = x.dataset.struggle.replace(/&amp;/g, '&') === s;
+        x.classList.toggle('on', on); if (on) matched = true;
+      });
+      if (!matched) chips.querySelectorAll('.chip:not(.more)').forEach((x) => x.classList.remove('on'));
+    }
+    function syncSheet(s) {
+      sheet.querySelectorAll('[data-cat] .chip').forEach((x) => {
+        const on = x.dataset.struggle.replace(/&amp;/g, '&') === s;
+        x.classList.toggle('on', on);
+        if (on) sheetCta.querySelector('.cta-n').innerHTML = '&middot; ' + x.innerHTML;
+      });
+    }
+    sheet.querySelectorAll('[data-cat]').forEach((group) => {
+      group.addEventListener('click', (e) => {
+        const c = e.target.closest('.chip'); if (!c) return;
+        sheet.querySelectorAll('.chip').forEach((x) => x.classList.remove('on'));
+        c.classList.add('on');
+        const s = c.dataset.struggle.replace(/&amp;/g, '&');
+        selected = s;
+        sheetCta.querySelector('.cta-n').innerHTML = '&middot; ' + c.innerHTML;
+        syncMain(s);
+      });
+    });
+    $('sheetForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const v = this.querySelector('input').value.trim();
+      go(v);
+    });
+    sheetCta.addEventListener('click', () => go(''));
+
+    /* ---------- generate (the unchanged brain) ---------- */
+    function go(written) {
+      const struggle = written || selected;
+      if (!struggle) return;
+      activeStruggle = struggle;
+      closeSheet();
+      showView(resultsView);
+      runGen(struggle);
+    }
+    async function runGen(struggle) {
+      const myReq = ++reqId;
+      resultsBody.hidden = true; resultsError.hidden = true;
+      if (window.RouteLoader) window.RouteLoader.show();
+      try {
+        const ai = await generateContent(struggle, TRANSLATION, usedRefs);
+        if (myReq !== reqId) return;
+        if (!isCompleteResult(ai)) throw new Error('incomplete result');
+        usedRefs = usedRefs.concat(ai.verses.map((v) => v.ref));
+        render(ai);
+      } catch (err) {
+        if (myReq !== reqId) return;
+        console.error('[today] generation failed:', err);
+        resultsError.hidden = false;
+      } finally {
+        if (window.RouteLoader) window.RouteLoader.hide();
+      }
+    }
+    $('tryAgain').addEventListener('click', () => runGen(activeStruggle));
+    $('errBack').addEventListener('click', () => showView(entryView));
+
+    /* ---------- render results (design markup) ---------- */
+    function render(ai) {
+      content = ai;
+      currentId = wordId(activeStruggle, ai.verses);
+      $('forLabel').textContent = 'For ' + activeStruggle;
+
+      const v1 = ai.verses[0];
+      $('verse1').innerHTML = '&ldquo;' + esc(v1.t || v1.text) + '&rdquo;';
+      $('ref1').textContent = v1.ref + ' · ' + TRANSLATION;
+
+      // further verses: "tap to receive this verse" reveals (design .receive)
+      $('receives').innerHTML = ai.verses.slice(1).map((v, i) => (
+        '<button class="receive" aria-expanded="false" data-i="' + i + '">'
+        + '<span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>'
+        + '<span class="rmid">'
+        +   '<span class="rprompt"><b>' + esc(v.ref) + '</b> &mdash; <span class="serif rp-i">tap to receive this verse</span></span>'
+        +   '<span class="reveal"><span class="reveal-in">'
+        +     '<span class="serif rverse">&ldquo;' + esc(v.text) + '&rdquo;</span>'
+        +     '<span class="rrow"><span class="rref">' + esc(v.ref) + ' &middot; ' + TRANSLATION + '</span></span>'
+        +   '</span></span>'
+        + '</span></button>'
+      )).join('');
+
+      const ex = splitExplanation(ai.explanation);
+      $('mindBody').textContent = ex.body;
+      $('mindMore').textContent = ex.more;
+      $('mind').classList.remove('open');
+      $('more').style.display = ex.more ? '' : 'none';
+      $('more').setAttribute('aria-expanded', 'false');
+      $('more').querySelector('.more-lbl').textContent = 'Read more';
+
+      $('speak').innerHTML = ai.declarations.map((d, i) => (
+        '<div class="card srow" data-i="' + i + '">'
+        + '<button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg></button>'
+        + '<span class="dec">' + esc(d) + '</span></div>'
+      )).join('');
+
+      const pr = splitPrayer(ai.prayer);
+      $('ptext').textContent = pr.body;
+      $('amen').textContent = pr.amen || 'Amen.';
+
+      $('readPassage').href = passageLink(v1.ref);
+      $('sjStruggle').textContent = activeStruggle.toLowerCase();
+      updateSaveUI();
+      resultsBody.hidden = false;
+      // replay the design's cascade (motion.js): clear past reveals, then stagger in
+      resultsBody.querySelectorAll('.m-in').forEach((el) => el.classList.remove('m-in'));
+      if (window.DeclareMotion) window.DeclareMotion.reveal(resultsBody, { stagger: 140 });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    /* reveals + read-more + play (delegation) */
+    $('receives').addEventListener('click', (e) => {
+      const r = e.target.closest('.receive'); if (!r) return;
+      const open = r.classList.toggle('open');
+      r.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    $('more').addEventListener('click', () => {
+      const open = $('mind').classList.toggle('open');
+      $('more').setAttribute('aria-expanded', open ? 'true' : 'false');
+      $('more').querySelector('.more-lbl').textContent = open ? 'Read less' : 'Read more';
+    });
+    $('speak').addEventListener('click', (e) => {
+      const btn = e.target.closest('.play'); if (!btn) return;
+      const row = btn.closest('.srow'); const i = +row.dataset.i;
+      if (speakingIdx === i) { stopSpeak(); return; }
+      stopSpeak();
+      if (!('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(content.declarations[i]);
+      u.rate = 0.86; u.pitch = 1.02;
+      u.onend = () => { if (speakingIdx === i) stopSpeak(); };
+      u.onerror = () => { if (speakingIdx === i) stopSpeak(); };
+      speakingIdx = i; row.classList.add('speaking');
+      window.speechSynthesis.speak(u);
+    });
+
+    /* ---------- save (device-local) + share ---------- */
+    function updateSaveUI() {
+      const saved = currentId && isSaved(currentId);
+      $('saveWord').classList.toggle('on', !!saved);
+      $('saveWord').setAttribute('aria-pressed', saved ? 'true' : 'false');
+      document.querySelector('#saveWord2 .sw-lbl').textContent = saved ? 'Saved' : 'Save this word';
+      $('saveWord2').classList.toggle('on', !!saved);
+    }
+    function toggleSave() {
+      if (!content || !currentId) return;
+      if (isSaved(currentId)) {
+        removeItem(currentId);
+        showToast('Removed from Vault.');
+      } else {
+        saveItem({
+          id: currentId, type: 'word', struggle: activeStruggle, translation: TRANSLATION,
+          verses: content.verses, explanation: content.explanation,
+          declarations: content.declarations, prayer: content.prayer,
+        });
+        showToast('Saved to Vault.');
+      }
+      updateSaveUI();
+    }
+    $('saveWord').addEventListener('click', toggleSave);
+    $('saveWord2').addEventListener('click', toggleSave);
+
+    /* ---------- share: design system — chooser sheet → Card Studio → share-card
+       sheet (Instagram/Story/TikTok/X/Facebook/Threads/Download + native More).
+       share.js + card-studio.js are the design-source modules, lazy-loaded on the
+       first share tap so the reading path stays light. ---------- */
+    let shareStack = null;
+    function loadShareStack() {
+      if (shareStack) return shareStack;
+      shareStack = new Promise((resolve) => {
+        ['/declare/share.css', '/declare/card-studio.css'].forEach((href) => {
+          const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
+        });
+        const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js';
+        s1.onload = () => {
+          const s2 = document.createElement('script'); s2.src = '/declare/share.js';
+          s2.onload = resolve; document.head.appendChild(s2);
+        };
+        document.head.appendChild(s1);
+      });
+      return shareStack;
+    }
+
+    const SP_IC = {
+      verse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg>',
+      mind: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6"></path><path d="M10 20.5h4"></path><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"></path></svg>',
+      dec: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path><path d="M12 17.5V21"></path></svg>',
+      pray: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.7 5.3C9.5 7.3 8.5 10 8.1 12.8c-.4 2.4-.1 4.8 1.1 6.4l2.5.1V6.6z"></path><path d="M13.3 5.3c1.2 2 2.2 4.7 2.6 7.5.4 2.4.1 4.8-1.1 6.4l-2.5.1V6.6z"></path></svg>',
+      go: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>',
+    };
+    const sps = $('sps'), spsScrim = $('spsScrim'), spsRows = $('spsRows');
+    let shareables = [];
+    function buildShareables() {
+      const v1 = content.verses[0];
+      shareables = [
+        { type: 'verse', label: 'Scripture', text: v1.text, ref: v1.ref + ' · ' + TRANSLATION, ic: 'verse' },
+        { type: 'reading', label: 'Mindset', text: content.explanation, ref: 'Mindset', ic: 'mind' },
+        ...content.declarations.map((d) => ({ type: 'declaration', label: 'Declaration', text: d, ref: '', ic: 'dec' })),
+        { type: 'reading', label: 'Prayer', text: content.prayer, ref: 'A prayer', ic: 'pray' },
+      ];
+      spsRows.innerHTML = shareables.map((s, i) => (
+        '<button class="sps-row" data-i="' + i + '"><span class="ic">' + SP_IC[s.ic] + '</span>'
+        + '<span class="tx"><span class="k">' + s.label + '</span><span class="v">' + esc(s.text) + '</span></span>'
+        + '<span class="go">' + SP_IC.go + '</span></button>'
+      )).join('');
+    }
+    function openSps() { sps.classList.add('show'); spsScrim.classList.add('show'); sps.setAttribute('aria-hidden', 'false'); }
+    function closeSps() { sps.classList.remove('show'); spsScrim.classList.remove('show'); sps.setAttribute('aria-hidden', 'true'); }
+    spsScrim.addEventListener('click', closeSps);
+    spsRows.addEventListener('click', (e) => {
+      const row = e.target.closest('.sps-row'); if (!row) return;
+      const s = shareables[+row.dataset.i];
+      closeSps();
+      loadShareStack().then(() => {
+        setTimeout(() => {
+          window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: 'For ' + activeStruggle.toLowerCase(), url: location.href });
+        }, 180);
+      });
+    });
+    $('shareWord').addEventListener('click', () => {
+      if (!content) return;
+      buildShareables();
+      openSps();
+      loadShareStack(); // warm the studio while the user chooses
+    });
+
+    /* back / reset */
+    $('resultsBack').addEventListener('click', () => { stopSpeak(); showView(entryView); });
+    $('anotherWord').addEventListener('click', () => { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); });
+    $('startJourney').addEventListener('click', () => { location.href = '/journey'; });
+  </script>
+
+  <style is:global>
+    /* ──────────────────────────────────────────────────────────────────
+       /today page styles, brought over from the design source page-local
+       <style> blocks (Today.html + Results.html). Base components (.input,
+       .send, .chip, .divider, .crisis, .btn, .sheet-scrim, .grabber, .topglow,
+       .rise, tokens) come from the vendored declare.css. is:global because
+       results/receive/speak rows are built at runtime via innerHTML.
+       ────────────────────────────────────────────────────────────────── */
+    .today { position: relative; min-height: 100dvh; }
+    /* view swap: author display rules (flex) would defeat the hidden attribute */
+    .today .in[hidden], .today .results[hidden] { display: none !important; }
+
+    /* ===== ENTRY (Today.html) ===== */
+    .today .in { position: relative; z-index: 1; display: flex; flex-direction: column;
+      min-height: calc(100dvh - 96px); padding: 0 24px 110px; }
+    .today .entryhero { text-align: center; padding: 36px 6px 6px; }
+    .today .entryhero .heading { font-family: 'Cormorant Garamond', serif; font-size: 33px; line-height: 1.15; font-weight: 600; color: var(--text); text-wrap: balance; }
+    .today .entryhero .sub { font-size: 14px; color: var(--muted); margin-top: 13px; line-height: 1.5; }
+
+    .today .input { align-items: flex-end; }
+    .today .input textarea { flex: 1; border: 0; background: transparent; outline: none; resize: none;
+      font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.55; color: var(--text);
+      height: 26px; max-height: 168px; overflow-y: auto; padding: 0; margin: 0; }
+    .today .input textarea::placeholder { color: var(--muted); opacity: 1; }
+    .today .input textarea::-webkit-scrollbar { display: none; }
+    .today .input textarea { scrollbar-width: none; }
+
+    .today .entry-input { margin-top: 28px; }
+    .today .entry-div { margin: 26px 0 18px; }
+    .today .entry-chips { justify-content: center; }
+    .today .spacer { flex: 1; min-height: 22px; }
+    .today .entry-crisis { margin-top: 18px; background: none; border: 0; cursor: pointer; font-family: inherit; }
+
+    /* ===== More sheet (Today.html) ===== */
+    .today .sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: min(760px, 100%); max-width: 100%;
+      background: var(--screen); border-radius: 30px 30px 0 0; box-shadow: 0 -30px 80px -20px rgba(0, 0, 0, .6);
+      z-index: 45; display: flex; flex-direction: column; max-height: 88vh; transition: transform .42s cubic-bezier(.2, .7, .2, 1);
+      overflow: hidden; }
+    .today .sheet.open { transform: translate(-50%, 0); }
+    .today .sheet .sheetglow { position: absolute; top: 0; left: 0; right: 0; height: 300px; z-index: 0; pointer-events: none;
+      background: radial-gradient(80% 60% at 50% 0%, var(--topglow), transparent 60%); }
+    .today .shead { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 2px; }
+    .today .shead .t { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; color: var(--text); }
+    .today .shead .x { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); box-shadow: var(--chip-shadow);
+      display: flex; align-items: center; justify-content: center; color: var(--text); cursor: pointer; border: 0; }
+    .today .shead .x svg { width: 15px; height: 15px; }
+    .today .ssscroll { position: relative; z-index: 1; flex: 1; overflow-y: auto; padding: 0 22px 8px; }
+    .today .ssscroll::-webkit-scrollbar { display: none; }
+    .today .ssscroll { scrollbar-width: none; }
+    .today .scat { margin-top: 24px; }
+    .today .scat .catlbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin-bottom: 13px; }
+    .today .scat .chips { gap: 9px; }
+    .today .scat .chip { font-size: 13.5px; padding: 10px 15px; }
+    /* chips lift on hover — same feel as the entry "choose what fits" row (review) */
+    @media (hover: hover) {
+      .today .chip:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -8px rgba(0, 0, 0, .45); }
+      .today .chip.on:hover { box-shadow: 0 10px 24px -6px rgba(201, 168, 76, .55); }
+    }
+    .today .sheet-crisis { margin: 24px 0 6px; width: 100%; background: none; border: 0; cursor: pointer; font-family: inherit; }
+    .today .ctawrap { position: relative; z-index: 1; padding: 14px 22px calc(20px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--screen) 70%, transparent); }
+    .today .cta-n { font-size: 12px; opacity: .7; }
+    @media (max-width: 480px) { .today .sheet { width: 100%; } }
+
+    /* ===== RESULTS (Results.html) ===== */
+    .today .results { position: relative; z-index: 1; padding-bottom: 120px; }
+    .today .botglow { position: absolute; bottom: 64px; left: 0; right: 0; height: 360px; z-index: 0; pointer-events: none;
+      background: radial-gradient(120% 78% at 50% 112%, var(--botglow), transparent 58%); }
+    .today .head { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px 4px; color: var(--text); }
+    .today .head .mid { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+    .today .head .bm { color: var(--text); }
+    .today .head .bm.on { color: var(--goldd); }
+    .today .head .bm.on svg { fill: rgba(216, 184, 95, .25); }
+    .today .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .today .iconbtn svg { width: 20px; height: 20px; }
+
+    .today .intro { position: relative; z-index: 1; text-align: center; padding: 12px 28px 24px; }
+    .today .intro .serif { font-family: 'Cormorant Garamond', serif; font-size: 27px; font-style: italic; color: var(--text); line-height: 1.34; }
+
+    .today .journey { position: relative; z-index: 1; padding: 0 22px 22px; }
+    .today .stn { position: relative; padding-left: 52px; padding-bottom: 34px; }
+    .today .stn::before { content: ''; position: absolute; left: 20px; transform: translateX(-50%); top: 14px; height: 100%; width: 2px;
+      background: linear-gradient(var(--spine), rgba(201, 168, 76, .25)); box-shadow: 0 0 10px 1px rgba(216, 184, 95, .4); border-radius: 2px; z-index: 0; }
+    .today .stn:last-child::before { display: none; }
+    .today .node { position: absolute; left: 5px; top: -1px; width: 30px; height: 30px; border-radius: 50%; background: var(--screen);
+      border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; color: var(--goldd);
+      box-shadow: 0 0 0 5px var(--screen), 0 0 18px 1px rgba(216, 184, 95, .5); z-index: 2; }
+    .today .node svg { width: 15px; height: 15px; }
+    .today .stnhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
+    .today .verse { font-family: 'Cormorant Garamond', serif; font-size: 27px; line-height: 1.34; color: var(--text); margin-top: 12px; }
+    .today .ref { font-size: 12px; letter-spacing: .05em; color: var(--goldd); margin-top: 11px; font-weight: 500; }
+
+    .today .receive { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 15px 16px; background: var(--receive);
+      border-radius: 14px; border: 1px solid var(--line); box-shadow: var(--card-shadow); cursor: pointer; width: 100%; text-align: left; font-family: inherit; }
+    .today .receive .pl { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--gold); display: flex;
+      align-items: center; justify-content: center; color: var(--goldd); box-shadow: 0 0 14px rgba(216, 184, 95, .4); transition: transform .35s cubic-bezier(.2, .7, .2, 1); }
+    .today .receive .pl svg { width: 14px; height: 14px; }
+    .today .receive.open .pl { transform: rotate(135deg); }
+    .today .receive .rmid { flex: 1; }
+    .today .receive .rprompt { font-size: 13px; color: var(--muted); }
+    .today .receive .rprompt b { color: var(--text2); font-weight: 600; }
+    .today .receive .rp-i { font-style: italic; }
+    .today .receive .reveal { display: grid; grid-template-rows: 0fr; opacity: 0; margin-top: 0; transition: grid-template-rows .42s cubic-bezier(.2, .7, .2, 1), opacity .3s ease, margin-top .42s ease; }
+    .today .receive.open .reveal { grid-template-rows: 1fr; opacity: 1; margin-top: 10px; }
+    .today .receive .reveal-in { overflow: hidden; min-height: 0; display: block; }
+    .today .receive .rverse { font-family: 'Cormorant Garamond', serif; font-size: 19px; line-height: 1.4; color: var(--text); display: block; }
+    .today .receive .rrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+    .today .receive .rref { font-size: 11px; letter-spacing: .06em; color: var(--goldd); font-weight: 500; }
+
+    .today .body { font-size: 14.5px; line-height: 1.66; color: var(--text2); margin-top: 13px; }
+    .today .more-body { display: grid; grid-template-rows: 0fr; opacity: 0; margin-top: 0; transition: grid-template-rows .42s cubic-bezier(.2, .7, .2, 1), opacity .3s ease, margin-top .42s ease; }
+    .today .mind.open .more-body { grid-template-rows: 1fr; opacity: 1; margin-top: 11px; }
+    .today .more-in { overflow: hidden; min-height: 0; }
+    .today .more { font-size: 13px; color: var(--goldd); margin-top: 12px; font-weight: 500; cursor: pointer; background: none; border: 0; font-family: inherit; display: inline-flex; align-items: center; gap: 7px; padding: 2px 0; }
+    .today .more svg { width: 14px; height: 14px; transition: transform .3s ease; }
+    .today .mind.open .more svg { transform: rotate(180deg); }
+
+    .today .speak { display: flex; flex-direction: column; gap: 11px; margin-top: 15px; }
+    .today .srow { display: flex; align-items: center; gap: 14px; padding: 13px 14px; }
+    .today .srow .play { flex: 0 0 auto; width: 36px; height: 36px; border: 0; cursor: pointer; border-radius: 50%; background: var(--playbg);
+      display: flex; align-items: center; justify-content: center; color: var(--playicon); box-shadow: 0 6px 16px -3px rgba(0, 0, 0, .3), 0 0 20px -2px rgba(216, 184, 95, .5); transition: transform .16s ease, box-shadow .2s ease; }
+    .today .srow .play:active { transform: scale(.9); }
+    .today .srow .play svg { width: 14px; height: 14px; }
+    .today .srow.speaking .play { box-shadow: 0 0 0 4px rgba(216, 184, 95, .2), 0 6px 18px -3px rgba(216, 184, 95, .7); }
+    .today .srow .dec { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--text); line-height: 1.3; }
+
+    .today .praywrap { position: relative; margin-top: 18px; }
+    .today .prayglow { position: absolute; inset: -26px; background: radial-gradient(circle at 50% 42%, var(--pglow), transparent 70%); pointer-events: none; }
+    .today .pray { position: relative; background: var(--prayer); border-radius: 20px; padding: 28px 24px 24px; text-align: center; box-shadow: var(--prayer-shadow); border: 1px solid var(--line); }
+    .today .pray .ptext { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-style: italic; line-height: 1.52; color: var(--text); }
+    .today .pray .amen { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--goldd); margin-top: 16px; letter-spacing: .05em; text-shadow: 0 0 18px rgba(216, 184, 95, .4); }
+
+    .today .foot { position: relative; z-index: 1; display: flex; gap: 10px; padding: 6px 22px 14px; }
+    .today .foot .save, .today .foot .share { flex: 1; border: 1px solid var(--line2); background: transparent; color: var(--text); border-radius: 14px; padding: 15px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 9px; transition: transform .16s ease, color .2s ease, border-color .2s ease; }
+    .today .foot .save svg, .today .foot .share svg { width: 16px; height: 16px; }
+    .today .foot .save:active, .today .foot .share:active { transform: scale(.97); }
+    .today .foot .save.on { color: var(--goldd); border-color: rgba(216, 184, 95, .5); }
+    .today .foot .share:hover { color: var(--goldd); border-color: rgba(216, 184, 95, .5); }
+
+    /* Start a Journey CTA (Results.html) — carries the struggle into Journey */
+    .today .startjourney { position: relative; margin: 18px 22px 6px; padding: 20px; border-radius: 18px; overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 12%, var(--surface)), var(--surface));
+      box-shadow: 0 18px 46px -18px rgba(216, 184, 95, .42), var(--card-shadow); }
+    .today .startjourney .sj-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(72% 60% at 50% 0%, rgba(216, 184, 95, .18), transparent 70%); }
+    .today .startjourney .sj-tag { position: relative; z-index: 1; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .today .startjourney .sj-h { position: relative; z-index: 1; font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--text); font-weight: 600; margin-top: 8px; line-height: 1.14; }
+    .today .startjourney .sj-p { position: relative; z-index: 1; font-size: 13.5px; line-height: 1.56; color: var(--text2); margin-top: 8px; text-wrap: pretty; }
+    .today .startjourney .sj-p b { color: var(--text); font-weight: 600; }
+    .today .startjourney .btn { position: relative; z-index: 1; width: 100%; margin-top: 15px; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); }
+
+    .today .nextsteps { position: relative; z-index: 1; padding: 2px 22px 14px; }
+    .today .nextsteps .ns-lbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 600; margin-bottom: 12px; text-align: center; }
+    .today .nslist { display: flex; flex-direction: column; gap: 10px; }
+    .today .nscard { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface); border-radius: 14px; box-shadow: var(--card-shadow); text-decoration: none; transition: transform .25s cubic-bezier(.2, .7, .2, 1); border: 0; cursor: pointer; width: 100%; text-align: left; font-family: inherit; }
+    @media (hover: hover) { .today .nscard:hover { transform: translateY(-3px); } }
+    .today .nscard .nsi { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .today .nscard .nsi svg { width: 17px; height: 17px; }
+    .today .nscard .nsm { flex: 1; min-width: 0; }
+    .today .nscard .nst { display: block; font-size: 15px; font-weight: 500; color: var(--text); }
+    .today .nscard .nsd { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .today .nscard .nsa { flex: 0 0 auto; color: var(--muted); display: flex; }
+    .today .nscard .nsa svg { width: 16px; height: 16px; }
+
+    /* share chooser sheet (Results.html .sps) */
+    .today .sps-scrim { position: fixed; inset: 0; z-index: 64; background: rgba(6, 11, 8, .55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+    .today .sps-scrim.show { opacity: 1; pointer-events: auto; }
+    .today .sps { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: min(440px, 100%); z-index: 65; background: var(--screen); border-radius: 26px 26px 0 0; box-shadow: 0 -24px 70px -24px rgba(0, 0, 0, .7); padding: 10px 20px calc(22px + env(safe-area-inset-bottom)); transition: transform .42s cubic-bezier(.2, .7, .2, 1); max-height: 84vh; overflow-y: auto; scrollbar-width: none; }
+    .today .sps::-webkit-scrollbar { display: none; }
+    .today .sps.show { transform: translate(-50%, 0); }
+    .today .sps .grab { width: 42px; height: 5px; border-radius: 999px; background: var(--line2); margin: 2px auto 14px; }
+    .today .sps h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); text-align: center; }
+    .today .sps-sub { font-size: 13px; color: var(--muted); text-align: center; margin-top: 4px; margin-bottom: 6px; }
+    .today .sps-row { display: flex; align-items: center; gap: 14px; padding: 15px 6px; width: 100%; border: 0; background: none; cursor: pointer; font-family: inherit; text-align: left; border-top: 1px solid var(--line); transition: padding-left .2s ease; }
+    .today .sps-row:hover { padding-left: 10px; }
+    .today .sps-row .ic { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .today .sps-row .ic svg { width: 19px; height: 19px; }
+    .today .sps-row .tx { flex: 1; min-width: 0; }
+    .today .sps-row .k { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 600; }
+    .today .sps-row .v { font-size: 14.5px; color: var(--text); margin-top: 3px; line-height: 1.42; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .today .sps-row .go { flex: 0 0 auto; color: var(--muted); display: flex; }
+    .today .sps-row .go svg { width: 16px; height: 16px; }
+
+    /* Card Studio sizing (review: studio felt too big). Mobile keeps the design's
+       full sheet; on desktop the canvas is capped and the controls sit in a calm
+       centered column, so format/background/share are visible without scrolling. */
+    @media (min-width: 720px) {
+      .cst-scrim .cst { background: color-mix(in srgb, var(--bgfield) 94%, transparent); backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15); }
+      .cst-scrim .cst-top { max-width: 600px; margin-left: auto; margin-right: auto; width: 100%; }
+      .cst-scrim .cst-stage { padding: 6px 18px 6px; }
+      .cst-scrim .cst-canvas { max-height: 46vh; }
+      .cst-scrim .cst-panel { max-width: 600px; margin-left: auto; margin-right: auto; width: 100%; border-radius: 22px 22px 0 0; }
+    }
+
+    /* toast (Results.html) */
+    .today .toast { position: fixed; left: 50%; bottom: 110px; transform: translate(-50%, 14px); background: var(--surface); color: var(--text);
+      padding: 12px 18px; border-radius: 14px; box-shadow: var(--card-shadow); font-size: 13.5px; display: flex; align-items: center; gap: 9px;
+      opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s ease; z-index: 60; }
+    .today .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .today .toast svg { width: 16px; height: 16px; color: var(--goldd); }
+
+    /* error panel */
+    .today .rsoon { text-align: center; padding: 60px 18px; }
+    .today .rsoon .ri { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .today .rsoon .ri svg { width: 21px; height: 21px; }
+    .today .rsoon .rt2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); }
+    .today .rsoon .rd { font-size: 13px; color: var(--muted); margin-top: 7px; line-height: 1.5; }
+    .today .err-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+
+    /* ===== DESKTOP (design Today.html + Results.html desktop blocks; the
+       top-bar itself comes from declare.css .app-shell) ===== */
+    @media (min-width: 481px) {
+      .today .in { justify-content: center; align-items: center; max-width: 640px; width: 100%; margin: 0 auto; padding: 84px 24px 48px; min-height: 100dvh; }
+      .today .spacer { display: none; }
+      .today .entryhero { width: 100%; padding: 0; }
+      .today .entryhero .heading { font-size: clamp(32px, 3.2vw, 42px); line-height: 1.14; }
+      .today .entryhero .sub { font-size: 15.5px; margin-top: 13px; }
+      .today .entry-input { width: 100%; max-width: 580px; margin: 30px auto 0; padding: 8px 8px 8px 20px; border-radius: 16px; }
+      .today .entry-input textarea { font-size: 16px; }
+      .today .entry-input .send { width: 38px; height: 38px; }
+      .today .entry-div { width: 100%; max-width: 560px; margin: 26px auto 16px; }
+      .today .entry-chips { max-width: 560px; gap: 8px; }
+      .today .entry-chips .chip { font-size: 13px; padding: 8px 14px; box-shadow: none;
+        background: color-mix(in srgb, var(--text) 5%, transparent); border: 1px solid var(--line); color: var(--text2); }
+      .today .entry-chips .chip:hover { color: var(--text); border-color: var(--line2); }
+      .today .entry-chips .chip.on { background: var(--gold); color: #22382E; border-color: transparent; box-shadow: 0 6px 16px -6px rgba(201, 168, 76, .45); }
+      .today .entry-chips .chip.more { background: transparent; border: 1px dashed var(--line2); color: var(--goldd); }
+      .today #receiveBtn { width: auto; min-width: 230px; align-self: center; margin-top: 30px; padding: 13px 34px; font-size: 14.5px; border-radius: 13px; }
+      .today .entry-crisis { margin-top: 22px; font-size: 13px; }
+
+      .today .head { max-width: 720px; margin: 0 auto; width: 100%; padding: 80px 22px 4px; }
+      .today .intro { max-width: 720px; margin: 0 auto; width: 100%; }
+      .today .journey { max-width: 720px; margin: 0 auto; width: 100%; }
+      .today .foot { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 24px; }
+      .today .nextsteps { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 96px; }
+      .today .botglow { bottom: 120px; }
+      .today .toast { bottom: 60px; }
+    }
+    @media (min-width: 1100px) {
+      .today .in { max-width: 660px; padding-top: 104px; }
+      .today .entryhero .heading { font-size: 44px; }
+      .today .head, .today .intro, .today .journey, .today .foot, .today .nextsteps { max-width: 760px; }
+    }
+    @media (min-width: 481px) {
+      .today .startjourney { max-width: 720px; margin-left: auto; margin-right: auto; }
+    }
+    @media (min-width: 1100px) {
+      .today .startjourney { max-width: 760px; }
+    }
+  </style>
 </DeclareLayout>

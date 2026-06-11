@@ -31,7 +31,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="wsub rise d1">Free &amp; ad-free &middot; choose your translation</div>
 
         {sections.map((sec) => sec.groups.map((g) => (
-          <section class="grp">
+          <section class="grp m-rise">
             <div class="grphead">
               <span class="grptitle">{g.title}</span>
               <span class="grpsub">{g.sub}</span>
@@ -234,6 +234,43 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         openReader(b.dataset.name, b.dataset.usfm, parseInt(b.dataset.chaps, 10));
       });
 
+      // Deep-link: /word?book=Psalms&chapter=34&verse=18 opens the reader straight
+      // into the chapter, then scrolls to the verse and highlights it so reading
+      // begins right there (used by /today's "Read the full passage"). Book name
+      // matched case-insensitively against the rendered book list.
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          var wantBook = (q.get('book') || '').trim().toLowerCase();
+          var wantChap = parseInt(q.get('chapter') || '', 10);
+          var wantVerse = parseInt(q.get('verse') || '', 10);
+          if (!wantBook) return;
+          var btn = [...document.querySelectorAll('.book')].find(function (b) {
+            return (b.dataset.name || '').toLowerCase() === wantBook;
+          });
+          if (!btn) return;
+          var chaps = parseInt(btn.dataset.chaps, 10);
+          openReader(btn.dataset.name, btn.dataset.usfm, chaps);
+          if (Number.isInteger(wantChap) && wantChap >= 1 && wantChap <= chaps) {
+            readChapter(wantChap);
+            if (Number.isInteger(wantVerse) && wantVerse >= 1) {
+              var tries = 0;
+              (function seek() {
+                var el = rbody.querySelector('.vrse[data-n="' + wantVerse + '"]');
+                if (el) {
+                  var tr = el.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
+                  rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 110, behavior: 'smooth' });
+                  el.classList.add('hl', 'flash'); // flash in, then keep the soft gold wash
+                  setTimeout(function () { el.classList.remove('flash'); }, 2200);
+                  return;
+                }
+                if (tries++ < 40) setTimeout(seek, 150);
+              })();
+            }
+          }
+        } catch (e) {}
+      })();
+
       // ---- translation switcher (WEB <-> NLT) ----
       function openTmenu() {
         tmlist.innerHTML = TRANSLATIONS.map(function (t) {
@@ -346,7 +383,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .rbody { padding: 6px 22px 36px; max-width: 680px; margin: 0 auto; width: 100%; }
     .vrse { display: flex; gap: 11px; margin-bottom: 15px; }
     .vrse .vn { flex: 0 0 auto; font-size: 11px; color: var(--goldd); font-weight: 600; width: 18px; text-align: right; padding-top: 6px; }
-    .vrse .vt { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 20px; line-height: 1.5; color: var(--text); }
+    .vrse .vt { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 20px; line-height: 1.5; color: var(--text); padding: 2px 7px; border-radius: 8px; }
+    /* deep-linked verse: entrance flash, then a persistent soft gold wash
+       (the design's .hl highlight) so reading visibly begins at this verse */
+    .vrse.flash .vt { animation: vflash 2s ease; }
+    @keyframes vflash { 0%, 35% { background: rgba(216, 184, 95, .34); } 100% { background: rgba(216, 184, 95, .18); } }
+    .vrse.hl .vt { background: rgba(216, 184, 95, .18); }
 
     /* loading shimmer + error panel */
     .rloading { padding: 8px 22px; max-width: 680px; margin: 0 auto; }
