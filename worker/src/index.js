@@ -96,7 +96,8 @@ async function handleBible(request, env) {
     // already-cached chapters are re-fetched and re-normalized instead of served stale.
     const NORM = 'v2';
     const cacheKey = `verse:WEB:${NORM}:${ref}`;
-    const longCache = { 'Cache-Control': 'public, max-age=31536000' };
+    // 14 days — API.Bible requires cached content be refreshed at least every 14 days.
+    const longCache = { 'Cache-Control': 'public, max-age=1209600' };
 
     // Public-domain: a permanent KV hit serves instantly with zero API calls.
     if (env.BIBLE_KV) {
@@ -125,8 +126,8 @@ async function handleBible(request, env) {
       chapter,
       verses,
     };
-    // Cache forever — public-domain text never changes.
-    if (env.BIBLE_KV) await env.BIBLE_KV.put(cacheKey, JSON.stringify(payload));
+    // Cache with a 14-day TTL (API.Bible terms: refresh cached content at least every 14 days).
+    if (env.BIBLE_KV) await env.BIBLE_KV.put(cacheKey, JSON.stringify(payload), { expirationTtl: 1209600 });
     return jsonResponse(payload, 200, longCache);
   }
 
