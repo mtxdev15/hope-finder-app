@@ -14,17 +14,41 @@ const BIBLE_CORS_HEADERS = {
 
 // ── Bible reader ─────────────────────────────────────────────────────────────
 // API.Bible is the single source; the key is a server-side secret (env.BIBLE_API_KEY),
-// never in the browser. WEB is public-domain → cached forever in KV, no FUMS, no
-// copyright line. NLT is copyrighted → fetched LIVE every time (never cached), and
-// returned with a FUMS token (the browser fires the view ping) plus the Tyndale
-// copyright line. NKJV/NIV are intentionally still rejected (a later slice).
+// never in the browser. WEB is public-domain → cached in KV (14-day TTL), no FUMS, no
+// copyright line. NLT/NKJV/NIV are copyrighted → fetched LIVE every time (never cached),
+// each returned with a FUMS token (the browser fires the view ping) plus its publisher's
+// copyright line.
 const WEB_BIBLE_ID = '9879dbb7cfe39e4d-01';
+const KJV_BIBLE_ID = 'de4e12af7f28f599-01';
+const ASV_BIBLE_ID = '06125adad2d5898a-01';
 const NLT_BIBLE_ID = 'd6e14a625393b4da-01';
+const NKJV_BIBLE_ID = '63097d2a0a2f7db3-01';
+const NIV_BIBLE_ID = '78a9f6124f344018-01';
 
-// The required Tyndale credit line, shown wherever NLT text appears. Hardcoded (not
-// pulled from API.Bible) so it's the full legal credit and renders even if a fetch fails.
+// Public-domain translations: cached in KV (14-day TTL), no FUMS, no copyright line.
+// Keyed by request param; cache key uses the label so they never collide (verse:KJV:v2:…).
+const PUBLIC_DOMAIN = {
+  web: { id: WEB_BIBLE_ID, label: 'WEB' },
+  kjv: { id: KJV_BIBLE_ID, label: 'KJV' },
+  asv: { id: ASV_BIBLE_ID, label: 'ASV' },
+};
+
+// Required publisher credit lines, shown wherever each copyrighted translation appears.
+// Hardcoded (not pulled from API.Bible) so each is the full legal credit and renders even
+// if a fetch fails. Verbatim — the ® marks, years, and "worldwide" are required.
 const NLT_COPYRIGHT =
   'Scripture quotations are taken from the Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.';
+const NKJV_COPYRIGHT =
+  'Scripture taken from the New King James Version®. Copyright © 1982 by Thomas Nelson. Used by permission. All rights reserved.';
+const NIV_COPYRIGHT =
+  'Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.® Used by permission. All rights reserved worldwide.';
+
+// The copyrighted translations, keyed by request param. WEB is handled separately (cached).
+const COPYRIGHTED = {
+  nlt: { id: NLT_BIBLE_ID, label: 'NLT', copyright: NLT_COPYRIGHT },
+  nkjv: { id: NKJV_BIBLE_ID, label: 'NKJV', copyright: NKJV_COPYRIGHT },
+  niv: { id: NIV_BIBLE_ID, label: 'NIV', copyright: NIV_COPYRIGHT },
+};
 
 function jsonResponse(obj, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(obj), {
@@ -61,7 +85,9 @@ function normalizeChapter(content) {
     }
     if (node.items) walk(node.items);
   })(content);
-  verses.forEach((v) => { v.t = v.t.replace(/\s+/g, ' ').trim(); });
+  // Strip API.Bible paragraph markers (¶, e.g. KJV paragraph-opening verses), THEN collapse
+  // whitespace + trim — so "¶ For God…" becomes "For God…". No-op for text without a ¶.
+  verses.forEach((v) => { v.t = v.t.replace(/¶/g, '').replace(/\s+/g, ' ').trim(); });
   return verses.filter((v) => v.t);
 }
 
@@ -78,8 +104,8 @@ async function handleBible(request, env) {
   const book = (url.searchParams.get('book') || '').toUpperCase();
   const chapter = parseInt(url.searchParams.get('chapter') || '', 10);
 
-  if (translation !== 'web' && translation !== 'nlt') {
-    return jsonResponse({ error: 'Only the WEB and NLT translations are available right now.' }, 400);
+  if (!PUBLIC_DOMAIN[translation] && !COPYRIGHTED[translation]) {
+    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, and NIV translations are available right now.' }, 400);
   }
   if (!/^[0-9A-Z]{3}$/.test(book)) {
     return jsonResponse({ error: 'Invalid book code.' }, 400);
@@ -90,22 +116,23 @@ async function handleBible(request, env) {
 
   const ref = `${book}.${chapter}`;
 
-  // ===== WEB (public domain): permanent KV cache, no FUMS, no copyright =====
-  if (translation === 'web') {
+  // ===== PUBLIC DOMAIN (WEB/KJV/ASV): KV-cached, no FUMS, no copyright =====
+  if (PUBLIC_DOMAIN[translation]) {
+    const cfg = PUBLIC_DOMAIN[translation];
     // NORM is the normalizer version — bump it whenever normalizeChapter changes so
     // already-cached chapters are re-fetched and re-normalized instead of served stale.
-    const NORM = 'v2';
-    const cacheKey = `verse:WEB:${NORM}:${ref}`;
+    const NORM = 'v3';
+    const cacheKey = `verse:${cfg.label}:${NORM}:${ref}`;
     // 14 days — API.Bible requires cached content be refreshed at least every 14 days.
     const longCache = { 'Cache-Control': 'public, max-age=1209600' };
 
-    // Public-domain: a permanent KV hit serves instantly with zero API calls.
+    // Public-domain: a KV hit serves instantly with zero API calls.
     if (env.BIBLE_KV) {
       const cached = await env.BIBLE_KV.get(cacheKey, 'json');
       if (cached) return jsonResponse(cached, 200, longCache);
     }
 
-    const apiUrl = `https://api.scripture.api.bible/v1/bibles/${WEB_BIBLE_ID}/chapters/${ref}` +
+    const apiUrl = `https://api.scripture.api.bible/v1/bibles/${cfg.id}/chapters/${ref}` +
       '?content-type=json&include-verse-numbers=true&include-titles=false&include-notes=false&include-chapter-numbers=false';
     const apiRes = await fetch(apiUrl, {
       headers: { 'api-key': env.BIBLE_API_KEY, 'accept': 'application/json' },
@@ -121,7 +148,7 @@ async function handleBible(request, env) {
 
     const payload = {
       reference: (data.data && data.data.reference) || ref,
-      translation: 'WEB',
+      translation: cfg.label,
       book,
       chapter,
       verses,
@@ -131,9 +158,10 @@ async function handleBible(request, env) {
     return jsonResponse(payload, 200, longCache);
   }
 
-  // ===== NLT (copyrighted): LIVE every time, NEVER cached, returns FUMS token + copyright =====
+  // ===== COPYRIGHTED (NLT/NKJV/NIV): LIVE every time, NEVER cached, returns FUMS token + copyright =====
   // No KV access at all. Cache-Control: no-store so every display is a fresh, FUMS-trackable view.
-  const apiUrl = `https://api.scripture.api.bible/v1/bibles/${NLT_BIBLE_ID}/chapters/${ref}` +
+  const cfg = COPYRIGHTED[translation];
+  const apiUrl = `https://api.scripture.api.bible/v1/bibles/${cfg.id}/chapters/${ref}` +
     '?content-type=json&include-verse-numbers=true&include-titles=false&include-notes=false&include-chapter-numbers=false';
   const apiRes = await fetch(apiUrl, {
     headers: { 'api-key': env.BIBLE_API_KEY, 'accept': 'application/json' },
@@ -150,12 +178,12 @@ async function handleBible(request, env) {
   // response). The browser fires fums('trackView', token) when the text displays.
   return jsonResponse({
     reference: (data.data && data.data.reference) || ref,
-    translation: 'NLT',
+    translation: cfg.label,
     book,
     chapter,
     verses,
     fumsToken: (data.meta && data.meta.fumsToken) || null,
-    copyright: NLT_COPYRIGHT,
+    copyright: cfg.copyright,
   }, 200, { 'Cache-Control': 'no-store' });
 }
 

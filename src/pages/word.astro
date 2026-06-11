@@ -113,27 +113,38 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           transsel = $('transsel'), transselLabel = $('transselLabel'),
           tmenu = $('tmenu'), tmlist = $('tmlist');
 
-      // WEB + NLT this slice. NKJV/NIV are rejected by the Worker (not offered here).
+      // WEB (public domain) + the copyrighted translations, in switcher order. The Worker
+      // serves WEB cached and NLT/NKJV/NIV live (FUMS + copyright); the page treats any
+      // non-WEB translation the same way (no client cache, copyright line, FUMS ping).
       var TRANSLATIONS = [
+        { id: 'kjv', label: 'KJV', name: 'King James Version' },
         { id: 'web', label: 'WEB', name: 'World English Bible' },
+        { id: 'asv', label: 'ASV', name: 'American Standard Version' },
+        { id: 'nkjv', label: 'NKJV', name: 'New King James Version' },
+        { id: 'niv', label: 'NIV', name: 'New International Version (2011)' },
         { id: 'nlt', label: 'NLT', name: 'New Living Translation' },
       ];
       function transLabel(id) { for (var i = 0; i < TRANSLATIONS.length; i++) if (TRANSLATIONS[i].id === id) return TRANSLATIONS[i].label; return 'WEB'; }
-      var curTrans = (function () { try { var t = localStorage.getItem('declare-reader-translation'); return (t === 'web' || t === 'nlt') ? t : 'web'; } catch (e) { return 'web'; } })();
+      function knownTrans(t) { for (var i = 0; i < TRANSLATIONS.length; i++) if (TRANSLATIONS[i].id === t) return true; return false; }
+      var curTrans = (function () { try { var t = localStorage.getItem('declare-reader-translation'); return knownTrans(t) ? t : 'web'; } catch (e) { return 'web'; } })();
 
       var curName = '', curUsfm = '', curChaps = 1, curChap = 1;
       var CACHE = {}, reqId = 0;
 
       // Returns the full Worker payload {verses, fumsToken, copyright, translation}.
-      // WEB is cached client-side; NLT is NEVER cached — each NLT view must hit the
-      // Worker live so it returns a fresh FUMS token (every display is a tracked view).
+      // WEB is cached client-side; copyrighted translations (NLT/NKJV/NIV) are NEVER
+      // cached — each view must hit the Worker live for a fresh FUMS token (every
+      // display is a tracked view).
       function fetchChapter(usfm, chap, trans) {
         var key = trans + ':' + usfm + '.' + chap;
-        if (trans === 'web' && CACHE[key]) return Promise.resolve(CACHE[key]);
+        // Only public-domain results are ever written to CACHE (see below), so a present
+        // key is always safe to serve; copyrighted translations always refetch live.
+        if (CACHE[key]) return Promise.resolve(CACHE[key]);
         var url = WORKER + '?translation=' + trans + '&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
         return fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
           if (!j || !j.verses) return null;
-          if (trans === 'web') CACHE[key] = j;
+          // Cache only public-domain (no FUMS token) — copyrighted must hit the Worker live every view.
+          if (!j.fumsToken) CACHE[key] = j;
           return j;
         }).catch(function () { return null; });
       }
@@ -204,7 +215,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           if (payload.copyright) { rcopyright.textContent = payload.copyright; rcopyright.hidden = false; }
           else { rcopyright.textContent = ''; rcopyright.hidden = true; }
           // FUMS view ping — copyrighted text only; WEB fires nothing
-          if (trans !== 'web') fireFums(payload.fumsToken);
+          // FUMS view ping — copyrighted text only; the Worker returns a token iff one is required.
+          if (payload.fumsToken) fireFums(payload.fumsToken);
         });
       }
 
