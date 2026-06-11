@@ -1,0 +1,288 @@
+---
+// /you — the "You" (account) page. Designed shell of Account-A.html on the v3.2
+// shell. V1 has no accounts, so identity / auth / saved-data / profile features
+// are rendered faithfully but STUBBED "coming soon" (tap -> gentle toast), wired
+// to nothing. The one genuinely-live control is Appearance (theme), which works
+// via the vendored theme.js (auto-wires .themectl). No Worker call, no island.
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+
+// chevron used on every navigable row
+const chevron = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
+---
+<DeclareLayout
+  title="Declare — You"
+  description="Your Declare account and settings."
+  activeTab="you"
+>
+  <main class="you">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="you-col">
+
+      {/* hero — guest state (no accounts in V1) */}
+      <div class="ahero rise d1">
+        <div class="avwrap">
+          <div class="aavatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+          </div>
+        </div>
+        <div class="htext">
+          <div class="hname">Guest</div>
+          <div class="hmeta">Sign in &mdash; coming soon</div>
+        </div>
+      </div>
+
+      {/* Profile — V2 stub */}
+      <div class="group rise d2">
+        <div class="glabel">Profile</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
+            <span class="ml"><span class="mt">First name</span><span class="md">How we greet you</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span>
+            <span class="ml"><span class="mt">Country</span><span class="md">For local churches &amp; times</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Sign-in & security — V2 stub (all auth) */}
+      <div class="group rise d2">
+        <div class="glabel">Sign-in &amp; security</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+            <span class="ml"><span class="mt">Email</span><span class="md">Not signed in yet</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+            <span class="ml"><span class="mt">Password</span><span class="md">Set once accounts arrive</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Appearance — LIVE (device-local, via theme.js) */}
+      <div class="group rise d3">
+        <div class="glabel">Appearance</div>
+        <div class="mlist appcard">
+          <nav class="themectl" aria-label="Theme">
+            <button data-mode="light">Light</button>
+            <button data-mode="dark">Dark</button>
+            <button data-mode="system">Auto</button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Reader — V2 stub (nothing consumes these prefs yet) */}
+      <div class="group rise d3">
+        <div class="glabel">Reader</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <span class="ml"><span class="mt">Translation</span><span class="md">Used across every reading</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi serif">Aa</span>
+            <span class="ml"><span class="mt">Text size</span><span class="md">Comfortable reading scale</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      {/* My church — V2 stub */}
+      <div class="group rise d4">
+        <div class="glabel">My church</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg></span>
+            <span class="ml"><span class="mt">Find a church</span><span class="md">Discover a fellowship near you</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Reminders & Notifications — V2 stub (no scheduler/push backend) */}
+      <div class="group rise d4">
+        <div class="glabel">Reminders</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+            <span class="ml"><span class="mt">Daily reminder</span><span class="md">A gentle nudge back to the Word</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="group rise d4">
+        <div class="glabel">Notifications</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+            <span class="ml"><span class="mt">Push notifications</span><span class="md">Alerts on this device</span></span>
+            <span class="mr"><span class="tgl" aria-hidden="true"></span></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span>
+            <span class="ml"><span class="mt">Journey check-ins</span><span class="md">Encouraging nudges to keep going</span></span>
+            <span class="mr"><span class="tgl" aria-hidden="true"></span></span>
+          </button>
+        </div>
+      </div>
+
+      {/* More — keep design's badges; links not built yet, so stub */}
+      <div class="group rise d5">
+        <div class="glabel">More</div>
+        <div class="mlist">
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.8-3.5 2.1-1.5 2.6-.4 6.4 1.1 8.5.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.67 2.7-.67 1.2 0 1.6.67 2.7.65 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.81-2.1-3.2zM14.3 6.3c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .08 1.9-.5 2.5-1.2z"/></svg></span>
+            <span class="ml"><span class="mt">Declare for iPhone</span><span class="md">Get the iOS app &mdash; join the waitlist</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+            <span class="ml"><span class="mt">Listen &amp; watch</span><span class="md">Podcast, YouTube, declarations</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
+            <span class="ml"><span class="mt">Support Declare</span><span class="md">Help keep it free for all</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+          <button class="mrow" data-soon>
+            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l2.85 6.06 6.65.83-4.9 4.54 1.27 6.57L12 17.9l-5.87 3.3 1.27-6.57-4.9-4.54 6.65-.83z"/></svg></span>
+            <span class="ml"><span class="mt">Rate Declare</span><span class="md">Tell us how it has met you</span></span>
+            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Actions — V2 stub */}
+      <div class="actions rise d6">
+        <button class="signout" data-soon>Sign in</button>
+      </div>
+      <div class="vno rise d6">DECLARE &middot; VERSION 3.2</div>
+
+    </div>
+
+    <div class="acct-toast" id="acctToast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script is:inline>
+    (function () {
+      var toast = document.getElementById('acctToast');
+      var timer = null;
+      function show(msg) {
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('show');
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
+      }
+      document.querySelectorAll('[data-soon]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          show('Accounts & saved items are coming in a future update.');
+        });
+      });
+    })();
+  </script>
+
+  <style>
+    /* page-local account styles (brought from Account-A.html; the .themectl /
+       .btn / .rise / .topglow styling + tokens come from global declare.css) */
+    .you {
+      position: relative;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: calc(108px + env(safe-area-inset-bottom, 0));
+    }
+    .you-col {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 20px 0;
+    }
+
+    /* hero */
+    .ahero { padding: 14px 4px 2px; display: flex; align-items: center; gap: 16px; }
+    .avwrap { position: relative; flex: 0 0 auto; }
+    .aavatar {
+      width: 66px; height: 66px; border-radius: 50%;
+      background: linear-gradient(150deg, var(--gold), rgba(216, 184, 95, .5));
+      display: flex; align-items: center; justify-content: center; color: #0c130f;
+      box-shadow: 0 0 0 4px var(--bg), 0 8px 24px -6px rgba(0, 0, 0, .45), 0 0 30px -6px rgba(216, 184, 95, .5);
+    }
+    .aavatar svg { width: 30px; height: 30px; }
+    html[data-theme="light"] .aavatar { color: #FBF6EC; box-shadow: 0 0 0 4px #fff, 0 8px 24px -8px rgba(34, 56, 46, .4), 0 0 26px -6px rgba(201, 168, 76, .5); }
+    .htext { flex: 1; min-width: 0; }
+    .hname { font-family: 'Cormorant Garamond', serif; font-size: 27px; font-weight: 600; color: var(--text); line-height: 1.04; }
+    .hmeta { font-size: 12.5px; color: var(--muted); margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* groups + rows */
+    .group { margin-top: 26px; }
+    .glabel { font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin: 0 4px 9px; }
+    .mlist { background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); overflow: hidden; }
+    .mrow {
+      display: flex; align-items: center; gap: 13px; padding: 14px 15px; cursor: pointer;
+      border: 0; background: none; width: 100%; text-align: left; font-family: inherit;
+      border-top: 1px solid var(--line);
+      transition: background .22s ease, padding-left .26s cubic-bezier(.2, .7, .2, 1);
+    }
+    .mrow:first-child { border-top: 0; }
+    @media (hover: hover) { .mrow:hover { background: var(--field); padding-left: 19px; } }
+    .mrow:active { background: var(--field); }
+    .mrow .mi { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); transition: transform .26s cubic-bezier(.2, .7, .2, 1); }
+    @media (hover: hover) { .mrow:hover .mi { transform: scale(1.08); } }
+    .mrow .mi svg { width: 17px; height: 17px; }
+    .mrow .mi.serif { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; }
+    .mrow .ml { flex: 1; min-width: 0; }
+    .mrow .mt { display: block; font-size: 14.5px; font-weight: 500; color: var(--text); }
+    .mrow .md { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mrow .mr { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .mrow .badge { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); border: 1px solid var(--line2); padding: 3px 8px; border-radius: 999px; }
+    .mrow .mc { flex: 0 0 auto; color: var(--muted); display: flex; transition: transform .26s cubic-bezier(.2, .7, .2, 1), color .2s ease; }
+    @media (hover: hover) { .mrow:hover .mc { transform: translateX(3px); color: var(--goldd); } }
+    .mrow .mc svg { width: 16px; height: 16px; }
+
+    /* toggle (rendered static / non-functional in the V1 shell) */
+    .tgl { position: relative; width: 46px; height: 28px; border-radius: 999px; background: var(--line2); border: 0; flex: 0 0 auto; }
+    .tgl::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+
+    /* appearance segmented control: override declare.css's fixed floating .themectl */
+    .appcard { padding: 6px; }
+    .appcard .themectl {
+      position: static; inset: auto; z-index: auto; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px; width: 100%; padding: 0; border-radius: 12px; background: transparent; border: 0;
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    .appcard .themectl button { font-size: 13px; font-weight: 500; padding: 12px 4px; border-radius: 10px; color: var(--muted); letter-spacing: 0; }
+    .appcard .themectl button.on { background: rgba(216, 184, 95, .16); color: var(--text); box-shadow: none; }
+
+    /* actions */
+    .actions { margin-top: 30px; }
+    .signout {
+      width: 100%; display: block; text-align: center; border: 1px solid var(--line2);
+      background: transparent; color: var(--text); border-radius: 14px; padding: 15px;
+      font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+    }
+    .vno { text-align: center; font-size: 10px; letter-spacing: .14em; color: var(--muted); margin-top: 22px; opacity: .7; }
+
+    /* coming-soon toast */
+    .acct-toast {
+      position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0)); transform: translate(-50%, 16px);
+      z-index: 95; opacity: 0; pointer-events: none;
+      background: var(--surface); color: var(--text); border: 1px solid var(--line2);
+      font-size: 13.5px; font-weight: 500; padding: 12px 18px; border-radius: 13px;
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, .5);
+      transition: opacity .25s, transform .25s; max-width: 82%; text-align: center;
+    }
+    .acct-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  </style>
+</DeclareLayout>
