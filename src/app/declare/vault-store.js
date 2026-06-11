@@ -54,3 +54,37 @@ export function wordId(struggle, verses) {
   const refs = (verses || []).map((v) => v.ref).join('|');
   return 'word:' + struggle + ':' + refs;
 }
+
+/* ── collections (device-local, same persistence decision) ──
+   { name, kind: 'verse'|'declaration'|'prayer'|null, ts }
+   kind-collections gather every truth of that kind automatically;
+   null = a named space the user curates. */
+const COLLS_KEY = 'declare-vault-colls-v1';
+
+function loadColls() {
+  try {
+    const raw = localStorage.getItem(COLLS_KEY);
+    if (raw) {
+      const a = JSON.parse(raw);
+      if (Array.isArray(a)) return a;
+    }
+  } catch (e) {}
+  return [];
+}
+
+export function listCollections() {
+  return loadColls().slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+}
+
+export function addCollection(name, kind) {
+  const colls = loadColls();
+  if (!colls.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    colls.push({ name, kind: kind || null, ts: Date.now() });
+    try { localStorage.setItem(COLLS_KEY, JSON.stringify(colls)); } catch (e) {}
+  }
+}
+
+export function removeCollection(name) {
+  const colls = loadColls().filter((c) => c.name !== name);
+  try { localStorage.setItem(COLLS_KEY, JSON.stringify(colls)); } catch (e) {}
+}
