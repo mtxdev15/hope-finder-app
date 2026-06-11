@@ -18,7 +18,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 ---
 <DeclareLayout
   title="Declare — The Word"
-  description="Read the Bible — the World English Bible, free and ad-free."
+  description="Read the Bible — free and ad-free."
   activeTab="word"
 >
   <main class="word">
@@ -28,7 +28,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     <div class="w-bookview" id="bookView">
       <div class="w-col">
         <div class="wtitle rise d1">The Word</div>
-        <div class="wsub rise d1">World English Bible &middot; free &amp; ad-free</div>
+        <div class="wsub rise d1">Free &amp; ad-free &middot; choose your translation</div>
 
         {sections.map((sec) => sec.groups.map((g) => (
           <section class="grp">
@@ -71,7 +71,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
           <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
-        <div class="rtransnote" id="rtransnote" hidden>World English Bible (WEB) &middot; public domain</div>
+        <div class="rtrans" id="rtrans" hidden>
+          <button class="transsel" id="transsel">
+            <span id="transselLabel">WEB</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
       </div>
       <div class="rscroll" id="rscroll">
         <div class="chappick" id="chapPick">
@@ -79,6 +84,17 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           <div class="chapgrid" id="chapgrid"></div>
         </div>
         <div class="rbody" id="rbody" hidden></div>
+        <div class="rcopyright" id="rcopyright" hidden></div>
+      </div>
+
+      {/* translation chooser sheet (WEB / NLT) */}
+      <div class="rsheet" id="tmenu">
+        <div class="rsback" id="tmback"></div>
+        <div class="rspanel">
+          <div class="tmgrab" aria-hidden="true"></div>
+          <div class="rstitle">Translation</div>
+          <div id="tmlist"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -91,26 +107,61 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
       var reader = $('reader'), bookView = $('bookView');
       var rbook = $('rbook'), rsub = $('rsub'), chapgrid = $('chapgrid'), chapPick = $('chapPick'),
-          rbody = $('rbody'), readctl = $('readctl'), rtransnote = $('rtransnote'),
+          rbody = $('rbody'), readctl = $('readctl'), rtrans = $('rtrans'),
           chapLabelText = $('chapLabelText'), prevChapBtn = $('prevChap'), nextChapBtn = $('nextChap'),
-          rscroll = $('rscroll');
+          rscroll = $('rscroll'), rcopyright = $('rcopyright'),
+          transsel = $('transsel'), transselLabel = $('transselLabel'),
+          tmenu = $('tmenu'), tmlist = $('tmlist');
+
+      // WEB + NLT this slice. NKJV/NIV are rejected by the Worker (not offered here).
+      var TRANSLATIONS = [
+        { id: 'web', label: 'WEB', name: 'World English Bible' },
+        { id: 'nlt', label: 'NLT', name: 'New Living Translation' },
+      ];
+      function transLabel(id) { for (var i = 0; i < TRANSLATIONS.length; i++) if (TRANSLATIONS[i].id === id) return TRANSLATIONS[i].label; return 'WEB'; }
+      var curTrans = (function () { try { var t = localStorage.getItem('declare-reader-translation'); return (t === 'web' || t === 'nlt') ? t : 'web'; } catch (e) { return 'web'; } })();
 
       var curName = '', curUsfm = '', curChaps = 1, curChap = 1;
       var CACHE = {}, reqId = 0;
 
-      function fetchChapter(usfm, chap) {
-        var key = usfm + '.' + chap;
-        if (CACHE[key]) return Promise.resolve(CACHE[key]);
-        var url = WORKER + '?translation=web&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
+      // Returns the full Worker payload {verses, fumsToken, copyright, translation}.
+      // WEB is cached client-side; NLT is NEVER cached — each NLT view must hit the
+      // Worker live so it returns a fresh FUMS token (every display is a tracked view).
+      function fetchChapter(usfm, chap, trans) {
+        var key = trans + ':' + usfm + '.' + chap;
+        if (trans === 'web' && CACHE[key]) return Promise.resolve(CACHE[key]);
+        var url = WORKER + '?translation=' + trans + '&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
         return fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
           if (!j || !j.verses) return null;
-          CACHE[key] = j.verses; return j.verses;
+          if (trans === 'web') CACHE[key] = j;
+          return j;
         }).catch(function () { return null; });
+      }
+
+      // ---- FUMS (API.Bible's required view tracking for copyrighted text) ----
+      // The official tracker is loaded lazily — only when copyrighted text is first
+      // read — so WEB-only readers never load a third-party script. WEB fires nothing.
+      var fumsReady = false, fumsLoading = false, fumsQueue = [];
+      function loadFums() {
+        if (fumsReady || fumsLoading) return;
+        fumsLoading = true;
+        var s = document.createElement('script');
+        s.src = 'https://pkg.api.bible/fumsV3.min.js';
+        s.async = true;
+        s.onload = function () { fumsReady = true; fumsQueue.forEach(trackView); fumsQueue = []; };
+        document.head.appendChild(s);
+      }
+      function trackView(token) { try { if (window.fums) window.fums('trackView', token); } catch (e) {} }
+      function fireFums(token) {
+        if (!token) return;
+        if (fumsReady && window.fums) { trackView(token); return; }
+        fumsQueue.push(token); loadFums();
       }
 
       function openReader(name, usfm, chaps) {
         curName = name; curUsfm = usfm; curChaps = chaps || 1;
         rbook.textContent = name;
+        transselLabel.textContent = transLabel(curTrans);
         reader.classList.add('open');
         showPicker();
       }
@@ -118,12 +169,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         var h = ''; for (var i = 1; i <= curChaps; i++) { h += '<button class="chaptile" data-c="' + i + '">' + i + '</button>'; }
         chapgrid.innerHTML = h;
         rsub.textContent = curChaps + (curChaps === 1 ? ' chapter' : ' chapters');
-        chapPick.hidden = false; rbody.hidden = true; readctl.hidden = true; rtransnote.hidden = true;
+        chapPick.hidden = false; rbody.hidden = true; readctl.hidden = true; rtrans.hidden = true; rcopyright.hidden = true;
         rscroll.scrollTop = 0;
       }
       function readChapter(ch) {
         curChap = ch;
-        chapPick.hidden = true; rbody.hidden = false; readctl.hidden = false; rtransnote.hidden = false;
+        chapPick.hidden = true; rbody.hidden = false; readctl.hidden = false; rtrans.hidden = false;
         chapLabelText.textContent = 'Chapter ' + ch;
         prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
         rscroll.scrollTop = 0;
@@ -140,13 +191,20 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       }
       function renderBody() {
         var myReq = ++reqId;
+        var trans = curTrans;
         rbody.innerHTML = loadingPanel();
-        fetchChapter(curUsfm, curChap).then(function (vs) {
+        rcopyright.hidden = true;
+        fetchChapter(curUsfm, curChap, trans).then(function (payload) {
           if (myReq !== reqId) return;
-          if (!vs || !vs.length) { rbody.innerHTML = errorPanel(); return; }
-          rbody.innerHTML = vs.map(function (v) {
+          if (!payload || !payload.verses || !payload.verses.length) { rbody.innerHTML = errorPanel(); return; }
+          rbody.innerHTML = payload.verses.map(function (v) {
             return '<div class="vrse" data-n="' + esc(v.n) + '"><span class="vn">' + esc(v.n) + '</span><span class="vt">' + esc(v.t) + '</span></div>';
           }).join('');
+          // copyright line — copyrighted translations only (Worker returns it; WEB returns none)
+          if (payload.copyright) { rcopyright.textContent = payload.copyright; rcopyright.hidden = false; }
+          else { rcopyright.textContent = ''; rcopyright.hidden = true; }
+          // FUMS view ping — copyrighted text only; WEB fires nothing
+          if (trans !== 'web') fireFums(payload.fumsToken);
         });
       }
 
@@ -163,12 +221,39 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         var b = e.target.closest('.book'); if (!b) return;
         openReader(b.dataset.name, b.dataset.usfm, parseInt(b.dataset.chaps, 10));
       });
+
+      // ---- translation switcher (WEB <-> NLT) ----
+      function openTmenu() {
+        tmlist.innerHTML = TRANSLATIONS.map(function (t) {
+          return '<button class="tmrow' + (t.id === curTrans ? ' on' : '') + '" data-t="' + t.id + '">'
+            + '<span class="tmtx"><span class="tmn">' + t.label + '</span><span class="tmd">' + t.name + '</span></span>'
+            + '<span class="tmck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></button>';
+        }).join('');
+        tmenu.classList.add('open');
+      }
+      transsel.addEventListener('click', openTmenu);
+      $('tmback').addEventListener('click', function () { tmenu.classList.remove('open'); });
+      tmlist.addEventListener('click', function (e) {
+        var r = e.target.closest('.tmrow'); if (!r) return;
+        var t = r.dataset.t;
+        tmenu.classList.remove('open');
+        if (t === curTrans) return;
+        curTrans = t;
+        try { localStorage.setItem('declare-reader-translation', curTrans); } catch (_) {}
+        transselLabel.textContent = transLabel(curTrans);
+        if (!rbody.hidden) renderBody(); // refetch the current chapter in the new translation
+      });
     })();
   </script>
 
-  <style>
+  <!-- is:global because much of the reader (chapter tiles, verses, translation rows,
+       loaders) is built at runtime via innerHTML; Astro's scoped attribute is only on
+       static markup, so scoped rules would silently miss those JS-created elements.
+       These classes are word-only and a page's styles load only on its own route, so
+       there is no cross-page leakage. -->
+  <style is:global>
     /* page-local Word reader styles (subset of TheWord.html; .topglow / .btn /
-       .rise / tokens come from global declare.css). Slice 1: book + chapter + read. */
+       .rise / tokens come from global declare.css). */
     .word { position: relative; min-height: 100dvh; }
 
     /* ---------- book list ---------- */
@@ -205,7 +290,30 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .rhead .iconbtn svg { width: 20px; height: 20px; }
     .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 1; }
     .rsub { text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--goldd); padding-bottom: 6px; }
-    .rtransnote { text-align: center; font-size: 10.5px; letter-spacing: .04em; color: var(--muted); padding: 0 0 10px; }
+    /* translation switcher pill */
+    .rtrans { display: flex; justify-content: center; align-items: center; padding: 0 18px 12px; }
+    .transsel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 999px; padding: 8px 14px; cursor: pointer; font-family: inherit; }
+    .transsel svg { width: 13px; height: 13px; color: var(--goldd); }
+
+    /* translation chooser sheet */
+    .rsheet { position: fixed; inset: 0; z-index: 50; display: none; }
+    .rsheet.open { display: block; }
+    .rsback { position: absolute; inset: 0; background: rgba(0, 0, 0, .42); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+    .rspanel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0)); box-shadow: 0 -20px 50px -18px rgba(0, 0, 0, .5); animation: tmup .3s cubic-bezier(.2, .7, .2, 1); }
+    @keyframes tmup { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+    .tmgrab { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 4px auto 8px; }
+    .rstitle { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); margin: 8px 0 10px; }
+    .tmrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 4px; border: 0; border-top: 1px solid var(--line); background: none; width: 100%; text-align: left; font-family: inherit; cursor: pointer; }
+    #tmlist .tmrow:first-child { border-top: 0; }
+    .tmtx { display: flex; flex-direction: column; }
+    .tmn { font-size: 16px; color: var(--text); font-weight: 600; }
+    .tmd { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .tmck { color: var(--gold); display: none; }
+    .tmrow.on .tmck { display: flex; }
+    .tmck svg { width: 18px; height: 18px; }
+
+    /* copyright notice (copyrighted translations only) */
+    .rcopyright { max-width: 680px; margin: 8px auto 0; padding: 14px 22px calc(40px + env(safe-area-inset-bottom, 0)); border-top: 1px solid var(--line); font-size: 11px; line-height: 1.55; color: var(--muted); }
 
     .readctl { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 18px 10px; }
     .navchap { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line2); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .2s; }
