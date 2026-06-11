@@ -1,15 +1,16 @@
 ---
-// /word — the Word reader (slice 1: read a book/chapter in WEB end to end).
-// Static Astro page on DeclareLayout; all behaviour is vanilla JS (matches the
-// design source). The browser asks the Cloudflare Worker's /bible route for a
-// chapter; the Worker fetches WEB from API.Bible (key server-side) and caches it
-// forever in KV. WEB only this slice — translation switching, verse-jump, compare,
-// and the Aa sheet are deferred to later slices.
+// /word — The Word. SURFACE rebuilt verbatim from design-source-v3.2/declare/TheWord.html
+// (library: THE LIBRARY header, Scripture search, DEFAULT TRANSLATION pills, OT/NT toggle;
+// reader: chapter grid → verse picker → reading, translation/Aa/Compare row, display sheet,
+// verse action bar with Highlight/Save/Copy/Share, verse-jump, in-reader tab bar).
+// MACHINERY: the Cloudflare Worker /bible + /bible/search routes (API.Bible key server-side;
+// public-domain cached, copyrighted live + FUMS + copyright line) and vault-store.js
+// (device-local saves). One persisted translation: 'declare-reader-translation'.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+import TabBar from '../components/TabBar.astro';
 import { DB_BIBLE } from '../data/bible.js';
 import { USFM } from '../data/usfm.js';
 
-// flatten the grouped book data for server-rendering the list
 const sections = [
   { testament: 'OT', groups: DB_BIBLE.OT.groups },
   { testament: 'NT', groups: DB_BIBLE.NT.groups },
@@ -18,388 +19,932 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 ---
 <DeclareLayout
   title="Declare — The Word"
-  description="Read the Bible — free and ad-free."
+  description="Read and search the Bible — free and ad-free, in six translations."
   activeTab="word"
 >
   <main class="word">
     <div class="topglow" aria-hidden="true"></div>
 
-    {/* ---------- book list ---------- */}
-    <div class="w-bookview" id="bookView">
-      <div class="w-col">
-        <div class="wtitle rise d1">The Word</div>
-        <div class="wsub rise d1">Free &amp; ad-free &middot; choose your translation</div>
+    {/* ================= LIBRARY (design: browse view) ================= */}
+    <div class="w-col" id="browse">
+      <div class="whead">
+        <span class="wlbl">The library</span>
+        <a class="gear" href="/you" aria-label="Reader settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2.4"></circle><circle cx="15" cy="17" r="2.4"></circle></svg></a>
+      </div>
+      <div class="wtitle">The Word</div>
 
-        {sections.map((sec) => sec.groups.map((g) => (
-          <section class="grp m-rise">
-            <div class="grphead">
-              <span class="grptitle">{g.title}</span>
-              <span class="grpsub">{g.sub}</span>
-            </div>
-            <div class="books">
-              {g.books.map((b) => (
-                <button class="book" data-usfm={USFM[b.name]} data-chaps={b.chapters} data-name={b.name}>
-                  <span class="bmain">
-                    <span class="bname">{b.name}</span>
-                    {b.tag && <span class="bdesc">{b.tag}</span>}
-                    <span class="bchap">{b.chapters} {b.chapters === 1 ? 'chapter' : 'chapters'}</span>
-                  </span>
-                  <span class="chev" set:html={chev} />
-                </button>
+      <form class="search" id="searchForm" autocomplete="off">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input id="searchInput" placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" aria-label="Search Scripture" />
+      </form>
+
+      <div class="wlbl tlanslbl">Default translation</div>
+      <div class="trow" id="pills">
+        <button class="pill" data-t="kjv">KJV</button>
+        <button class="pill" data-t="web">WEB</button>
+        <button class="pill" data-t="asv">ASV</button>
+        <button class="pill" data-t="nkjv">NKJV</button>
+        <button class="pill" data-t="niv">NIV</button>
+        <button class="pill" data-t="nlt">NLT</button>
+      </div>
+
+      <div class="seg" id="testament">
+        <button data-t="OT">Old Testament</button>
+        <button class="on" data-t="NT">New Testament</button>
+      </div>
+
+      <div class="wscroll" id="browseScroll">
+        <div class="searchhint" id="searchHint" style="display:none"></div>
+        <div class="searchnote" id="searchNote" style="display:none"></div>
+        <div id="groups">
+          {sections.map((sec) => (
+            <div class="tsec" data-test={sec.testament} style={sec.testament === 'OT' ? 'display:none' : ''}>
+              {sec.groups.map((g) => (
+                <section class="grp m-rise">
+                  <div class="grphead">
+                    <span class="grptitle">{g.title}</span>
+                    <span class="grpsub">{g.books.length} {g.books.length === 1 ? 'BOOK' : 'BOOKS'}</span>
+                  </div>
+                  <div class="books">
+                    {g.books.map((b) => (
+                      <button class="book" data-usfm={USFM[b.name]} data-chaps={b.chapters} data-name={b.name}>
+                        <span class="bmain">
+                          <span class="bname">{b.name}</span>
+                          {b.tag && <span class="bdesc">{b.tag}</span>}
+                          <span class="bchap">{b.chapters} {b.chapters === 1 ? 'chapter' : 'chapters'}</span>
+                        </span>
+                        <span class="chev" set:html={chev} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
-          </section>
-        )))}
+          ))}
+        </div>
         <div class="foot-sp"></div>
       </div>
     </div>
 
-    {/* ---------- reader overlay ---------- */}
+    {/* ================= READER (design: reader view) ================= */}
     <div class="w-reader" id="reader">
       <div class="topglow" aria-hidden="true"></div>
       <div class="rtop">
         <div class="rhead">
-          <button class="iconbtn" id="readerBack" aria-label="Back">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
-          </button>
-          <span class="rbook" id="rbook">John</span>
-          <span class="iconbtn-spacer" aria-hidden="true"></span>
+          <button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+          <button class="rbook" id="rbook" aria-label="Back to the library">John</button>
+          <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
         </div>
         <div class="rsub" id="rsub">21 chapters</div>
         <div class="readctl" id="readctl" hidden>
-          <button class="navchap" id="prevChap" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-          <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-          <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+          <button class="navchap" id="prevChap" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+          <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+          <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
         </div>
-        <div class="rtrans" id="rtrans" hidden>
-          <button class="transsel" id="transsel">
-            <span id="transselLabel">WEB</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-        </div>
+        <div class="rtrans" id="rtrans" hidden></div>
       </div>
       <div class="rscroll" id="rscroll">
         <div class="chappick" id="chapPick">
           <div class="picklbl">Choose a chapter</div>
           <div class="chapgrid" id="chapgrid"></div>
         </div>
+        <div class="versepick" id="versePick" hidden>
+          <button class="vp-all" id="readAll">Read the whole chapter <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+          <div class="picklbl">Or jump to a verse</div>
+          <div class="chapgrid" id="versegrid"></div>
+        </div>
         <div class="rbody" id="rbody" hidden></div>
         <div class="rcopyright" id="rcopyright" hidden></div>
       </div>
 
-      {/* translation chooser sheet (WEB / NLT) */}
-      <div class="rsheet" id="tmenu">
-        <div class="rsback" id="tmback"></div>
-        <div class="rspanel">
-          <div class="tmgrab" aria-hidden="true"></div>
-          <div class="rstitle">Translation</div>
-          <div id="tmlist"></div>
+      {/* in-reader tab bar (design): jump to any section without backing out */}
+      <TabBar active="word" />
+
+      <div class="vjump" id="vjump">
+        <div class="vjback" id="vjback"></div>
+        <div class="vjsheet">
+          <div class="grabber"></div>
+          <div class="vjtitle">Jump to a verse</div>
+          <div class="vjgrid" id="vjgrid"></div>
         </div>
       </div>
+
+      {/* verse action bar */}
+      <div class="vbar" id="vbar">
+        <div class="grabber"></div>
+        <div class="vbref" id="vbref">Verse</div>
+        <div class="vbacts">
+          <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"></path><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"></path></svg><span>Highlight</span></button>
+          <button class="vbtn" id="vbSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg><span>Save</span></button>
+          <button class="vbtn" id="vbCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span>Copy</span></button>
+          <button class="vbtn" id="vbShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg><span>Share</span></button>
+          <button class="vbtn" id="vbClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg><span>Close</span></button>
+        </div>
+      </div>
+
+      {/* translation menu */}
+      <div class="rsheet" id="tmenu">
+        <div class="rsback"></div>
+        <div class="rspanel"><div class="grabber"></div><div class="rstitle">Translation</div><div id="tmlist"></div></div>
+      </div>
+
+      {/* display sheet */}
+      <div class="rsheet" id="dsheet">
+        <div class="rsback"></div>
+        <div class="rspanel">
+          <div class="grabber"></div>
+          <div class="rstitle">Display</div>
+          <div class="dspreview" id="dsPreview">For God so loved the world that he gave his only Son.</div>
+          <div class="dssec">
+            <div class="dslbl">Brightness</div>
+            <div class="bright">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 6.5V6M6.5 12H6M12 17.5v.5M17.5 12h.5"></path></svg>
+              <input type="range" id="brightRange" min="40" max="100" value="100" aria-label="Brightness" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"></path></svg>
+            </div>
+          </div>
+          <div class="dssec">
+            <div class="dslbl">Text size</div>
+            <div class="dsseg" id="sizeSeg">
+              <button class="sz1" data-s="Small">A</button>
+              <button class="sz2 on" data-s="Medium">A</button>
+              <button class="sz3" data-s="Large">A</button>
+            </div>
+          </div>
+          <div class="dssec">
+            <div class="dslbl">Font style</div>
+            <div class="dsseg" id="fontSeg">
+              <button class="ff-cormorant on" data-f="cormorant">Cormorant</button>
+              <button class="ff-lora" data-f="lora">Lora</button>
+              <button class="ff-sans" data-f="sans">DM&nbsp;Sans</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* share sheet (fallback when the Card Studio stack is unavailable) */}
+      <div class="rsheet" id="sharesheet">
+        <div class="rsback"></div>
+        <div class="rspanel">
+          <div class="grabber"></div>
+          <div class="rstitle">Share this verse</div>
+          <div class="sharprev" id="sharePrev"></div>
+          <button class="sopt" id="shSystem"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg></span><span class="sl">Share via&hellip;</span><span class="sc" set:html={chev} /></button>
+          <button class="sopt" id="shCopy"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></span><span class="sl">Copy verse</span><span class="sc" set:html={chev} /></button>
+        </div>
+      </div>
+
+      <div class="dim" id="dim" aria-hidden="true"></div>
+      <div class="wtoast" id="wtoast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg><span id="wtoastMsg"></span></div>
     </div>
   </main>
 
-  <script is:inline>
-    (function () {
-      var WORKER = 'https://hope-finder-worker.thinktoro.workers.dev/bible';
-      var $ = function (id) { return document.getElementById(id); };
-      var esc = function (s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  <script>
+    import { saveItem, removeItem, isSaved } from '../app/declare/vault-store.js';
 
-      var reader = $('reader'), bookView = $('bookView');
-      var rbook = $('rbook'), rsub = $('rsub'), chapgrid = $('chapgrid'), chapPick = $('chapPick'),
-          rbody = $('rbody'), readctl = $('readctl'), rtrans = $('rtrans'),
-          chapLabelText = $('chapLabelText'), prevChapBtn = $('prevChap'), nextChapBtn = $('nextChap'),
-          rscroll = $('rscroll'), rcopyright = $('rcopyright'),
-          transsel = $('transsel'), transselLabel = $('transselLabel'),
-          tmenu = $('tmenu'), tmlist = $('tmlist');
+    const WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-      // WEB (public domain) + the copyrighted translations, in switcher order. The Worker
-      // serves WEB cached and NLT/NKJV/NIV live (FUMS + copyright); the page treats any
-      // non-WEB translation the same way (no client cache, copyright line, FUMS ping).
-      var TRANSLATIONS = [
-        { id: 'kjv', label: 'KJV', name: 'King James Version' },
-        { id: 'web', label: 'WEB', name: 'World English Bible' },
-        { id: 'asv', label: 'ASV', name: 'American Standard Version' },
-        { id: 'nkjv', label: 'NKJV', name: 'New King James Version' },
-        { id: 'niv', label: 'NIV', name: 'New International Version (2011)' },
-        { id: 'nlt', label: 'NLT', name: 'New Living Translation' },
-      ];
-      function transLabel(id) { for (var i = 0; i < TRANSLATIONS.length; i++) if (TRANSLATIONS[i].id === id) return TRANSLATIONS[i].label; return 'WEB'; }
-      function knownTrans(t) { for (var i = 0; i < TRANSLATIONS.length; i++) if (TRANSLATIONS[i].id === t) return true; return false; }
-      var curTrans = (function () { try { var t = localStorage.getItem('declare-reader-translation'); return knownTrans(t) ? t : 'web'; } catch (e) { return 'web'; } })();
+    /* one source of truth for the default translation (library pills + reader) */
+    const TRANSLATIONS = [
+      { id: 'kjv', label: 'KJV', name: 'King James Version' },
+      { id: 'web', label: 'WEB', name: 'World English Bible' },
+      { id: 'asv', label: 'ASV', name: 'American Standard Version' },
+      { id: 'nkjv', label: 'NKJV', name: 'New King James Version' },
+      { id: 'niv', label: 'NIV', name: 'New International Version (2011)' },
+      { id: 'nlt', label: 'NLT', name: 'New Living Translation' },
+    ];
+    const byId = (id) => TRANSLATIONS.find((t) => t.id === id);
+    const byLabel = (l) => TRANSLATIONS.find((t) => t.label === l);
+    let readT = (() => { try { const t = localStorage.getItem('declare-reader-translation'); return byId(t) ? t : 'web'; } catch (e) { return 'web'; } })();
+    function setReadT(id) { readT = id; try { localStorage.setItem('declare-reader-translation', id); } catch (e) {} paintPills(); }
 
-      var curName = '', curUsfm = '', curChaps = 1, curChap = 1;
-      var CACHE = {}, reqId = 0;
+    /* ---------- library: pills · testament · groups ---------- */
+    const pills = $('pills');
+    function paintPills() { pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p.dataset.t === readT)); }
+    pills.addEventListener('click', (e) => {
+      const p = e.target.closest('.pill'); if (!p) return;
+      setReadT(p.dataset.t);
+    });
 
-      // Returns the full Worker payload {verses, fumsToken, copyright, translation}.
-      // WEB is cached client-side; copyrighted translations (NLT/NKJV/NIV) are NEVER
-      // cached — each view must hit the Worker live for a fresh FUMS token (every
-      // display is a tracked view).
-      function fetchChapter(usfm, chap, trans) {
-        var key = trans + ':' + usfm + '.' + chap;
-        // Only public-domain results are ever written to CACHE (see below), so a present
-        // key is always safe to serve; copyrighted translations always refetch live.
-        if (CACHE[key]) return Promise.resolve(CACHE[key]);
-        var url = WORKER + '?translation=' + trans + '&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
-        return fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-          if (!j || !j.verses) return null;
-          // Cache only public-domain (no FUMS token) — copyrighted must hit the Worker live every view.
-          if (!j.fumsToken) CACHE[key] = j;
-          return j;
-        }).catch(function () { return null; });
-      }
+    const seg = $('testament');
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      seg.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      document.querySelectorAll('.tsec').forEach((s) => { s.style.display = s.dataset.test === b.dataset.t ? '' : 'none'; });
+      if (window.DeclareMotion) window.DeclareMotion.reveal($('groups'), { stagger: 60 });
+    });
 
-      // ---- FUMS (API.Bible's required view tracking for copyrighted text) ----
-      // The official tracker is loaded lazily — only when copyrighted text is first
-      // read — so WEB-only readers never load a third-party script. WEB fires nothing.
-      var fumsReady = false, fumsLoading = false, fumsQueue = [];
-      function loadFums() {
-        if (fumsReady || fumsLoading) return;
-        fumsLoading = true;
-        var s = document.createElement('script');
-        s.src = 'https://pkg.api.bible/fumsV3.min.js';
-        s.async = true;
-        s.onload = function () { fumsReady = true; fumsQueue.forEach(trackView); fumsQueue = []; };
-        document.head.appendChild(s);
-      }
-      function trackView(token) { try { if (window.fums) window.fums('trackView', token); } catch (e) {} }
-      function fireFums(token) {
-        if (!token) return;
-        if (fumsReady && window.fums) { trackView(token); return; }
-        fumsQueue.push(token); loadFums();
-      }
+    const groupsEl = $('groups');
+    groupsEl.addEventListener('click', (e) => {
+      const bk = e.target.closest('.book'); if (!bk) return;
+      openReader(bk.dataset.name, bk.dataset.usfm, parseInt(bk.dataset.chaps, 10));
+    });
+    function bookByName(name) {
+      const n = (name || '').toLowerCase();
+      return [...document.querySelectorAll('.book')].find((b) => (b.dataset.name || '').toLowerCase() === n) || null;
+    }
 
-      function openReader(name, usfm, chaps) {
-        curName = name; curUsfm = usfm; curChaps = chaps || 1;
-        rbook.textContent = name;
-        transselLabel.textContent = transLabel(curTrans);
-        reader.classList.add('open');
-        showPicker();
-      }
-      function showPicker() {
-        var h = ''; for (var i = 1; i <= curChaps; i++) { h += '<button class="chaptile" data-c="' + i + '">' + i + '</button>'; }
-        chapgrid.innerHTML = h;
-        rsub.textContent = curChaps + (curChaps === 1 ? ' chapter' : ' chapters');
-        chapPick.hidden = false; rbody.hidden = true; readctl.hidden = true; rtrans.hidden = true; rcopyright.hidden = true;
-        rscroll.scrollTop = 0;
-      }
-      function readChapter(ch) {
-        curChap = ch;
-        chapPick.hidden = true; rbody.hidden = false; readctl.hidden = false; rtrans.hidden = false;
-        chapLabelText.textContent = 'Chapter ' + ch;
-        prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
-        rscroll.scrollTop = 0;
-        renderBody();
-      }
-      function loadingPanel() {
-        var rows = ''; for (var i = 0; i < 6; i++) { rows += '<div class="shrow"><span class="shn"></span><span class="shl" style="width:' + (70 + (i % 3) * 9) + '%"></span></div>'; }
-        return '<div class="rloading">' + rows + '</div>';
-      }
-      function errorPanel() {
-        return '<div class="rsoon"><div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div>'
-          + '<div class="rt2">' + esc(curName + ' ' + curChap) + '</div>'
-          + '<div class="rd">Couldn’t load this chapter. Check your connection and try again.</div></div>';
-      }
-      function renderBody() {
-        var myReq = ++reqId;
-        var trans = curTrans;
-        rbody.innerHTML = loadingPanel();
-        rcopyright.hidden = true;
-        fetchChapter(curUsfm, curChap, trans).then(function (payload) {
-          if (myReq !== reqId) return;
-          if (!payload || !payload.verses || !payload.verses.length) { rbody.innerHTML = errorPanel(); return; }
-          rbody.innerHTML = payload.verses.map(function (v) {
-            return '<div class="vrse" data-n="' + esc(v.n) + '"><span class="vn">' + esc(v.n) + '</span><span class="vt">' + esc(v.t) + '</span></div>';
+    /* ---------- library: real Scripture search (Worker /bible/search) ---------- */
+    const sInput = $('searchInput'), sHint = $('searchHint'), sNote = $('searchNote');
+    let sTimer = null, sReq = 0;
+    function clearSearch() { sHint.style.display = 'none'; sHint.innerHTML = ''; sNote.style.display = 'none'; groupsEl.style.display = ''; }
+    function runSearch(q) {
+      const myReq = ++sReq;
+      sHint.style.display = 'block'; groupsEl.style.display = 'none'; sNote.style.display = 'none';
+      sHint.innerHTML = '<div class="vp-loading">Searching the Word&hellip;</div>';
+      fetch(WORKER + '/bible/search?translation=' + readT + '&q=' + encodeURIComponent(q))
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (myReq !== sReq) return;
+          if (!j || !j.results) { sHint.innerHTML = '<div class="vp-loading">Search is unavailable right now.</div>'; return; }
+          if (!j.results.length) { sHint.innerHTML = '<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '.</div>'; return; }
+          sHint.innerHTML = j.results.map((r, i) => {
+            const txt = r.text.replace(/¶\s*/g, ''); // KJV paragraph marks (chapter route strips these server-side)
+            return '<button class="shitem" style="animation-delay:' + (i * 34) + 'ms" data-book="' + esc(r.book) + '" data-chapter="' + r.chapter + '" data-verse="' + r.verse + '">'
+              + '<span class="shref">' + esc(r.ref) + '</span><span class="shlabel">' + esc(txt.length > 90 ? txt.slice(0, 90) + '…' : txt) + '</span></button>';
           }).join('');
-          // copyright line — copyrighted translations only (Worker returns it; WEB returns none)
-          if (payload.copyright) { rcopyright.textContent = payload.copyright; rcopyright.hidden = false; }
-          else { rcopyright.textContent = ''; rcopyright.hidden = true; }
-          // FUMS view ping — copyrighted text only; WEB fires nothing
-          // FUMS view ping — copyrighted text only; the Worker returns a token iff one is required.
-          if (payload.fumsToken) fireFums(payload.fumsToken);
+          if (j.copyright) { sNote.textContent = j.copyright; sNote.style.display = 'block'; }
+          if (j.fumsToken) fireFums(j.fumsToken); // copyrighted snippets are a licensed display
+        })
+        .catch(() => { if (myReq === sReq) sHint.innerHTML = '<div class="vp-loading">Search is unavailable right now.</div>'; });
+    }
+    sInput.addEventListener('input', function () {
+      const q = this.value.trim();
+      clearTimeout(sTimer);
+      if (q.length < 3) { clearSearch(); return; }
+      sTimer = setTimeout(() => runSearch(q), 320);
+    });
+    $('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = sInput.value.trim();
+      if (q.length >= 3) { clearTimeout(sTimer); runSearch(q); }
+    });
+    sHint.addEventListener('click', (e) => {
+      const it = e.target.closest('.shitem'); if (!it) return;
+      const btn = bookByName(it.dataset.book); if (!btn) return;
+      openReader(btn.dataset.name, btn.dataset.usfm, parseInt(btn.dataset.chaps, 10));
+      readChapter(parseInt(it.dataset.chapter, 10), parseInt(it.dataset.verse, 10) || null);
+    });
+
+    /* ---------- FUMS (required view tracking for copyrighted text) ---------- */
+    let fumsReady = false, fumsLoading = false, fumsQueue = [];
+    function loadFums() {
+      if (fumsReady || fumsLoading) return;
+      fumsLoading = true;
+      const s = document.createElement('script');
+      s.src = 'https://pkg.api.bible/fumsV3.min.js'; s.async = true;
+      s.onload = () => { fumsReady = true; fumsQueue.forEach(trackView); fumsQueue = []; };
+      document.head.appendChild(s);
+    }
+    function trackView(token) { try { if (window.fums) window.fums('trackView', token); } catch (e) {} }
+    function fireFums(token) {
+      if (!token) return;
+      if (fumsReady && window.fums) { trackView(token); return; }
+      fumsQueue.push(token); loadFums();
+    }
+
+    /* ---------- chapter fetch (Worker /bible; payload-driven cache) ---------- */
+    const CACHE = {};
+    function fetchChapter(usfm, chap, transId) {
+      const key = transId + ':' + usfm + '.' + chap;
+      if (CACHE[key]) return Promise.resolve(CACHE[key]);
+      const url = WORKER + '/bible?translation=' + transId + '&book=' + encodeURIComponent(usfm) + '&chapter=' + chap;
+      return fetch(url).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (!j || !j.verses) return null;
+        if (!j.fumsToken) CACHE[key] = j; // public-domain only; copyrighted always refetches live
+        return j;
+      }).catch(() => null);
+    }
+
+    /* ---------- reader state ---------- */
+    const reader = $('reader'), rbook = $('rbook'), rsub = $('rsub'),
+      chapgrid = $('chapgrid'), chapPick = $('chapPick'),
+      versePick = $('versePick'), versegrid = $('versegrid'),
+      rscroll = $('rscroll'), rbody = $('rbody'), rcopyright = $('rcopyright'),
+      readctl = $('readctl'), rtrans = $('rtrans'),
+      chapLabelText = $('chapLabelText'), prevChapBtn = $('prevChap'), nextChapBtn = $('nextChap'),
+      verseJump = $('verseJump'), vjump = $('vjump'), vjgrid = $('vjgrid');
+
+    let curBook = 'John', curUsfm = 'JHN', curChaps = 21, curChap = 1;
+    let compare = false, cmpSet = ['KJV', 'WEB'];
+    let reqId = 0;
+
+    function openReader(book, usfm, chaps, chap) {
+      curBook = book; curUsfm = usfm; curChaps = chaps || 1; compare = false;
+      reader.classList.add('open');
+      rbook.textContent = book;
+      showPicker();
+      if (chap) readChapter(chap);
+    }
+    function closeReader() {
+      reader.classList.remove('open');
+      closeVbar();
+    }
+    /* unseen-grade view entrance: soft rise + fade on every reader view swap */
+    function enter(el) { el.classList.remove('view-enter'); void el.offsetWidth; el.classList.add('view-enter'); }
+    function showPicker() {
+      const hl = getHL();
+      let h = '';
+      for (let i = 1; i <= curChaps; i++) {
+        const has = Object.keys(hl).some((k) => k.indexOf(curBook + ' ' + i + ':') === 0);
+        h += '<button class="chaptile' + (has ? ' has' : '') + '" data-c="' + i + '">' + i + '</button>';
+      }
+      chapgrid.innerHTML = h;
+      rsub.textContent = curChaps + (curChaps === 1 ? ' chapter' : ' chapters');
+      chapPick.hidden = false; versePick.hidden = true; rbody.hidden = true; rcopyright.hidden = true;
+      readctl.hidden = true; rtrans.hidden = true; verseJump.style.visibility = 'hidden';
+      closeVbar(); rscroll.scrollTop = 0;
+      enter(chapPick);
+    }
+    /* chapter tile → verse picker (design: "Read the whole chapter" + jump grid) */
+    function openChapter(ch) {
+      curChap = ch;
+      chapPick.hidden = true; rbody.hidden = true; rcopyright.hidden = true; versePick.hidden = false;
+      readctl.hidden = false; rtrans.hidden = true;
+      chapLabelText.textContent = 'Chapter ' + ch;
+      prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
+      verseJump.style.visibility = 'hidden';
+      closeVbar(); rscroll.scrollTop = 0;
+      enter(versePick);
+      versegrid.innerHTML = '<div class="vp-loading">Loading verses&hellip;</div>';
+      fetchChapter(curUsfm, ch, readT).then((j) => {
+        if (curChap !== ch || versePick.hidden) return;
+        if (j && j.verses.length) {
+          versegrid.innerHTML = j.verses.map((v) => '<button class="chaptile" data-v="' + v.n + '">' + v.n + '</button>').join('');
+        } else {
+          versegrid.innerHTML = '<div class="vp-loading">Tap &ldquo;Read the whole chapter&rdquo; to begin.</div>';
+        }
+      });
+    }
+    /* reading view (optionally scrolled to a verse) */
+    function readChapter(ch, toVerse) {
+      curChap = ch;
+      chapPick.hidden = true; versePick.hidden = true; rbody.hidden = false;
+      readctl.hidden = false; rtrans.hidden = false;
+      chapLabelText.textContent = 'Chapter ' + ch;
+      prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
+      closeVbar();
+      renderTrans(); renderBody(); rscroll.scrollTop = 0;
+      enter(rbody);
+      if (toVerse) {
+        let tries = 0;
+        (function seek() {
+          const el = rbody.querySelector('[data-n="' + toVerse + '"]');
+          if (el) {
+            const tr = el.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
+            rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 90, behavior: 'smooth' });
+            el.classList.add('hl-land'); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+            setTimeout(() => el.classList.remove('flash'), 2200);
+            return;
+          }
+          if (tries++ < 40) setTimeout(seek, 150);
+        })();
+      }
+    }
+    chapgrid.addEventListener('click', (e) => { const t = e.target.closest('.chaptile'); if (t) openChapter(parseInt(t.dataset.c, 10)); });
+    versegrid.addEventListener('click', (e) => { const t = e.target.closest('.chaptile'); if (t) readChapter(curChap, parseInt(t.dataset.v, 10)); });
+    $('readAll').addEventListener('click', () => readChapter(curChap));
+    $('chapLabel').addEventListener('click', showPicker);
+    prevChapBtn.addEventListener('click', () => { if (curChap > 1) readChapter(curChap - 1); });
+    nextChapBtn.addEventListener('click', () => { if (curChap < curChaps) readChapter(curChap + 1); });
+    /* back stack: reading → verse picker → chapter grid → library */
+    $('readerBack').addEventListener('click', () => {
+      if (!rbody.hidden) { openChapter(curChap); }
+      else if (!versePick.hidden) { showPicker(); }
+      else { closeReader(); }
+    });
+    rbook.addEventListener('click', closeReader);
+
+    /* ---------- translation row: pill · Aa · Compare (design renderTrans) ---------- */
+    function renderTrans() {
+      const cmpIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h13M8 7l3-3M8 7l3 3M16 17H3M16 17l-3-3M16 17l-3 3"/></svg>';
+      const aa = '<button class="aabtn" id="aaBtn" aria-label="Display options">Aa</button>';
+      if (compare) {
+        rtrans.innerHTML = TRANSLATIONS.map((t) => '<button class="rt' + (cmpSet.indexOf(t.label) >= 0 ? ' on' : '') + '" data-t="' + t.label + '">' + t.label + '</button>').join('')
+          + aa + '<button class="compare on" id="cmp">Done ' + cmpIcon + '</button>';
+      } else {
+        rtrans.innerHTML = '<button class="transsel" id="transsel">' + byId(readT).label + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+          + aa + '<button class="compare" id="cmp">Compare ' + cmpIcon + '</button>';
+      }
+    }
+    rtrans.addEventListener('click', (e) => {
+      const rt = e.target.closest('.rt');
+      if (rt) {
+        const t = rt.dataset.t, i = cmpSet.indexOf(t);
+        if (i >= 0) { if (cmpSet.length > 1) cmpSet.splice(i, 1); }
+        else { cmpSet.push(t); if (cmpSet.length > 3) cmpSet.shift(); }
+        renderTrans(); renderBody(); return;
+      }
+      if (e.target.closest('#transsel')) { openTmenu(); return; }
+      if (e.target.closest('#aaBtn')) { openDsheet(); return; }
+      if (e.target.closest('#cmp')) {
+        compare = !compare;
+        if (compare && cmpSet.length < 2) {
+          const mine = byId(readT).label;
+          cmpSet = [mine].concat(TRANSLATIONS.map((t) => t.label).filter((x) => x !== mine)).slice(0, 2);
+        }
+        renderTrans(); renderBody();
+      }
+    });
+
+    /* ---------- body render (single + compare) ---------- */
+    function loadingPanel() {
+      let rows = '';
+      for (let i = 0; i < 6; i++) rows += '<div class="shrow"><span class="shn"></span><span class="shl" style="width:' + (70 + (i % 3) * 9) + '%"></span></div>';
+      return '<div class="rloading">' + rows + '</div>';
+    }
+    function panel(title, msg) {
+      return '<div class="rsoon"><div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg></div><div class="rt2">' + esc(title) + '</div><div class="rd">' + esc(msg) + '</div></div>';
+    }
+    function setCopyright(lines) {
+      const uniq = [...new Set(lines.filter(Boolean))];
+      if (uniq.length) { rcopyright.innerHTML = uniq.map((c) => '<div>' + esc(c) + '</div>').join(''); rcopyright.hidden = false; }
+      else { rcopyright.hidden = true; rcopyright.innerHTML = ''; }
+    }
+    function renderBody() {
+      const myReq = ++reqId;
+      rbody.innerHTML = loadingPanel(); rcopyright.hidden = true;
+      if (!compare) {
+        fetchChapter(curUsfm, curChap, readT).then((j) => {
+          if (myReq !== reqId) return;
+          if (!j) { rbody.innerHTML = panel(curBook + ' ' + curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility = 'hidden'; return; }
+          rbody.innerHTML = j.verses.map((v) => '<div class="vrse m-veil" data-n="' + v.n + '"><span class="vn">' + v.n + '</span><span class="vt">' + esc(v.t) + '</span></div>').join('');
+          if (window.DeclareMotion) { rbody.style.setProperty('--m-stagger', '34ms'); rbody.style.setProperty('--m-premium', '640ms'); window.DeclareMotion.reveal(rbody, { stagger: 30 }); }
+          setCopyright([j.copyright]);
+          fireFums(j.fumsToken);
+          updateVerseJump(j.verses);
+          applyHighlights();
+        });
+      } else {
+        Promise.all(cmpSet.map((label) => fetchChapter(curUsfm, curChap, byLabel(label).id).then((j) => ({ t: label, j })))).then((res) => {
+          if (myReq !== reqId) return;
+          let base = null;
+          for (const r of res) if (r.j && r.j.verses.length) { base = r.j.verses; break; }
+          if (!base) { rbody.innerHTML = panel(curBook + ' ' + curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility = 'hidden'; return; }
+          const maps = {};
+          res.forEach((r) => { const m = {}; (r.j ? r.j.verses : []).forEach((v) => { m[v.n] = v.t; }); maps[r.t] = m; });
+          rbody.innerHTML = '<div class="pcols">' + base.map((v) => (
+            '<div class="pverse" data-n="' + v.n + '"><div class="pn">Verse ' + v.n + '</div><div class="pgrid" style="grid-template-columns:repeat(' + cmpSet.length + ',1fr)">'
+            + cmpSet.map((t) => '<div class="pcell"><div class="pcl">' + t + '</div><div class="pcx">' + esc((maps[t] && maps[t][v.n]) || '—') + '</div></div>').join('')
+            + '</div></div>'
+          )).join('') + '</div>';
+          // licensing: every copyrighted leg is a fresh tracked display + shows its line
+          setCopyright(res.map((r) => r.j && r.j.copyright));
+          res.forEach((r) => { if (r.j) fireFums(r.j.fumsToken); });
+          updateVerseJump(base);
+          applyHighlights();
         });
       }
+    }
 
-      chapgrid.addEventListener('click', function (e) { var t = e.target.closest('.chaptile'); if (t) readChapter(parseInt(t.dataset.c, 10)); });
-      $('chapLabel').addEventListener('click', showPicker);
-      prevChapBtn.addEventListener('click', function () { if (curChap > 1) readChapter(curChap - 1); });
-      nextChapBtn.addEventListener('click', function () { if (curChap < curChaps) readChapter(curChap + 1); });
-      $('readerBack').addEventListener('click', function () {
-        if (!rbody.hidden) { showPicker(); }       // reading -> chapter picker
-        else { reader.classList.remove('open'); }   // chapter picker -> book list
-      });
+    /* ---------- verse jump ---------- */
+    function updateVerseJump(vs) {
+      if (vs && vs.length) {
+        verseJump.style.visibility = 'visible';
+        vjgrid.innerHTML = vs.map((v) => '<button class="vjtile" data-n="' + v.n + '">' + v.n + '</button>').join('');
+      } else { verseJump.style.visibility = 'hidden'; }
+    }
+    verseJump.addEventListener('click', () => { if (verseJump.style.visibility !== 'hidden') vjump.classList.add('open'); });
+    $('vjback').addEventListener('click', () => vjump.classList.remove('open'));
+    vjgrid.addEventListener('click', (e) => {
+      const t = e.target.closest('.vjtile'); if (!t) return;
+      vjump.classList.remove('open');
+      const target = rbody.querySelector('[data-n="' + t.dataset.n + '"]'); if (!target) return;
+      const tr = target.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
+      rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 90, behavior: 'smooth' });
+      target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
+      setTimeout(() => target.classList.remove('flash'), 2200);
+    });
 
-      bookView.addEventListener('click', function (e) {
-        var b = e.target.closest('.book'); if (!b) return;
-        openReader(b.dataset.name, b.dataset.usfm, parseInt(b.dataset.chaps, 10));
-      });
+    /* ---------- reader tools: toast · translation menu · display ---------- */
+    const wtoast = $('wtoast'), wtoastMsg = $('wtoastMsg'); let _wtt;
+    function toast(m) { wtoastMsg.textContent = m; wtoast.classList.add('show'); clearTimeout(_wtt); _wtt = setTimeout(() => wtoast.classList.remove('show'), 1800); }
 
-      // Deep-link: /word?book=Psalms&chapter=34&verse=18 opens the reader straight
-      // into the chapter, then scrolls to the verse and highlights it so reading
-      // begins right there (used by /today's "Read the full passage"). Book name
-      // matched case-insensitively against the rendered book list.
-      (function () {
-        try {
-          var q = new URLSearchParams(location.search);
-          var wantBook = (q.get('book') || '').trim().toLowerCase();
-          var wantChap = parseInt(q.get('chapter') || '', 10);
-          var wantVerse = parseInt(q.get('verse') || '', 10);
-          if (!wantBook) return;
-          var btn = [...document.querySelectorAll('.book')].find(function (b) {
-            return (b.dataset.name || '').toLowerCase() === wantBook;
-          });
-          if (!btn) return;
-          var chaps = parseInt(btn.dataset.chaps, 10);
-          openReader(btn.dataset.name, btn.dataset.usfm, chaps);
-          if (Number.isInteger(wantChap) && wantChap >= 1 && wantChap <= chaps) {
-            readChapter(wantChap);
-            if (Number.isInteger(wantVerse) && wantVerse >= 1) {
-              var tries = 0;
-              (function seek() {
-                var el = rbody.querySelector('.vrse[data-n="' + wantVerse + '"]');
-                if (el) {
-                  var tr = el.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
-                  rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 110, behavior: 'smooth' });
-                  el.classList.add('hl', 'flash'); // flash in, then keep the soft gold wash
-                  setTimeout(function () { el.classList.remove('flash'); }, 2200);
-                  return;
-                }
-                if (tries++ < 40) setTimeout(seek, 150);
-              })();
-            }
-          }
-        } catch (e) {}
-      })();
+    const dim = $('dim'), tmenu = $('tmenu'), tmlist = $('tmlist'), dsheet = $('dsheet');
+    document.querySelectorAll('.rsheet .rsback').forEach((b) => b.addEventListener('click', () => b.closest('.rsheet').classList.remove('open')));
 
-      // ---- translation switcher (WEB <-> NLT) ----
-      function openTmenu() {
-        tmlist.innerHTML = TRANSLATIONS.map(function (t) {
-          return '<button class="tmrow' + (t.id === curTrans ? ' on' : '') + '" data-t="' + t.id + '">'
-            + '<span class="tmtx"><span class="tmn">' + t.label + '</span><span class="tmd">' + t.name + '</span></span>'
-            + '<span class="tmck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></button>';
-        }).join('');
-        tmenu.classList.add('open');
+    function openTmenu() {
+      tmlist.innerHTML = TRANSLATIONS.map((t) => (
+        '<div class="tmrow' + (t.id === readT ? ' on' : '') + '" data-t="' + t.id + '"><div><div class="tmn">' + t.label + '</div><div class="tmd">' + t.name + '</div></div><span class="tmck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>'
+      )).join('');
+      tmenu.classList.add('open');
+    }
+    tmlist.addEventListener('click', (e) => {
+      const r = e.target.closest('.tmrow'); if (!r) return;
+      setReadT(r.dataset.t);
+      tmenu.classList.remove('open');
+      renderTrans(); renderBody();
+    });
+
+    function openDsheet() { dsheet.classList.add('open'); }
+    function applyDisplay() {
+      let size = 'Medium', font = 'cormorant', bright = 100;
+      try { size = localStorage.getItem('declare-textsize') || 'Medium'; } catch (e) {}
+      try { font = localStorage.getItem('declare-fontstyle') || 'cormorant'; } catch (e) {}
+      try { const b = parseInt(localStorage.getItem('declare-brightness'), 10); if (!isNaN(b)) bright = b; } catch (e) {}
+      const fs = { Small: 'fs-s', Medium: 'fs-m', Large: 'fs-l' }[size] || 'fs-m';
+      rbody.className = 'rbody ' + fs + ' ff-' + font;
+      dim.style.opacity = ((100 - bright) / 100 * 0.62).toFixed(3);
+      const br = $('brightRange'); if (br) br.value = bright;
+      $('sizeSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.s === size));
+      $('fontSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.f === font));
+      const fam = { cormorant: "'Cormorant Garamond',serif", lora: "'Lora',serif", sans: "'DM Sans',sans-serif" };
+      const sz = { Small: '18px', Medium: '22px', Large: '27px' };
+      const dp = $('dsPreview'); dp.style.fontFamily = fam[font] || fam.cormorant; dp.style.fontSize = sz[size] || sz.Medium;
+    }
+    $('brightRange').addEventListener('input', function () {
+      try { localStorage.setItem('declare-brightness', this.value); } catch (e) {}
+      dim.style.opacity = ((100 - this.value) / 100 * 0.62).toFixed(3);
+    });
+    $('sizeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-textsize', b.dataset.s); } catch (err) {} applyDisplay(); });
+    $('fontSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-fontstyle', b.dataset.f); } catch (err) {} applyDisplay(); });
+
+    function enableSwipeDown(el, onClose) {
+      if (!el) return; let sy = null, dy = 0;
+      el.addEventListener('touchstart', (e) => { sy = e.touches[0].clientY; dy = 0; el.style.transition = 'none'; }, { passive: true });
+      el.addEventListener('touchmove', (e) => { if (sy === null) return; dy = e.touches[0].clientY - sy; if (dy > 0) el.style.transform = 'translateY(' + dy + 'px)'; }, { passive: true });
+      el.addEventListener('touchend', () => { el.style.transition = ''; const doClose = dy > 80; el.style.transform = ''; sy = null; dy = 0; if (doClose) onClose(); });
+    }
+
+    /* ---------- highlights (device-local, design scheme) ---------- */
+    function getHL() { try { return JSON.parse(localStorage.getItem('declare-highlights') || '{}'); } catch (e) { return {}; } }
+    function hlKey(n) { return curBook + ' ' + curChap + ':' + n; }
+    function isHL(n) { return !!getHL()[hlKey(n)]; }
+    function applyHighlights() { rbody.querySelectorAll('[data-n]').forEach((el) => el.classList.toggle('hl', isHL(el.dataset.n))); }
+
+    /* ---------- verse selection + actions ---------- */
+    const vbar = $('vbar'), vbref = $('vbref'), vbHl = $('vbHl'), vbSave = $('vbSave');
+    let selEl = null, selN = null;
+    function closeVbar() { vbar.classList.remove('open'); if (selEl) selEl.classList.remove('sel'); selEl = null; selN = null; }
+    function verseText(el) {
+      const v = el.querySelector('.vt'); if (v) return v.textContent.trim();
+      const c = el.querySelector('.pcell .pcx'); return c ? c.textContent.trim() : '';
+    }
+    function curRef() { return curBook + ' ' + curChap + ':' + selN; }
+    function saveId() { return 'verse:' + curRef(); }
+    function paintVbar() {
+      vbHl.classList.toggle('on', isHL(selN));
+      const saved = isSaved(saveId());
+      vbSave.classList.toggle('on', saved);
+      vbSave.querySelector('span').textContent = saved ? 'Saved' : 'Save';
+    }
+    rbody.addEventListener('click', (e) => {
+      if (e.target.closest('a,button')) return;
+      const el = e.target.closest('.vrse,.pverse'); if (!el || el.dataset.n === undefined) return;
+      if (el.classList.contains('sel')) { closeVbar(); return; }
+      rbody.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel'));
+      el.classList.add('sel'); selEl = el; selN = el.dataset.n;
+      vbref.textContent = curRef() + '  ·  ' + byId(readT).label;
+      paintVbar();
+      vbar.classList.add('open');
+    });
+    $('vbClose').addEventListener('click', closeVbar);
+    vbHl.addEventListener('click', () => {
+      if (!selEl) return;
+      const o = getHL(), k = hlKey(selN);
+      if (o[k]) { delete o[k]; toast('Highlight removed'); } else { o[k] = 1; toast('Verse highlighted'); }
+      try { localStorage.setItem('declare-highlights', JSON.stringify(o)); } catch (e) {}
+      paintVbar(); applyHighlights();
+    });
+    vbSave.addEventListener('click', () => {
+      if (!selEl) return;
+      const id = saveId();
+      if (isSaved(id)) { removeItem(id); toast('Removed from Vault.'); }
+      else {
+        saveItem({ id, type: 'verse', ref: curRef(), text: verseText(selEl), translation: byId(readT).label });
+        toast('Saved to Vault.');
       }
-      transsel.addEventListener('click', openTmenu);
-      $('tmback').addEventListener('click', function () { tmenu.classList.remove('open'); });
-      tmlist.addEventListener('click', function (e) {
-        var r = e.target.closest('.tmrow'); if (!r) return;
-        var t = r.dataset.t;
-        tmenu.classList.remove('open');
-        if (t === curTrans) return;
-        curTrans = t;
-        try { localStorage.setItem('declare-reader-translation', curTrans); } catch (_) {}
-        transselLabel.textContent = transLabel(curTrans);
-        if (!rbody.hidden) renderBody(); // refetch the current chapter in the new translation
+      paintVbar();
+    });
+    $('vbCopy').addEventListener('click', () => {
+      if (!selEl) return;
+      const s = '“' + verseText(selEl) + '” — ' + curRef() + ' (' + byId(readT).label + ')';
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(() => toast('Copied'), () => toast('Copied'));
+      else toast('Copied');
+    });
+
+    /* share: design system — Card Studio when the stack loads, design fallback sheet otherwise */
+    let shareStack = null;
+    function loadShareStack() {
+      if (shareStack) return shareStack;
+      shareStack = new Promise((resolve) => {
+        ['/declare/share.css', '/declare/card-studio.css'].forEach((href) => {
+          const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
+        });
+        const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js';
+        s1.onload = () => { const s2 = document.createElement('script'); s2.src = '/declare/share.js'; s2.onload = resolve; document.head.appendChild(s2); };
+        s1.onerror = resolve;
+        document.head.appendChild(s1);
       });
+      return shareStack;
+    }
+    const sharesheet = $('sharesheet'), sharePrev = $('sharePrev');
+    let shareTxt = '', shareRef = '', shareTrans = '';
+    const shareFull = () => '“' + shareTxt + '” — ' + shareRef + ' (' + shareTrans + ')';
+    $('vbShare').addEventListener('click', () => {
+      if (!selEl) return;
+      shareTxt = verseText(selEl); shareRef = curRef(); shareTrans = byId(readT).label;
+      closeVbar();
+      loadShareStack().then(() => {
+        if (window.DeclareShare) {
+          window.DeclareShare.open({ type: 'verse', text: shareTxt, ref: shareRef + ' · ' + shareTrans, url: location.href });
+        } else {
+          sharePrev.innerHTML = '<div class="sp-v">“' + esc(shareTxt) + '”</div><div class="sp-r">' + esc(shareRef) + ' · ' + shareTrans + '</div>';
+          $('shSystem').style.display = navigator.share ? '' : 'none';
+          sharesheet.classList.add('open');
+        }
+      });
+    });
+    $('shSystem').addEventListener('click', () => { if (navigator.share) navigator.share({ title: 'Declare', text: shareFull() }).then(() => {}, () => {}); sharesheet.classList.remove('open'); });
+    $('shCopy').addEventListener('click', () => { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(shareFull()); toast('Verse copied'); sharesheet.classList.remove('open'); });
+
+    /* ---------- init ---------- */
+    applyDisplay();
+    paintPills();
+    enableSwipeDown(vbar, closeVbar);
+    enableSwipeDown(dsheet.querySelector('.rspanel'), () => dsheet.classList.remove('open'));
+    enableSwipeDown(tmenu.querySelector('.rspanel'), () => tmenu.classList.remove('open'));
+    enableSwipeDown(sharesheet.querySelector('.rspanel'), () => sharesheet.classList.remove('open'));
+    enableSwipeDown(document.querySelector('#vjump .vjsheet'), () => vjump.classList.remove('open'));
+
+    /* deep-link: /word?book=Psalms&chapter=34&verse=18 (from /today + search) */
+    (function deepLink() {
+      try {
+        const q = new URLSearchParams(location.search);
+        const wantBook = (q.get('book') || '').trim();
+        const wantChap = parseInt(q.get('chapter') || '', 10);
+        const wantVerse = parseInt(q.get('verse') || '', 10);
+        if (!wantBook) return;
+        const btn = bookByName(wantBook); if (!btn) return;
+        const chaps = parseInt(btn.dataset.chaps, 10);
+        openReader(btn.dataset.name, btn.dataset.usfm, chaps);
+        if (Number.isInteger(wantChap) && wantChap >= 1 && wantChap <= chaps) {
+          readChapter(wantChap, Number.isInteger(wantVerse) && wantVerse >= 1 ? wantVerse : null);
+        }
+      } catch (e) {}
     })();
   </script>
 
-  <!-- is:global because much of the reader (chapter tiles, verses, translation rows,
-       loaders) is built at runtime via innerHTML; Astro's scoped attribute is only on
-       static markup, so scoped rules would silently miss those JS-created elements.
-       These classes are word-only and a page's styles load only on its own route, so
-       there is no cross-page leakage. -->
   <style is:global>
-    /* page-local Word reader styles (subset of TheWord.html; .topglow / .btn /
-       .rise / tokens come from global declare.css). */
+    /* ──────────────────────────────────────────────────────────────────
+       /word page styles — ported from TheWord.html's page-local <style>,
+       namespaced (.word library / .w-reader overlay). Tokens + base
+       components come from the vendored declare.css.
+       ────────────────────────────────────────────────────────────────── */
     .word { position: relative; min-height: 100dvh; }
+    .word .w-col { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding-bottom: 110px; }
 
-    /* ---------- book list ---------- */
-    .w-bookview { position: relative; z-index: 1; }
-    .w-col {
-      width: 100%; max-width: 680px; margin: 0 auto;
-      padding: 0 22px calc(120px + env(safe-area-inset-bottom, 0));
-    }
-    .wtitle { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 600; color: var(--text); padding: 34px 2px 0; text-align: center; }
-    .wsub { text-align: center; font-size: 12px; letter-spacing: .04em; color: var(--goldd); margin-top: 6px; }
+    .word .whead { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 2px; color: var(--text); }
+    .word .wlbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; }
+    .word .whead .gear { color: var(--muted); display: flex; }
+    .word .whead .gear svg { width: 19px; height: 19px; }
+    .word .wtitle { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; padding: 4px 22px 2px; color: var(--text); }
 
-    .grp { padding: 26px 0 0; }
-    .grphead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-    .grptitle { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); }
-    .grpsub { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 500; }
-    .books { display: flex; flex-direction: column; gap: 10px; }
-    .book { display: flex; align-items: center; gap: 14px; padding: 15px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; transition: transform .25s; }
-    @media (hover: hover) { .book:hover { transform: translateY(-3px); } }
-    .book .bmain { flex: 1; min-width: 0; }
-    .book .bname { display: block; font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.1; }
-    .book .bdesc { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-    .book .bchap { display: block; font-size: 11px; color: var(--text2); margin-top: 5px; opacity: .8; }
-    .book .chev { flex: 0 0 auto; color: var(--goldd); display: flex; }
-    .book .chev svg { width: 18px; height: 18px; }
-    .foot-sp { height: 26px; }
+    .word .search { display: flex; align-items: center; gap: 11px; margin: 12px 22px 0; padding: 14px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); }
+    .word .search svg { flex: 0 0 auto; width: 17px; height: 17px; color: var(--goldd); }
+    .word .search input { flex: 1; border: 0; background: transparent; outline: none; font-family: inherit; font-size: 14px; color: var(--text); }
+    .word .search input::placeholder { color: var(--muted); }
 
-    /* ---------- reader overlay ---------- */
+    .word .tlanslbl { display: block; padding: 16px 22px 0; }
+    .word .trow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 22px 4px; }
+    .word .pill { font-size: 12px; font-weight: 500; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line2); color: var(--text); background: transparent; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .16s; font-family: inherit; }
+    .word .pill.on { background: var(--gold); border-color: var(--gold); color: #22382E; }
+    @media (hover: hover) { .word .pill:hover { transform: translateY(-1px); border-color: var(--line); } }
+
+    .word .seg { display: flex; gap: 4px; margin: 14px 22px 0; padding: 4px; background: var(--field); border-radius: 999px; }
+    .word .seg button { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 9px; border-radius: 999px; cursor: pointer; transition: .2s; }
+    .word .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--card-shadow); }
+
+    .word .grp { padding: 22px 22px 0; }
+    .word .grphead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+    .word .grptitle { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); }
+    .word .grpsub { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 500; }
+    .word .books { display: flex; flex-direction: column; gap: 10px; }
+    .word .book { display: flex; align-items: center; gap: 14px; padding: 15px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; transition: transform .25s; }
+    @media (hover: hover) { .word .book:hover { transform: translateY(-3px); } }
+    .word .book .bmain { flex: 1; min-width: 0; }
+    .word .book .bname { display: block; font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.1; }
+    .word .book .bdesc { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .word .book .bchap { display: block; font-size: 11px; color: var(--text2); margin-top: 5px; opacity: .8; }
+    .word .book .chev { flex: 0 0 auto; color: var(--goldd); display: flex; }
+    .word .book .chev svg { width: 18px; height: 18px; }
+    .word .foot-sp { height: 26px; }
+
+    .word .searchhint { padding: 14px 22px 0; }
+    .word .shitem { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--surface); border-radius: 14px; box-shadow: var(--card-shadow); cursor: pointer; border: 0; width: 100%; text-align: left; font-family: inherit; margin-bottom: 9px; transition: transform .2s; }
+    @media (hover: hover) { .word .shitem:hover { transform: translateY(-2px); } }
+    .word .shitem .shref { display: block; font-size: 11px; color: var(--goldd); font-weight: 600; letter-spacing: .04em; flex: 0 0 auto; }
+    .word .shitem .shlabel { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); }
+    .word .searchnote { padding: 8px 26px 0; font-size: 10.5px; line-height: 1.55; color: var(--muted); }
+    .word .vp-loading { padding: 18px 22px; color: var(--muted); font-size: 14px; }
+
+    /* ===== reader overlay ===== */
     .w-reader { position: fixed; inset: 0; z-index: 40; background: var(--bgfield); display: none; flex-direction: column; }
     .w-reader.open { display: flex; }
-    .rtop { position: relative; z-index: 2; flex: 0 0 auto; padding-top: env(safe-area-inset-top, 0); }
-    .rhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px 2px; }
-    .rhead .iconbtn, .rhead .iconbtn-spacer { width: 38px; height: 38px; flex: 0 0 auto; }
-    .rhead .iconbtn { border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
-    .rhead .iconbtn svg { width: 20px; height: 20px; }
-    .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 1; }
-    .rsub { text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--goldd); padding-bottom: 6px; }
-    /* translation switcher pill */
-    .rtrans { display: flex; justify-content: center; align-items: center; padding: 0 18px 12px; }
-    .transsel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 999px; padding: 8px 14px; cursor: pointer; font-family: inherit; }
-    .transsel svg { width: 13px; height: 13px; color: var(--goldd); }
+    .w-reader .topglow { position: absolute; top: 0; left: 0; right: 0; height: 280px; z-index: 0; pointer-events: none;
+      background: radial-gradient(120% 90% at 50% -10%, var(--topglow), transparent 60%); }
+    .w-reader .rtop { position: relative; z-index: 2; }
+    .w-reader .rhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px 2px; }
+    .w-reader .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .w-reader .iconbtn svg { width: 20px; height: 20px; }
+    .w-reader .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 1; background: none; border: 0; cursor: pointer; padding: 0; }
+    .w-reader .rsub { text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--goldd); padding-bottom: 6px; }
+    .w-reader .rscroll { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+    .w-reader .rscroll::-webkit-scrollbar { display: none; }
 
-    /* translation chooser sheet */
-    .rsheet { position: fixed; inset: 0; z-index: 50; display: none; }
-    .rsheet.open { display: block; }
-    .rsback { position: absolute; inset: 0; background: rgba(0, 0, 0, .42); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-    .rspanel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0)); box-shadow: 0 -20px 50px -18px rgba(0, 0, 0, .5); animation: tmup .3s cubic-bezier(.2, .7, .2, 1); }
-    @keyframes tmup { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
-    .tmgrab { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 4px auto 8px; }
-    .rstitle { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); margin: 8px 0 10px; }
-    .tmrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 4px; border: 0; border-top: 1px solid var(--line); background: none; width: 100%; text-align: left; font-family: inherit; cursor: pointer; }
-    #tmlist .tmrow:first-child { border-top: 0; }
-    .tmtx { display: flex; flex-direction: column; }
-    .tmn { font-size: 16px; color: var(--text); font-weight: 600; }
-    .tmd { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .tmck { color: var(--gold); display: none; }
-    .tmrow.on .tmck { display: flex; }
-    .tmck svg { width: 18px; height: 18px; }
+    .w-reader .chappick { padding: 10px 22px 30px; }
+    .w-reader .picklbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin: 8px 2px 14px; }
+    .w-reader .versepick { padding: 10px 22px 30px; }
+    .w-reader .vp-all { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; padding: 14px; margin: 2px 0 18px; border: 0; cursor: pointer;
+      background: var(--cta); color: var(--ctatext); border-radius: 14px; font-family: inherit; font-size: 14.5px; font-weight: 600; box-shadow: 0 10px 24px -10px rgba(201, 168, 76, .5); transition: filter .2s ease, transform .16s ease; }
+    .w-reader .vp-all:hover { filter: brightness(1.04); }
+    .w-reader .vp-all:active { transform: translateY(1px); }
+    .w-reader .vp-all svg { width: 16px; height: 16px; }
+    .w-reader .vp-loading { padding: 18px 2px; color: var(--muted); font-size: 14px; }
+    .w-reader .chapgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .w-reader .chaptile { position: relative; aspect-ratio: 1/1; border-radius: 14px; border: 1px solid var(--line2); background: var(--surface); box-shadow: var(--card-shadow); color: var(--text); font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .2s, background .2s, color .2s; }
+    @media (hover: hover) { .w-reader .chaptile:hover { transform: translateY(-2px); } }
+    .w-reader .chaptile.has::after { content: ''; position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 7px rgba(216, 184, 95, .7); }
 
-    /* copyright notice (copyrighted translations only) */
-    .rcopyright { max-width: 680px; margin: 8px auto 0; padding: 14px 22px calc(40px + env(safe-area-inset-bottom, 0)); border-top: 1px solid var(--line); font-size: 11px; line-height: 1.55; color: var(--muted); }
+    .w-reader .readctl { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 18px 10px; }
+    .w-reader .navchap { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line2); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .2s; }
+    .w-reader .navchap svg { width: 18px; height: 18px; }
+    .w-reader .navchap:disabled { opacity: .32; cursor: default; }
+    .w-reader .chaplabel { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 9px 18px; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; }
+    .w-reader .chaplabel svg { width: 13px; height: 13px; color: var(--goldd); }
 
-    .readctl { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 18px 10px; }
-    .navchap { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line2); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .2s; }
-    .navchap svg { width: 18px; height: 18px; }
-    .navchap:disabled { opacity: .32; cursor: default; }
-    .chaplabel { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 9px 18px; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; }
-    .chaplabel svg { width: 13px; height: 13px; color: var(--goldd); }
+    .w-reader .rtrans { display: flex; align-items: center; gap: 8px; padding: 0 18px 12px; flex-wrap: wrap; }
+    .w-reader .rtrans .rt { font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); background: transparent; cursor: pointer; font-family: inherit; }
+    .w-reader .rtrans .rt.on { background: rgba(216, 184, 95, .16); color: var(--text); border-color: rgba(216, 184, 95, .4); }
+    .w-reader .rtrans .compare { margin-left: auto; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--goldd); background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+    .w-reader .rtrans .compare svg { width: 14px; height: 14px; }
+    .w-reader .rtrans .compare.on { color: var(--text); }
+    .w-reader .aabtn { margin-left: auto; border: 1px solid var(--line2); background: transparent; color: var(--text); border-radius: 10px; min-width: 38px; height: 34px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; padding: 0 9px; }
+    .w-reader .transsel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 999px; padding: 8px 14px; cursor: pointer; font-family: inherit; }
+    .w-reader .transsel svg { width: 13px; height: 13px; color: var(--goldd); }
 
-    .rscroll { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0)); }
-    .rscroll::-webkit-scrollbar { display: none; }
+    .w-reader .rbody { padding: 6px 22px 24px; }
+    /* reading typography — Cormorant at a generous size, calm leading, roomy verses */
+    .w-reader .vrse { display: flex; gap: 12px; margin-bottom: 17px; }
+    .w-reader .vrse .vn { flex: 0 0 auto; font-size: 10.5px; color: var(--goldd); font-weight: 600; width: 19px; text-align: right; padding-top: 8px; opacity: .85; }
+    .w-reader .vrse .vt { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.58; letter-spacing: .005em; color: var(--text); padding: 2px 8px; border-radius: 8px; cursor: pointer; transition: background .25s ease; }
+    @media (hover: hover) { .w-reader .vrse:not(.hl):not(.sel) .vt:hover { background: color-mix(in srgb, var(--text) 4%, transparent); } }
+    .w-reader .vrse.flash .vt { animation: vflash 2s ease; }
+    @keyframes vflash { 0%, 30% { background: rgba(216, 184, 95, .3); } 100% { background: transparent; } }
+    .w-reader .vrse.sel .vt { box-shadow: 0 0 0 2px rgba(216, 184, 95, .55); }
+    .w-reader .vrse.hl .vt, .w-reader .pverse.hl { background: rgba(216, 184, 95, .2); }
+    .w-reader .vrse.hl-land .vt { background: rgba(216, 184, 95, .18); }
 
-    .chappick { padding: 10px 22px 30px; max-width: 680px; margin: 0 auto; width: 100%; }
-    .picklbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin: 8px 2px 14px; }
-    .chapgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-    .chaptile { aspect-ratio: 1/1; border-radius: 14px; border: 1px solid var(--line2); background: var(--surface); box-shadow: var(--card-shadow); color: var(--text); font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .2s; }
-    @media (hover: hover) { .chaptile:hover { transform: translateY(-2px); } }
+    .w-reader .pcols { display: grid; gap: 14px; }
+    .w-reader .pverse { border-top: 1px solid var(--line); padding: 13px 7px 5px; border-radius: 8px; cursor: pointer; }
+    .w-reader .pverse.flash { animation: vflash 2s ease; }
+    .w-reader .pverse.sel { box-shadow: 0 0 0 2px rgba(216, 184, 95, .45); }
+    .w-reader .pverse .pn { font-size: 11px; color: var(--goldd); font-weight: 600; margin-bottom: 8px; }
+    .w-reader .pgrid { display: grid; gap: 12px; }
+    .w-reader .pcell .pcl { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .w-reader .pcell .pcx { font-family: 'Cormorant Garamond', serif; font-size: 16px; line-height: 1.42; color: var(--text); }
 
-    .rbody { padding: 6px 22px 36px; max-width: 680px; margin: 0 auto; width: 100%; }
-    .vrse { display: flex; gap: 11px; margin-bottom: 15px; }
-    .vrse .vn { flex: 0 0 auto; font-size: 11px; color: var(--goldd); font-weight: 600; width: 18px; text-align: right; padding-top: 6px; }
-    .vrse .vt { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 20px; line-height: 1.5; color: var(--text); padding: 2px 7px; border-radius: 8px; }
-    /* deep-linked verse: entrance flash, then a persistent soft gold wash
-       (the design's .hl highlight) so reading visibly begins at this verse */
-    .vrse.flash .vt { animation: vflash 2s ease; }
-    @keyframes vflash { 0%, 35% { background: rgba(216, 184, 95, .34); } 100% { background: rgba(216, 184, 95, .18); } }
-    .vrse.hl .vt { background: rgba(216, 184, 95, .18); }
+    .w-reader .rcopyright { max-width: 680px; margin: 6px auto 0; padding: 10px 26px 18px; font-size: 10.5px; line-height: 1.55; color: var(--muted); }
+    .w-reader .rcopyright div { margin-top: 6px; }
 
-    /* loading shimmer + error panel */
-    .rloading { padding: 8px 22px; max-width: 680px; margin: 0 auto; }
-    .shrow { display: flex; gap: 11px; margin-bottom: 16px; align-items: flex-start; }
-    .shn { flex: 0 0 auto; width: 14px; height: 12px; border-radius: 4px; background: var(--field); margin-top: 5px; }
-    .shl { flex: 1; height: 16px; border-radius: 8px; background: linear-gradient(90deg, var(--field), rgba(216, 184, 95, .14), var(--field)); background-size: 200% 100%; animation: wshim 1.3s ease-in-out infinite; }
-    @keyframes wshim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .rsoon { text-align: center; padding: 40px 18px; }
-    .rsoon .ri { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
-    .rsoon .ri svg { width: 21px; height: 21px; }
-    .rsoon .rt2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); }
-    .rsoon .rd { font-size: 13px; color: var(--muted); margin-top: 7px; line-height: 1.5; max-width: 32ch; margin-left: auto; margin-right: auto; }
+    .w-reader .rsoon { text-align: center; padding: 40px 18px; }
+    .w-reader .rsoon .ri { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .w-reader .rsoon .ri svg { width: 21px; height: 21px; }
+    .w-reader .rsoon .rt2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); }
+    .w-reader .rsoon .rd { font-size: 13px; color: var(--muted); margin-top: 7px; line-height: 1.5; max-width: 32ch; margin-left: auto; margin-right: auto; }
+
+    .w-reader .rloading { padding: 8px 0; }
+    .w-reader .shrow { display: flex; gap: 11px; margin-bottom: 16px; align-items: flex-start; }
+    .w-reader .shn { flex: 0 0 auto; width: 14px; height: 12px; border-radius: 4px; background: var(--field); margin-top: 5px; }
+    .w-reader .shl { flex: 1; height: 16px; border-radius: 8px; background: linear-gradient(90deg, var(--field), rgba(216, 184, 95, .14), var(--field)); background-size: 200% 100%; animation: shim 1.3s ease-in-out infinite; }
+    @keyframes shim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* in-reader tab bar (design): relative at the reader's foot on mobile */
+    .w-reader .tabbar { position: relative !important; left: auto !important; right: auto !important; bottom: auto !important; z-index: 3; flex: 0 0 auto; }
+
+    /* verse jump overlay */
+    .w-reader .vjump { position: absolute; inset: 0; z-index: 42; display: none; }
+    .w-reader .vjump.open { display: block; }
+    .w-reader .vjback { position: absolute; inset: 0; background: rgba(0, 0, 0, .42); backdrop-filter: blur(2px); }
+    .w-reader .vjsheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px calc(24px + env(safe-area-inset-bottom)); max-height: 72%; overflow-y: auto; box-shadow: 0 -20px 50px -18px rgba(0, 0, 0, .5); scrollbar-width: none; }
+    .w-reader .vjsheet::-webkit-scrollbar { display: none; }
+    .w-reader .vjtitle { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); margin: 8px 0 16px; }
+    .w-reader .vjgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
+    .w-reader .vjtile { aspect-ratio: 1/1; border-radius: 11px; border: 1px solid var(--line2); background: transparent; color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .15s; }
+    .w-reader .vjtile:hover { background: var(--field); }
+
+    /* verse action bar */
+    .w-reader .vbar { position: absolute; left: 10px; right: 10px; bottom: 96px; background: var(--surface); border-radius: 22px; box-shadow: 0 -18px 50px -18px rgba(0, 0, 0, .5), var(--card-shadow); padding: 6px 16px 14px; z-index: 41; display: none; touch-action: none; }
+    .w-reader .vbar.open { display: block; animation: vbup .28s cubic-bezier(.2, .7, .2, 1); }
+    @keyframes vbup { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+    .w-reader .vbar .grabber { margin: 6px auto 8px; }
+    .w-reader .vbref { font-size: 11px; letter-spacing: .04em; color: var(--goldd); font-weight: 600; text-align: center; padding: 4px 0 9px; }
+    .w-reader .vbacts { display: flex; gap: 4px; }
+    .w-reader .vbtn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 4px; border: 0; background: transparent; color: var(--text); cursor: pointer; border-radius: 12px; font-family: inherit; font-size: 10.5px; transition: background .2s; }
+    .w-reader .vbtn:hover { background: var(--field); }
+    .w-reader .vbtn svg { width: 19px; height: 19px; color: var(--goldd); }
+    .w-reader .vbtn.on svg { color: var(--gold); fill: rgba(216, 184, 95, .25); }
+
+    /* sheets: translation · display · share fallback */
+    .w-reader .rsheet { position: absolute; inset: 0; z-index: 43; display: none; }
+    .w-reader .rsheet.open { display: block; }
+    .w-reader .rsback { position: absolute; inset: 0; background: rgba(0, 0, 0, .42); backdrop-filter: blur(2px); }
+    .w-reader .rspanel { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -20px 50px -18px rgba(0, 0, 0, .5); animation: vbup .3s cubic-bezier(.2, .7, .2, 1); }
+    .w-reader .rstitle { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); margin: 8px 0 16px; }
+    .w-reader .tmrow { display: flex; align-items: center; justify-content: space-between; padding: 15px 4px; border-top: 1px solid var(--line); cursor: pointer; }
+    .w-reader .tmrow .tmn { font-size: 16px; color: var(--text); }
+    .w-reader .tmrow .tmd { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .w-reader .tmrow .tmck { color: var(--gold); display: none; }
+    .w-reader .tmrow.on .tmck { display: flex; }
+    .w-reader .tmrow .tmck svg { width: 18px; height: 18px; }
+    .w-reader .dspreview { text-align: center; padding: 2px 4px 18px; color: var(--text); line-height: 1.4; min-height: 34px; }
+    .w-reader .dssec { margin-bottom: 18px; }
+    .w-reader .dslbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin-bottom: 9px; }
+    .w-reader .dsseg { display: flex; gap: 5px; }
+    .w-reader .dsseg button { flex: 1; border: 1px solid var(--line2); background: transparent; color: var(--text); border-radius: 11px; padding: 11px 4px; cursor: pointer; font-family: inherit; transition: .2s; }
+    .w-reader .dsseg button.on { background: rgba(216, 184, 95, .16); border-color: rgba(216, 184, 95, .45); }
+    .w-reader .dsseg .sz1 { font-size: 13px; } .w-reader .dsseg .sz2 { font-size: 16px; } .w-reader .dsseg .sz3 { font-size: 19px; }
+    .w-reader .bright { display: flex; align-items: center; gap: 13px; }
+    .w-reader .bright svg { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; }
+    .w-reader .bright input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 999px; background: var(--line2); outline: none; }
+    .w-reader .bright input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+    .w-reader .bright input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--gold); cursor: pointer; }
+
+    .w-reader .rbody.fs-s .vrse .vt { font-size: 18px; } .w-reader .rbody.fs-s .pcell .pcx { font-size: 14.5px; }
+    .w-reader .rbody.fs-m .vrse .vt { font-size: 21px; } .w-reader .rbody.fs-m .pcell .pcx { font-size: 16px; }
+    .w-reader .rbody.fs-l .vrse .vt { font-size: 25px; line-height: 1.6; } .w-reader .rbody.fs-l .pcell .pcx { font-size: 19px; }
+    .w-reader .rbody.ff-lora .vrse .vt, .w-reader .rbody.ff-lora .pcell .pcx { font-family: 'Lora', serif; }
+    .w-reader .rbody.ff-sans .vrse .vt, .w-reader .rbody.ff-sans .pcell .pcx { font-family: 'DM Sans', sans-serif; font-size: .92em; }
+    .ff-cormorant { font-family: 'Cormorant Garamond', serif; } .ff-lora { font-family: 'Lora', serif; } .ff-sans { font-family: 'DM Sans', sans-serif; }
+
+    .w-reader .sharprev { background: var(--field); border: 1px solid var(--line2); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; }
+    .w-reader .sharprev .sp-v { font-family: 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.42; color: var(--text); }
+    .w-reader .sharprev .sp-r { font-size: 11px; letter-spacing: .05em; color: var(--goldd); font-weight: 600; margin-top: 9px; }
+    .w-reader .sopt { display: flex; align-items: center; gap: 15px; padding: 16px 4px; border-top: 1px solid var(--line); cursor: pointer; width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; font-family: inherit; transition: padding-left .2s; }
+    .w-reader .sopt:hover { padding-left: 6px; }
+    .w-reader .sopt .si { flex: 0 0 auto; width: 22px; display: flex; justify-content: center; color: var(--gold); }
+    .w-reader .sopt .si svg { width: 19px; height: 19px; }
+    .w-reader .sopt .sl { flex: 1; font-size: 16px; color: var(--text); }
+    .w-reader .sopt .sc { flex: 0 0 auto; color: var(--muted); display: flex; }
+    .w-reader .sopt .sc svg { width: 16px; height: 16px; }
+
+    .w-reader .dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 39; transition: opacity .2s; }
+    .w-reader .wtoast { position: absolute; left: 50%; bottom: 110px; transform: translate(-50%, 16px); background: var(--surface); color: var(--text); padding: 11px 17px; border-radius: 13px; box-shadow: var(--card-shadow); font-size: 13px; display: flex; align-items: center; gap: 9px; opacity: 0; pointer-events: none; transition: opacity .28s, transform .28s; z-index: 50; white-space: nowrap; }
+    .w-reader .wtoast.show { opacity: 1; transform: translate(-50%, 0); }
+    .w-reader .wtoast svg { width: 15px; height: 15px; color: var(--goldd); }
+
+    /* ===== motion: unseen-grade entrances (calm rise, expo-out settle) ===== */
+    @media (prefers-reduced-motion: no-preference) {
+      .w-reader .view-enter { animation: wviewIn .56s var(--ease-reveal, cubic-bezier(.16, 1, .3, 1)) both; }
+      @keyframes wviewIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+      .word .shitem { opacity: 0; animation: wshIn .5s var(--ease-reveal, cubic-bezier(.16, 1, .3, 1)) forwards; }
+      @keyframes wshIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      .w-reader .rsheet.open .rsback, .w-reader .vjump.open .vjback { animation: wbackIn .32s ease both; }
+      @keyframes wbackIn { from { opacity: 0; } to { opacity: 1; } }
+    }
+
+    /* ===== DESKTOP (TheWord.html __desktop_responsive__): reader sits below the
+       fixed top app bar so the five tabs stay reachable while reading ===== */
+    @media (min-width: 481px) {
+      .w-reader { top: 60px; z-index: 20; }
+      .w-reader .tabbar { display: none !important; }
+      .w-reader .rtop > *, .w-reader .rscroll > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+      /* comfortable reading measure */
+      .w-reader .rscroll > .rbody { max-width: 660px; }
+      .w-reader .rbody.fs-m .vrse .vt { font-size: 22px; }
+      .w-reader .rbody.fs-s .vrse .vt { font-size: 19px; }
+      .w-reader .rbody.fs-l .vrse .vt { font-size: 26px; }
+      .w-reader .vbar { left: 50%; right: auto; transform: translateX(-50%); width: min(540px, 94%); bottom: 22px; border: 1px solid var(--line2); border-radius: 18px;
+        background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(18px) saturate(1.15); -webkit-backdrop-filter: blur(18px) saturate(1.15);
+        box-shadow: 0 30px 80px -28px rgba(0, 0, 0, .65); }
+      .w-reader .wtoast { bottom: 30px; }
+      .word .w-col { max-width: 720px; }
+    }
+
+    /* ===== DESKTOP sheets → centered modals (bottom sheets are a mobile idiom).
+       Blur-dimmed backdrop, scale-fade entrance on the house expo-out curve. ===== */
+    @media (min-width: 720px) {
+      .w-reader .rsback, .w-reader .vjback { background: rgba(6, 11, 8, .5); backdrop-filter: blur(10px) saturate(1.05); -webkit-backdrop-filter: blur(10px) saturate(1.05); }
+      .w-reader .rspanel, .w-reader .vjsheet {
+        left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%);
+        width: min(420px, 92%); max-height: min(640px, 86%); overflow-y: auto;
+        border-radius: 24px; border: 1px solid var(--line2);
+        padding: 14px 24px 24px;
+        box-shadow: 0 50px 130px -40px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .03);
+        animation: wmodalIn .42s var(--ease-reveal, cubic-bezier(.16, 1, .3, 1)) both;
+      }
+      @keyframes wmodalIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.965); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+      .w-reader .rspanel .grabber, .w-reader .vjsheet .grabber { display: none; }
+      .w-reader .vjsheet { width: min(460px, 92%); }
+      .w-reader .vjgrid { grid-template-columns: repeat(7, 1fr); }
+      @media (prefers-reduced-motion: reduce) { .w-reader .rspanel, .w-reader .vjsheet { animation: none; } }
+    }
+    @media (min-width: 1100px) {
+      .word .w-col, .w-reader .rtop > *, .w-reader .rscroll > * { max-width: 760px; }
+      .w-reader .rscroll > .rbody { max-width: 680px; }
+    }
   </style>
 </DeclareLayout>

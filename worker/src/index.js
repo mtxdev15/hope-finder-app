@@ -208,10 +208,67 @@ function checkRateLimit(ip) {
   return false;
 }
 
+// ── Bible search ─────────────────────────────────────────────────────────────
+// GET /bible/search?translation=kjv&q=water into wine — proxies API.Bible's
+// /search endpoint (key stays server-side). Copyrighted result snippets are a
+// licensed display: never cached (no-store) and returned with the FUMS token
+// (the browser fires the view ping) plus the publisher's copyright line.
+// Public-domain results may be browser-cached briefly. No KV is used here.
+async function handleBibleSearch(request, env) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: BIBLE_CORS_HEADERS });
+  }
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'Method Not Allowed' }, 405);
+  }
+  const url = new URL(request.url);
+  const translation = (url.searchParams.get('translation') || '').toLowerCase();
+  const q = (url.searchParams.get('q') || '').trim();
+  const cfg = PUBLIC_DOMAIN[translation] || COPYRIGHTED[translation];
+  if (!cfg) {
+    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, and NIV translations are available right now.' }, 400);
+  }
+  if (q.length < 2 || q.length > 80) {
+    return jsonResponse({ error: 'Search needs between 2 and 80 characters.' }, 400);
+  }
+  const apiUrl = `https://api.scripture.api.bible/v1/bibles/${cfg.id}/search` +
+    `?query=${encodeURIComponent(q)}&limit=12&sort=relevance&fuzziness=AUTO`;
+  const apiRes = await fetch(apiUrl, {
+    headers: { 'api-key': env.BIBLE_API_KEY, 'accept': 'application/json' },
+  });
+  if (!apiRes.ok) {
+    return jsonResponse({ error: 'Search is unavailable right now.' }, 502);
+  }
+  const data = await apiRes.json();
+  const verses = (data && data.data && data.data.verses) || [];
+  const results = verses.map((v) => {
+    const m = (v.reference || '').match(/^(.+?)\s+(\d+):(\d+)/);
+    return {
+      ref: v.reference,
+      text: (v.text || '').replace(/\s+/g, ' ').trim(),
+      book: m ? m[1] : null,
+      chapter: m ? parseInt(m[2], 10) : null,
+      verse: m ? parseInt(m[3], 10) : null,
+    };
+  }).filter((r) => r.book);
+  const copyrighted = !!COPYRIGHTED[translation];
+  return jsonResponse({
+    query: q,
+    translation: cfg.label,
+    results,
+    fumsToken: (data.meta && data.meta.fumsToken) || null,
+    copyright: copyrighted ? COPYRIGHTED[translation].copyright : undefined,
+  }, 200, copyrighted ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, max-age=3600' });
+}
+
 export default {
   async fetch(request, env) {
-    // Bible reader route — additive; the Anthropic proxy below is unchanged.
-    if (new URL(request.url).pathname === '/bible') {
+    // Bible reader routes — additive; the Anthropic proxy below is unchanged.
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/bible/search') {
+      return handleBibleSearch(request, env);
+    }
+    if (pathname === '/bible') {
       return handleBible(request, env);
     }
 
