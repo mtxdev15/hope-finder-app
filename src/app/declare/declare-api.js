@@ -1,18 +1,18 @@
-/* Declare & Believe — the pastoral-response "brain".
-   Copied VERBATIM from the proven v1 flow (src/app/app.jsx:11–132) so the v3.2
-   /today island uses the exact same Worker call, system prompt, streaming, and
-   response contract as the live app at /.
+/* Declare & Believe — the pastoral-response "brain" (single source of truth).
+   The system/user prompts, the Worker call, the SSE streaming parse, the
+   defensive JSON slice, and isCompleteResult all live HERE. Both the live app
+   at / (src/app/app.jsx) and the v3.2 island at /today (DeclareToday.jsx) import
+   from this module — there is no second copy.
 
-   The ONLY intentional change from v1: temperature 1.0 -> 0.9 (slightly more
-   reliable structured JSON while keeping verse/declaration variety). Everything
-   else — endpoint, model, max_tokens, stream, ephemeral system-prompt caching,
-   SSE parse, defensive JSON slice, and isCompleteResult — is unchanged.
+   Temperature is a per-caller option (no behavior is hidden in a default):
+     - / passes { temperature: 1.0 }   (its long-standing value)
+     - /today passes { temperature: 0.9 }
+   The default below is 0.9, but every call site states its own value explicitly
+   so neither page can silently drift if this default ever changes.
+   Endpoint, model, max_tokens, stream, and the ephemeral system-prompt cache are
+   identical for both callers. */
 
-   This is duplicated rather than imported out of app.jsx on purpose: it keeps the
-   live / page a true untouched safety net. DRY into one shared module once /today
-   is proven. */
-
-export async function generateContent(struggle, translation, excludeRefs = []) {
+export async function generateContent(struggle, translation, excludeRefs = [], { temperature = 0.9 } = {}) {
   const systemPrompt = `You are HopeFinder Companion — the pastoral voice inside Declare and Believe, a faith-based app that delivers God's Word directly to someone's specific mindset struggle. You are not a chatbot, a therapist, or a preacher. You are a trusted friend who knows their Bible deeply and speaks with warmth, confidence, and pastoral authority. You walk with people in their darkest moments and speak truth before you speak comfort.
 
 The person who has arrived has described something they are battling. A fear. A shame. A broken identity. A feeling of worthlessness. A sleepless night of doubt. Your job is to meet them exactly where they are and speak God's truth back to them.
@@ -69,7 +69,7 @@ Return ONLY valid JSON in this exact structure:
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      temperature: 0.9,
+      temperature,
       stream: true,
       system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userPrompt }]

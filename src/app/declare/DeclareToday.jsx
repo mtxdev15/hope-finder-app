@@ -52,7 +52,7 @@ export default function DeclareToday() {
     setContent(null);
     if (typeof window !== 'undefined' && window.RouteLoader) window.RouteLoader.show();
     try {
-      const ai = await generateContent(s, translation, usedRefs);
+      const ai = await generateContent(s, translation, usedRefs, { temperature: 0.9 });
       if (!isCompleteResult(ai)) throw new Error('incomplete result');
       setContent(ai);
       setUsedRefs((prev) => [...prev, ...ai.verses.map((v) => v.ref)]);
