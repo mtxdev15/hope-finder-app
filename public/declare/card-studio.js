@@ -443,24 +443,60 @@
       });
     });
   }
+  /* Copy the rendered PNG to the clipboard so it can be pasted straight into a
+     composer. Resolves true only when the copy actually landed. */
+  function copyImage(blob){
+    try{
+      if(navigator.clipboard && window.ClipboardItem){
+        return navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){ return true; }, function(){ return false; });
+      }
+    }catch(e){}
+    return Promise.resolve(false);
+  }
+  function downloadBlob(blob, fname){
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+  }
   function exportShare(mode, platform){
     toast('Rendering\u2026');
     exportBlob().then(function(blob){
       var fname='declare-'+(D.type||'card')+'.png';
       var file=new File([blob],fname,{type:'image/png'});
       var txt = D.type==='verse' ? (D.ref?D.ref+' \u2014 ':'')+'shared from Declare' : 'Shared from Declare';
-      if(mode==='native' || mode==='platform'){
+      // Mobile: the OS share sheet drops the card DIRECTLY into the chosen app's
+      // composer \u2014 the truest one-tap path. Desktop platform tiles skip this
+      // (desktop "share" sheets are weak) and use clipboard + create-surface below.
+      var mobileLike = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
+      if(mode==='native' || (mode==='platform' && mobileLike)){
         if(navigator.canShare && navigator.canShare({files:[file]})){
           navigator.share({ files:[file], text:txt, title:'Declare' }).then(function(){ closeShareSheet(); }).catch(function(){});
           return;
         }
       }
-      // fallback: download
-      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
-      if(platform==='x'){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(txt+' '+D.url),'_blank','noopener'); }
-      else if(platform==='facebook'){ window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(D.url),'_blank','noopener'); }
-      toast(platform? 'Image saved \u2014 attach it in '+platCap(platform) : 'Card saved to your device');
+      if(mode==='download' || !platform){
+        downloadBlob(blob, fname);
+        toast('Card saved to your device');
+        return;
+      }
+      // Desktop platform path: copy the card to the clipboard, then open that
+      // platform's create surface in a new tab \u2014 the user's existing browser
+      // session keeps them signed in; they paste and post. Falls back to a
+      // download when the clipboard is unavailable. X/Threads prefill the caption.
+      copyImage(blob).then(function(copied){
+        if(!copied) downloadBlob(blob, fname);
+        var cap=encodeURIComponent(txt+(D.url?' '+D.url:''));
+        var dest={
+          instagram:'https://www.instagram.com/',
+          story:'https://www.instagram.com/',
+          tiktok:'https://www.tiktok.com/upload',
+          facebook:'https://www.facebook.com/',
+          x:'https://twitter.com/intent/tweet?text='+cap,
+          threads:'https://www.threads.net/intent/post?text='+cap
+        }[platform];
+        if(dest) window.open(dest,'_blank','noopener');
+        toast(copied ? 'Card copied \u2014 paste it into your '+platCap(platform)+' post' : 'Card saved \u2014 attach it in '+platCap(platform));
+        closeShareSheet();
+      });
     });
   }
   function platCap(p){ return ({instagram:'Instagram',tiktok:'TikTok',x:'X',facebook:'Facebook',threads:'Threads',story:'Stories'})[p]||p; }

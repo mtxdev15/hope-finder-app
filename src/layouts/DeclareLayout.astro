@@ -78,6 +78,26 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   <style is:global>
     /* cinematic smooth scrolling (design system; reduced-motion forces auto) */
     html { scroll-behavior: smooth; }
+
+    /* ── tab-to-tab page transitions (Word/Journey/Declare/Vault/You) ──
+       Cross-document View Transitions: the nav chrome stays pinned while the
+       page content settles in on the house expo-out curve — the unseen.co
+       feel. motion.css opts in (@view-transition{navigation:auto}); browsers
+       without VT fall back to declare.css's gold veil. */
+    @media (prefers-reduced-motion: no-preference) {
+      body > .tabbar { view-transition-name: declare-tabbar; }
+      body > .mast { view-transition-name: declare-mast; }
+      ::view-transition-old(root) { animation: vtLeave .34s cubic-bezier(.4, 0, 1, 1) both; }
+      ::view-transition-new(root) { animation: vtArrive .62s cubic-bezier(.16, 1, .3, 1) both; }
+      @keyframes vtLeave { to { opacity: 0; transform: translateY(-10px) scale(.996); } }
+      @keyframes vtArrive { from { opacity: 0; transform: translateY(14px) scale(.998); } }
+      /* keep the pinned chrome steady — a quick plain crossfade, no movement */
+      ::view-transition-old(declare-tabbar), ::view-transition-new(declare-tabbar),
+      ::view-transition-old(declare-mast), ::view-transition-new(declare-mast) { animation-duration: .25s; }
+      /* tab press: a soft settle on the icon you chose */
+      .tab:active svg { transform: scale(.86); transition: transform .12s ease; }
+    }
+
     /* ── shell adaptation: design pages render inside a .screen flex column; our
        pages scroll the document. Pin the design tabbar to the viewport bottom on
        mobile (the design's own full-bleed treatment), and let declare.css's
