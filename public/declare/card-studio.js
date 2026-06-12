@@ -16,18 +16,17 @@
     wide:    { w:1600, h:900,  label:'Wide',     plat:'X · Web',  bw:24, bh:13.5 }
   };
 
-  /* ---------- Unsplash gallery (CORS-clean, exportable) ---------- */
-  var PHOTOS = [
-    { id:'1506905925346-21bda4d32df4', name:'Peaks' },
-    { id:'1470071459604-3b5ec3a7fe05', name:'Mist' },
-    { id:'1419242902214-272b3f66ee7a', name:'Dusk' },
-    { id:'1501785888041-af3ef285b470', name:'Lake' },
-    { id:'1441974231531-c6227db76b6e', name:'Rays' },
-    { id:'1444703686981-a3abbc4d4fe3', name:'Sky' },
-    { id:'1472214103451-9374bd1c798e', name:'Golden' },
-    { id:'1439853949127-fa647821eba0', name:'Ocean' },
-    { id:'1490750967868-88aa4486c946', name:'Bloom' }
+  /* ---------- Unsplash library: curated themes (no key) + live search (Worker) ---------- */
+  var WORKER='https://hope-finder-worker.thinktoro.workers.dev';
+  var THEMES=[
+    { key:'mountains', name:'Mountains', ids:['1506905925346-21bda4d32df4','1464822759023-fed622ff2c3b','1519681393784-d120267933ba','1486870591958-9b9d0d1dda99','1454496522488-7a8e488e8606','1426604966848-d7adac402bff'] },
+    { key:'ocean',     name:'Ocean',     ids:['1439853949127-fa647821eba0','1507525428034-b723cf961d3e','1505142468610-359e7d316be0','1476673160081-cf065607f449','1447752875215-b2761acb3c5d'] },
+    { key:'sky',       name:'Sky',       ids:['1444703686981-a3abbc4d4fe3','1419242902214-272b3f66ee7a','1517685352821-92cf88aee5a5','1494500764479-0c8f2919a3d8','1475924156734-496f6cac6ec1'] },
+    { key:'forest',    name:'Forest',    ids:['1441974231531-c6227db76b6e','1470071459604-3b5ec3a7fe05','1502082553048-f009c37129b9','1505765050516-f72dcac9c60e','1500530855697-b586d89ba3ee','1441260038675-7329ab4cc264'] },
+    { key:'light',     name:'Light',     ids:['1472214103451-9374bd1c798e','1518837695005-2083093ee35b','1469474968028-56623f02e42e','1495616811223-4d98c6e9c869','1507400492013-162706c8c05e'] },
+    { key:'fields',    name:'Fields',    ids:['1490750967868-88aa4486c946','1465056836041-7f43ac27dcb5','1416169607655-0c2b3ce2e1cc','1490682143684-14369e18dce8','1519046904884-53103b34b206','1501785888041-af3ef285b470'] }
   ];
+  var US={ theme:'mountains', q:'', results:null, attr:null, req:0, timer:null };
   function photoURL(id, full){ return 'https://images.unsplash.com/photo-'+id+(full?'?w=1200&q=80&auto=format&fit=crop':'?w=200&h=200&q=55&auto=format&fit=crop'); }
 
   /* ---------- fonts ---------- */
@@ -256,7 +255,7 @@
     return {
       type:p.type, text:p.text||'', ref:p.ref||'', url:p.url||location.href,
       format:'post', font:'cormorant', color:m.text, size:1,
-      bg:{ kind:'mood', value:m, seed:0 }, blur:0, dark:0.28, _bgtab:'library', _tab:'bg'
+      bg:{ kind:'mood', value:m, seed:0 }, blur:0, dark:0.28, _tool:'image'
     };
   }
 
@@ -267,13 +266,11 @@
     scrim.className='cst-scrim'+(root===document.body?' fixed':'');
     scrim.innerHTML=
       '<div class="cst">'+
-        '<div class="cst-top"><button class="cst-ib" data-x>'+I.x+'</button><div class="cst-title" id="cstTitle">Design your card</div><button class="cst-ib" data-dl>'+I.dl+'</button></div>'+
+        '<div class="cst-top"><button class="cst-ib" data-x>'+I.x+'</button><div class="cst-title" id="cstTitle">Design your card</div><button class="cst-go" data-share>'+I.share+'Share</button></div>'+
         '<div class="cst-stage"><canvas class="cst-canvas" id="cstCanvas"></canvas></div>'+
-        '<div class="cst-panel">'+
-          '<div class="cst-formats" id="cstFormats"></div>'+
-          '<div class="cst-tabs"><button class="cst-tab" data-tab="bg">Background</button><button class="cst-tab" data-tab="text">Text</button></div>'+
-          '<div class="cst-body" id="cstBody"></div>'+
-          '<div class="cst-actions"><button class="cst-surprise" data-surprise>'+I.spark+'Surprise me</button><button class="cst-share" data-share>'+I.share+'Share card</button></div>'+
+        '<div class="cst-dock">'+
+          '<div class="cst-tool-panel" id="cstBody"></div>'+
+          '<div class="cst-toolbar" id="cstToolbar"></div>'+
         '</div>'+
         '<div class="cst-sub" id="cstSub"></div>'+
         '<div class="cst-toast" id="cstToast"></div>'+
@@ -282,10 +279,7 @@
     root.appendChild(scrim);
 
     scrim.querySelector('[data-x]').addEventListener('click', close);
-    scrim.querySelector('[data-dl]').addEventListener('click', function(){ exportShare('download'); });
-    scrim.querySelector('[data-surprise]').addEventListener('click', surprise);
     scrim.querySelector('[data-share]').addEventListener('click', openShareSheet);
-    scrim.querySelectorAll('.cst-tab').forEach(function(b){ b.addEventListener('click', function(){ D._tab=b.getAttribute('data-tab'); renderControls(); }); });
     scrim.querySelector('#cstFile').addEventListener('change', onFile);
     window.addEventListener('resize', fitCanvas);
   }
@@ -304,18 +298,30 @@
   function paint(){ var cv=scrim.querySelector('#cstCanvas'); renderTo(cv, D); }
   function repaintSoft(){ var cv=scrim.querySelector('#cstCanvas'); cv.classList.add('swap'); requestAnimationFrame(function(){ paint(); requestAnimationFrame(function(){ cv.classList.remove('swap'); }); }); }
 
-  /* ----- formats ----- */
-  function renderFormats(){
-    var el=scrim.querySelector('#cstFormats');
-    el.innerHTML=Object.keys(FORMATS).map(function(k){
-      var F=FORMATS[k];
-      return '<button class="cst-fmt'+(D.format===k?' on':'')+'" data-fmt="'+k+'"><span class="fg" style="width:'+F.bw+'px;height:'+F.bh+'px"></span>'+
-        '<span class="fcol"><span class="ft">'+F.label+'</span><span class="fp">'+F.plat+'</span></span></button>';
-    }).join('');
-    el.querySelectorAll('[data-fmt]').forEach(function(b){ b.addEventListener('click', function(){ D.format=b.getAttribute('data-fmt'); renderFormats(); fitCanvas(); }); });
+  /* ----- bottom toolbar: one focused tool at a time (YouVersion model) ----- */
+  var TOOLS = [
+    { key:'image',  label:'Image',  ic:I.up },
+    { key:'font',   label:'Font',   ic:'<span class="ti-txt serifish">Tt</span>' },
+    { key:'text',   label:'Text',   ic:'<span class="ti-txt">AA</span>' },
+    { key:'tone',   label:'Tone',   ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17A8.5 8.5 0 0 0 12 3.5z" fill="currentColor" stroke="none"/></svg>' },
+    { key:'format', label:'Format', ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3.5" width="13" height="17" rx="2.5"/><path d="M20 8v8"/></svg>' }
+  ];
+  function renderToolbar(){
+    var el=scrim.querySelector('#cstToolbar');
+    el.innerHTML = TOOLS.map(function(t){
+      return '<button class="cst-tbtn'+(D._tool===t.key?' on':'')+'" data-tool="'+t.key+'"><span class="ti">'+t.ic+'</span><span class="tl">'+t.label+'</span></button>';
+    }).join('') + '<button class="cst-tbtn cst-tsurprise" data-surprise><span class="ti">'+I.spark+'</span><span class="tl">Surprise</span></button>';
+    el.querySelectorAll('[data-tool]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var k=b.getAttribute('data-tool');
+        D._tool = (D._tool===k) ? null : k;  // tap the active tool again -> full preview
+        renderToolbar(); renderControls(); fitCanvas();
+      });
+    });
+    el.querySelector('[data-surprise]').addEventListener('click', surprise);
   }
 
-  /* ----- controls (tab body) ----- */
+  /* ----- controls (active tool panel) ----- */
   function thumb(d2){
     var c=document.createElement('canvas'); c.width=120; c.height=120; renderToThumb(c,d2); return c.outerHTML? c : c;
   }
@@ -324,99 +330,182 @@
     paintBackground(ctx,W,H,{bg:bg});
   }
   function renderControls(){
-    scrim.querySelectorAll('.cst-tab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===D._tab); });
     var body=scrim.querySelector('#cstBody');
-    if(D._tab==='bg') body.innerHTML=bgTab(); else body.innerHTML=textTab();
+    if(!D._tool){ body.classList.remove('open'); body.innerHTML=''; return; }
+    body.classList.add('open');
+    body.innerHTML =
+      D._tool==='image'  ? imageTool()  :
+      D._tool==='font'   ? fontTool()   :
+      D._tool==='text'   ? textTool()   :
+      D._tool==='tone'   ? toneTool()   : formatTool();
+    body.scrollTop=0;
     wireBody(body);
-    // draw thumbnails
+    if(D._tool==='image') paintUsArea(body);
     body.querySelectorAll('canvas[data-thumb]').forEach(function(c){
       var kind=c.getAttribute('data-thumb'), idx=+c.getAttribute('data-i');
       var bg = kind==='mood' ? {kind:'mood',value:MOODS[idx],seed:0} : {kind:'gradient',value:GRADS[idx]};
       c.width=120; c.height=120; renderToThumb(c,bg);
     });
   }
-  function bgTab(){
-    var seg=['library','photo','gradient','color'], labels={library:'Cinematic',photo:'Photo',gradient:'Gradient',color:'Color'};
-    var html='<div class="cst-seg">'+seg.map(function(s){return '<button class="'+(D._bgtab===s?'on':'')+'" data-bgtab="'+s+'">'+labels[s]+'</button>';}).join('')+'</div>';
-    if(D._bgtab==='library'){
-      html+='<div class="cst-lbl">Cinematic backgrounds <button class="cst-gen" data-gen>'+I.spark+'Generate</button></div>';
-      html+='<div class="cst-grid">'+MOODS.map(function(m,i){
-        var on=D.bg.kind==='mood'&&D.bg.value.key===m.key;
-        return '<button class="cst-thumb'+(on?' on':'')+'" data-mood="'+i+'"><canvas data-thumb="mood" data-i="'+i+'"></canvas><span class="tn">'+m.name+'</span></button>';
-      }).join('')+'</div>';
-    } else if(D._bgtab==='photo'){
-      var isPhoto = D.bg.kind==='photo';
-      if(isPhoto && D.bg.img){
-        html+='<div class="cst-photowrap" style="margin-bottom:16px"><img class="pth" src="'+D.bg.src+'" alt=""><div class="pbtns"><button class="cst-mini" data-upload>Replace</button><button class="cst-mini danger" data-rmphoto>Remove</button></div></div>';
-        html+=sliderHTML('blur','Blur',0,60,D.blur||0,1);
-        html+=sliderHTML('dark','Darken',0,0.65,(D.dark==null?0.28:D.dark),0.01);
-      } else {
-        html+='<button class="cst-drop" data-upload>'+I.up+'<span class="dt">Upload your photo</span><span class="dd">JPG or PNG · we\u2019ll frame &amp; light it</span></button>';
-      }
-      html+='<div class="cst-lbl" style="margin-top:16px">Gallery</div>';
-      html+='<div class="cst-grid cst-gal">'+PHOTOS.map(function(p){
-        var on=isPhoto && D.bg.src && D.bg.src.indexOf(p.id)>-1;
-        return '<button class="cst-thumb'+(on?' on':'')+'" data-photo="'+photoURL(p.id,true)+'"><img src="'+photoURL(p.id,false)+'" loading="lazy" alt=""><span class="tn">'+p.name+'</span></button>';
-      }).join('')+'</div>';
-    } else if(D._bgtab==='gradient'){
-      html+='<div class="cst-grid">'+GRADS.map(function(g,i){
-        var on=D.bg.kind==='gradient'&&D.bg.value[0]===g[0];
-        return '<button class="cst-thumb'+(on?' on':'')+'" data-grad="'+i+'"><canvas data-thumb="gradient" data-i="'+i+'"></canvas></button>';
-      }).join('')+'</div>';
+
+  /* IMAGE \u2014 one scrolling panel: upload \u00b7 cinematic \u00b7 photos \u00b7 gradients \u00b7 colors */
+  function imageTool(){
+    var html='', isPhoto=D.bg.kind==='photo';
+    if(isPhoto && D.bg.img){
+      html+='<div class="cst-photowrap" style="margin-bottom:14px"><img class="pth" src="'+D.bg.src+'" alt=""><div class="pbtns"><button class="cst-mini" data-upload>Replace</button><button class="cst-mini danger" data-rmphoto>Remove</button></div></div>';
+      html+=sliderHTML('blur','Blur',0,60,D.blur||0,1);
+      html+=sliderHTML('dark','Darken',0,0.65,(D.dark==null?0.28:D.dark),0.01);
     } else {
-      html+='<div class="cst-colors">'+SOLIDS.map(function(c){
-        var on=D.bg.kind==='solid'&&D.bg.value.toLowerCase()===c.toLowerCase();
-        return '<button class="cst-sw'+(on?' on':'')+'" data-solid="'+c+'" style="background:'+c+'"></button>';
-      }).join('')+'<label class="cst-sw pick">'+I.pick+'<input type="color" data-customcolor value="'+(D.bg.kind==='solid'?D.bg.value:'#22382E')+'"></label></div>';
+      html+='<button class="cst-drop slim" data-upload>'+I.up+'<span class="dt">Upload your photo</span></button>';
     }
+    html+='<div class="cst-lbl" style="margin-top:14px">Cinematic <button class="cst-gen" data-gen>'+I.spark+'Generate</button></div>';
+    html+='<div class="cst-grid">'+MOODS.map(function(m,i){
+      var on=D.bg.kind==='mood'&&D.bg.value.key===m.key;
+      return '<button class="cst-thumb'+(on?' on':'')+'" data-mood="'+i+'"><canvas data-thumb="mood" data-i="'+i+'"></canvas><span class="tn">'+m.name+'</span></button>';
+    }).join('')+'</div>';
+    html+='<div class="cst-lbl" style="margin-top:14px">Photos <span class="cst-by">Unsplash</span></div>';
+    html+='<div class="cst-ussearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><input data-ussearch placeholder="Search Unsplash\u2026" value="'+esc(US.q)+'"></div>';
+    html+='<div class="cst-attr" id="usAttr"></div>';
+    html+='<div class="cst-chiprow" id="usThemes"></div>';
+    html+='<div class="cst-grid cst-gal" id="usGrid"></div>';
+    html+='<div class="cst-lbl" style="margin-top:14px">Gradients</div>';
+    html+='<div class="cst-grid">'+GRADS.map(function(g,i){
+      var on=D.bg.kind==='gradient'&&D.bg.value[0]===g[0];
+      return '<button class="cst-thumb'+(on?' on':'')+'" data-grad="'+i+'"><canvas data-thumb="gradient" data-i="'+i+'"></canvas></button>';
+    }).join('')+'</div>';
+    html+='<div class="cst-lbl" style="margin-top:14px">Colors</div>';
+    html+='<div class="cst-colors">'+SOLIDS.map(function(c){
+      var on=D.bg.kind==='solid'&&D.bg.value.toLowerCase()===c.toLowerCase();
+      return '<button class="cst-sw'+(on?' on':'')+'" data-solid="'+c+'" style="background:'+c+'"></button>';
+    }).join('')+'<label class="cst-sw pick">'+I.pick+'<input type="color" data-customcolor value="'+(D.bg.kind==='solid'?D.bg.value:'#22382E')+'"></label></div>';
     return html;
   }
+
+  /* FONT \u2014 live list rows, each name set in its own face (YouVersion pattern) */
+  function fontTool(){
+    return '<div class="cst-frows">'+FONTS.map(function(f){
+      var on=D.font===f.key;
+      return '<button class="cst-frow'+(on?' on':'')+'" data-font="'+f.key+'">'
+        +'<span class="fname" style="font-family:'+f.fam.replace(/"/g,'&quot;')+';font-weight:'+f.w+'">'+f.label+'</span>'
+        +'<span class="fck">'+I.check+'</span></button>';
+    }).join('')+'</div>';
+  }
+
+  /* TEXT \u2014 words, reference, live size slider */
+  function textTool(){
+    var html='<textarea class="cst-field" rows="3" data-text placeholder="Your words\u2026">'+esc(D.text)+'</textarea>';
+    if(D.type==='verse'||D.type==='reading'||D.type==='declaration')
+      html+='<input class="cst-field" data-ref placeholder="Reference (optional)" value="'+esc(D.ref)+'">';
+    html+=sliderHTML('size','Text size',0.75,1.3,D.size||1,0.01);
+    return html;
+  }
+
+  /* TONE \u2014 light / dark rows */
+  function toneTool(){
+    return '<div class="cst-frows">'
+      +'<button class="cst-frow'+(D.color==='light'?' on':'')+'" data-color="light"><span class="fname">Light text</span><span class="fck">'+I.check+'</span></button>'
+      +'<button class="cst-frow'+(D.color==='dark'?' on':'')+'" data-color="dark"><span class="fname" style="opacity:.75">Dark text</span><span class="fck">'+I.check+'</span></button></div>';
+  }
+
+  /* FORMAT \u2014 the four platform sizes */
+  function formatTool(){
+    return '<div class="cst-fmtgrid">'+Object.keys(FORMATS).map(function(k){
+      var F=FORMATS[k];
+      return '<button class="cst-fmt'+(D.format===k?' on':'')+'" data-fmt="'+k+'"><span class="fg" style="width:'+F.bw+'px;height:'+F.bh+'px"></span>'+
+        '<span class="fcol"><span class="ft">'+F.label+'</span><span class="fp">'+F.plat+'</span></span></button>';
+    }).join('')+'</div>';
+  }
+
   function sliderHTML(key,label,min,max,val,step){
     return '<div class="cst-slider"><div class="cst-srow"><span>'+label+'</span><span class="cst-sval" data-sval="'+key+'">'+sliderDisp(key,val)+'</span></div>'+
       '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" data-slider="'+key+'"></div>';
   }
-  function sliderDisp(key,val){ return key==='dark'? Math.round(val*100)+'%' : Math.round(val)+'px'; }
-  function loadPhoto(url){
+  function sliderDisp(key,val){ return key==='dark'? Math.round(val*100)+'%' : key==='size'? Math.round(val*100)+'%' : Math.round(val)+'px'; }
+  function loadPhoto(url, meta){
     var img=new Image(); img.crossOrigin='anonymous';
-    img.onload=function(){ D.bg={kind:'photo',img:img,src:url}; D.color='light'; renderControls(); repaintSoft(); };
-    img.onerror=function(){ toast('Couldn’t load that image'); };
+    img.onload=function(){
+      D.bg={kind:'photo',img:img,src:url}; D.color='light';
+      US.attr = meta ? { name:meta.name, link:meta.link } : null;
+      if(meta && meta.track){ try{ fetch(WORKER+'/unsplash/track?d='+encodeURIComponent(meta.track)); }catch(e){} }
+      renderControls(); repaintSoft();
+    };
+    img.onerror=function(){ toast('Couldn\u2019t load that image'); };
     img.src=url;
   }
-  function textTab(){
-    var html='';
-    html+='<textarea class="cst-field" rows="3" data-text placeholder="Your words\u2026">'+esc(D.text)+'</textarea>';
-    if(D.type==='verse'||D.type==='reading'||D.type==='declaration')
-      html+='<input class="cst-field" data-ref placeholder="Reference (optional)" value="'+esc(D.ref)+'" style="margin-bottom:14px">';
-    html+='<div class="cst-lbl">Font</div><div class="cst-fonts">'+FONTS.map(function(f){
-      return '<button class="cst-font'+(D.font===f.key?' on':'')+'" data-font="'+f.key+'"><div class="fs" style="font-family:'+f.fam.replace(/"/g,'&quot;')+';font-weight:'+f.w+'">Abide</div><div class="fl">'+f.label+'</div></button>';
-    }).join('')+'</div>';
-    html+='<div class="cst-lbl" style="margin-top:16px">Text tone</div><div class="cst-seg"><button class="'+(D.color==='light'?'on':'')+'" data-color="light">Light</button><button class="'+(D.color==='dark'?'on':'')+'" data-color="dark">Dark</button></div>';
-    html+='<div class="cst-lbl">Text size</div><div class="cst-seg"><button class="'+(D.size===0.85?'on':'')+'" data-size="0.85">Small</button><button class="'+(D.size===1?'on':'')+'" data-size="1">Medium</button><button class="'+(D.size===1.18?'on':'')+'" data-size="1.18">Large</button></div>';
-    return html;
+  /* ----- Unsplash area: theme chips · grid (curated or search results) · attribution ----- */
+  function paintUsArea(body){
+    var chips=body.querySelector('#usThemes'), grid=body.querySelector('#usGrid'), attr=body.querySelector('#usAttr');
+    if(!chips||!grid) return;
+    chips.innerHTML=THEMES.map(function(t){
+      return '<button class="cst-chip'+(!US.results&&US.theme===t.key?' on':'')+'" data-ustheme="'+t.key+'">'+t.name+'</button>';
+    }).join('');
+    if(US.results==='loading'){
+      grid.innerHTML='<div class="cst-usnote">Searching Unsplash\u2026</div>';
+    } else if(US.results==='error'){
+      grid.innerHTML='<div class="cst-usnote">Search is unavailable right now \u2014 the themed gallery still works.</div>';
+    } else if(US.results){
+      grid.innerHTML=US.results.length?US.results.map(function(r){
+        return '<button class="cst-thumb" data-photo="'+esc(r.full)+'" data-name="'+esc(r.name||'')+'" data-link="'+esc(r.link||'')+'" data-track="'+esc(r.download_location||'')+'"><img src="'+esc(r.thumb)+'" loading="lazy" alt=""></button>';
+      }).join(''):'<div class="cst-usnote">Nothing found for \u201c'+esc(US.q)+'\u201d.</div>';
+    } else {
+      var t=THEMES.filter(function(x){return x.key===US.theme;})[0]||THEMES[0];
+      grid.innerHTML=t.ids.map(function(id){
+        var on=D.bg.kind==='photo' && D.bg.src && D.bg.src.indexOf(id)>-1;
+        return '<button class="cst-thumb'+(on?' on':'')+'" data-photo="'+photoURL(id,true)+'"><img src="'+photoURL(id,false)+'" loading="lazy" alt=""></button>';
+      }).join('');
+    }
+    if(attr){
+      attr.innerHTML = US.attr ? 'Photo by <a href="'+esc(US.attr.link)+'?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">'+esc(US.attr.name)+'</a> on <a href="https://unsplash.com/?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a>' : '';
+      attr.style.display = US.attr ? '' : 'none';
+    }
+    // grid + chips wiring (delegated, containers are stable within the panel)
+    chips.onclick=function(e){ var b=e.target.closest('[data-ustheme]'); if(!b) return; US.theme=b.getAttribute('data-ustheme'); US.results=null; US.q=''; var si=body.querySelector('[data-ussearch]'); if(si) si.value=''; paintUsArea(body); };
+    grid.onclick=function(e){
+      var b=e.target.closest('[data-photo]'); if(!b) return;
+      b.classList.add('loading');
+      var meta = b.getAttribute('data-name') ? { name:b.getAttribute('data-name'), link:b.getAttribute('data-link'), track:b.getAttribute('data-track') } : null;
+      loadPhoto(b.getAttribute('data-photo'), meta);
+    };
+    var si=body.querySelector('[data-ussearch]');
+    if(si && !si._wired){ si._wired=true;
+      si.addEventListener('input', function(){
+        US.q=this.value.trim();
+        clearTimeout(US.timer);
+        if(US.q.length<3){ US.results=null; paintUsArea(body); return; }
+        US.timer=setTimeout(function(){ runUsSearch(body); }, 350);
+      });
+    }
   }
+  function runUsSearch(body){
+    var myReq=++US.req;
+    US.results='loading'; paintUsArea(body);
+    fetch(WORKER+'/unsplash/search?q='+encodeURIComponent(US.q))
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){ if(myReq!==US.req) return; US.results=(j&&j.results)?j.results:'error'; paintUsArea(body); })
+      .catch(function(){ if(myReq===US.req){ US.results='error'; paintUsArea(body); } });
+  }
+
   function wireBody(body){
-    body.querySelectorAll('[data-bgtab]').forEach(function(b){ b.addEventListener('click', function(){ D._bgtab=b.getAttribute('data-bgtab'); renderControls(); }); });
+    body.querySelectorAll('[data-fmt]').forEach(function(b){ b.addEventListener('click', function(){ D.format=b.getAttribute('data-fmt'); renderControls(); fitCanvas(); }); });
     body.querySelectorAll('[data-mood]').forEach(function(b){ b.addEventListener('click', function(){ var m=MOODS[+b.getAttribute('data-mood')]; D.bg={kind:'mood',value:m,seed:0}; D.color=m.text; renderControls(); repaintSoft(); }); });
     body.querySelectorAll('[data-grad]').forEach(function(b){ b.addEventListener('click', function(){ D.bg={kind:'gradient',value:GRADS[+b.getAttribute('data-grad')]}; D.color='light'; renderControls(); repaintSoft(); }); });
     body.querySelectorAll('[data-solid]').forEach(function(b){ b.addEventListener('click', function(){ var c=b.getAttribute('data-solid'); D.bg={kind:'solid',value:c}; D.color = isLight(c)?'dark':'light'; renderControls(); repaintSoft(); }); });
     var cc=body.querySelector('[data-customcolor]'); if(cc) cc.addEventListener('input', function(){ D.bg={kind:'solid',value:cc.value}; D.color=isLight(cc.value)?'dark':'light'; paint(); });
     var gen=body.querySelector('[data-gen]'); if(gen) gen.addEventListener('click', function(){ var m=MOODS[Math.floor(Math.random()*7)]; D.bg={kind:'mood',value:m,seed:Math.floor(Math.random()*360)}; D.color=m.text; repaintSoft(); });
     body.querySelectorAll('[data-upload]').forEach(function(b){ b.addEventListener('click', function(){ scrim.querySelector('#cstFile').click(); }); });
-    body.querySelectorAll('[data-photo]').forEach(function(b){ b.addEventListener('click', function(){ b.classList.add('loading'); loadPhoto(b.getAttribute('data-photo')); }); });
     body.querySelectorAll('[data-slider]').forEach(function(r){ r.addEventListener('input', function(){ var k=r.getAttribute('data-slider'); D[k]=parseFloat(r.value); var dv=body.querySelector('[data-sval="'+k+'"]'); if(dv) dv.textContent=sliderDisp(k,D[k]); paint(); }); });
-    var rm=body.querySelector('[data-rmphoto]'); if(rm) rm.addEventListener('click', function(){ D.bg={kind:'mood',value:MOODS[0],seed:0}; D.color='light'; D._bgtab='library'; renderControls(); repaintSoft(); });
+    var rm=body.querySelector('[data-rmphoto]'); if(rm) rm.addEventListener('click', function(){ D.bg={kind:'mood',value:MOODS[0],seed:0}; D.color='light'; US.attr=null; renderControls(); repaintSoft(); });
     var ta=body.querySelector('[data-text]'); if(ta) ta.addEventListener('input', function(){ D.text=ta.value; paint(); });
     var rf=body.querySelector('[data-ref]'); if(rf) rf.addEventListener('input', function(){ D.ref=rf.value; paint(); });
     body.querySelectorAll('[data-font]').forEach(function(b){ b.addEventListener('click', function(){ D.font=b.getAttribute('data-font'); ensureFonts().then(paint); renderControls(); paint(); }); });
     body.querySelectorAll('[data-color]').forEach(function(b){ b.addEventListener('click', function(){ D.color=b.getAttribute('data-color'); renderControls(); paint(); }); });
-    body.querySelectorAll('[data-size]').forEach(function(b){ b.addEventListener('click', function(){ D.size=parseFloat(b.getAttribute('data-size')); renderControls(); paint(); }); });
   }
   function isLight(hex){ var c=hexToRgb(hex); return (0.299*c[0]+0.587*c[1]+0.114*c[2])>150; }
 
   function onFile(e){
     var file=e.target.files&&e.target.files[0]; if(!file) return;
     var rd=new FileReader();
-    rd.onload=function(){ var img=new Image(); img.onload=function(){ D.bg={kind:'photo',img:img,src:rd.result}; D.color='light'; D._bgtab='photo'; renderControls(); repaintSoft(); }; img.src=rd.result; };
+    rd.onload=function(){ var img=new Image(); img.onload=function(){ D.bg={kind:'photo',img:img,src:rd.result}; D.color='light'; D._tool='image'; renderToolbar(); renderControls(); repaintSoft(); }; img.src=rd.result; };
     rd.readAsDataURL(file); e.target.value='';
   }
 
@@ -520,7 +609,7 @@
       var k=b.getAttribute('data-plat'), pf=b.getAttribute('data-pfmt');
       if(k==='download'){ exportShare('download'); return; }
       if(k==='more'){ exportShare('native'); return; }
-      if(pf && pf!==D.format){ D.format=pf; renderFormats(); fitCanvas(); }
+      if(pf && pf!==D.format){ D.format=pf; renderControls(); fitCanvas(); }
       exportShare('platform', k);
     }); });
   }
@@ -535,7 +624,7 @@
     ensure(); ensureFonts();
     P=payload||{}; D=defaults(P);
     scrim.querySelector('#cstTitle').textContent=titleFor(D.type);
-    renderFormats(); renderControls();
+    renderToolbar(); renderControls();
     scrim.classList.add('open'); void scrim.offsetWidth; scrim.classList.add('cst-on');
     document.addEventListener('keydown', onKey);
     ensureFonts().then(function(){ fitCanvas(); });

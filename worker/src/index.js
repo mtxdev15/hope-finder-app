@@ -276,10 +276,59 @@ async function handleBibleSearch(request, env) {
   }, 200, copyrighted ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, max-age=3600' });
 }
 
+// ── Unsplash (Card Studio image search) ──────────────────────────────────────
+// GET /unsplash/search?q=… — proxies api.unsplash.com/search/photos; the access
+// key lives ONLY here (env.UNSPLASH_ACCESS_KEY). Returns a trimmed result list.
+// GET /unsplash/track?d=… — server-side ping of a photo's download_location,
+// required by Unsplash API guidelines when a photo is actually used on a card.
+async function handleUnsplash(request, env, pathname) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: BIBLE_CORS_HEADERS });
+  }
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'Method Not Allowed' }, 405);
+  }
+  if (!env.UNSPLASH_ACCESS_KEY) {
+    return jsonResponse({ error: 'Image search is not configured yet.' }, 503);
+  }
+  const url = new URL(request.url);
+  if (pathname === '/unsplash/track') {
+    const d = url.searchParams.get('d') || '';
+    if (!/^https:\/\/api\.unsplash\.com\//.test(d)) {
+      return jsonResponse({ error: 'Invalid download location.' }, 400);
+    }
+    await fetch(d, { headers: { Authorization: 'Client-ID ' + env.UNSPLASH_ACCESS_KEY } });
+    return jsonResponse({ ok: true }, 200, { 'Cache-Control': 'no-store' });
+  }
+  const q = (url.searchParams.get('q') || '').trim();
+  if (q.length < 2 || q.length > 60) {
+    return jsonResponse({ error: 'Search needs between 2 and 60 characters.' }, 400);
+  }
+  const apiRes = await fetch(
+    'https://api.unsplash.com/search/photos?query=' + encodeURIComponent(q) + '&per_page=18&content_filter=high',
+    { headers: { Authorization: 'Client-ID ' + env.UNSPLASH_ACCESS_KEY, 'Accept-Version': 'v1' } }
+  );
+  if (!apiRes.ok) {
+    return jsonResponse({ error: 'Image search is unavailable right now.' }, 502);
+  }
+  const data = await apiRes.json();
+  const results = (data.results || []).map((p) => ({
+    thumb: p.urls && p.urls.small,
+    full: (p.urls && p.urls.regular) || (p.urls && p.urls.full),
+    name: p.user && p.user.name,
+    link: p.user && p.user.links && p.user.links.html,
+    download_location: p.links && p.links.download_location,
+  })).filter((r) => r.thumb && r.full);
+  return jsonResponse({ query: q, results }, 200, { 'Cache-Control': 'public, max-age=300' });
+}
+
 export default {
   async fetch(request, env) {
-    // Bible reader routes — additive; the Anthropic proxy below is unchanged.
+    // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
     const pathname = new URL(request.url).pathname;
+    if (pathname === '/unsplash/search' || pathname === '/unsplash/track') {
+      return handleUnsplash(request, env, pathname);
+    }
     if (pathname === '/bible/search') {
       return handleBibleSearch(request, env);
     }

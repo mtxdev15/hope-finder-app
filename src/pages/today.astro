@@ -754,17 +754,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .today .sps-row .go { flex: 0 0 auto; color: var(--muted); display: flex; }
     .today .sps-row .go svg { width: 16px; height: 16px; }
 
-    /* Card Studio sizing (review: studio felt too big). Mobile keeps the design's
-       full sheet; on desktop the canvas is capped and the controls sit in a calm
-       centered column, so format/background/share are visible without scrolling. */
-    @media (min-width: 720px) {
-      .cst-scrim .cst { background: color-mix(in srgb, var(--bgfield) 94%, transparent); backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15); }
-      .cst-scrim .cst-top { max-width: 600px; margin-left: auto; margin-right: auto; width: 100%; }
-      .cst-scrim .cst-stage { padding: 6px 18px 6px; }
-      .cst-scrim .cst-canvas { max-height: 46vh; }
-      .cst-scrim .cst-panel { max-width: 600px; margin-left: auto; margin-right: auto; width: 100%; border-radius: 22px 22px 0 0; }
-    }
-
     /* toast (Results.html) */
     .today .toast { position: fixed; left: 50%; bottom: 110px; transform: translate(-50%, 14px); background: var(--surface); color: var(--text);
       padding: 12px 18px; border-radius: 14px; box-shadow: var(--card-shadow); font-size: 13.5px; display: flex; align-items: center; gap: 9px;
