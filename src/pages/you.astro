@@ -1,288 +1,551 @@
 ---
-// /you — the "You" (account) page. Designed shell of Account-A.html on the v3.2
-// shell. V1 has no accounts, so identity / auth / saved-data / profile features
-// are rendered faithfully but STUBBED "coming soon" (tap -> gentle toast), wired
-// to nothing. The one genuinely-live control is Appearance (theme), which works
-// via the vendored theme.js (auto-wires .themectl). No Worker call, no island.
+// /you — the profile. REDESIGNED on the Airbnb account-profile model (profile
+// rail + confirmed-info card + icon-fact grid with modal editors + interest
+// chips + clean hub cards) wearing the Declare design system, with unseen-grade
+// motion. Everything editable is REAL and device-local (profile-store.js,
+// 'declare-profile-v1'); stats are computed from the actual Vault/highlights.
+// Accounts/sign-in remain honestly "coming soon". "Find a church" is live via
+// Google Maps + Places when PUBLIC_GMAPS_KEY exists (.env, gitignored,
+// referrer-restricted) and degrades gracefully without it.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
-
-// chevron used on every navigable row
-const chevron = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
+const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 ---
 <DeclareLayout
   title="Declare — You"
-  description="Your Declare account and settings."
+  description="Your Declare profile and settings."
   activeTab="you"
 >
   <main class="you">
     <div class="topglow" aria-hidden="true"></div>
     <div class="you-col">
 
-      {/* hero — guest state (no accounts in V1) */}
-      <div class="ahero rise d1">
-        <div class="avwrap">
-          <div class="aavatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+      <div class="ygrid">
+        {/* ───── left rail: profile card + on-this-device card (Airbnb rail) ───── */}
+        <aside class="yrail">
+          <div class="ycard yprofile m-rise">
+            <div class="yav" id="yAvatar"><span id="yAvText" class="serif">✝</span></div>
+            <div class="yname serif" id="yName">Friend</div>
+            <div class="yrole">Guest &middot; sign-in coming soon</div>
+            <div class="ydivider"></div>
+            <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl">day with Declare</span></div>
           </div>
-        </div>
-        <div class="htext">
-          <div class="hname">Guest</div>
-          <div class="hmeta">Sign in &mdash; coming soon</div>
-        </div>
-      </div>
 
-      {/* Profile — V2 stub */}
-      <div class="group m-rise">
-        <div class="glabel">Profile</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
-            <span class="ml"><span class="mt">First name</span><span class="md">How we greet you</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span>
-            <span class="ml"><span class="mt">Country</span><span class="md">For local churches &amp; times</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
-      </div>
+          <div class="ycard yconfirm m-rise">
+            <div class="yc-h">Saved on this device</div>
+            <ul class="yc-list" id="yStats"></ul>
+            <div class="yc-note">Your words, verses and highlights live safely on this device until accounts arrive.</div>
+          </div>
+        </aside>
 
-      {/* Sign-in & security — V2 stub (all auth) */}
-      <div class="group m-rise">
-        <div class="glabel">Sign-in &amp; security</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
-            <span class="ml"><span class="mt">Email</span><span class="md">Not signed in yet</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
-            <span class="ml"><span class="mt">Password</span><span class="md">Set once accounts arrive</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
-      </div>
+        {/* ───── right: About you (icon-fact grid + chips), then the hub ───── */}
+        <section class="ymain">
+          <div class="yhead m-rise">
+            <h1 class="serif">About you</h1>
+            <p>What you share here stays on this device — it simply makes Declare feel like yours.</p>
+          </div>
 
-      {/* Appearance — LIVE (device-local, via theme.js) */}
-      <div class="group m-rise">
-        <div class="glabel">Appearance</div>
-        <div class="mlist appcard">
-          <nav class="themectl" aria-label="Theme">
-            <button data-mode="light">Light</button>
-            <button data-mode="dark">Dark</button>
-            <button data-mode="system">Auto</button>
-          </nav>
-        </div>
-      </div>
+          <div class="yfacts m-rise" id="yFacts"></div>
 
-      {/* Reader — V2 stub (nothing consumes these prefs yet) */}
-      <div class="group m-rise">
-        <div class="glabel">Reader</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-            <span class="ml"><span class="mt">Translation</span><span class="md">Used across every reading</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi serif">Aa</span>
-            <span class="ml"><span class="mt">Text size</span><span class="md">Comfortable reading scale</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
-      </div>
+          <div class="ychips-wrap m-rise">
+            <div class="ylbl">Ask me about</div>
+            <div class="ychips" id="yChips"></div>
+          </div>
 
-      {/* My church — V2 stub */}
-      <div class="group m-rise">
-        <div class="glabel">My church</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg></span>
-            <span class="ml"><span class="mt">Find a church</span><span class="md">Discover a fellowship near you</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
-      </div>
+          <div class="yhead yhead2 m-rise"><h2 class="serif">Your app</h2></div>
+          <div class="yhub m-rise" id="yHub">
+            <div class="yhubcard appearance">
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path></svg></div>
+              <div class="yh-t">Appearance</div>
+              <div class="yh-d">Dark is home. Choose what fits the hour.</div>
+              <nav class="themectl" aria-label="Theme">
+                <button data-mode="light">Light</button>
+                <button data-mode="dark">Dark</button>
+                <button data-mode="system">Auto</button>
+              </nav>
+            </div>
+            <button class="yhubcard" id="hubChurch">
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"></path></svg></div>
+              <div class="yh-t">Find a church</div>
+              <div class="yh-d" id="hubChurchD">Discover a fellowship near you</div>
+            </button>
+            <button class="yhubcard" data-soon>
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></div>
+              <div class="yh-t">Reminders &amp; notifications</div>
+              <div class="yh-d">A daily nudge back to the Word <span class="ybadge">Soon</span></div>
+            </button>
+            <button class="yhubcard" data-soon>
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></div>
+              <div class="yh-t">Sign-in &amp; security</div>
+              <div class="yh-d">Carry your Vault to every device <span class="ybadge">Soon</span></div>
+            </button>
+            <a class="yhubcard" href="mailto:care@declareandbelieve.com">
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
+              <div class="yh-t">Support Declare</div>
+              <div class="yh-d">Help keep it free for all</div>
+            </a>
+            <button class="yhubcard" data-soon>
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></div>
+              <div class="yh-t">Rate Declare</div>
+              <div class="yh-d">Tell us how it has met you <span class="ybadge">Soon</span></div>
+            </button>
+          </div>
 
-      {/* Reminders & Notifications — V2 stub (no scheduler/push backend) */}
-      <div class="group m-rise">
-        <div class="glabel">Reminders</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-            <span class="ml"><span class="mt">Daily reminder</span><span class="md">A gentle nudge back to the Word</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
+          <div class="yver m-fade">DECLARE &middot; VERSION 3.2</div>
+        </section>
       </div>
-
-      <div class="group m-rise">
-        <div class="glabel">Notifications</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-            <span class="ml"><span class="mt">Push notifications</span><span class="md">Alerts on this device</span></span>
-            <span class="mr"><span class="tgl" aria-hidden="true"></span></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span>
-            <span class="ml"><span class="mt">Journey check-ins</span><span class="md">Encouraging nudges to keep going</span></span>
-            <span class="mr"><span class="tgl" aria-hidden="true"></span></span>
-          </button>
-        </div>
-      </div>
-
-      {/* More — keep design's badges; links not built yet, so stub */}
-      <div class="group m-rise">
-        <div class="glabel">More</div>
-        <div class="mlist">
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.8-3.5 2.1-1.5 2.6-.4 6.4 1.1 8.5.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.67 2.7-.67 1.2 0 1.6.67 2.7.65 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.81-2.1-3.2zM14.3 6.3c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .08 1.9-.5 2.5-1.2z"/></svg></span>
-            <span class="ml"><span class="mt">Declare for iPhone</span><span class="md">Get the iOS app &mdash; join the waitlist</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
-            <span class="ml"><span class="mt">Listen &amp; watch</span><span class="md">Podcast, YouTube, declarations</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
-            <span class="ml"><span class="mt">Support Declare</span><span class="md">Help keep it free for all</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-          <button class="mrow" data-soon>
-            <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l2.85 6.06 6.65.83-4.9 4.54 1.27 6.57L12 17.9l-5.87 3.3 1.27-6.57-4.9-4.54 6.65-.83z"/></svg></span>
-            <span class="ml"><span class="mt">Rate Declare</span><span class="md">Tell us how it has met you</span></span>
-            <span class="mr"><span class="badge">Soon</span><span class="mc" set:html={chevron} /></span>
-          </button>
-        </div>
-      </div>
-
-      {/* Actions — V2 stub */}
-      <div class="actions m-rise">
-        <button class="signout" data-soon>Sign in</button>
-      </div>
-      <div class="vno m-fade">DECLARE &middot; VERSION 3.2</div>
-
     </div>
 
-    <div class="acct-toast" id="acctToast" role="status" aria-live="polite"></div>
+    {/* ───── editor modal (Airbnb pattern: title · helper · field · Save) ───── */}
+    <div class="ymodal" id="yModal">
+      <div class="ym-back" id="ymBack"></div>
+      <div class="ym-panel">
+        <button class="ym-x" id="ymX" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <h3 class="serif" id="ymTitle"></h3>
+        <p id="ymSub"></p>
+        <div id="ymBody"></div>
+        <div class="ym-actions"><button class="btn btn-primary" id="ymSave">Save</button></div>
+      </div>
+    </div>
+
+    {/* ───── church finder overlay (Google Maps + Places, lazy) ───── */}
+    <div class="yfinder" id="yFinder">
+      <div class="yf-top">
+        <button class="iconbtn" id="yfClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <div class="yf-h">
+          <div class="ti serif">Find a church</div>
+          <div class="su">Search a city or a church name</div>
+        </div>
+        <span class="iconbtn" style="visibility:hidden"></span>
+      </div>
+      <div class="yf-body">
+        <div class="yf-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="yfInput" placeholder="City, neighborhood, or church&hellip;" autocomplete="off" /></div>
+        <button class="yf-loc" id="yfLoc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>Use my location</button>
+        <div class="yf-map" id="yfMap"></div>
+        <div class="yf-list" id="yfList"></div>
+        <div class="yf-missing" id="yfMissing" hidden>
+          <div class="serif">Almost ready.</div>
+          <p>The church finder needs its Google Maps key. Add <code>PUBLIC_GMAPS_KEY</code> to <code>.env</code> and restart the build &mdash; everything else on this page already works.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ytoast" id="yToast"></div>
   </main>
 
-  <script is:inline>
-    (function () {
-      var toast = document.getElementById('acctToast');
-      var timer = null;
-      function show(msg) {
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.classList.add('show');
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
-      }
-      document.querySelectorAll('[data-soon]').forEach(function (el) {
-        el.addEventListener('click', function () {
-          show('Accounts & saved items are coming in a future update.');
+  <script>
+    import { getProfile, setProfile, daysWith } from '../app/declare/profile-store.js';
+    import { listItems, listCollections } from '../app/declare/vault-store.js';
+
+    const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    let P = getProfile();
+
+    /* ---------- toast ---------- */
+    let _tt;
+    function toast(m) { const t = $('yToast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
+
+    /* ---------- rail: identity + real device stats ---------- */
+    function renderRail() {
+      const name = (P.name || '').trim();
+      $('yName').textContent = name || 'Friend';
+      $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
+      const d = daysWith(P);
+      $('yDays').textContent = d;
+      $('yDaysLbl').textContent = d === 1 ? 'day with Declare' : 'days with Declare';
+      const items = listItems();
+      const words = items.filter((i) => i.type === 'word').length;
+      const verses = items.filter((i) => i.type === 'verse').length;
+      let hls = 0; try { hls = Object.keys(JSON.parse(localStorage.getItem('declare-highlights') || '{}')).length; } catch (e) {}
+      const colls = listCollections().length;
+      const rows = [
+        [words, words === 1 ? 'word received & kept' : 'words received & kept'],
+        [verses, verses === 1 ? 'verse saved from the Word' : 'verses saved from the Word'],
+        [hls, hls === 1 ? 'verse highlighted' : 'verses highlighted'],
+        [colls, colls === 1 ? 'collection' : 'collections'],
+      ];
+      $('yStats').innerHTML = rows.map(([n, l]) => (
+        '<li' + (n ? ' class="has"' : '') + '><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><b>' + n + '</b> ' + l + '</li>'
+      )).join('');
+    }
+
+    /* ---------- About-you fact grid (Airbnb icon rows -> modal editors) ---------- */
+    const IC = {
+      name: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+      church: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg>',
+      verse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>',
+      about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>',
+    };
+    const FACTS = [
+      { key: 'name', label: 'My name', empty: 'How should we greet you?' },
+      { key: 'church', label: 'My church', empty: 'Find your church' },
+      { key: 'verse', label: 'My anchor verse', empty: 'The verse you stand on' },
+      { key: 'about', label: 'About me', empty: 'A line about your walk' },
+    ];
+    function factValue(k) {
+      if (k === 'name') return P.name || '';
+      if (k === 'church') return P.church ? P.church.name : '';
+      if (k === 'verse') return P.favoriteVerse || '';
+      if (k === 'about') return P.about || '';
+      return '';
+    }
+    function renderFacts() {
+      $('yFacts').innerHTML = FACTS.map((f) => {
+        const v = factValue(f.key);
+        return '<button class="yfact" data-fact="' + f.key + '">'
+          + '<span class="fi">' + IC[f.key] + '</span>'
+          + '<span class="fm"><span class="fl">' + f.label + '</span><span class="fv' + (v ? '' : ' empty') + '">' + esc(v || f.empty) + '</span></span>'
+          + '<span class="fa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+      }).join('');
+      $('yFacts').querySelectorAll('[data-fact]').forEach((b) => {
+        b.addEventListener('click', () => {
+          const k = b.dataset.fact;
+          if (k === 'church') { openFinder(); return; }
+          openEditor(k);
         });
       });
-    })();
+    }
+
+    /* ---------- interests ("Ask me about") ---------- */
+    const INTERESTS = ['Worship', 'Prayer', 'Scripture study', 'Serving', 'Family', 'Testimony', 'Fasting', 'Missions', 'Youth', 'Music', 'Small groups', 'Bible journaling'];
+    function renderChips() {
+      const mine = P.interests || [];
+      $('yChips').innerHTML = mine.map((i) => '<span class="ychip on">' + esc(i) + '</span>').join('')
+        + '<button class="ychip add" id="chipAdd">' + (mine.length ? 'Edit' : 'Choose what you love') + ' +</button>';
+      $('chipAdd').addEventListener('click', openInterests);
+    }
+
+    /* ---------- modal editors (Airbnb pattern, house motion) ---------- */
+    let modalKey = null;
+    function openModal() { $('yModal').classList.add('open'); }
+    function closeModal() { $('yModal').classList.remove('open'); modalKey = null; }
+    $('ymBack').addEventListener('click', closeModal);
+    $('ymX').addEventListener('click', closeModal);
+    function openEditor(k) {
+      modalKey = k;
+      const cfg = {
+        name: { t: 'Your name', s: 'Just a first name is perfect — it’s how Declare will greet you.', body: '<input class="ym-field" id="ymInput" maxlength="40" placeholder="e.g. Jeff" value="' + esc(P.name || '') + '">' },
+        verse: { t: 'Your anchor verse', s: 'The verse you keep coming back to.', body: '<input class="ym-field" id="ymInput" maxlength="80" placeholder="e.g. Isaiah 41:10" value="' + esc(P.favoriteVerse || '') + '">' },
+        about: { t: 'About you', s: 'A sentence or two about your walk — it stays on this device.', body: '<textarea class="ym-field" id="ymInput" rows="4" maxlength="280" placeholder="Write something honest…">' + esc(P.about || '') + '</textarea><div class="ym-count"><span id="ymCount">280</span> characters available</div>' },
+      }[k];
+      $('ymTitle').textContent = cfg.t;
+      $('ymSub').textContent = cfg.s;
+      $('ymBody').innerHTML = cfg.body;
+      const inp = $('ymInput');
+      if (k === 'about') {
+        const upd = () => { $('ymCount').textContent = 280 - inp.value.length; };
+        inp.addEventListener('input', upd); upd();
+      }
+      openModal();
+      setTimeout(() => inp.focus(), 80);
+    }
+    function openInterests() {
+      modalKey = 'interests';
+      $('ymTitle').textContent = 'What are you into?';
+      $('ymSub').textContent = 'Pick what you love — people can ask you about it. Up to 6.';
+      const mine = new Set(P.interests || []);
+      $('ymBody').innerHTML = '<div class="ym-chips">' + INTERESTS.map((i) => (
+        '<button class="ychip' + (mine.has(i) ? ' on' : '') + '" data-int="' + esc(i) + '">' + esc(i) + '</button>'
+      )).join('') + '</div><div class="ym-count"><span id="ymCount">' + mine.size + '</span>/6 selected</div>';
+      $('ymBody').querySelectorAll('[data-int]').forEach((c) => {
+        c.addEventListener('click', () => {
+          const on = c.classList.contains('on');
+          const count = $('ymBody').querySelectorAll('.ychip.on').length;
+          if (!on && count >= 6) return;
+          c.classList.toggle('on');
+          $('ymCount').textContent = $('ymBody').querySelectorAll('.ychip.on').length;
+        });
+      });
+      openModal();
+    }
+    $('ymSave').addEventListener('click', () => {
+      if (modalKey === 'name') P = setProfile({ name: $('ymInput').value.trim() });
+      else if (modalKey === 'verse') P = setProfile({ favoriteVerse: $('ymInput').value.trim() });
+      else if (modalKey === 'about') P = setProfile({ about: $('ymInput').value.trim() });
+      else if (modalKey === 'interests') {
+        P = setProfile({ interests: [...$('ymBody').querySelectorAll('.ychip.on')].map((c) => c.dataset.int) });
+      }
+      closeModal();
+      toast('Saved on this device.');
+      renderRail(); renderFacts(); renderChips(); renderChurchHub();
+    });
+
+    /* ---------- Soon stubs ---------- */
+    document.querySelectorAll('[data-soon]').forEach((b) => b.addEventListener('click', () => toast('Coming soon — accounts arrive with V2.')));
+
+    /* ---------- church hub card reflects the saved church ---------- */
+    function renderChurchHub() {
+      $('hubChurchD').innerHTML = P.church
+        ? esc(P.church.name) + ' <span class="ybadge home">Home</span>'
+        : 'Discover a fellowship near you';
+    }
+    $('hubChurch').addEventListener('click', openFinder);
+
+    /* ---------- church finder (Google Maps + Places, lazy) ---------- */
+    let gmapsLoading = null, map = null, places = null, markers = [];
+    const DARK_MAP = [
+      { elementType: 'geometry', stylers: [{ color: '#10201a' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#8fa399' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#0b110d' }] },
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+      { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'on' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1c2d25' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1a22' }] },
+      { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+    ];
+    function loadGmaps() {
+      if (gmapsLoading) return gmapsLoading;
+      gmapsLoading = new Promise((resolve, reject) => {
+        if (window.google && window.google.maps) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&libraries=places&v=weekly';
+        s.async = true; s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return gmapsLoading;
+    }
+    function openFinder() {
+      $('yFinder').classList.add('open');
+      if (!GMAPS_KEY) {
+        $('yfMissing').hidden = false;
+        $('yfMap').style.display = 'none';
+        $('yfLoc').style.display = 'none';
+        document.querySelector('.yf-search').style.display = 'none';
+        return;
+      }
+      loadGmaps().then(initFinder).catch(() => toast('Maps couldn’t load — check the key restrictions.'));
+    }
+    $('yfClose').addEventListener('click', () => $('yFinder').classList.remove('open'));
+    function initFinder() {
+      if (map) return;
+      const center = P.church && P.church.loc ? P.church.loc : { lat: 39.5, lng: -98.35 };
+      map = new google.maps.Map($('yfMap'), {
+        center, zoom: P.church && P.church.loc ? 12 : 4,
+        styles: DARK_MAP, disableDefaultUI: true, zoomControl: true,
+      });
+      places = new google.maps.places.PlacesService(map);
+      const ac = new google.maps.places.Autocomplete($('yfInput'), { fields: ['geometry', 'name', 'formatted_address', 'place_id', 'types'] });
+      ac.addListener('place_changed', () => {
+        const p = ac.getPlace();
+        if (!p || !p.geometry) return;
+        if ((p.types || []).indexOf('church') >= 0 || (p.types || []).indexOf('place_of_worship') >= 0) {
+          renderChurches([{ name: p.name, vicinity: p.formatted_address, place_id: p.place_id, geometry: p.geometry }]);
+          map.setCenter(p.geometry.location); map.setZoom(14);
+        } else {
+          searchNear(p.geometry.location);
+        }
+      });
+      $('yfLoc').addEventListener('click', () => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+          (pos) => searchNear(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude)),
+          () => toast('Location unavailable — search a city instead.')
+        );
+      });
+    }
+    function searchNear(loc) {
+      map.setCenter(loc); map.setZoom(12);
+      $('yfList').innerHTML = '<div class="yf-note">Looking for churches nearby…</div>';
+      places.nearbySearch({ location: loc, radius: 9000, type: 'church' }, (res, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !res || !res.length) {
+          $('yfList').innerHTML = '<div class="yf-note">No churches found here — try a wider search.</div>';
+          return;
+        }
+        renderChurches(res.slice(0, 10));
+      });
+    }
+    function renderChurches(list) {
+      markers.forEach((m) => m.setMap(null)); markers = [];
+      const bounds = new google.maps.LatLngBounds();
+      list.forEach((c) => {
+        if (!c.geometry) return;
+        const mk = new google.maps.Marker({ map, position: c.geometry.location, title: c.name });
+        markers.push(mk); bounds.extend(c.geometry.location);
+      });
+      if (list.length > 1) map.fitBounds(bounds, 48);
+      $('yfList').innerHTML = list.map((c, i) => (
+        '<div class="yf-row" style="animation-delay:' + (i * 40) + 'ms"><div class="yf-m"><div class="yf-n">' + esc(c.name) + '</div><div class="yf-a">' + esc(c.vicinity || c.formatted_address || '') + '</div></div>'
+        + '<button class="yf-set" data-i="' + i + '">Set as my church</button></div>'
+      )).join('');
+      $('yfList').querySelectorAll('.yf-set').forEach((b) => {
+        b.addEventListener('click', () => {
+          const c = list[+b.dataset.i];
+          P = setProfile({ church: { name: c.name, address: c.vicinity || c.formatted_address || '', placeId: c.place_id || '', loc: c.geometry ? { lat: c.geometry.location.lat(), lng: c.geometry.location.lng() } : null } });
+          toast('“' + c.name + '” is your home church.');
+          renderFacts(); renderChurchHub();
+          $('yFinder').classList.remove('open');
+        });
+      });
+    }
+
+    /* ---------- init ---------- */
+    renderRail(); renderFacts(); renderChips(); renderChurchHub();
   </script>
 
-  <style>
-    /* page-local account styles (brought from Account-A.html; the .themectl /
-       .btn / .rise / .topglow styling + tokens come from global declare.css) */
-    .you {
-      position: relative;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: calc(108px + env(safe-area-inset-bottom, 0));
-    }
-    .you-col {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 24px 20px 0;
-    }
+  <style is:global>
+    /* ──────────────────────────────────────────────────────────────────
+       /you — Airbnb-inspired profile on Declare tokens.
+       ────────────────────────────────────────────────────────────────── */
+    .you { position: relative; min-height: 100dvh; }
+    .you .you-col { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 10px 20px 130px; }
+    .you .ygrid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 
-    /* hero */
-    .ahero { padding: 14px 4px 2px; display: flex; align-items: center; gap: 16px; }
-    .avwrap { position: relative; flex: 0 0 auto; }
-    .aavatar {
-      width: 66px; height: 66px; border-radius: 50%;
-      background: linear-gradient(150deg, var(--gold), rgba(216, 184, 95, .5));
-      display: flex; align-items: center; justify-content: center; color: #0c130f;
-      box-shadow: 0 0 0 4px var(--bg), 0 8px 24px -6px rgba(0, 0, 0, .45), 0 0 30px -6px rgba(216, 184, 95, .5);
-    }
-    .aavatar svg { width: 30px; height: 30px; }
-    html[data-theme="light"] .aavatar { color: #FBF6EC; box-shadow: 0 0 0 4px #fff, 0 8px 24px -8px rgba(34, 56, 46, .4), 0 0 26px -6px rgba(201, 168, 76, .5); }
-    .htext { flex: 1; min-width: 0; }
-    .hname { font-family: 'Cormorant Garamond', serif; font-size: 27px; font-weight: 600; color: var(--text); line-height: 1.04; }
-    .hmeta { font-size: 12.5px; color: var(--muted); margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* rail cards */
+    .you .ycard { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--card-shadow); padding: 24px; }
+    .you .yprofile { text-align: center; }
+    .you .yav { width: 96px; height: 96px; margin: 4px auto 14px; border-radius: 50%; background: radial-gradient(120% 120% at 30% 20%, #2b463a, #16241c);
+      border: 2px solid var(--gold); box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 12%, transparent), 0 18px 40px -16px rgba(0, 0, 0, .6);
+      display: flex; align-items: center; justify-content: center; }
+    .you .yav span { font-size: 40px; color: var(--goldd); font-weight: 600; }
+    .you .yname { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1.1; }
+    .you .yrole { font-size: 12px; color: var(--muted); margin-top: 5px; }
+    .you .ydivider { height: 1px; background: var(--line); margin: 18px 0 14px; }
+    .you .ystat b { display: block; font-family: 'Cormorant Garamond', serif; font-size: 30px; color: var(--text); line-height: 1; }
+    .you .ystat span { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
 
-    /* groups + rows */
-    .group { margin-top: 26px; }
-    .glabel { font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin: 0 4px 9px; }
-    .mlist { background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); overflow: hidden; }
-    .mrow {
-      display: flex; align-items: center; gap: 13px; padding: 14px 15px; cursor: pointer;
-      border: 0; background: none; width: 100%; text-align: left; font-family: inherit;
-      border-top: 1px solid var(--line);
-      transition: background .22s ease, padding-left .26s cubic-bezier(.2, .7, .2, 1);
-    }
-    .mrow:first-child { border-top: 0; }
-    @media (hover: hover) { .mrow:hover { background: var(--field); padding-left: 19px; } }
-    .mrow:active { background: var(--field); }
-    .mrow .mi { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); transition: transform .26s cubic-bezier(.2, .7, .2, 1); }
-    @media (hover: hover) { .mrow:hover .mi { transform: scale(1.08); } }
-    .mrow .mi svg { width: 17px; height: 17px; }
-    .mrow .mi.serif { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; }
-    .mrow .ml { flex: 1; min-width: 0; }
-    .mrow .mt { display: block; font-size: 14.5px; font-weight: 500; color: var(--text); }
-    .mrow .md { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mrow .mr { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
-    .mrow .badge { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); border: 1px solid var(--line2); padding: 3px 8px; border-radius: 999px; }
-    .mrow .mc { flex: 0 0 auto; color: var(--muted); display: flex; transition: transform .26s cubic-bezier(.2, .7, .2, 1), color .2s ease; }
-    @media (hover: hover) { .mrow:hover .mc { transform: translateX(3px); color: var(--goldd); } }
-    .mrow .mc svg { width: 16px; height: 16px; }
+    .you .yc-h { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+    .you .yc-list { list-style: none; margin: 0; padding: 0; }
+    .you .yc-list li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 7px 0; }
+    .you .yc-list li b { color: var(--text); font-weight: 600; min-width: 18px; text-align: right; }
+    .you .yc-list .ck { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--line2); flex: 0 0 auto; }
+    .you .yc-list li.has .ck { color: var(--goldd); }
+    .you .yc-list .ck svg { width: 15px; height: 15px; }
+    .you .yc-note { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 
-    /* toggle (rendered static / non-functional in the V1 shell) */
-    .tgl { position: relative; width: 46px; height: 28px; border-radius: 999px; background: var(--line2); border: 0; flex: 0 0 auto; }
-    .tgl::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+    /* main column */
+    .you .yhead h1 { font-size: 32px; font-weight: 600; color: var(--text); }
+    .you .yhead h2 { font-size: 24px; font-weight: 600; color: var(--text); }
+    .you .yhead p { font-size: 13.5px; color: var(--muted); margin-top: 7px; line-height: 1.55; max-width: 52ch; }
+    .you .yhead2 { margin-top: 34px; }
 
-    /* appearance segmented control: override declare.css's fixed floating .themectl */
-    .appcard { padding: 6px; }
-    .appcard .themectl {
-      position: static; inset: auto; z-index: auto; display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 4px; width: 100%; padding: 0; border-radius: 12px; background: transparent; border: 0;
-      backdrop-filter: none; -webkit-backdrop-filter: none;
-    }
-    .appcard .themectl button { font-size: 13px; font-weight: 500; padding: 12px 4px; border-radius: 10px; color: var(--muted); letter-spacing: 0; }
-    .appcard .themectl button.on { background: rgba(216, 184, 95, .16); color: var(--text); box-shadow: none; }
+    /* fact grid (Airbnb two-column icon rows) */
+    .you .yfacts { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 18px; }
+    .you .yfact { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line);
+      padding: 15px 4px; cursor: pointer; font-family: inherit; transition: padding-left .2s ease, background .2s ease; border-radius: 10px; }
+    @media (hover: hover) { .you .yfact:hover { padding-left: 12px; background: color-mix(in srgb, var(--text) 3%, transparent); } }
+    .you .yfact .fi { flex: 0 0 auto; width: 22px; display: flex; color: var(--goldd); }
+    .you .yfact .fi svg { width: 19px; height: 19px; }
+    .you .yfact .fm { flex: 1; min-width: 0; }
+    .you .yfact .fl { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .you .yfact .fv { display: block; font-size: 15.5px; color: var(--text); margin-top: 3px; }
+    .you .yfact .fv.empty { color: var(--goldd); }
+    .you .yfact .fa { flex: 0 0 auto; color: var(--muted); display: flex; }
+    .you .yfact .fa svg { width: 16px; height: 16px; }
 
-    /* actions */
-    .actions { margin-top: 30px; }
-    .signout {
-      width: 100%; display: block; text-align: center; border: 1px solid var(--line2);
-      background: transparent; color: var(--text); border-radius: 14px; padding: 15px;
-      font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
-    }
-    .vno { text-align: center; font-size: 10px; letter-spacing: .14em; color: var(--muted); margin-top: 22px; opacity: .7; }
+    /* interest chips */
+    .you .ychips-wrap { margin-top: 26px; }
+    .you .ylbl { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--goldd); font-weight: 600; margin-bottom: 12px; }
+    .you .ychips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .you .ychip { font-size: 13px; padding: 9px 15px; border-radius: 999px; border: 1px solid var(--line2); color: var(--text2); background: transparent; font-family: inherit; }
+    .you .ychip.on { background: rgba(216, 184, 95, .14); border-color: rgba(216, 184, 95, .4); color: var(--text); }
+    .you .ychip.add { color: var(--goldd); border-style: dashed; cursor: pointer; transition: .18s; }
+    .you .ychip.add:hover { background: color-mix(in srgb, var(--gold) 8%, transparent); }
 
-    /* coming-soon toast */
-    .acct-toast {
-      position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0)); transform: translate(-50%, 16px);
-      z-index: 95; opacity: 0; pointer-events: none;
-      background: var(--surface); color: var(--text); border: 1px solid var(--line2);
-      font-size: 13.5px; font-weight: 500; padding: 12px 18px; border-radius: 13px;
-      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, .5);
-      transition: opacity .25s, transform .25s; max-width: 82%; text-align: center;
+    /* hub cards (Airbnb account grid) */
+    .you .yhub { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 18px; }
+    .you .yhubcard { display: block; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--card-shadow);
+      padding: 18px; cursor: pointer; font-family: inherit; text-decoration: none; transition: transform .3s cubic-bezier(.22, 1, .36, 1), border-color .25s ease, box-shadow .3s ease; }
+    @media (hover: hover) { .you .yhubcard:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--gold) 32%, var(--line)); box-shadow: 0 24px 50px -22px rgba(0, 0, 0, .6); } }
+    .you .yh-ic { width: 38px; height: 38px; border-radius: 12px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); margin-bottom: 12px; }
+    .you .yh-ic svg { width: 19px; height: 19px; }
+    .you .yh-t { font-size: 15px; font-weight: 600; color: var(--text); }
+    .you .yh-d { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .you .ybadge { display: inline-block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--goldd);
+      border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: 1px; }
+    .you .ybadge.home { background: rgba(216, 184, 95, .14); }
+    .you .appearance .themectl { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; margin-top: 14px;
+      padding: 5px; border-radius: 14px; background: var(--field); border: 1px solid var(--line2); backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .you .appearance .themectl button { font-size: 12.5px; padding: 10px 6px; border-radius: 10px; color: var(--text2); }
+    .you .appearance .themectl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+
+    .you .yver { text-align: center; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 40px; }
+
+    /* ===== editor modal (house pattern) ===== */
+    .you .ymodal { position: fixed; inset: 0; z-index: 70; display: none; }
+    .you .ymodal.open { display: block; }
+    .you .ym-back { position: absolute; inset: 0; background: rgba(6, 11, 8, .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .you .ym-panel { position: absolute; left: 0; right: 0; bottom: 0; background: var(--screen); border-radius: 24px 24px 0 0; border-top: 1px solid var(--line2);
+      padding: 24px 22px max(26px, env(safe-area-inset-bottom)); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); }
+    @media (prefers-reduced-motion: no-preference) { .you .ymodal.open .ym-panel { animation: ymIn .42s cubic-bezier(.16, 1, .3, 1) both; } }
+    @keyframes ymIn { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: none; } }
+    .you .ym-x { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .you .ym-x svg { width: 15px; height: 15px; }
+    .you .ym-panel h3 { font-size: 24px; font-weight: 600; color: var(--text); padding-right: 40px; }
+    .you .ym-panel p { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    .you .ym-field { width: 100%; margin-top: 16px; font-family: inherit; font-size: 16px; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 13px; padding: 14px 15px; resize: none; }
+    .you .ym-field:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .you .ym-count { text-align: right; font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .you .ym-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .you .ym-chips .ychip { cursor: pointer; transition: .16s; }
+    .you .ym-actions { margin-top: 18px; }
+    .you .ym-actions .btn { width: 100%; }
+
+    /* ===== church finder overlay ===== */
+    .you .yfinder { position: fixed; inset: 0; z-index: 60; background: var(--bgfield); display: none; flex-direction: column; }
+    .you .yfinder.open { display: flex; }
+    .you .yf-top { display: flex; align-items: center; gap: 12px; padding: 14px 16px 8px; }
+    .you .yf-top .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .you .yf-top .iconbtn svg { width: 20px; height: 20px; }
+    .you .yf-h { flex: 1; text-align: center; }
+    .you .yf-h .ti { font-size: 22px; font-weight: 600; color: var(--text); }
+    .you .yf-h .su { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .you .yf-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 18px 30px; max-width: 760px; margin: 0 auto; width: 100%; scrollbar-width: none; }
+    .you .yf-body::-webkit-scrollbar { display: none; }
+    .you .yf-search { display: flex; align-items: center; gap: 11px; padding: 14px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); }
+    .you .yf-search svg { flex: 0 0 auto; width: 17px; height: 17px; color: var(--goldd); }
+    .you .yf-search input { flex: 1; border: 0; background: transparent; outline: none; font-family: inherit; font-size: 14.5px; color: var(--text); }
+    .you .yf-search input::placeholder { color: var(--muted); }
+    .you .yf-loc { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--goldd);
+      background: none; border: 0; cursor: pointer; font-family: inherit; padding: 6px 2px; }
+    .you .yf-loc svg { width: 15px; height: 15px; }
+    .you .yf-map { height: 260px; border-radius: 18px; margin-top: 12px; background: var(--field); box-shadow: var(--card-shadow); overflow: hidden; }
+    .you .yf-list { margin-top: 14px; }
+    .you .yf-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px;
+      box-shadow: var(--card-shadow); margin-bottom: 10px; opacity: 0; animation: ymIn .5s cubic-bezier(.16, 1, .3, 1) forwards; }
+    .you .yf-n { font-size: 15px; font-weight: 600; color: var(--text); }
+    .you .yf-a { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .you .yf-m { flex: 1; min-width: 0; }
+    .you .yf-set { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--goldd); background: rgba(216, 184, 95, .12);
+      border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent); border-radius: 999px; padding: 9px 14px; cursor: pointer; font-family: inherit; transition: .18s; }
+    .you .yf-set:hover { background: rgba(216, 184, 95, .2); }
+    .you .yf-note { padding: 16px 4px; color: var(--muted); font-size: 13px; }
+    .you .yf-missing { text-align: center; padding: 60px 24px; }
+    .you .yf-missing .serif { font-size: 24px; color: var(--text); }
+    .you .yf-missing p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 10px; }
+    .you .yf-missing code { color: var(--goldd); background: var(--field); padding: 2px 7px; border-radius: 6px; font-size: 12px; }
+    /* tame Google's autocomplete dropdown into the brand */
+    .pac-container { background: var(--surface); border: 1px solid var(--line2); border-radius: 14px; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .7); font-family: 'DM Sans', sans-serif; margin-top: 6px; }
+    .pac-item { border-top: 1px solid var(--line); padding: 10px 14px; color: var(--text2); font-size: 13px; cursor: pointer; }
+    .pac-item:hover, .pac-item-selected { background: color-mix(in srgb, var(--gold) 8%, transparent); }
+    .pac-item-query { color: var(--text); font-size: 14px; }
+    .pac-icon { display: none; }
+
+    /* toast */
+    .you .ytoast { position: fixed; left: 50%; bottom: 110px; transform: translate(-50%, 14px); z-index: 80; background: var(--surface); border: 1px solid var(--line2);
+      color: var(--text); font-size: 13px; padding: 11px 18px; border-radius: 100px; box-shadow: var(--card-shadow); opacity: 0; visibility: hidden;
+      transition: opacity .3s ease, transform .3s ease, visibility .3s; white-space: nowrap; }
+    .you .ytoast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+    /* ===== DESKTOP: the Airbnb two-zone layout ===== */
+    @media (min-width: 860px) {
+      .you .you-col { padding-top: 96px; }
+      .you .ygrid { grid-template-columns: 320px 1fr; gap: 34px; align-items: start; }
+      .you .yrail { position: sticky; top: 90px; display: flex; flex-direction: column; gap: 16px; }
+      .you .yfacts { grid-template-columns: 1fr 1fr; column-gap: 28px; }
+      .you .yhub { grid-template-columns: 1fr 1fr; }
+      .you .yfinder { top: 60px; z-index: 20; }
+      .you .yf-map { height: 320px; }
+      .you .ytoast { bottom: 50px; }
     }
-    .acct-toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (min-width: 720px) {
+      /* editor modal -> centered (house pattern) */
+      .you .ym-panel { left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%); width: min(480px, 92%);
+        border-radius: 26px; border: 1px solid var(--line2); box-shadow: 0 50px 130px -40px rgba(0, 0, 0, .8); }
+    }
+    @media (min-width: 720px) and (prefers-reduced-motion: no-preference) {
+      .you .ymodal.open .ym-panel { animation: ymInC .42s cubic-bezier(.16, 1, .3, 1) both; }
+    }
+    @keyframes ymInC { from { opacity: 0; transform: translate(-50%, -48%) scale(.965); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
   </style>
 </DeclareLayout>

@@ -23,7 +23,7 @@
       b.classList.toggle('on', b.dataset.mode === mode);
     });
   }
-  var mode = localStorage.getItem(STORE) || 'system';
+  var mode = localStorage.getItem(STORE) || 'dark';
   apply(mode);
 
   window.DeclareTheme = {
