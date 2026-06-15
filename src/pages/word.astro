@@ -218,6 +218,9 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
   <script>
     import { saveItem, removeItem, isSaved } from '../app/declare/vault-store.js';
+    import { initAuth } from '../app/declare/auth-store.js';
+    import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    initAuth(); // resolve any saved session before the user reaches a gate
 
     const WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
     const $ = (id) => document.getElementById(id);
@@ -747,6 +750,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     $('vbClose').addEventListener('click', closeVbar);
     vbHl.addEventListener('click', () => {
       if (!selEl) return;
+      if (!ensureSignedIn('Create a free account to keep your highlights.')) return;
       const o = getHL(), k = hlKey(selN);
       if (o[k]) { delete o[k]; toast('Highlight removed'); } else { o[k] = 1; toast('Verse highlighted'); }
       try { localStorage.setItem('declare-highlights', JSON.stringify(o)); } catch (e) {}
@@ -754,6 +758,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     });
     vbSave.addEventListener('click', () => {
       if (!selEl) return;
+      if (!ensureSignedIn('Create a free account to save this verse to your Vault.')) return;
       const id = saveId();
       if (isSaved(id)) { removeItem(id); toast('Removed from Vault.'); }
       else {

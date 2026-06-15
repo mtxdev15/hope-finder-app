@@ -1,44 +1,1484 @@
 ---
-// /journey — placeholder until the Journey chapter ships. The tab bar and the
-// results "Start a 5-Day Journey" card both lead here, so this page exists to
-// keep every button honest (no 404s). Visuals use the design system; copy is the
-// design's own Journey language ("Be transplanted", the Vine, five days).
-// Replaced wholesale by the real Journey build (design: Journey.html).
+// v3.2 /journey — rebuilt from design-source-v3.2/declare/Journey.html.
+// The Vine (John 15:5): one active 5-day journey out of a named struggle into
+// a named identity. Surface is the design file verbatim; machinery injected:
+// vault-store saves, the Worker-backed JourneyEngine (authored bank fallback),
+// device-local pacing lock + active-journey persistence, DeclareShare stack.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
 ---
 <DeclareLayout
   title="Declare — Journey"
-  description="Five days with one truth — rooted until it grows real. Coming soon."
+  description="Be transplanted from the Tree of Knowledge into the Tree of Life — rooted by streams of water, bearing fruit."
   activeTab="journey"
 >
-  <main class="journeyp">
+  <main class="journey">
     <div class="topglow" aria-hidden="true"></div>
+
     <div class="jin">
-      <div class="jtag rise d1">Be transplanted</div>
-      <h1 class="rise d2">The Journey is<br />being prepared.</h1>
-      <p class="jlead rise d3">Five days with one truth &mdash; a verse, a declaration, and a prayer each morning &mdash; until what God spoke over you takes root and grows real.</p>
-      <div class="jverse rise d4">&ldquo;Blessed is the man who trusts in the Lord&hellip; he shall be like a tree planted by the waters.&rdquo;</div>
-      <div class="jref rise d4">Jeremiah 17:7&ndash;8</div>
-      <a class="btn btn-primary rise d5" href="/today">Receive a word for today
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-      </a>
-      <div class="jnote rise d6">This part of Declare is still being built.</div>
+      <div class="jhead rise d1">
+        <h1>Your Journey</h1>
+        <div class="sub">Who are you becoming?</div>
+      </div>
+
+      <div class="scroll" id="homeScroll">
+        <!-- ===== ZERO STATE — no active journey (first-time / returning) ===== -->
+        <section class="zerostate rise d2" id="zeroState" style="display:none">
+          <div class="zs-rooted" id="zsRooted" style="display:none">
+            <span class="zs-rooted-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg></span>
+            <span>You&rsquo;ve rooted <b id="zsRootedN">2 journeys</b>. Faithfulness is the win.</span>
+          </div>
+          <p class="zs-lead" id="zsLead"></p>
+          <div class="zs-h">Choose your transformation</div>
+          <div class="zs-list" id="zsList"></div>
+          <button class="seeall zs-seeall" id="zsSeeAll">See all journeys <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </section>
+
+        <section class="jcard rise d2" id="activeCard" aria-label="Active journey">
+          <div class="jc-top">
+            <div>
+              <div class="ey">Active Journey</div>
+              <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="to-row"><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></span></div>
+              <div class="jc-habit" id="habitW"></div>
+            </div>
+            <span class="daypill" id="dayPill">Day 1 / 5</span>
+          </div>
+
+          <div class="vinewrap">
+            <div class="tree-mount" id="vineMount"></div>
+          </div>
+
+          <div class="jc-foot">
+            <div class="dots" id="dayDots"></div>
+            <div class="remain" id="remainTxt">Just planted</div>
+          </div>
+
+          <div class="today">
+            <div class="tt" id="todayTitle"></div>
+            <div class="tref" id="todayRef"></div>
+            <div class="focus" id="focusLine"></div>
+            <div class="gen-tag"><span class="gd"></span>Personalizing your path</div>
+          </div>
+
+          <div class="jc-actions">
+            <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
+            <button class="btn btn-ghost btn-view" id="viewTreeBtn">View Vine</button>
+          </div>
+
+          <div class="lock-note" id="lockNote">
+            <div class="ln-top">
+              <span class="ln-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <div>
+                <div class="ln-t" id="lnTitle">Day 2 opens tomorrow</div>
+                <div class="ln-sub" id="lnSub">Opens in 8h</div>
+              </div>
+            </div>
+            <div class="ln-row">
+              <span class="ln-rem" id="lnRem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span id="lnRemTxt">No reminder set</span></span>
+              <button class="ln-edit" id="lnEdit">Set a reminder</button>
+            </div>
+            <div class="dc-time-custom" id="lnEditBox" style="display:none; margin-top:13px;">
+              <input type="time" id="lnTimeInput" value="07:00" />
+              <button class="btn btn-primary" id="lnTimeSave" style="flex:1; padding:9px;">Save reminder</button>
+            </div>
+            <button class="ln-preview" id="lnPreview">Preview tomorrow &rarr;</button>
+          </div>
+        </section>
+
+        <!-- Fruit log — a quiet record of grace -->
+        <section class="fruitlog rise d3" id="fruitLog" style="display:none">
+          <div class="fl-h">Fruit so far</div>
+          <div class="fl-list" id="fruitList"></div>
+        </section>
+
+        <div class="returnline rise d3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+          <span>You&rsquo;ve returned <b id="returnDays">1 day</b>. Faithfulness is the win.</span>
+        </div>
+
+        <button class="seeall" id="seeAll">Past journeys <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+
+        <section class="allj rise d4" id="alljSection" style="display:none">
+          <div class="h"><span class="t">Past journeys</span><span class="c"><span id="doneCount">0</span> rooted</span></div>
+          <div class="jgrid" id="jgrid"></div>
+        </section>
+      </div>
+
+      <!-- ===== DAY FLOW ===== -->
+      <div class="dayflow" id="dayflow" aria-hidden="true">
+        <div class="df-top">
+          <button class="df-back" id="dfBack" aria-label="Back to journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <div class="df-tt">
+            <div class="ey" id="dfEy"></div>
+            <div class="nm" id="dfNm"></div>
+          </div>
+          <div class="df-dots" id="dfDots"></div>
+        </div>
+        <div class="df-scroll" id="dfScroll"><!-- blocks injected --></div>
+        <div class="df-foot" id="dfFoot">
+          <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Declare it aloud to finish the day</span></div>
+          <button class="btn btn-primary" id="dfComplete" disabled>Complete Day 1</button>
+        </div>
+      </div>
+
+      <!-- ===== VINE VIEWER ===== -->
+      <div class="ov viewer" id="viewer" aria-hidden="true">
+        <div class="ov-glow"></div>
+        <button class="close" id="viewerClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="ov-in">
+          <div class="vlabels"><span class="vl">The Vine &middot; John 15:5</span></div>
+          <div class="viewer-tree" id="viewerTree"></div>
+          <p class="alt" id="viewerAlt"></p>
+        </div>
+      </div>
+
+      <!-- ===== DAY COMPLETE ===== -->
+      <div class="ov" id="dayComplete" aria-hidden="true">
+        <div class="ov-glow"></div>
+        <div class="ov-in">
+          <div class="dc-tree" id="dcTree"></div>
+          <h2 class="dc-aff" id="dcAff"></h2>
+          <p class="dc-sub" id="dcSub"></p>
+          <div class="dc-next" id="dcNext">
+            <div class="dc-next-t">Day <span id="dcNextDay">2</span> opens tomorrow</div>
+            <div class="dc-next-s">Let today&rsquo;s truth take root overnight. Freedom grows one day at a time, not all at once.</div>
+          </div>
+          <div class="dc-remind" id="dcRemind">
+            <button class="dc-remind-toggle" id="dcRemindToggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+              <span class="lbl">Remind me tomorrow</span>
+              <span class="dc-remind-state" id="dcRemindState"></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="dc-remind-body" id="dcRemindBody">
+              <div class="dc-times" id="dcTimes">
+                <button data-t="07:00" class="on">7:00 AM</button>
+                <button data-t="12:00">12:00 PM</button>
+                <button data-t="20:00">8:00 PM</button>
+              </div>
+              <div class="dc-time-custom">
+                <label for="dcTimeInput">Or pick a time</label>
+                <input type="time" id="dcTimeInput" value="07:00" />
+              </div>
+              <button class="btn btn-primary dc-remind-set" id="dcRemindSet">Set reminder</button>
+            </div>
+          </div>
+          <div class="dc-actions">
+            <button class="btn btn-primary" id="dcDone">Done for today</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== JOURNEY COMPLETE ===== -->
+      <div class="ov" id="journeyComplete" aria-hidden="true">
+        <div class="ov-glow"></div>
+        <div class="ov-in">
+          <div class="jc-mark" id="jcTree"></div>
+          <div class="jc-reveal">
+            <span class="jc-from" id="jcFrom"></span>
+            <span class="jc-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+            <span class="jc-to" id="jcTo"></span>
+          </div>
+          <p class="jc-bene" id="jcBene"></p>
+
+          <div class="sharecard" id="shareCard">
+            <div class="sc-wm"><span class="d"></span><span>Declare &amp; Believe</span></div>
+            <div class="sc-body">
+              <div class="sc-tree" id="scTree"></div>
+              <div class="sc-shift" id="scShift"></div>
+              <div class="sc-dec" id="scDec"></div>
+            </div>
+            <div class="sc-ref" id="scRef"></div>
+          </div>
+
+          <div class="jc-actions2">
+            <button class="btn btn-share" id="jcShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7 8l5-5 5 5"/></svg>Share this declaration</button>
+            <button class="btn btn-primary" id="jcNew">Begin a new journey</button>
+            <button class="btn btn-ghost" id="jcSave">Save to Vault</button>
+          </div>
+
+          <div class="dr-jprompt" data-dr-prompt data-dr-source="journey-complete">
+            <div class="jp-h">How has Declare met you?</div>
+            <div class="jp-s">Your testimony helps someone else begin.</div>
+            <div data-dr-stars></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+
+      <!-- sheets -->
+      <div class="sheet" id="menuSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <div class="menu-list">
+          <button id="mSaved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg>Save this journey&rsquo;s verses to Vault</button>
+          <button id="mSwitch" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 19v-5h5"/></svg>Choose a different struggle</button>
+        </div>
+      </div>
+      <div class="sheet" id="resetSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <h3>Begin a different journey?</h3>
+        <p>You&rsquo;re partway through <b id="resetShift"></b> Only one journey grows at a time. Starting a new one sets this vine aside &mdash; your progress is kept, and you can return to it whenever you&rsquo;re ready.</p>
+        <div class="sactions">
+          <button class="btn btn-primary" id="resetGo">Choose a new struggle</button>
+          <button class="btn btn-ghost" id="resetKeep">Stay with this one</button>
+        </div>
+      </div>
+      <!-- choose-struggle sheet -->
+      <div class="sheet" id="chooseSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <h3>What are you ready to lay down?</h3>
+        <p>Name the false identity &mdash; the weight you&rsquo;ve been holding on to. We&rsquo;ll plant a fresh vine and walk it out with you for five days.</p>
+        <div class="menu-list" id="chooseList"></div>
+      </div>
+
+      <!-- share fallback sheet -->
+      <div class="sheet" id="shareSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <h3>Share your declaration</h3>
+        <p>Send it to someone who needs it, or keep it where you&rsquo;ll see it.</p>
+        <textarea id="shareText" class="share-text" readonly></textarea>
+        <div class="sactions">
+          <button class="btn btn-primary" id="shareCopy">Copy declaration</button>
+          <button class="btn btn-ghost" id="shareClose">Done</button>
+        </div>
+      </div>
+
+      <!-- care gate (sensitive journeys) -->
+      <div class="sheet care-sheet" id="careSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <div class="care-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg></div>
+        <h3 id="careTitle">Before we begin</h3>
+        <p id="careBody"></p>
+        <div class="sactions">
+          <a class="btn btn-ghost care-talk" id="careTalk" href="/crisis">Talk to someone now</a>
+          <button class="btn btn-primary" id="careBegin">I&rsquo;m ready &mdash; begin gently</button>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
     </div>
   </main>
 
+  <link rel="stylesheet" href="/declare/rate.css" />
+  <script is:inline src="/declare/the-vine.js"></script>
+  <script is:inline src="/declare/journey-data.js"></script>
+  <script is:inline src="/declare/journey-engine.js"></script>
+  <script is:inline src="/declare/breath-ring.js"></script>
+  <script is:inline src="/declare/rate.js"></script>
+
+  <script>
+    /* /journey runtime — the design's flow with V1 machinery injected.
+       Persistence is device-local: 'db_active_journey' (which vine is growing),
+       'db_journey_lock' (one day per calendar day + reminder time),
+       'db_journeys_done' (rooted journeys — keeps the grid honest). */
+    import { saveItem } from '../app/declare/vault-store.js';
+    import { initAuth } from '../app/declare/auth-store.js';
+    import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    initAuth(); // resolve any saved session before the user reaches a gate
+
+    const $ = (id) => document.getElementById(id);
+    const TOTAL = window.JourneyData.TOTAL;
+    const CATALOG = window.JourneyData.CATALOG;
+    const ICONS = window.JourneyData.ICONS;
+    const JOURNEY_CONTENT = window.JourneyData.CONTENT;
+
+    /* ---- mast: the design's journey-options (⋯) button, injected into the
+       shared layout mast so the page surface matches Journey.html ---- */
+    (function () {
+      const mast = document.querySelector('body > .mast');
+      if (!mast || mast.querySelector('.mright')) return;
+      const right = document.createElement('div');
+      right.className = 'mright';
+      const btn = document.createElement('button');
+      btn.className = 'iconbtn'; btn.id = 'overflowBtn'; btn.setAttribute('aria-label', 'Journey options');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+      right.appendChild(btn);
+      const av = mast.querySelector('.avatar');
+      if (av) right.appendChild(av);
+      mast.appendChild(right);
+    })();
+
+    // ---- runtime state ----
+    let active = CATALOG[0];
+    let PLAN;
+    const state = { day: 1, returned: 1 };
+    // Curated first-run shortlist — broad, resonant, none crisis-gated.
+    const CURATED = ['anxiety', 'shame', 'loneliness', 'doubt', 'burnout'];
+
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    // A fresh journey instance: clone the authored bank (always-valid fallback),
+    // give it a new seed + theme arc, and clear the AI-upgrade cache. The Worker
+    // then rewrites each day on demand so no two journeys are ever the same.
+    function startPlan() {
+      active._seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+      active._themes = window.JourneyEngine ? window.JourneyEngine.arc(active.id, active._seed) : null;
+      active._ai = {}; active._inflight = {};
+      const bespoke = JOURNEY_CONTENT[active.id];
+      const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
+        ? window.JourneyEngine.fallbackPlan({ struggleId: active.id, fromLabel: active.from, toLabel: active.to, seed: active._seed })
+        : null;
+      PLAN = clone(bespoke || composed || JOURNEY_CONTENT.shame);
+    }
+    // Ensure day n has freshly generated content (else keep the fallback already
+    // in PLAN). One attempt per day per journey — a failed/slow Worker call keeps
+    // the authored day and never retries in a loop.
+    function ensureDay(n) {
+      const idx = n - 1;
+      if (!PLAN || !PLAN[idx]) return Promise.resolve(null);
+      if (active._ai[idx]) return Promise.resolve(PLAN[idx]);
+      if (active._inflight[idx]) return active._inflight[idx];
+      if (!window.JourneyEngine) { return Promise.resolve(PLAN[idx]); }
+      const theme = (active._themes && active._themes[idx]) || '';
+      const p = window.JourneyEngine.generateDay({ struggleId: active.id, dayIndex: idx, theme: theme,
+        seed: (active._seed + idx * 101) >>> 0, fromLabel: active.from, toLabel: active.to })
+        .then(function (obj) { if (obj) { PLAN[idx] = obj; } active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; })
+        .catch(function () { active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; });
+      active._inflight[idx] = p; return p;
+    }
+
+    function completed() { return state.day - 1; }
+
+    // ---- pacing lock: one day per calendar day, persisted ----
+    function todayStr() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+    function loadLock() { try { return JSON.parse(localStorage.getItem('db_journey_lock') || '{}'); } catch (e) { return {}; } }
+    function saveLock(m) { try { localStorage.setItem('db_journey_lock', JSON.stringify(m)); } catch (e) {} }
+    function lockFor() { return loadLock()[active.id] || null; }
+    function setLock(time) { const m = loadLock(); const prev = m[active.id] || {}; m[active.id] = { date: todayStr(), time: (time !== undefined ? time : prev.time) || null, day: state.day, returned: state.returned }; saveLock(m); saveActive(); }
+    function clearLock() { const m = loadLock(); delete m[active.id]; saveLock(m); }
+    function restoreProgress() { const l = lockFor(); if (l && l.day) { state.day = l.day; state.returned = l.returned || state.returned; } }
+
+    // ---- which journey is genuinely active, persisted across reloads ----
+    const ACT_KEY = 'db_active_journey';
+    function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned })); } } catch (e) {} }
+    function loadActiveSaved() { try { return JSON.parse(localStorage.getItem(ACT_KEY) || 'null'); } catch (e) { return null; } }
+    function clearActiveSaved() { try { localStorage.removeItem(ACT_KEY); } catch (e) {} }
+    function setReminderOnly(time) { const m = loadLock(); const prev = m[active.id] || { date: todayStr() }; prev.time = time; m[active.id] = prev; saveLock(m); }
+    function previewTomorrow() { const m = loadLock(); if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); } }
+    function isLocked() { const l = lockFor(); return !!(l && l.date === todayStr() && state.day <= TOTAL); }
+    function fmtTime(t) { if (!t) return ''; const p = t.split(':'); let h = parseInt(p[0], 10); const m = p[1] || '00'; const ap = h < 12 ? 'AM' : 'PM'; let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + m + ' ' + ap; }
+    function untilTomorrow() { const now = new Date(); const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0); const ms = mid - now; const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000); return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'); }
+
+    // ---- rooted (completed) journeys, persisted — keeps the grid honest ----
+    const DONE_KEY = 'db_journeys_done';
+    function loadDone() { try { const a = JSON.parse(localStorage.getItem(DONE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function markDone(id) { const a = loadDone(); if (a.indexOf(id) < 0) { a.push(id); try { localStorage.setItem(DONE_KEY, JSON.stringify(a)); } catch (e) {} } }
+
+    // ---- the Vine ----
+    function fruitNames() { return PLAN.map(function (d) { return d.fruit; }); }
+    function fruitTruths() { return PLAN.map(function (d) { return d.fruitTruth; }); }
+    function vineCfg(extra) { const c = { total: TOTAL, falseLabel: active.from, trueLabel: active.to, fruitNames: fruitNames(), fruitTruths: fruitTruths() }; if (extra) { for (const k in extra) c[k] = extra[k]; } return c; }
+    let vine;
+    function buildVine() {
+      vine = window.TheVine.build($('vineMount'), vineCfg());
+      vine.setProgress(completed(), TOTAL);
+    }
+
+    // ---- render home ----
+    function renderHome() {
+      $('fromW').textContent = active.from; $('toW').textContent = active.to;
+      $('habitW').textContent = active.line;
+      $('dayPill').textContent = 'Day ' + state.day + ' / ' + TOTAL;
+      const n = completed(); $('remainTxt').textContent = n > 0 ? (n + ' fruit so far') : 'Just planted';
+      let dots = ''; for (let i = 1; i <= TOTAL; i++) { const cl = (i < state.day ? 'done' : (i === state.day ? 'cur' : '')); dots += '<i class="' + cl + (i < state.day ? ' tap' : '') + '" data-day="' + i + '"' + (i < state.day ? ' role="button" tabindex="0" aria-label="Revisit day ' + i + '"' : '') + '></i>'; } $('dayDots').innerHTML = dots;
+      const d = PLAN[state.day - 1];
+      $('todayTitle').textContent = d.title;
+      $('todayRef').innerHTML = d.ref + ' &middot; ' + d.ver;
+      $('focusLine').textContent = d.fruitTruth || d.title;
+      const locked = isLocked();
+      const cb = $('continueBtn');
+      if (locked) {
+        cb.disabled = true; cb.classList.add('locked');
+        cb.textContent = 'Day ' + state.day + ' opens tomorrow';
+        renderLockNote();
+      } else {
+        cb.disabled = false; cb.classList.remove('locked');
+        cb.textContent = (daySpoken[state.day] ? 'Resume Day ' : 'Continue Day ') + state.day;
+        $('lockNote').style.display = 'none';
+      }
+      $('returnDays').textContent = state.returned + ' day' + (state.returned === 1 ? '' : 's');
+      $('resetShift').innerHTML = '&ldquo;' + active.from + ' &rarr; ' + active.to + '.&rdquo;';
+      $('doneCount').textContent = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
+      buildVine();
+      renderFruitLog();
+      renderGrid();
+      // Hybrid: quietly upgrade today's card with a freshly generated plan.
+      const todayEl = document.querySelector('.today');
+      const generating = window.JourneyEngine && !active._ai[state.day - 1];
+      if (todayEl) todayEl.classList.toggle('gen', !!generating);
+      if (generating) { ensureDay(state.day).then(function () { if (document.querySelector('.jcard') && active.status === 'active') { renderHome(); } }); }
+    }
+
+    function renderFruitLog() {
+      const n = completed(), sec = $('fruitLog'), box = $('fruitList');
+      if (n <= 0) { sec.style.display = 'none'; return; }
+      sec.style.display = 'block';
+      let html = '';
+      for (let i = 1; i <= n; i++) { const d = PLAN[i - 1];
+        html += '<button class="fl-item" data-day="' + i + '" aria-label="Revisit day ' + i + ', ' + d.fruit + '"><span class="fl-bud" aria-hidden="true"></span><div class="fl-meta"><div class="nm">' + d.fruit + '</div><div class="dy">Day ' + i + ' &middot; ' + d.fruitTruth + '</div></div><span class="fl-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+      }
+      box.innerHTML = html;
+    }
+
+    function renderLockNote() {
+      const note = $('lockNote'); note.style.display = 'block';
+      $('lnTitle').textContent = 'Day ' + state.day + ' opens tomorrow';
+      $('lnSub').textContent = 'Opens in ' + untilTomorrow();
+      const l = lockFor();
+      if (l && l.time) { $('lnRemTxt').textContent = 'Reminder set for ' + fmtTime(l.time); $('lnEdit').textContent = 'Change'; $('lnTimeInput').value = l.time; }
+      else { $('lnRemTxt').textContent = 'No reminder set'; $('lnEdit').textContent = 'Set a reminder'; }
+      $('lnEditBox').style.display = 'none';
+    }
+    $('lnEdit').addEventListener('click', function () { const b = $('lnEditBox'); b.style.display = b.style.display === 'none' ? 'flex' : 'none'; });
+    $('lnTimeSave').addEventListener('click', function () { const t = $('lnTimeInput').value || '07:00'; setReminderOnly(t); renderLockNote(); toast('Reminder set for ' + fmtTime(t)); });
+    $('lnPreview').addEventListener('click', function () { previewTomorrow(); renderHome(); toast('Tomorrow has come — Day ' + state.day + ' is open'); });
+
+    function renderGrid() {
+      const box = $('jgrid');
+      const done = CATALOG.filter(function (c) { return c.status === 'done'; });
+      if (!done.length) {
+        box.innerHTML = '<div class="jgrid-empty">No rooted journeys yet. Finish this one and it will be kept here.</div>';
+        return;
+      }
+      box.innerHTML = done.map(function (c) {
+        return '<div class="cell done" data-id="' + c.id + '">'
+          + '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
+          + '<span class="st done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>Rooted</span>'
+          + '<div class="nm">' + c.from + ' <span class="a2">&rarr; ' + c.to + '</span></div>'
+          + '</div>';
+      }).join('');
+      box.querySelectorAll('.cell').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          const id = cell.dataset.id, c = CATALOG.find(function (x) { return x.id === id; });
+          if (c) { toast(c.from + ' → ' + c.to + ' — rooted'); }
+        });
+      });
+    }
+
+    // ---- day flow ----
+    let daySpoken = {};   // {day: true} once declared aloud
+    let dayState = {};    // per-day: {cast:bool, repented:bool|'skipped', spoke:bool, acted:bool}
+    let breathInst = null;
+    let reviewDay = null; // when set, the day flow shows a completed day read-only
+    function curDay() { return reviewDay || state.day; }
+    function dstate() { const k = curDay(); if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false }; return dayState[k]; }
+
+    function renderDayFlow() {
+      clearInterval(renderDayLoading._t);
+      const fd = curDay(), reviewing = !!reviewDay;
+      const d = PLAN[fd - 1], ds = dstate();
+      if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; }
+      $('dayflow').classList.toggle('reviewing', reviewing);
+      $('dfEy').innerHTML = (reviewing ? 'Reviewing &middot; ' : '') + 'Day ' + fd + ' of ' + TOTAL + ' &middot; ' + active.from + ' &rarr; ' + active.to;
+      $('dfNm').textContent = d.title;
+      let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dots;
+      $('dfComplete').textContent = reviewing ? 'Back to today' : 'Complete Day ' + fd;
+
+      const welcome = (fd === 1 && !reviewing) ? (
+        '<div class="day1note">'
+        + '<span class="d1ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D8B85F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-7"/><path d="M12 13c-3.3 0-5.5-2-5.5-5C9.8 8 12 10 12 13z"/><path d="M12 11c0-2.6 2.1-4.5 5-4.5C17 9.2 14.7 11 12 11z"/><path d="M6 20h12"/></svg></span>'
+        + '<div class="d1t"><b>Day 1 of 5.</b> Each day God gives a fresh way to be set free. You’ll receive His Word, cast off the lie out loud, breathe out the old, then declare the truth over your life. Today: <b>' + d.title.replace(/[.…]+$/, '') + '</b>.</div>'
+        + '</div>'
+      ) : '';
+
+      const ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
+      $('dfScroll').innerHTML =
+        '<h2 class="df-h">' + d.title + '</h2>'
+        + '<div class="df-sh">' + active.from + ' <span class="arr">&rarr;</span> ' + active.to + '</div>'
+        + welcome
+        // 1 — RECEIVE
+        + '<div class="block scripture"><div class="lab"><span class="step">1</span>Receive &middot; ' + d.ref + ' ' + d.ver + '</div>'
+          + '<div class="verse">“' + d.verse + '”</div><div class="insight">' + d.insight + '</div></div>'
+        // 2 — PRAY
+        + '<div class="block pray"><div class="lab"><span class="step">2</span>Pray</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
+        // 3 — CAST OFF
+        + '<div class="block castoff' + (ds.cast ? ' done' : '') + '" id="castBlock"><div class="lab"><span class="step">3</span>Cast off the lie</div>'
+          + '<div class="intro">Read it once, out loud, and name it for what it is. Then cast it off.</div>'
+          + '<div class="lie-card' + (ds.cast ? ' cast' : '') + '" id="lieCard"><div class="lie-q">The lie I’ve believed</div><div class="lie-t">“' + d.castOff + '”</div></div>'
+          + '<button class="cast-btn" id="castBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Cast it off</button>'
+          + '<div class="cast-done">' + ck + 'Cast off. It has no hold on you.</div></div>'
+        // 4 — REPENT & BREATHE
+        + '<div class="block repent" id="repentBlock"><div class="lab"><span class="step">4</span>Repent &amp; breathe</div>'
+          + '<div class="repent-t">“' + d.repent + '”</div>'
+          + '<div class="repent-stage" id="repentStage">'
+            + '<div class="repent-idle" id="repentIdle">'
+              + '<button class="breath-start" id="breathStart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4c0 3 4 3.5 4 7a4 4 0 0 1-8 0 4 4 0 0 1-8 0c0-3.5 4-4 4-7a4 4 0 0 1 4-4z"/></svg>Begin breath prayer</button>'
+              + '<button class="breath-skip-link" id="breathSkip">I can’t breathe deeply right now &mdash; skip</button>'
+            + '</div>'
+            + '<div class="breath-active" id="breathActive" style="display:none"><div class="breath-round" id="breathRound"></div><div class="breath-inline" id="repentBreath"></div></div>'
+            + '<div class="repent-done" id="repentDone" style="display:none"><span class="rd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><div class="rd-t" id="repentDoneT">Amen. You breathed out the old.</div><button class="rd-again" id="breathAgain">Breathe again</button></div>'
+          + '</div></div>'
+        // 5 — DECLARE THE TRUTH ALOUD (no mic, no recording — just say it, then mark it)
+        + '<div class="block declare' + (ds.spoke ? ' spoken' : '') + '" id="declareBlock"><div class="lab"><span class="step">5</span>Declare the truth aloud</div>'
+          + '<div class="dc">“' + d.declare + '”</div>'
+          + '<div class="mic-hint" id="micHint">' + (ds.spoke ? 'Amen. You declared it. &#10003;' : 'Say it out loud — then mark it here.') + '</div>'
+          + '<button class="act-check' + (ds.spoke ? ' on' : '') + '" id="declCheck"><span class="bx">' + ck + '</span><span id="declLbl">' + (ds.spoke ? 'Declared aloud' : 'Mark as declared') + '</span></button></div>'
+        // 6 — REFLECT
+        + '<div class="block reflect"><div class="lab"><span class="step">6</span>Reflect</div><p>' + d.reflect + '</p><textarea placeholder="Write freely. This is between you and God."></textarea></div>'
+        // 7 — ACT
+        + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock"><div class="lab"><span class="step">7</span>Take it into your day</div>'
+          + '<div class="act-t">' + d.actionTitle + '</div><div class="act-d">' + d.action + '</div>'
+          + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? 'I did this' : 'I’ll carry this today') + '</span></button></div>';
+
+      $('dfScroll').scrollTop = 0;
+      bindCast(); bindRepent(); bindSpeak(); bindAction();
+      refreshGate();
+      // reverent unfolding — each step of the ritual veils in, in sequence
+      if (window.DeclareMotion) {
+        const seq = $('dfScroll').querySelectorAll(':scope > .df-h, :scope > .df-sh, :scope > .block, :scope > .day1note');
+        seq.forEach(function (el, i) { el.classList.add('m-veil'); el.style.setProperty('--i', i); });
+        $('dfScroll').style.setProperty('--m-stagger', '150ms');
+        $('dfScroll').style.setProperty('--m-premium', '780ms');
+        window.DeclareMotion.reveal($('dfScroll'), { stagger: 0 });
+      }
+    }
+
+    // ---- step 3: cast off ----
+    function bindCast() {
+      const btn = $('castBtn'), card = $('lieCard'), blk = $('castBlock');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        card.classList.add('cast'); blk.classList.add('done'); dstate().cast = true;
+        if (navigator.vibrate) { try { navigator.vibrate(14); } catch (_) {} } refreshGate();
+      });
+    }
+    // ---- step 4: repent breath (guided, finite, with start + skip + complete) ----
+    const BREATH_ROUNDS = 3;
+    function repentMarkDone(skipped) {
+      if (breathInst) { try { breathInst.destroy(); } catch (_) {} breathInst = null; }
+      dstate().repented = skipped ? 'skipped' : true;
+      const idle = $('repentIdle'), act = $('breathActive'), done = $('repentDone');
+      if (idle) idle.style.display = 'none'; if (act) act.style.display = 'none'; if (done) done.style.display = 'flex';
+      const t = $('repentDoneT'); if (t) t.textContent = skipped ? 'Held for today. The Spirit meets you here.' : 'Amen. You breathed out the old.';
+      refreshGate();
+    }
+    function bindRepent() {
+      const ds = dstate();
+      const startBtn = $('breathStart'), skip = $('breathSkip'), again = $('breathAgain');
+      if (ds.repented) { repentMarkDone(ds.repented === 'skipped'); }
+      if (startBtn) startBtn.addEventListener('click', startBreath);
+      if (skip) skip.addEventListener('click', function () { repentMarkDone(true); });
+      if (again) again.addEventListener('click', function () { dstate().repented = false; $('repentDone').style.display = 'none'; $('repentIdle').style.display = 'flex'; refreshGate(); });
+    }
+    function startBreath() {
+      if (!window.BreathRing) { repentMarkDone(false); return; }
+      $('repentIdle').style.display = 'none'; $('repentDone').style.display = 'none';
+      $('breathActive').style.display = 'block';
+      const round = [{ label: 'Breathe in mercy', secs: 4, scale: 1, glow: .95 }, { label: 'Hold', secs: 2, scale: 1, glow: .95 }, { label: 'Release the old', secs: 6, scale: .55, glow: .34 }];
+      let seq = []; for (let r = 0; r < BREATH_ROUNDS; r++) { seq = seq.concat(round); }
+      const perRound = round.length;
+      if (breathInst) { try { breathInst.destroy(); } catch (_) {} }
+      breathInst = window.BreathRing.mount($('repentBreath'), {
+        seq: seq, loop: false, skipLabel: 'Skip the rest',
+        caption: 'Breathe out the old. Breathe in His mercy.',
+        onPhase: function (idx) { const rd = Math.floor(idx / perRound) + 1; const el = $('breathRound'); if (el) el.textContent = 'Breath ' + rd + ' of ' + BREATH_ROUNDS; },
+        onDone: function () { if (navigator.vibrate) { try { navigator.vibrate(16); } catch (_) {} } repentMarkDone(false); },
+        onSkip: function () { repentMarkDone(true); }
+      });
+    }
+    // ---- step 7: action ----
+    function bindAction() {
+      const c = $('actCheck'); if (!c) return;
+      c.addEventListener('click', function () {
+        const on = !c.classList.contains('on'); c.classList.toggle('on', on);
+        $('actLbl').textContent = on ? 'I did this' : 'I’ll carry this today';
+        dstate().acted = on; refreshGate();
+      });
+    }
+
+    // gate: the day completes once the lie is cast off, the breath is taken,
+    // AND the truth is declared aloud
+    function refreshGate() {
+      const ds = dstate();
+      if (reviewDay) { $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = false;
+        const lh = $('dfLock'); if (lh) { lh.style.display = 'flex'; lh.querySelector('span').textContent = 'You’ve already walked this day — revisit it anytime'; } return; }
+      const ready = ds.cast && ds.repented && ds.spoke;
+      $('dfFoot').classList.toggle('ready', ready);
+      $('dfComplete').disabled = !ready;
+      const hint = $('dfLock'); if (hint) {
+        hint.style.display = '';
+        if (!ds.cast) hint.querySelector('span').textContent = 'Cast off the lie to continue';
+        else if (!ds.repented) hint.querySelector('span').textContent = 'Take a moment to repent and breathe';
+        else if (!ds.spoke) hint.querySelector('span').textContent = 'Declare the truth aloud to finish';
+      }
+    }
+
+    function setGate(spoken) { // declare block visual state
+      const blk = $('declareBlock'), check = $('declCheck'), hint = $('micHint');
+      if (spoken) { if (blk) blk.classList.add('spoken');
+        if (check) { check.classList.add('on'); const l = $('declLbl'); if (l) l.textContent = 'Declared aloud'; }
+        if (hint) hint.innerHTML = 'Amen. You declared it. &#10003;'; }
+      dstate().spoke = spoken || dstate().spoke;
+      refreshGate();
+    }
+
+    // step 5: a single honest tap — nothing is recorded, no microphone is touched
+    function bindSpeak() {
+      const check = $('declCheck'); if (!check) return;
+      check.addEventListener('click', function () {
+        if ($('declareBlock').classList.contains('spoken')) return;
+        markSpoken();
+      });
+    }
+    function markSpoken() { daySpoken[state.day] = true; setGate(true);
+      if (navigator.vibrate) { try { navigator.vibrate(18); } catch (_) {} }
+    }
+
+    function renderDayLoading() {
+      if (breathInst) { try { breathInst.stop(); } catch (_) {} }
+      $('dfEy').innerHTML = 'Day ' + state.day + ' of ' + TOTAL + ' &middot; ' + active.from + ' &rarr; ' + active.to;
+      $('dfNm').textContent = 'Preparing today';
+      let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; } $('dfDots').innerHTML = dots;
+      $('dfScroll').innerHTML = '<div class="dayloading"><div class="dl-orb"><i></i></div>'
+        + '<div class="dl-t">Jesus is preparing the way for today.</div>'
+        + '<div class="dl-s" id="dlS">Be still a moment…</div></div>';
+      $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = true;
+      const lines = ['Be still a moment…', 'He knows exactly what you carry.', 'This step is being written for you.'];
+      let k = 0; clearInterval(renderDayLoading._t);
+      renderDayLoading._t = setInterval(function () { k = (k + 1) % lines.length; const el = $('dlS'); if (el) el.textContent = lines[k]; }, 2300);
+    }
+
+    function openDayFlow() {
+      // Day 1 is the free taste; walking on requires an account
+      if (state.day >= 2 && !ensureSignedIn('Create a free account to keep your journey growing.')) return;
+      if (isLocked()) { renderHome(); toast('Day ' + state.day + ' opens tomorrow'); return; }
+      $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
+      if (active._ai[state.day - 1] || !window.JourneyEngine) { renderDayFlow(); return; }
+      renderDayLoading();
+      ensureDay(state.day).then(function () { if ($('dayflow').classList.contains('open') && $('dayflow').getAttribute('aria-hidden') === 'false') { renderDayFlow(); } });
+    }
+    function closeDayFlow() { if (breathInst) { try { breathInst.stop(); } catch (_) {} } reviewDay = null; $('dayflow').classList.remove('open', 'reviewing'); $('dayflow').setAttribute('aria-hidden', 'true'); }
+    function openReview(day) {
+      reviewDay = day; $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
+      renderDayFlow();
+    }
+    $('dfBack').addEventListener('click', closeDayFlow);
+    $('continueBtn').addEventListener('click', openDayFlow);
+    // revisit a completed day (read-only) from the fruit log or the day dots
+    $('fruitList').addEventListener('click', function (e) { const b = e.target.closest('.fl-item[data-day]'); if (b) openReview(+b.dataset.day); });
+    $('dayDots').addEventListener('click', function (e) { const d = e.target.closest('i.tap[data-day]'); if (d) openReview(+d.dataset.day); });
+    $('dayDots').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; const d = e.target.closest('i.tap[data-day]'); if (d) { e.preventDefault(); openReview(+d.dataset.day); } });
+
+    // complete the day
+    $('dfComplete').addEventListener('click', function () {
+      if (reviewDay) { closeDayFlow(); return; }
+      const completing = state.day;
+      closeDayFlow();
+      setTimeout(function () { showDayComplete(completing); }, 260);
+    });
+
+    let pendingReminder = null;
+    function showDayComplete(completing) {
+      const d = PLAN[completing - 1];
+      const m = document.createElement('div'); m.className = 'tree-mount'; $('dcTree').innerHTML = ''; $('dcTree').appendChild(m);
+      const v = window.TheVine.build(m, vineCfg());
+      v.setProgress(completing - 1, TOTAL);
+      $('dcAff').textContent = 'You cast off the lie and declared the truth. ' + d.fruit + ' is taking root.';
+      $('dcSub').innerHTML = 'Day ' + completing + ' fruit &middot; <b>' + d.fruit + '</b>';
+      const last = completing >= TOTAL;
+      // reset + configure the come-back-tomorrow + reminder UI
+      pendingReminder = null;
+      $('dcNext').style.display = last ? 'none' : 'block';
+      $('dcRemind').style.display = last ? 'none' : 'block';
+      $('dcRemind').classList.remove('open');
+      $('dcRemindState').textContent = '';
+      $('dcRemindBody').style.display = '';
+      $('dcNextDay').textContent = (completing + 1);
+      $('dcDone').textContent = last ? 'See how far you’ve come' : 'Done for today';
+      $('dayComplete').classList.add('show'); $('dayComplete').setAttribute('aria-hidden', 'false');
+      setTimeout(function () { v.setProgress(completing, TOTAL); }, 560);
+      $('dcDone')._completing = completing;
+    }
+
+    // reminder picker inside day-complete
+    $('dcRemindToggle').addEventListener('click', function () { $('dcRemind').classList.toggle('open'); });
+    $('dcTimes').addEventListener('click', function (e) { const b = e.target.closest('button[data-t]'); if (!b) return;
+      $('dcTimes').querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on');
+      $('dcTimeInput').value = b.dataset.t; });
+    $('dcTimeInput').addEventListener('input', function () { $('dcTimes').querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); }); });
+    $('dcRemindSet').addEventListener('click', function () {
+      pendingReminder = $('dcTimeInput').value || '07:00';
+      $('dcRemindState').textContent = 'Set for ' + fmtTime(pendingReminder);
+      $('dcRemind').classList.remove('open');
+      toast('We’ll remind you tomorrow at ' + fmtTime(pendingReminder));
+    });
+
+    $('dcDone').addEventListener('click', function () {
+      const completing = $('dcDone')._completing || state.day;
+      $('dayComplete').classList.remove('show'); $('dayComplete').setAttribute('aria-hidden', 'true');
+      if (completing >= TOTAL) { setTimeout(showJourneyComplete, 280); }
+      else {
+        state.day = completing + 1; state.returned += 1;
+        setLock(pendingReminder);   // engage the one-day-per-day lock (with optional reminder)
+        renderHome();
+      }
+    });
+
+    function showJourneyComplete() {
+      const d7 = PLAN[TOTAL - 1];
+      const m = document.createElement('div'); m.className = 'tree-mount'; $('jcTree').innerHTML = ''; $('jcTree').appendChild(m);
+      const t = window.TheVine.build(m, vineCfg()); t.setProgress(TOTAL, TOTAL);
+      const sm = document.createElement('div'); sm.className = 'tree-mount'; $('scTree').innerHTML = ''; $('scTree').appendChild(sm);
+      const st = window.TheVine.build(sm, vineCfg({ falseLabel: '', trueLabel: '' })); st.setProgress(TOTAL, TOTAL);
+      $('jcFrom').textContent = '“' + PLAN[0].castOff + '”';
+      $('jcTo').textContent = '“' + d7.declare + '”';
+      $('jcBene').textContent = 'You came in carrying ' + active.from.toLowerCase() + '. You’re leaving rooted in Christ — ' + active.to + '. This is who you are now.';
+      $('scShift').innerHTML = active.from + ' &rarr; ' + active.to;
+      $('scDec').textContent = '“' + d7.declare + '”';
+      $('scRef').innerHTML = 'Rooted in ' + TOTAL + ' days &middot; ' + d7.ref;
+      const sv = $('jcSave'); sv.textContent = 'Save to Vault'; sv.disabled = false; sv.style.opacity = '';
+      // the vine has rooted: record it for real (grid + zero-state nod), and
+      // release the active slot so a fresh visit lands on the chooser honestly
+      active.status = 'done'; markDone(active.id); clearActiveSaved(); clearLock();
+      $('journeyComplete').classList.add('show'); $('journeyComplete').setAttribute('aria-hidden', 'false');
+    }
+
+    // ---- viewer ----
+    $('viewTreeBtn').addEventListener('click', function () {
+      const m = document.createElement('div'); m.className = 'tree-mount';
+      $('viewerTree').innerHTML = ''; $('viewerTree').appendChild(m);
+      const v = window.TheVine.build(m, vineCfg()); v.setProgress(completed(), TOTAL);
+      $('viewerAlt').textContent = 'Day ' + state.day + ' of ' + TOTAL + '. Jesus is the vine. The old branch of ' + active.from.toLowerCase() + ' is dimming as the branch of truth grows and bears ' + completed() + ' fruit, reaching toward the light as ' + active.to.toLowerCase() + '.';
+      $('viewer').classList.add('show'); $('viewer').setAttribute('aria-hidden', 'false');
+    });
+    $('viewerClose').addEventListener('click', function () { $('viewer').classList.remove('show'); $('viewer').setAttribute('aria-hidden', 'true'); });
+
+    // ---- see all journeys (focused by default; user chooses to reveal the rest) ----
+    let seenAll = false;
+    $('seeAll').addEventListener('click', function () {
+      seenAll = !seenAll;
+      $('alljSection').style.display = seenAll ? 'block' : 'none';
+      this.classList.toggle('open', seenAll);
+      this.childNodes[0].nodeValue = seenAll ? 'Hide past journeys ' : 'Past journeys ';
+      if (seenAll) { renderGrid(); setTimeout(function () { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 60); }
+    });
+
+    // ---- sheets ----
+    const scrim = $('scrim');
+    function openSheet(id) { $(id).classList.add('open'); $(id).setAttribute('aria-hidden', 'false'); scrim.classList.add('open'); }
+    function closeSheets() { ['menuSheet', 'resetSheet', 'chooseSheet', 'shareSheet', 'careSheet'].forEach(function (s) { $(s).classList.remove('open'); $(s).setAttribute('aria-hidden', 'true'); }); scrim.classList.remove('open'); }
+    scrim.addEventListener('click', closeSheets);
+    $('overflowBtn').addEventListener('click', function () { openSheet('menuSheet'); });
+
+    /* ---- Vault (machinery): the device-local store every other page uses ---- */
+    function vaultSaveVerses() {
+      PLAN.forEach(function (d, i) {
+        saveItem({ id: 'jv:' + active.id + ':' + i + ':' + d.ref, type: 'verse', ref: d.ref, text: d.verse, translation: d.ver || 'ESV', ts: Date.now() - i * 1000 });
+      });
+    }
+    function vaultSaveAll() {
+      // one "word"-shaped item: the Vault explodes it into verses + declarations
+      // + prayer under a collection named for the struggle
+      saveItem({
+        id: 'journey:' + active.id + ':' + (active._seed || 0), type: 'word',
+        struggle: active.from, translation: 'ESV',
+        verses: PLAN.map(function (d) { return { ref: d.ref, text: d.verse }; }),
+        declarations: PLAN.map(function (d) { return d.declare; }),
+        prayer: PLAN[TOTAL - 1].pray, ts: Date.now(),
+      });
+    }
+    $('mSaved').addEventListener('click', function () {
+      closeSheets();
+      if (!ensureSignedIn('Create a free account to save these verses to your Vault.')) return;
+      vaultSaveVerses(); toast('Verses saved to Vault');
+    });
+    $('mSwitch').addEventListener('click', function () { closeSheets(); setTimeout(function () { openSheet('resetSheet'); }, 140); });
+    $('resetKeep').addEventListener('click', closeSheets);
+    $('resetGo').addEventListener('click', function () { closeSheets(); setTimeout(function () { openChooseList(); }, 140); });
+
+    function openChooseList(openDay) {
+      const list = $('chooseList');
+      list.innerHTML = CATALOG.filter(function (c) { return c.status === 'open'; }).map(function (c) {
+        return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + c.from + ' &rarr; ' + c.to + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + c.line + '</span></span></button>';
+      }).join('');
+      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginJourney(b.dataset.id, !!openDay); }); });
+      openSheet('chooseSheet');
+    }
+
+    // ---- begin a journey (shared by zero-state cards, See-all, and the switch flow) ----
+    function beginJourney(id, openDay, silent) {
+      const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
+      CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
+      active = c; active.status = 'active'; startPlan();
+      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); saveActive();
+      closeSheets(); showActiveUI();
+      if (!silent) toast('A fresh vine is planted — ' + c.from + ' → ' + c.to);
+      if (openDay) openAfterBegin();
+    }
+    function openAfterBegin() {
+      if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
+      else { setTimeout(openDayFlow, 380); }
+    }
+    // Tapping a transformation literally plants it: a seed flies from the card
+    // into the new vine, the soil blooms, the sapling pulses, then Day 1 opens.
+    function plantAndBegin(cardEl) {
+      const id = cardEl.dataset.id;
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) { beginJourney(id, true); return; }
+      const screen = document.querySelector('.journey');
+      const icon = cardEl.querySelector('.zs-ic') || cardEl;
+      const r0 = icon.getBoundingClientRect();
+      beginJourney(id, false, true);          // render the living home (vine as a seed); hold the day flow
+      window.scrollTo(0, 0);
+      const sr = screen.getBoundingClientRect();
+      const vm = $('vineMount') || $('activeCard');
+      const rt = vm.getBoundingClientRect();
+      const startX = r0.left + r0.width / 2 - sr.left, startY = r0.top + r0.height / 2 - sr.top;
+      const endX = rt.left + rt.width / 2 - sr.left, endY = rt.top + rt.height * 0.66 - sr.top;
+      const dx = endX - startX, dy = endY - startY;
+      const seed = document.createElement('div'); seed.className = 'plant-seed';
+      seed.style.left = startX + 'px'; seed.style.top = startY + 'px'; screen.appendChild(seed);
+      const fly = seed.animate([
+        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0 },
+        { transform: 'translate(' + (dx * 0.55) + 'px,' + (dy * 0.55 - 46) + 'px) scale(.72)', opacity: 1, offset: .55 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.32)', opacity: 1, offset: 1 }
+      ], { duration: 760, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' });
+      fly.onfinish = function () {
+        const bloom = document.createElement('div'); bloom.className = 'plant-bloom';
+        bloom.style.left = endX + 'px'; bloom.style.top = endY + 'px'; screen.appendChild(bloom);
+        bloom.animate([
+          { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0 },
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: .85, offset: .4 },
+          { transform: 'translate(-50%,-50%) scale(2.1)', opacity: 0 }
+        ], { duration: 680, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }).onfinish = function () { bloom.remove(); };
+        seed.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }).onfinish = function () { seed.remove(); };
+        if (vm) { try { vm.animate([{ transform: 'scale(.92)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 720, easing: 'cubic-bezier(.34,1.4,.5,1)' }); } catch (e) {} }
+        setTimeout(openAfterBegin, 360);
+      };
+    }
+
+    // ---- home mode: the active-journey card vs. the zero state ----
+    function showActiveUI() {
+      $('activeCard').style.display = ''; const rl = document.querySelector('.returnline'); if (rl) rl.style.display = '';
+      $('seeAll').style.display = ''; $('alljSection').style.display = seenAll ? 'block' : 'none';
+      $('zeroState').style.display = 'none'; renderHome();
+    }
+    function showZeroUI() {
+      $('activeCard').style.display = 'none'; $('fruitLog').style.display = 'none';
+      const rl = document.querySelector('.returnline'); if (rl) rl.style.display = 'none';
+      $('seeAll').style.display = 'none'; $('alljSection').style.display = 'none';
+      $('zeroState').style.display = 'block';
+    }
+    function renderZero(withNod) {
+      const done = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
+      const nod = $('zsRooted');
+      if (withNod && done > 0) {
+        nod.style.display = 'flex';
+        $('zsRootedN').textContent = done + ' journey' + (done === 1 ? '' : 's');
+        $('zsLead').textContent = 'You’ve walked this before. When you’re ready, name the next thing to lay down — we’ll plant a fresh vine and walk it with you for five days.';
+      } else {
+        nod.style.display = 'none';
+        $('zsLead').textContent = 'A journey is five days in one truth. Name what you’re ready to lay down, and we’ll plant a vine and walk it with you — one declaration a day — until it takes root.';
+      }
+      $('zsList').innerHTML = CURATED.map(function (id) { const c = CATALOG.find(function (x) { return x.id === id; }); if (!c || c.status !== 'open') return '';
+        return '<button class="zs-card" data-id="' + c.id + '"><span class="zs-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span><span class="zs-txt"><span class="zs-shift"><span class="zs-from">' + c.from + '</span><span class="zs-toline"><span class="zs-arr" aria-hidden="true">→</span><span class="zs-to">' + c.to + '</span></span></span><span class="zs-line">' + c.line + '</span></span><span class="zs-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+      }).join('');
+      $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { plantAndBegin(b); }); });
+    }
+    $('zsSeeAll').addEventListener('click', function () { openChooseList(true); });
+
+    // ---- journey complete actions ----
+    function jcShareText() { const d7 = PLAN[TOTAL - 1];
+      return '“' + d7.declare + '”\n— ' + d7.ref + '  (' + active.from + ' → ' + active.to + ')\n\nMy 5-day journey with Declare & Believe.'; }
+
+    /* design share system — share.js + card-studio.js lazy-loaded on first tap */
+    let shareStack = null;
+    function loadShareStack() {
+      if (shareStack) return shareStack;
+      shareStack = new Promise((resolve) => {
+        ['/declare/share.css', '/declare/card-studio.css'].forEach((href) => {
+          const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
+        });
+        const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js';
+        s1.onload = () => {
+          const s2 = document.createElement('script'); s2.src = '/declare/share.js';
+          s2.onload = resolve; document.head.appendChild(s2);
+        };
+        document.head.appendChild(s1);
+      });
+      return shareStack;
+    }
+    $('jcShare').addEventListener('click', function () {
+      const d7 = PLAN[TOTAL - 1];
+      loadShareStack().then(function () {
+        if (window.DeclareShare) {
+          window.DeclareShare.open({ type: 'journey', text: d7.declare, ref: (d7.ref || '') + (d7.ver ? ' · ' + d7.ver : ''), subtitle: active.from + ' → ' + active.to, url: location.href });
+        } else { openShareSheet(jcShareText()); }
+      });
+    });
+    function openShareSheet(txt) { $('shareText').value = txt; openSheet('shareSheet'); }
+    $('shareClose').addEventListener('click', closeSheets);
+    $('shareCopy').addEventListener('click', function () {
+      const ta = $('shareText'); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      if (ok) { toast('Copied — paste anywhere'); }
+      else if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function () { toast('Copied — paste anywhere'); }).catch(function () { toast('Select the text and copy'); }); }
+      else { toast('Select the text and copy'); }
+    });
+    $('jcSave').addEventListener('click', function () { const b = this; if (b.disabled) return;
+      if (!ensureSignedIn('Create a free account to keep this journey in your Vault.')) return;
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:7px;vertical-align:-3px"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Saved to Vault';
+      vaultSaveAll(); b.disabled = true; b.style.opacity = '.72'; toast('Saved to your Vault'); });
+    $('jcNew').addEventListener('click', function () { $('journeyComplete').classList.remove('show'); $('journeyComplete').setAttribute('aria-hidden', 'true'); showZeroUI(); renderZero(true); openChooseList(); });
+
+    let _tt;
+    function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(function () { t.classList.remove('show'); }, 2400); }
+
+    // ---- pastoral care gate for sensitive journeys ----
+    const CARE = {
+      abuse: 'What was done to you was real, and it was not your fault. You don’t have to carry it alone. If you are in danger right now, please reach out for help first — that is the strong, God-honoring thing to do. When you’re ready, we’ll walk these five days gently, and let God speak your true name over the wounding words.',
+      sexual: 'There’s no shame here, and no condemnation — only grace. You can be fully honest in this space; it stays between you and God. We’ll take this one gentle day at a time. If you ever need to talk to a real person, that door is always open.',
+      addiction: 'You’re not too far gone, and you don’t have to do this alone. This journey walks with you one day at a time. If you’re in crisis or need real support, please reach out — asking for help is courage, not failure.',
+      depression: 'Thank you for being here. That took something today. If the darkness ever feels like too much, or you’re having thoughts of harming yourself, please reach out to someone right now — you matter, and help is here. When you’re ready, we’ll take this gently, one day at a time.',
+      grief: 'There’s no right way to grieve and no clock on it. Come as you are, tears and all. We’ll move slowly and gently through these days. If you need someone to talk to along the way, that help is always here.',
+      divorce: 'What you’re walking through is a real loss, and grief is the honest response to it. There’s no blame here and no pressure — only space to bring the breaking to God. We’ll go gently, one day at a time. If you ever need to talk to someone, that door is always open.',
+    };
+    function isSensitive(id) { return !!CARE[id]; }
+    function openCareGate(id, onBegin) {
+      $('careBody').textContent = CARE[id] || '';
+      $('careBegin').onclick = function () { closeSheets(); setTimeout(onBegin, 220); };
+      openSheet('careSheet');
+    }
+
+    // ---- entry from Declare: map the chosen struggle → a journey, open Day 1 ----
+    function mapStruggle(s) {
+      s = (s || '').toLowerCase();
+      const rules = [
+        // dedicated journeys — most specific first
+        [/(divorce|separation|splitting up|ex-wife|ex-husband)/, 'divorce'],
+        [/(faith crisis|deconstruct|losing my faith|god feels far|god feels absent|is god real)/, 'faithcrisis'],
+        [/(spiritual.{0,3}attack|oppress|demonic|warfare|tormented)/, 'spiritualattack'],
+        [/(sexual temptation|pornograph|lust|sexual sin|porn)/, 'sexual'],
+        [/(verbal abuse|emotional abuse|abusive|\babuse\b|narcissist|belittl|demean)/, 'abuse'],
+        [/(addict|substance|drinking|drug|alcohol)/, 'addiction'],
+        [/(marriage|spouse|husband|wife)/, 'marriage'],
+        [/(grief|loss|mourn|bereav|died|death)/, 'grief'],
+        [/(depress|hopeless|despair|numb)/, 'depression'],
+        [/(lonel|alone|isolat|left out|unseen|forgotten)/, 'loneliness'],
+        [/(betray|cheated on|backstab|stabbed in the back|deceiv)/, 'betrayal'],
+        [/(unforg|bitter|resentment|grudge)/, 'unforgiveness'],
+        [/(anger|angry|rage|temper|wrath)/, 'anger'],
+        [/(family conflict|family|parents|sibling|in-law|household)/, 'family'],
+        [/(feeling like a failure|like a failure|failure|i failed|always fail|messed up)/, 'failure'],
+        [/(comparison|compare|comparing|jealous|envy)/, 'comparison'],
+        [/(unworthy|unworth|don.{0,1}t deserve|not worthy|undeserving|not enough)/, 'unworthy'],
+        [/(broken identity|who am i|lost myself|don.{0,1}t know who i am)/, 'identity'],
+        [/(feeling lost|directionless|no direction|no purpose|wandering|lost my way)/, 'lost'],
+        [/(people pleas|people-pleas|fear of man|need(ing)? approval|can.{0,1}t say no)/, 'peoplepleasing'],
+        [/(self.?sabotage|sabotage|my own worst enemy|undermine)/, 'selfsabotage'],
+        [/(overthink|racing thoughts|can.{0,1}t stop thinking|ruminat|spiral)/, 'overthinking'],
+        [/(\bcontrol\b|controlling|let go|need to control)/, 'control'],
+        [/(perfection|never good enough|never enough|flawless)/, 'perfectionism'],
+        [/(financial|finances|money|debt|provision|bills|broke)/, 'financial'],
+        [/(stress|burnout|burn out|burned out|exhaust|overwhelm|running on empty)/, 'burnout'],
+        [/(spiritual dry|dryness|dry season|dry spell|distant from god)/, 'dryness'],
+        [/(waiting on god|waiting|wait on|long wait|delay)/, 'waiting'],
+        [/(drift|drifting|far from god|fallen away|cooled|first love|backslid)/, 'drifting'],
+        // broad sibling fallbacks
+        [/(doubt|unbelief|cynic)/, 'doubt'],
+        [/(fear|afraid|panic|scared|intimidat)/, 'fear'],
+        [/(shame|guilt|condemn|regret|hiding)/, 'shame'],
+        [/(reject|abandon|belong|approval)/, 'rejection'],
+        [/(anx|worry|identity)/, 'anxiety'],
+      ];
+      for (let i = 0; i < rules.length; i++) { if (rules[i][0].test(s)) return rules[i][1]; }
+      return 'anxiety';
+    }
+
+    (function init() {
+      // honest statuses: everything opens 'open'; the device decides what's
+      // done and what's growing (the design file's authored demo statuses are
+      // exactly that — demo)
+      CATALOG.forEach(function (c) { c.status = 'open'; });
+      loadDone().forEach(function (id) { const c = CATALOG.find(function (x) { return x.id === id; }); if (c) c.status = 'done'; });
+
+      let start = null, struggle = null;
+      try { start = localStorage.getItem('declare-start-journey');
+        struggle = localStorage.getItem('declare-journey-struggle') || localStorage.getItem('declare-struggle'); } catch (e) {}
+      if (start) {
+        try { localStorage.removeItem('declare-start-journey'); } catch (e) {}
+        const c = CATALOG.find(function (x) { return x.id === mapStruggle(struggle); });
+        if (c) { active = c; active.status = 'active'; }
+        startPlan();
+        state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); saveActive();
+        showActiveUI();
+        if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
+        else { setTimeout(openDayFlow, 380); }
+        return;
+      }
+      // No bridge entry: honor real persistence.
+      const saved = loadActiveSaved();
+      if (saved) {
+        const sc = CATALOG.find(function (x) { return x.id === saved.id; });
+        if (sc) { active = sc; active.status = 'active'; startPlan(); }
+        state.day = saved.day || state.day; state.returned = saved.returned || state.returned;
+        restoreProgress();
+        showActiveUI();
+        return;
+      }
+      // Brand-new visitor — no journey ever planted. Open the honest zero state.
+      showZeroUI(); renderZero(loadDone().length > 0);
+    })();
+  </script>
+
   <style is:global>
-    .journeyp { position: relative; min-height: 100dvh; }
-    .journeyp .jin { position: relative; z-index: 1; min-height: calc(100dvh - 96px); max-width: 640px; margin: 0 auto;
-      padding: 0 28px 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .journeyp .jtag { font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
-    .journeyp h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 8.6vw, 46px); font-weight: 600; color: var(--text); line-height: 1.08; margin-top: 14px; text-shadow: 0 0 50px rgba(222, 190, 100, .26); }
-    .journeyp .jlead { font-size: 14.5px; line-height: 1.62; color: var(--text2); margin-top: 16px; max-width: 42ch; }
-    .journeyp .jverse { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; line-height: 1.5; color: var(--soft); margin-top: 28px; max-width: 38ch; }
-    .journeyp .jref { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin-top: 9px; }
-    .journeyp .btn { margin-top: 30px; min-width: 230px; }
-    .journeyp .jnote { font-size: 12px; color: var(--muted); margin-top: 22px; }
+    /* ──────────────────────────────────────────────────────────────────
+       /journey — Tree of Knowledge → Tree of Life (design-source surface).
+       Adaptation: document scroll for the home; the day flow, overlays,
+       sheets, scrim and toast are viewport-fixed (house pattern).
+       ────────────────────────────────────────────────────────────────── */
+    .journey { position: relative; min-height: 100dvh; }
+    /* NOTE: .jin must NOT create a stacking context (no z-index) — the day flow,
+       overlays and sheets inside it are viewport-fixed and have to stack above
+       the layout's fixed tabbar/mast. Source order already covers the topglow. */
+    .journey .jin { position: relative; }
+    .journey .scroll { padding: 6px 22px calc(120px + env(safe-area-inset-bottom)); }
+    .journey .rise { opacity: 0; transform: translateY(10px); animation: jrise .7s cubic-bezier(.22, 1, .36, 1) forwards; }
+    .journey .d1 { animation-delay: .02s; } .journey .d2 { animation-delay: .1s; } .journey .d3 { animation-delay: .18s; } .journey .d4 { animation-delay: .26s; }
+    @keyframes jrise { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .journey .rise { animation: none; opacity: 1; transform: none; } }
+
+    /* mast: the journey-options (⋯) button injected next to the avatar */
+    .mast .mright { display: flex; align-items: center; gap: 4px; }
+    .mast .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .mast .iconbtn:hover { color: var(--text); }
+    .mast .iconbtn svg { width: 21px; height: 21px; }
+    @media (min-width: 481px) { .mast .mright { pointer-events: auto; } }
+
+    /* header */
+    .journey .jhead { padding: 8px 22px 2px 40px; }
+    .journey .jhead h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.04; color: var(--text); font-weight: 600; }
+    .journey .jhead .sub { font-size: 14px; color: var(--muted); margin-top: 5px; }
+
+    /* ============ ACTIVE JOURNEY CARD ============ */
+    .journey .jcard { position: relative; margin: 16px 0 0; border-radius: 20px; overflow: hidden;
+      border: 1px solid var(--line); box-shadow: var(--card-shadow); background: var(--surface); }
+    .journey .jc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; position: relative; z-index: 3; }
+    .journey .jc-top .ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .jc-shift { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.12; color: var(--text); font-weight: 600; margin-top: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+    .journey .jc-top > div:first-child { flex: 1; min-width: 0; }
+    .journey .jc-shift .from { color: var(--muted); font-weight: 500; font-style: italic; font-size: .74em; }
+    .journey .jc-shift .to-row { display: flex; align-items: baseline; gap: 9px; flex-wrap: nowrap; white-space: nowrap; }
+    .journey .jc-shift .arr { color: var(--gold); font-size: .72em; transform: translateY(-1px); }
+    .journey .jc-shift .to { color: var(--text); position: relative; padding-bottom: 2px; white-space: nowrap; }
+    .journey .jc-shift .to::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 18%, transparent)); }
+    .journey .jc-habit { font-size: 11.5px; color: var(--soft); margin-top: 6px; letter-spacing: .01em; }
+    .journey .daypill { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--gold) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent); padding: 7px 13px; border-radius: 100px; white-space: nowrap; }
+
+    /* the Vine */
+    .journey .vinewrap { position: relative; background:
+      radial-gradient(70% 46% at 78% 24%, rgba(216, 184, 95, .12), transparent 72%),
+      linear-gradient(180deg, rgba(6, 11, 8, .18), rgba(6, 11, 8, 0) 60%); padding: 6px 0 0; }
+    .journey .tree-mount { position: relative; width: 100%; }
+    .journey .tree-mount svg { display: block; width: 100%; height: auto; }
+    .journey .vine-lab { position: absolute; font-family: 'Cormorant Garamond', serif; transition: opacity .9s ease, top .9s ease, left .9s ease; }
+    .journey .vine-lab.false { font-size: 13px; font-style: italic; color: var(--soft); max-width: 44%; line-height: 1.18; }
+    .journey .vine-lab.true { font-size: 15px; font-weight: 600; color: var(--text); text-shadow: 0 0 16px rgba(216, 184, 95, .5); white-space: nowrap; }
+    .journey .vine-root { position: absolute; left: 50%; bottom: 6.5%; transform: translateX(-50%); text-align: center;
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+    .journey .vine-root span { display: block; font-style: normal; font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); margin-top: 3px; }
+    .journey .vine-cap { position: absolute; left: 50%; top: 8%; transform: translate(-50%, -6px); z-index: 5; max-width: 74%; text-align: center;
+      background: color-mix(in srgb, var(--surface) 86%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+      border-radius: 12px; padding: 9px 14px; box-shadow: var(--chip-shadow); opacity: 0; visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility .3s; pointer-events: none; }
+    .journey .vine-cap.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+    .journey .vine-cap .cn { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--goldd); }
+    .journey .vine-cap .ct { display: block; font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.4; }
+
+    /* Fruit log */
+    .journey .fruitlog { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px 16px; }
+    .journey .fruitlog .fl-h { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 11px; }
+    .journey .fl-list { display: flex; flex-direction: column; gap: 11px; }
+    .journey .fl-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 6px; margin: -6px; border-radius: 12px; cursor: pointer; font-family: inherit; transition: background .18s ease; }
+    .journey .fl-item:hover { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+    .journey .fl-item:active { transform: scale(.99); }
+    .journey .fl-go { flex: 0 0 auto; color: var(--soft); display: flex; transition: color .18s ease, transform .18s ease; }
+    .journey .fl-go svg { width: 18px; height: 18px; }
+    .journey .fl-item:hover .fl-go { color: var(--goldd); transform: translateX(2px); }
+    .journey .fl-bud { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: radial-gradient(circle at 50% 42%, rgba(246, 234, 194, .95), rgba(216, 184, 95, .5) 60%, transparent 72%); box-shadow: 0 0 12px -2px rgba(216, 184, 95, .7); }
+    .journey .fl-meta { flex: 1; min-width: 0; }
+    .journey .fl-meta .nm { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); font-weight: 600; line-height: 1.1; }
+    .journey .fl-meta .dy { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* card footer */
+    .journey .jc-foot { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px 2px; position: relative; z-index: 3; }
+    .journey .dots { display: flex; gap: 5px; align-items: center; }
+    .journey .dots i { width: 16px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--text) 15%, transparent); transition: background .4s ease, width .4s ease; }
+    .journey .dots i.done { background: var(--gold); }
+    .journey .dots i.tap { cursor: pointer; }
+    .journey .dots i.tap:hover { height: 7px; }
+    .journey .dots i.viewing { outline: 2px solid var(--goldd); outline-offset: 2px; }
+    .journey .dots i.cur { background: var(--goldd); width: 22px; }
+    .journey .remain { font-size: 12px; color: var(--muted); }
+
+    /* what you'll do today */
+    .journey .today { padding: 12px 18px 4px; position: relative; z-index: 3; }
+    .journey .today .tt { font-family: 'Cormorant Garamond', serif; font-size: 19px; color: var(--text); font-weight: 600; line-height: 1.18; }
+    .journey .today .tref { font-size: 11px; letter-spacing: .04em; color: var(--goldd); font-weight: 600; margin-top: 3px; text-transform: uppercase; }
+    .journey .today .focus { font-size: 13.5px; color: var(--text2); line-height: 1.5; margin-top: 9px; }
+
+    .journey .jc-actions { display: flex; gap: 10px; padding: 14px 16px 16px; position: relative; z-index: 3; }
+    .journey .jc-actions .btn { border-radius: 14px; padding: 15px 18px; }
+    .journey .btn-cont { flex: 1; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); }
+    .journey .btn-view { flex: 0 0 auto; }
+
+    /* faithfulness line */
+    .journey .returnline { display: flex; align-items: center; gap: 10px; margin: 16px 22px 0 18px; font-size: 13px; color: var(--muted); }
+    .journey .returnline svg { width: 16px; height: 16px; color: var(--goldd); flex: 0 0 auto; }
+    .journey .returnline b { color: var(--text2); font-weight: 600; }
+
+    /* ============ ALL JOURNEYS GRID ============ */
+    .journey .allj { margin-top: 24px; }
+    .journey .allj .h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 18px; }
+    .journey .allj .h .t { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .allj .h .c { font-size: 11px; color: var(--muted); }
+    .journey .jgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px 13px 14px; background: var(--surface);
+      box-shadow: var(--chip-shadow); min-height: 104px; display: flex; flex-direction: column; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }
+    .journey .cell:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
+    .journey .cell:active { transform: scale(.985); }
+    .journey .cell .ic { color: var(--muted); } .journey .cell .ic svg { width: 17px; height: 17px; }
+    .journey .cell .st { position: absolute; top: 12px; right: 12px; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+    .journey .cell .st svg { width: 15px; height: 15px; }
+    .journey .cell .nm { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; margin-top: auto; line-height: 1.12; }
+    .journey .cell .nm .a2 { color: var(--muted); } .journey .cell.done .nm .a2 { color: var(--goldd); }
+    .journey .jgrid-empty { grid-column: 1 / -1; font-size: 13px; color: var(--soft); line-height: 1.55; text-align: center; padding: 14px 10px; border: 1px dashed var(--line2); border-radius: 13px; }
+
+    /* see all journeys toggle */
+    .journey .seeall { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 18px; padding: 13px;
+      background: none; border: 1px solid var(--line); border-radius: 13px; color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: .18s; }
+    .journey .seeall:hover { color: var(--text); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+    .journey .seeall svg { width: 16px; height: 16px; transition: transform .3s ease; }
+    .journey .seeall.open svg { transform: rotate(180deg); }
+
+    /* ===== ZERO STATE ===== */
+    .journey .zs-rooted { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); margin-bottom: 16px;
+      padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--chip-shadow); }
+    .journey .zs-rooted b { color: var(--text); font-weight: 600; }
+    .journey .zs-rooted-ic { flex: 0 0 auto; display: flex; color: var(--goldd); }
+    .journey .zs-rooted-ic svg { width: 16px; height: 16px; }
+    .journey .zs-lead { font-size: 15px; line-height: 1.62; color: var(--text2); margin: 2px 2px 22px; text-wrap: pretty; }
+    .journey .zs-h { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin: 0 2px 12px; }
+    .journey .zs-list { display: flex; flex-direction: column; gap: 10px; }
+    .journey .zs-card { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer; font-family: inherit;
+      border: 1px solid var(--line); border-radius: 15px; background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px 15px;
+      transition: border-color .2s ease, transform .14s ease, box-shadow .2s ease; }
+    @media (hover: hover) { .journey .zs-card:hover { border-color: color-mix(in srgb, var(--gold) 32%, transparent);
+      box-shadow: 0 14px 32px -18px rgba(216, 184, 95, .5), var(--chip-shadow); } }
+    .journey .zs-card:active { transform: scale(.99); }
+    .journey .zs-ic { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: var(--field);
+      display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .journey .zs-ic svg { width: 20px; height: 20px; }
+    .journey .zs-txt { flex: 1; min-width: 0; }
+    .journey .zs-shift { display: flex; flex-direction: column; gap: 2px; }
+    .journey .zs-from { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1.12; }
+    .journey .zs-toline { line-height: 1.16; }
+    .journey .zs-arr { color: var(--goldd); font-size: 13px; margin-right: 5px; }
+    .journey .zs-to { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: var(--text); }
+    .journey .zs-line { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45;
+      overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .journey .zs-go { flex: 0 0 auto; color: var(--muted); display: flex; align-self: center; }
+    .journey .zs-go svg { width: 17px; height: 17px; }
+    .journey .zs-seeall { margin-top: 14px; }
+
+    /* ===== plant-the-tree seed flight ===== */
+    .journey .plant-seed { position: absolute; z-index: 52; width: 16px; height: 16px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle at 50% 38%, #fff6dd, var(--gold) 58%, rgba(216, 184, 95, 0) 73%);
+      box-shadow: 0 0 22px 7px rgba(222, 190, 100, .55), 0 0 8px 2px rgba(255, 244, 210, .85);
+      transform: translate(-50%, -50%); will-change: transform, opacity; }
+    .journey .plant-bloom { position: absolute; z-index: 51; width: 120px; height: 120px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, rgba(246, 234, 194, .55), rgba(216, 184, 95, .26) 42%, rgba(216, 184, 95, 0) 70%);
+      transform: translate(-50%, -50%); will-change: transform, opacity; }
+
+    /* ============ DAY FLOW (viewport-fixed) ============ */
+    .journey .dayflow { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; background: var(--bgfield);
+      transform: translateX(100%); transition: transform .42s cubic-bezier(.22, 1, .36, 1); visibility: hidden; }
+    .journey .dayflow.open { transform: none; visibility: visible; }
+    .journey .df-top { display: flex; align-items: center; gap: 13px; padding: max(12px, env(safe-area-inset-top)) 18px 12px; position: relative; z-index: 3;
+      border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .journey .df-back { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .journey .df-back svg { width: 19px; height: 19px; }
+    .journey .df-tt { flex: 1; min-width: 0; }
+    .journey .df-tt .ey { font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--goldd); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .journey .df-tt .nm { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 14px; color: var(--text2); margin-top: 1px; }
+    .journey .df-dots { display: flex; gap: 5px; flex: 0 0 auto; }
+    .journey .df-dots i { width: 13px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--text) 16%, transparent); }
+    .journey .df-dots i.done { background: var(--gold); } .journey .df-dots i.cur { background: var(--goldd); }
+    .journey .df-dots i.viewing { outline: 2px solid var(--goldd); outline-offset: 2px; }
+
+    .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 20px 20px 24px; scrollbar-width: none; }
+    .journey .df-scroll::-webkit-scrollbar { display: none; }
+    .journey .df-h { font-family: 'Cormorant Garamond', serif; font-size: 33px; line-height: 1.06; color: var(--text); font-weight: 600; }
+    .journey .df-sh { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .journey .df-sh .arr { color: var(--goldd); }
+
+    .journey .block { border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px; margin-top: 15px; background: var(--surface); box-shadow: var(--chip-shadow); }
+    .journey .block .lab { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .block p { font-size: 14.5px; line-height: 1.62; color: var(--text2); margin-top: 11px; }
+    .journey .block.scripture { border-left: 3px solid var(--gold); }
+    .journey .block.scripture .verse { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 20px; line-height: 1.42; color: var(--text); margin-top: 12px; }
+    .journey .block.pray { background: var(--prayer); border-color: color-mix(in srgb, var(--gold) 16%, transparent); }
+    .journey .block.pray .pr { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; line-height: 1.52; color: var(--text); margin-top: 12px; }
+    .journey .block.declare { background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 12%, var(--surface)), var(--surface));
+      border-color: color-mix(in srgb, var(--gold) 34%, transparent); box-shadow: 0 0 40px -10px rgba(216, 184, 95, .34), var(--chip-shadow); }
+    .journey .block.declare .dc { font-family: 'Cormorant Garamond', serif; font-size: 20px; line-height: 1.42; color: var(--text); margin-top: 12px; font-weight: 600; }
+    .journey .block.reflect textarea { width: 100%; margin-top: 13px; min-height: 108px; resize: vertical; font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 13px 14px; line-height: 1.55; }
+    .journey .block.reflect textarea::placeholder { color: var(--soft); }
+    .journey .block.reflect textarea:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+
+    .journey .block .lab .step { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
+      background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--goldd); font-size: 9.5px; font-weight: 700; margin-right: 7px; vertical-align: 1px; }
+    .journey .block .insight { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .journey .block.pray .ptitle { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--goldd); font-weight: 600; margin-top: 9px; }
+
+    /* CAST OFF the lie */
+    .journey .block.castoff { background: linear-gradient(180deg, rgba(40, 26, 22, .5), var(--surface)); border-color: rgba(150, 110, 90, .34); }
+    .journey .block.castoff .intro { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+    .journey .lie-card { position: relative; margin-top: 13px; border: 1px solid rgba(170, 120, 96, .4); border-radius: 13px; padding: 15px 16px; background: rgba(26, 18, 15, .5);
+      transition: transform .55s cubic-bezier(.5, 0, .75, 0), opacity .55s ease; }
+    .journey .lie-card .lie-q { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: #C39A86; font-weight: 700; }
+    .journey .lie-card .lie-t { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; line-height: 1.4; color: #E4CDBE; margin-top: 8px; }
+    .journey .lie-card.cast { transform: translateX(118%) rotate(5deg); opacity: 0; }
+    .journey .cast-btn { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; margin-top: 13px; padding: 14px; border-radius: 13px; cursor: pointer;
+      background: rgba(150, 110, 90, .16); border: 1px solid rgba(170, 120, 96, .45); color: #E4CDBE; font-family: inherit; font-size: 14px; font-weight: 600; transition: .2s; }
+    .journey .cast-btn:hover { background: rgba(150, 110, 90, .26); }
+    .journey .cast-btn svg { width: 17px; height: 17px; }
+    .journey .cast-done { display: none; align-items: center; justify-content: center; gap: 9px; margin-top: 13px; padding: 14px; border-radius: 13px;
+      background: color-mix(in srgb, var(--gold) 12%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent); color: var(--goldd); font-size: 14px; font-weight: 600; }
+    .journey .cast-done svg { width: 18px; height: 18px; }
+    .journey .block.castoff.done .cast-btn { display: none; }
+    .journey .block.castoff.done .cast-done { display: flex; }
+
+    /* light-theme contrast for the clay-toned cast-off step */
+    html[data-theme="light"] .journey .block.castoff { background: linear-gradient(180deg, rgba(181, 112, 63, .10), var(--surface)); border-color: rgba(181, 112, 63, .34); }
+    html[data-theme="light"] .journey .lie-card { background: rgba(181, 112, 63, .08); border-color: rgba(181, 112, 63, .34); }
+    html[data-theme="light"] .journey .lie-card .lie-q { color: #9A5A30; }
+    html[data-theme="light"] .journey .lie-card .lie-t { color: #5C3A28; }
+    html[data-theme="light"] .journey .cast-btn { background: rgba(181, 112, 63, .12); border-color: rgba(181, 112, 63, .45); color: #8A4A26; }
+    html[data-theme="light"] .journey .cast-btn:hover { background: rgba(181, 112, 63, .2); }
+
+    /* REPENT & breathe */
+    .journey .block.repent .repent-t { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; line-height: 1.5; color: var(--text); margin-top: 11px; }
+    .journey .repent-stage { margin-top: 16px; }
+    .journey .repent-idle { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 6px 0 2px; }
+    .journey .breath-start { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 22px; border-radius: 100px; cursor: pointer;
+      background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--gold) 28%, var(--field)), var(--field)); color: var(--goldd);
+      border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent); font-family: inherit; font-size: 14.5px; font-weight: 600;
+      box-shadow: 0 10px 28px -12px rgba(216, 184, 95, .5); transition: .2s; }
+    .journey .breath-start:hover { background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--gold) 38%, var(--field)), var(--field)); }
+    .journey .breath-start svg { width: 19px; height: 19px; }
+    .journey .breath-skip-link { background: none; border: 0; color: var(--soft); font-family: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+    .journey .breath-skip-link:hover { color: var(--muted); }
+    .journey .breath-inline { padding-top: 2px; }
+    .journey .breath-inline .breath-stage { width: 184px; height: 184px; }
+    .journey .breath-inline .breath-ring { width: 118px; height: 118px; }
+    .journey .breath-inline .breath-count { font-size: 28px; }
+    .journey .breath-inline .breath { gap: 16px; }
+    .journey .breath-round { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--goldd); font-weight: 700; text-align: center; min-height: 1em; margin-bottom: 2px; }
+    .journey .repent-done { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 14px 0 4px; text-align: center; }
+    .journey .repent-done .rd-ic { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      background: var(--gold); color: #13211A; box-shadow: 0 8px 24px -8px rgba(216, 184, 95, .7); }
+    .journey .repent-done .rd-ic svg { width: 26px; height: 26px; }
+    .journey .repent-done .rd-t { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--goldd); font-weight: 600; }
+    .journey .repent-done .rd-again { background: none; border: 0; color: var(--soft); font-family: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 2px; }
+    .journey .repent-done .rd-again:hover { color: var(--muted); }
+
+    /* ACTION step */
+    .journey .block.action { background: var(--surface); border-color: color-mix(in srgb, var(--gold) 22%, transparent); }
+    .journey .block.action .act-t { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--text); font-weight: 600; margin-top: 10px; }
+    .journey .block.action .act-d { font-size: 14px; line-height: 1.6; color: var(--text2); margin-top: 8px; }
+    .journey .act-check { display: flex; align-items: center; gap: 11px; margin-top: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+      background: var(--field); border: 1px solid var(--line2); color: var(--text); font-family: inherit; font-size: 13.5px; font-weight: 600; width: 100%; transition: .2s; }
+    .journey .act-check .bx { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--line2); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; transition: .2s; }
+    .journey .act-check .bx svg { width: 14px; height: 14px; color: #13211A; opacity: 0; transition: opacity .2s; }
+    .journey .act-check.on { border-color: color-mix(in srgb, var(--gold) 50%, transparent); color: var(--goldd); }
+    .journey .act-check.on .bx { background: var(--gold); border-color: var(--gold); }
+    .journey .act-check.on .bx svg { opacity: 1; }
+    .journey .df-foot { padding: 14px 20px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .journey .df-foot .btn { display: block; width: 100%; max-width: 420px; margin-inline: auto; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); transition: opacity .3s ease, box-shadow .3s ease; }
+    .journey .df-foot .btn[disabled] { opacity: .42; box-shadow: none; cursor: not-allowed; }
+    .journey .df-foot .lockhint { text-align: center; font-size: 11.5px; color: var(--soft); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .3s ease; }
+    .journey .df-foot .lockhint svg { width: 13px; height: 13px; }
+    .journey .df-foot.ready .lockhint { display: none; }
+    /* review mode: read-only revisit of a completed day */
+    .journey .dayflow.reviewing .cast-btn,
+    .journey .dayflow.reviewing .breath-skip-link,
+    .journey .dayflow.reviewing .rd-again { display: none; }
+    .journey .dayflow.reviewing .act-check { pointer-events: none; }
+    .journey .dayflow.reviewing .reflect textarea { opacity: .7; }
+
+    /* sacred loading — "Jesus is preparing the way" */
+    .journey .dayloading { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 30px; min-height: 60vh; }
+    .journey .dl-orb { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+    .journey .dl-orb::before, .journey .dl-orb::after { content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 201, 122, .5), rgba(216, 184, 95, .1) 55%, transparent 72%); animation: dlpulse 3s ease-in-out infinite; }
+    .journey .dl-orb::after { animation-delay: 1.5s; }
+    .journey .dl-orb i { position: relative; width: 46px; height: 46px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 38%, rgba(246, 234, 194, .95), rgba(216, 184, 95, .5) 65%, transparent 75%); box-shadow: 0 0 30px -4px rgba(216, 184, 95, .7); }
+    @keyframes dlpulse { 0%, 100% { transform: scale(.7); opacity: .35; } 50% { transform: scale(1.05); opacity: .9; } }
+    .journey .dl-t { font-family: 'Cormorant Garamond', serif; font-size: 23px; color: var(--text); margin-top: 26px; line-height: 1.3; max-width: 20ch; }
+    .journey .dl-s { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 1.2em; transition: opacity .5s ease; }
+    @media (prefers-reduced-motion: reduce) { .journey .dl-orb::before, .journey .dl-orb::after { animation: none; opacity: .6; } }
+    /* personalizing shimmer on the home today card */
+    .journey .today.gen .tt, .journey .today.gen .focus { opacity: .5; }
+    .journey .gen-tag { display: none; align-items: center; gap: 6px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-top: 9px; }
+    .journey .today.gen .gen-tag { display: flex; }
+    .journey .gen-tag .gd { width: 5px; height: 5px; border-radius: 50%; background: var(--goldd); animation: gdblink 1.2s ease-in-out infinite; }
+    @keyframes gdblink { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+
+    /* Day-1 welcome */
+    .journey .day1note { display: flex; gap: 13px; align-items: flex-start; border: 1px solid color-mix(in srgb, var(--gold) 24%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--surface)), var(--surface)); border-radius: 16px; padding: 15px 16px; margin-top: 16px; }
+    .journey .day1note .d1ic { flex: 0 0 auto; width: 34px; height: 34px; }
+    .journey .day1note .d1t { font-size: 13.5px; line-height: 1.55; color: var(--text2); }
+    .journey .day1note .d1t b { color: var(--text); font-weight: 600; }
+
+    /* ===== MARK-AS-DECLARED (step 5) — no mic, no recording; the act-check
+       pattern from step 7 so every ritual button is uniform ===== */
+    .journey .block.declare.spoken { box-shadow: 0 0 46px -8px rgba(216, 184, 95, .5), var(--chip-shadow); border-color: color-mix(in srgb, var(--gold) 52%, transparent); }
+    .journey .mic-hint { font-size: 13px; color: var(--muted); margin-top: 12px; min-height: 18px; transition: color .3s ease; }
+    .journey .block.declare.spoken .mic-hint { color: var(--goldd); font-weight: 600; }
+
+    /* ============ OVERLAYS (viewport-fixed) ============ */
+    .journey .ov { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; opacity: 0; visibility: hidden;
+      transition: opacity .45s ease, visibility .45s; background: var(--bgfield); }
+    .journey .ov.show { opacity: 1; visibility: visible; }
+    .journey .ov-glow { position: absolute; top: 0; left: 0; right: 0; height: 62%; pointer-events: none;
+      background: radial-gradient(58% 50% at 50% 20%, var(--glow1), transparent 70%); opacity: 0; transition: opacity 1.1s ease; }
+    .journey .ov.show .ov-glow { opacity: 1; }
+    .journey .ov-in { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 42px 28px; overflow-y: auto; scrollbar-width: none; }
+    .journey .ov-in::-webkit-scrollbar { display: none; }
+
+    .journey .dc-tree { position: relative; width: min(74%, 290px); flex: 0 0 auto; }
+    .journey .dc-aff { font-family: 'Cormorant Garamond', serif; font-size: 25px; line-height: 1.3; color: var(--text); margin-top: 20px; max-width: 22ch; }
+    .journey .dc-sub { font-size: 13.5px; color: var(--muted); margin-top: 18px; max-width: 30ch; line-height: 1.55; }
+    .journey .dc-actions { margin-top: 26px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 11px; flex: 0 0 auto; }
+    .journey .dc-actions .btn { width: 100%; }
+
+    /* day-complete: come back tomorrow + reminder picker */
+    .journey .dc-next { margin-top: 22px; max-width: 330px; }
+    .journey .dc-next-t { font-family: 'Cormorant Garamond', serif; font-size: 19px; color: var(--text); font-weight: 600; }
+    .journey .dc-next-s { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+    .journey .dc-remind { width: 100%; max-width: 340px; margin-top: 18px; border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; background: var(--surface); flex: 0 0 auto; }
+    .journey .dc-remind-toggle { width: 100%; display: flex; align-items: center; gap: 11px; padding: 14px 15px; background: none; border: 0; cursor: pointer; color: var(--text); font-family: inherit; font-size: 14.5px; font-weight: 600; text-align: left; }
+    .journey .dc-remind-toggle svg { width: 18px; height: 18px; color: var(--goldd); flex: 0 0 auto; }
+    .journey .dc-remind-toggle .lbl { flex: 1; }
+    .journey .dc-remind-toggle .chev { width: 16px; height: 16px; color: var(--soft); transition: transform .25s ease; }
+    .journey .dc-remind.open .dc-remind-toggle .chev { transform: rotate(180deg); }
+    .journey .dc-remind-state { font-size: 12px; font-weight: 600; color: var(--goldd); }
+    .journey .dc-remind-body { display: none; padding: 2px 15px 16px; }
+    .journey .dc-remind.open .dc-remind-body { display: block; }
+    .journey .dc-times { display: flex; gap: 8px; margin-bottom: 12px; }
+    .journey .dc-times button { flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--line2); background: var(--field); color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: .18s; }
+    .journey .dc-times button.on { background: color-mix(in srgb, var(--gold) 92%, transparent); color: #13211A; border-color: transparent; }
+    .journey .dc-time-custom { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+    .journey .dc-time-custom label { font-size: 12.5px; color: var(--muted); }
+    .journey .dc-time-custom input { font-family: inherit; font-size: 14px; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 10px; padding: 9px 12px; }
+    .journey .dc-remind-set { width: 100%; }
+
+    /* home: locked "come back tomorrow" state */
+    .journey .lock-note { display: none; margin: 12px 16px 16px; border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent); border-radius: 14px; padding: 15px 16px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 8%, var(--surface)), var(--surface)); }
+    .journey .lock-note .ln-top { display: flex; align-items: center; gap: 11px; }
+    .journey .lock-note .ln-ic { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--field); color: var(--goldd); }
+    .journey .lock-note .ln-ic svg { width: 18px; height: 18px; }
+    .journey .lock-note .ln-t { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; line-height: 1.15; }
+    .journey .lock-note .ln-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .journey .lock-note .ln-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .journey .lock-note .ln-rem { font-size: 12.5px; color: var(--text2); display: flex; align-items: center; gap: 7px; }
+    .journey .lock-note .ln-rem svg { width: 15px; height: 15px; color: var(--goldd); }
+    .journey .lock-note .ln-edit { background: none; border: 0; color: var(--goldd); font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .journey .lock-note .ln-preview { display: block; width: 100%; margin-top: 13px; text-align: center; background: none; border: 1px dashed color-mix(in srgb, var(--gold) 30%, transparent); border-radius: 10px; padding: 9px; color: var(--soft); font-family: inherit; font-size: 11.5px; cursor: pointer; }
+    .journey .lock-note .ln-preview:hover { color: var(--muted); }
+    .journey .btn-cont.locked { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+    .journey #journeyComplete .ov-in { justify-content: flex-start; padding-top: 46px; padding-bottom: 50px; }
+    .journey .jc-mark { position: relative; width: min(60%, 232px); flex: 0 0 auto; }
+    .journey .jc-reveal { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 13px; }
+    .journey .jc-from { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; color: var(--muted); opacity: .6; text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 45%, transparent); }
+    .journey .jc-arrow { color: var(--gold); opacity: .85; line-height: 0; } .journey .jc-arrow svg { width: 22px; height: 22px; }
+    .journey .jc-to { font-family: 'Cormorant Garamond', serif; font-size: 30px; line-height: 1.22; color: var(--text); font-weight: 600; text-shadow: 0 0 22px rgba(216, 184, 95, .28); max-width: 16ch; }
+    .journey .jc-bene { font-size: 14px; color: var(--text2); line-height: 1.62; margin-top: 30px; max-width: 32ch; }
+
+    .journey .sharecard { position: relative; width: 300px; max-width: 86%; min-height: 374px; flex: 0 0 auto; margin: 24px auto 0; border-radius: 18px; overflow: hidden;
+      background: radial-gradient(120% 80% at 50% 12%, #1b2c22, #0c130f 72%); border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+      box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .7), 0 0 70px -16px rgba(216, 184, 95, .28); display: flex; flex-direction: column; }
+    .journey .sc-wm { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; justify-content: center; padding: 16px 0 0; }
+    .journey .sc-wm .d { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+    .journey .sc-wm span { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: #F3EFE6; }
+    .journey .sc-body { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 14px 22px 4px; }
+    .journey .sc-tree { position: relative; width: 104px; }
+    .journey .sc-shift { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .sc-dec { font-family: 'Cormorant Garamond', serif; font-size: 18.5px; line-height: 1.34; color: #F3EFE6; text-wrap: pretty; }
+    .journey .sc-ref { position: relative; z-index: 2; text-align: center; font-size: 11px; color: rgba(244, 240, 231, .5); padding: 8px 0 18px; }
+    .journey .jc-actions2 { width: 100%; max-width: 340px; margin-top: 22px; display: flex; flex-direction: column; gap: 11px; flex: 0 0 auto; }
+    .journey .jc-actions2 .btn { width: 100%; }
+    .journey .btn-share { background: var(--gold); color: #13211A; }
+    .journey .btn-share svg { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+
+    .journey .viewer .ov-in { justify-content: center; }
+    .journey .viewer-tree { position: relative; width: min(94%, 420px); }
+    .journey .viewer .vlabels { display: flex; justify-content: space-around; width: min(94%, 420px); margin-bottom: 4px; }
+    .journey .viewer .vlabels span { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; }
+    .journey .viewer .vl { color: var(--goldd); }
+    .journey .viewer .alt { font-size: 13.5px; color: var(--muted); margin-top: 18px; max-width: 32ch; line-height: 1.55; }
+    .journey .viewer .close { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; z-index: 5; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line2);
+      background: color-mix(in srgb, var(--screen) 70%, transparent); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .journey .viewer .close svg { width: 20px; height: 20px; }
+
+    /* ============ SHEETS (viewport-fixed) ============ */
+    .journey .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: var(--screen); border-radius: 24px 24px 0 0;
+      border-top: 1px solid var(--line2); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); transform: translateY(102%);
+      transition: transform .42s cubic-bezier(.22, 1, .36, 1); padding: 0 22px max(24px, env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; scrollbar-width: none; }
+    .journey .sheet::-webkit-scrollbar { display: none; }
+    .journey .sheet.open { transform: translateY(0); }
+    .journey .grabber { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 12px auto 8px; }
+    .journey .sheet h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); margin-top: 8px; }
+    .journey .sheet p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 9px; }
+    .journey .sheet p b { color: var(--text2); font-weight: 600; }
+    .journey .sheet .sactions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .journey .sheet .sactions .btn { width: 100%; }
+    .journey .menu-list { margin: 8px 0 4px; }
+    .journey .menu-list button { width: 100%; display: flex; align-items: center; gap: 13px; padding: 15px 4px; background: none; border: 0; cursor: pointer; text-align: left; color: var(--text); font-size: 15px; font-family: inherit; border-bottom: 1px solid var(--line); }
+    .journey .menu-list button:last-child { border-bottom: 0; }
+    .journey .menu-list button.danger { color: var(--clay); }
+    .journey .menu-list svg { width: 19px; height: 19px; color: var(--goldd); flex: 0 0 auto; }
+    .journey .menu-list button.danger svg { color: var(--clay); }
+    .journey .scrim { position: fixed; inset: 0; z-index: 65; background: rgba(8, 14, 11, .6); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
+    .journey .scrim.open { opacity: 1; visibility: visible; }
+
+    .journey .share-text { width: 100%; margin-top: 14px; min-height: 120px; resize: none; font-family: 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.42;
+      color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 14px; }
+    .journey .share-text:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .journey .care-sheet .care-ic { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 6px auto 2px;
+      background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--goldd); }
+    .journey .care-sheet .care-ic svg { width: 24px; height: 24px; }
+    .journey .care-sheet h3 { text-align: center; }
+    .journey .care-sheet p { text-align: center; max-width: 42ch; margin-left: auto; margin-right: auto; }
+    .journey .care-sheet .care-talk { color: var(--goldd); }
+
+    .journey .toast { position: fixed; left: 50%; bottom: 108px; transform: translate(-50%, 14px); z-index: 80; background: var(--surface);
+      border: 1px solid var(--line2); color: var(--text); font-size: 13px; padding: 11px 18px; border-radius: 100px; box-shadow: var(--card-shadow);
+      opacity: 0; visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility .3s; white-space: nowrap; }
+    .journey .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+    /* rate prompt (journey complete) */
+    .journey .dr-jprompt { margin-top: 30px; }
+
+    /* ============ DESKTOP ============ */
     @media (min-width: 481px) {
-      .journeyp .jin { min-height: 100dvh; padding-top: 60px; }
+      .journey .jhead { max-width: 680px; margin: 0 auto; padding: 80px 24px 0 42px; }
+      .journey .jhead h1 { font-size: 44px; }
+      .journey .scroll { max-width: 680px; width: 100%; margin: 0 auto; padding: 8px 24px 60px; }
+      .journey .ov-in { max-width: 640px; margin: 0 auto; width: 100%; }
+      .journey .dayflow .df-scroll { max-width: 680px; width: 100%; margin: 0 auto; }
+      .journey .dayflow .df-top, .journey .dayflow .df-foot { padding-left: clamp(24px, 4vw, 80px); padding-right: clamp(24px, 4vw, 80px); }
+      .journey .sheet { max-width: 560px; left: 50%; transform: translate(-50%, 102%); }
+      .journey .sheet.open { transform: translate(-50%, 0); }
+      .journey .toast { bottom: 40px; }
     }
   </style>
 </DeclareLayout>

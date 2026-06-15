@@ -25,7 +25,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           <div class="ycard yprofile m-rise">
             <div class="yav" id="yAvatar"><span id="yAvText" class="serif">✝</span></div>
             <div class="yname serif" id="yName">Friend</div>
-            <div class="yrole">Guest &middot; sign-in coming soon</div>
+            <div class="yrole" id="yRole">Guest &middot; not signed in</div>
             <div class="ydivider"></div>
             <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl">day with Declare</span></div>
           </div>
@@ -33,7 +33,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           <div class="ycard yconfirm m-rise">
             <div class="yc-h">Saved on this device</div>
             <ul class="yc-list" id="yStats"></ul>
-            <div class="yc-note">Your words, verses and highlights live safely on this device until accounts arrive.</div>
+            <div class="yc-note">Your words, verses and highlights live safely on this device. Signing in keeps them tied to you.</div>
           </div>
         </aside>
 
@@ -73,10 +73,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               <div class="yh-t">Reminders &amp; notifications</div>
               <div class="yh-d">A daily nudge back to the Word <span class="ybadge">Soon</span></div>
             </button>
-            <button class="yhubcard" data-soon>
+            <button class="yhubcard" id="hubAuth">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></div>
               <div class="yh-t">Sign-in &amp; security</div>
-              <div class="yh-d">Carry your Vault to every device <span class="ybadge">Soon</span></div>
+              <div class="yh-d" id="hubAuthD">Sign in to keep what God gives you</div>
             </button>
             <a class="yhubcard" href="mailto:care@declareandbelieve.com">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
@@ -152,6 +152,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
   <script>
     import { getProfile, setProfile, daysWith } from '../app/declare/profile-store.js';
     import { listItems, listCollections } from '../app/declare/vault-store.js';
+    import { initAuth, isConfigured, isSignedIn, currentUser, signOut, onAuthChange } from '../app/declare/auth-store.js';
+    import { openAuthModal } from '../app/declare/auth-modal.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const $ = (id) => document.getElementById(id);
@@ -238,7 +240,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- modal editors (Airbnb pattern, house motion) ---------- */
     let modalKey = null;
     function openModal() { $('yModal').classList.add('open'); }
-    function closeModal() { $('yModal').classList.remove('open'); modalKey = null; }
+    function closeModal() { $('yModal').classList.remove('open'); modalKey = null; $('ymSave').style.display = ''; }
     $('ymBack').addEventListener('click', closeModal);
     $('ymX').addEventListener('click', closeModal);
     function openEditor(k) {
@@ -300,6 +302,39 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         : 'Discover a fellowship near you';
     }
     $('hubChurch').addEventListener('click', () => { P.church ? openHomeChurch() : openFinder(); });
+
+    /* ---------- real account session (Supabase) ---------- */
+    function renderAuth() {
+      const signedIn = isConfigured() && isSignedIn();
+      const u = signedIn ? currentUser() : null;
+      // first sign-in mirrors the account's name onto this device, so the rail
+      // greets them right away — and it STAYS after sign-out (it lives on the
+      // device, not the session). Only fills a blank name; never overwrites.
+      if (signedIn && u && u.firstName && !getProfile().name) P = setProfile({ name: u.firstName });
+      $('yRole').textContent = signedIn ? ((u && u.email) || 'Signed in') : 'Guest · not signed in';
+      $('hubAuthD').textContent = signedIn ? ('Signed in as ' + ((u && u.email) || 'you')) : 'Sign in to keep what God gives you';
+      // keep the rail (name + avatar) in sync with the device profile across sign-in/out
+      P = getProfile(); renderRail();
+    }
+    $('hubAuth').addEventListener('click', () => {
+      if (!(isConfigured() && isSignedIn())) {
+        // Julienne model: the account card opens right here
+        openAuthModal({ mode: 'signin', onSuccess: () => { renderAuth(); toast('Welcome back.'); } });
+        return;
+      }
+      const u = currentUser() || {};
+      modalKey = 'auth';
+      $('ymTitle').textContent = 'Your account';
+      $('ymSub').textContent = 'Signed in as ' + (u.email || 'you') + '. Your words and verses stay on this device for now.';
+      $('ymBody').innerHTML = '<button class="btn btn-ghost" id="ymSignout" style="width:100%;margin-top:16px">Sign out</button>';
+      $('ymSave').style.display = 'none';
+      document.getElementById('ymSignout').addEventListener('click', async () => {
+        await signOut(); closeModal(); renderAuth(); toast('Signed out on this device.');
+      });
+      openModal();
+    });
+    initAuth().then(renderAuth);
+    onAuthChange(renderAuth);
 
     /* ---------- church finder (Google Maps + Places, lazy) ---------- */
     let gmapsLoading = null, map = null, places = null, markers = [];
@@ -402,6 +437,16 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         + (c.user_ratings_total ? ' <span class="dim">(' + c.user_ratings_total + ')</span>' : '');
     }
     function setChurch(c) {
+      // Searching for churches is open to everyone; SAVING one as "My church"
+      // is a kept thing — it needs an account. The card opens right here and
+      // saves the moment they're in.
+      if (isConfigured() && !isSignedIn()) {
+        openAuthModal({ mode: 'signup', message: 'Create a free account to set your home church.', onSuccess: () => doSetChurch(c) });
+        return;
+      }
+      doSetChurch(c);
+    }
+    function doSetChurch(c) {
       const loc = c.geometry ? { lat: c.geometry.location.lat(), lng: c.geometry.location.lng() } : null;
       P = setProfile({ church: { name: c.name, address: c.vicinity || c.formatted_address || '', placeId: c.place_id || '', loc } });
       toast('“' + c.name + '” is your home church.');

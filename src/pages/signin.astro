@@ -1,0 +1,53 @@
+---
+// v3.2 /signin — a thin shell for the shared account modal (Julienne model:
+// the card opens over the app; this route exists for deep links and the /you
+// hub). The form, modes, validation and Supabase calls live in
+// src/app/declare/auth-modal.js. ?return=<path> brings the user back.
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+const MODE = 'signin';
+---
+<DeclareLayout title="Declare — Sign in" description="Sign in to Declare to keep what God gives you.">
+  <main class="authpage" data-mode={MODE}>
+    <div class="topglow" aria-hidden="true"></div>
+
+    <!-- accounts not configured yet (missing keys) -->
+    <div class="ap-missing" id="apMissing" hidden>
+      <div class="serif">Almost ready.</div>
+      <p>Accounts need their Supabase keys. Add <code>PUBLIC_SUPABASE_URL</code> and <code>PUBLIC_SUPABASE_ANON_KEY</code> to <code>.env</code> and restart the build &mdash; until then, everything works without signing in.</p>
+      <a class="btn btn-ghost" href="/today">Back to Declare</a>
+    </div>
+  </main>
+
+  <script>
+    import { initAuth, isConfigured, isSignedIn } from '../app/declare/auth-store.js';
+    import { openAuthModal } from '../app/declare/auth-modal.js';
+
+    function returnTo() {
+      const r = new URLSearchParams(location.search).get('return') || '';
+      return (r.startsWith('/') && !r.startsWith('//')) ? r : '/you';
+    }
+
+    const mode = document.querySelector('.authpage').dataset.mode === 'signup' ? 'signup' : 'signin';
+    initAuth().then(() => {
+      if (!isConfigured()) { document.getElementById('apMissing').hidden = false; return; }
+      if (isSignedIn()) { location.replace(returnTo()); return; }
+      openAuthModal({ mode, returnTo: returnTo(), onSuccess: () => { location.href = returnTo(); } });
+      // closing the modal on this shell means "never mind" — go back
+      const watch = setInterval(() => {
+        const w = document.querySelector('.am-wrap');
+        if (w && !w.classList.contains('open')) { clearInterval(watch); if (!isSignedIn()) location.href = returnTo(); }
+      }, 300);
+    });
+  </script>
+
+  <style is:global>
+    body:has(.authpage) > .tabbar, body:has(.authpage) > .mast { display: none; }
+    .authpage { position: relative; min-height: 100dvh; }
+    .authpage .ap-missing { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 30px; }
+    .authpage .ap-missing[hidden] { display: none; }
+    .authpage .ap-missing .serif { font-size: 24px; color: var(--text); }
+    .authpage .ap-missing p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 10px; max-width: 40ch; }
+    .authpage .ap-missing code { color: var(--goldd); background: var(--field); padding: 2px 7px; border-radius: 6px; font-size: 12px; }
+    .authpage .ap-missing .btn { margin-top: 22px; }
+  </style>
+</DeclareLayout>

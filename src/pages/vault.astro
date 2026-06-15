@@ -78,6 +78,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
   <script>
     import { listItems, removeItem, listCollections, addCollection, removeCollection } from '../app/declare/vault-store.js';
+    import { initAuth } from '../app/declare/auth-store.js';
+    import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    initAuth(); // resolve any saved session before the user reaches a gate
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -229,6 +232,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>';
       }
       $('focusIn').innerHTML = html;
+      // bridge: hand /journey the struggle so it plants the matching vine and opens Day 1
+      const vd = $('focusIn').querySelector('.vdeep a[href="/journey"]');
+      if (vd && jrn) vd.addEventListener('click', () => {
+        try {
+          localStorage.setItem('declare-start-journey', '1');
+          localStorage.setItem('declare-journey-struggle', jrn.struggle);
+        } catch (e) {}
+      });
       const del = $('collDelete');
       if (del) del.onclick = () => { removeCollection(name); toast('Collection removed'); closeFocus(); render(); };
       $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
@@ -276,6 +287,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     /* ---- New collection sheet ---- */
     let pendingMode = null, pendingKind = 'verse';
     function openCreate() {
+      // gate before they invest in naming it
+      if (!ensureSignedIn('Create a free account to build your own collections.')) return;
       $('createStep1').classList.remove('hidden'); $('createStep2').classList.add('hidden');
       $('createSheet').classList.add('open'); $('vscrim').classList.add('open');
     }

@@ -233,6 +233,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   <script>
     import { generateContent, isCompleteResult } from '../app/declare/declare-api.js';
     import { saveItem, removeItem, isSaved, wordId } from '../app/declare/vault-store.js';
+    import { initAuth } from '../app/declare/auth-store.js';
+    import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    initAuth(); // resolve any saved session before the user reaches a gate
 
     // The Declare flow default per the Bible Integration Spec. The brain call,
     // prompts, streaming, and crisis logic in declare-api.js are unchanged.
@@ -486,6 +489,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     function toggleSave() {
       if (!content || !currentId) return;
+      if (!ensureSignedIn('Create a free account to keep this word in your Vault.')) return;
       if (isSaved(currentId)) {
         removeItem(currentId);
         showToast('Removed from Vault.');
@@ -569,7 +573,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     /* back / reset */
     $('resultsBack').addEventListener('click', () => { stopSpeak(); showView(entryView); });
     $('anotherWord').addEventListener('click', () => { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); });
-    $('startJourney').addEventListener('click', () => { location.href = '/journey'; });
+    $('startJourney').addEventListener('click', () => {
+      // bridge: /journey reads these, maps the struggle to a journey, and opens Day 1
+      try {
+        localStorage.setItem('declare-start-journey', '1');
+        localStorage.setItem('declare-journey-struggle', activeStruggle || '');
+      } catch (e) {}
+      location.href = '/journey';
+    });
   </script>
 
   <style is:global>
