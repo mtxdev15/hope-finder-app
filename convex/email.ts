@@ -3,10 +3,10 @@ import { components } from "./_generated/api";
 import { ActionCtx } from "./_generated/server";
 
 // ── Single source of truth for the sender ───────────────────────────────────
-// Resend's shared test sender. Until the declareandbelieve.com domain is verified
-// in Resend (later step), real delivery is limited to the Resend account's own
-// email. Swap this one line to a verified address when ready.
-const FROM_EMAIL = "Declare & Believe <onboarding@resend.dev>";
+// `noreply` on the verified declareandbelieve.com root domain. Because the domain
+// is verified in Resend, reset emails deliver to any recipient. Swap this one line
+// if the sending address or domain ever changes.
+const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
 
 // testMode:false so the component will enqueue to real addresses (default is true,
 // which only permits *@resend.dev). Reads RESEND_API_KEY from the deployment env.
@@ -14,7 +14,7 @@ const resend: Resend = new Resend(components.resend, { testMode: false });
 
 export const sendResetPassword = async (
   ctx: ActionCtx,
-  { to, url }: { to: string; url: string }
+  { to, url }: { to: string; url: string },
 ) => {
   await resend.sendEmail(ctx, {
     from: FROM_EMAIL,
