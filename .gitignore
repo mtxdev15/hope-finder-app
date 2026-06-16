@@ -28,3 +28,5 @@ worker/.dev.vars
 worker/.wrangler/
 .claude/settings.local.json
 .impeccable/
+
+.env.local
