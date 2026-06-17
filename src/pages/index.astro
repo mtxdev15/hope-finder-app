@@ -1,16 +1,160 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import App from '../app/app.jsx';
-import '../styles/db-base.css';
-import '../styles/theme.css';
-import '../styles/scripture.css';
-import '../styles/church.css';
-import '../styles/profile.css';
+// / — the Begin page (v3 entry threshold). Ported from design-source Hero.html,
+// adapted FULL-BLEED via the declare.css `.app-shell` modifier so it matches the
+// live app (no desktop phone-frame). This RETIRES the v1 React app from `/`.
+//
+// Entry gate (the rule App-Flow.html described but was never wired):
+//   • same-day returner (declare-begin-day === today) → /today  (inline, pre-paint, no flash)
+//   • signed-in user → /today  (after the auth session resolves)
+//   • brand-new / first-of-day visitor → sees Begin
+//   • ?stay=1 forces Begin to show (for review)
+//
+// SEO: the homepage's rich <noscript> keyword block is preserved verbatim for crawlers.
 ---
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style is:inline id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}.rl-overlay{opacity:0!important;visibility:hidden!important;}.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Scripture for the weight you carry</title>
+<meta name="description" content="Declare gives Christians Scripture-rooted words — a verse, a short reflection, declarations to speak, and a prayer — for whatever is weighing on them. Name what's heavy. Receive His Word for this moment." />
+<link rel="canonical" href="https://declareandbelieve.com/" />
 
-<Layout>
-  <App client:only="react" />
-  <noscript>
+<link rel="icon" type="image/png" sizes="32x32" href="/declare/brand/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="/declare/brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="/declare/brand/apple-touch-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Declare" />
+<meta property="og:title" content="Declare — Scripture for the weight you carry" />
+<meta property="og:description" content="Name what's heavy. Receive His Word for this moment." />
+<meta property="og:image" content="/declare/brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="/declare/brand/og.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" /></noscript>
+<link rel="stylesheet" href="/declare/declare.css" />
+<link rel="stylesheet" href="/declare/motion.css" />
+
+<style is:inline>
+  /* Hero-specific (verbatim from design-source Hero.html) */
+  .hero{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 28px 30px; }
+  .hero .kicker{ margin-bottom:22px; max-width:24ch; line-height:1.7; }
+  .hero .word{ font-size:clamp(58px,17vw,72px); line-height:.98; font-weight:600; color:var(--text); letter-spacing:.01em; text-shadow:0 0 60px rgba(222,190,100,.35); }
+  .hero .sub{ font-size:21px; font-style:italic; color:var(--soft); margin-top:22px; max-width:18ch; line-height:1.45; }
+  .hero .markwrap{ width:96px; height:96px; margin:0 auto 24px; display:flex; align-items:center; justify-content:center;
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.4)) drop-shadow(0 0 24px rgba(222,190,100,.26)); }
+  html[data-theme="light"] .hero .markwrap{ filter:drop-shadow(0 8px 16px rgba(34,56,46,.18)); }
+  .hero .markwrap img{ width:100%; height:100%; object-fit:contain; }
+  .hero .markwrap .mk-light{ display:none; }
+  html[data-theme="light"] .hero .markwrap .mk-dark{ display:none; }
+  html[data-theme="light"] .hero .markwrap .mk-light{ display:block; }
+
+  .herofoot{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:0 26px 30px; }
+  .herofoot a{ display:flex; align-items:center; gap:13px; font-size:15px; white-space:nowrap; transition:transform .16s ease; }
+  .herofoot a:active{ transform:translateY(1px); }
+  .herofoot .begin{ color:var(--text); font-weight:500; }
+  .herofoot .begin svg{ color:var(--gold); }
+  .herofoot .signin{ color:var(--muted); font-size:14px; background:none; border:0; cursor:pointer; font-family:inherit; }
+  .herofoot .uarrow{ width:34px; height:11px; overflow:visible; }
+  .herofoot .uarrow path:first-child{ transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .5s ease; transform-origin:right center; transform:scaleX(.62); opacity:.65; }
+  .herofoot .uarrow path:last-child{ transition:transform .5s cubic-bezier(.16,1,.3,1); }
+  .herofoot a:hover .uarrow path:first-child{ transform:scaleX(1); opacity:1; }
+  .herofoot a:hover .uarrow path:last-child{ transform:translateX(3px); }
+  @media (prefers-reduced-motion: reduce){ .herofoot .uarrow path{ transition:none !important; transform:none !important; opacity:1 !important; } }
+
+  /* full-screen menu */
+  .hero-menu .hm-close{ position:absolute; top:18px; right:20px; z-index:2; width:42px; height:42px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .4s var(--ease-soft), border-color .3s ease; }
+  .hero-menu.open .hm-close{ transform:rotate(0deg); }
+  .hero-menu .hm-close{ transform:rotate(-90deg); }
+  @media (hover:hover){ .hero-menu .hm-close:hover{ border-color:var(--gold); } }
+  .hero-menu .hm-inner{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:2px; padding:0 34px; max-width:640px; margin:0 auto; width:100%; }
+  .hero-menu .hm-k{ font-size:10px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); margin-bottom:26px; font-weight:600; }
+  .hero-menu .hm-item{ display:flex; align-items:center; justify-content:space-between; gap:18px; padding:11px 0; text-decoration:none;
+    border-bottom:1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+  .hero-menu .hm-item .hm-t{ font-family:'Cormorant Garamond',serif; font-size:clamp(32px,8.4vw,44px); font-weight:600; color:var(--text); line-height:1.05; white-space:nowrap; transition:color .35s var(--ease-soft), transform .45s var(--ease-reveal); }
+  .hero-menu .hm-item .uarrow{ width:38px; height:12px; color:var(--muted); opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .45s var(--ease-reveal), color .3s ease; }
+  .hero-menu .hm-item .uarrow path:first-child{ transform-origin:right center; transform:scaleX(.5); transition:transform .5s var(--ease-reveal); }
+  @media (hover:hover){
+    .hero-menu .hm-item:hover .hm-t{ color:var(--goldd); transform:translateX(8px); }
+    .hero-menu .hm-item:hover .uarrow{ opacity:1; transform:none; color:var(--goldd); }
+    .hero-menu .hm-item:hover .uarrow path:first-child{ transform:scaleX(1); }
+  }
+  .hero-menu .hm-foot{ display:flex; align-items:center; gap:14px; margin-top:30px; font-size:13.5px; }
+  .hero-menu .hm-foot a{ color:var(--muted); text-decoration:none; transition:color .25s ease; }
+  .hero-menu .hm-foot a:hover{ color:var(--text); }
+  .hero-menu .hm-foot span{ color:var(--line2); }
+  @media (prefers-reduced-motion: reduce){ .hero-menu .hm-close{ transform:none !important; } }
+</style>
+<script is:inline>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"dark";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script is:inline>/* entry gate: Begin is a once-a-day threshold. Same-day returners skip
+   straight to /today. Brand-new / first-of-day visitors see Begin. ?stay=1 forces it. */
+(function(){try{
+  var p=new URLSearchParams(location.search);
+  if(p.has('stay')||p.has('begin'))return;
+  var today=new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('declare-begin-day')===today){ location.replace('/today'); }
+}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="stage app-shell">
+  <div class="phone">
+    <div class="screen">
+      <div class="coreglow" aria-hidden="true"></div>
+      <div class="coreglow2" aria-hidden="true"></div>
+
+      <div class="bar"><span>9:41</span><span class="right"><span>&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
+
+      <div class="mast">
+        <span class="dot" aria-hidden="true"></span>
+        <button class="menu" id="menuBtn" aria-label="Open menu" aria-expanded="false">Menu
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+
+      <div class="hero">
+        <div class="markwrap rise d1"><img class="mk-dark" src="/declare/brand/logo-dark-tight.png" alt="Declare &amp; Believe" /><img class="mk-light" src="/declare/brand/logo-light-tight.png" alt="" aria-hidden="true" /></div>
+        <div class="lbl kicker rise d2" id="heroKicker">Scripture, for the weight you carry</div>
+        <div class="serif word rise d3">Declare</div>
+        <div class="serif sub rise d4" id="heroSub">Name what&rsquo;s heavy. Receive His Word for this moment.</div>
+      </div>
+
+      <div class="herofoot rise d5">
+        <a class="begin m-breath m-press" id="beginLink" href="/today">Begin
+          <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
+        </a>
+        <button class="signin" id="signinLink" type="button">Sign in
+          <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- full-screen menu overlay (Unseen-style threshold) -->
+<nav class="m-menu hero-menu" id="heroMenu" data-m-stagger aria-hidden="true">
+  <button class="hm-close" id="menuClose" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="hm-inner">
+    <div class="hm-k m-menu-item">Declare &amp; Believe</div>
+    <a class="hm-item m-menu-item" href="/today"><span class="hm-t">Declare</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/welcome"><span class="hm-t">How it works</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/word"><span class="hm-t">Word</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/journey"><span class="hm-t">Journey</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/vault"><span class="hm-t">Vault</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/you"><span class="hm-t">You</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <div class="hm-foot m-menu-item"><a href="/crisis">Find help now</a><span>&middot;</span><a href="/today">Receive a word</a></div>
+  </div>
+</nav>
+
+<noscript>
 <div style="max-width:720px;margin:0 auto;padding:2rem 1rem;font-family:Georgia,serif;color:#1a1a1a;line-height:1.7;">
 
 <h1 style="font-size:1.75rem;margin:0 0 1rem;">Declare and Believe — Scripture for Every Mindset Battle</h1>
@@ -36,45 +180,62 @@ import '../styles/profile.css';
 <p style="margin:0 0 1rem;"><strong>Fear and Anxiety</strong> — 2 Timothy 1:7 says God has not given us a spirit of fear, but of power, love, and a sound mind. When anxiety overwhelms, Scripture reminds you that fear is not your portion. God's perfect love casts out fear.</p>
 <p style="margin:0 0 1rem;"><strong>Shame and Guilt</strong> — Romans 8:1 declares there is no condemnation for those in Christ Jesus. Shame was broken at the cross. Through Jesus, you receive forgiveness, righteousness, and a new identity — fully accepted, fully loved by God.</p>
 <p style="margin:0 0 1rem;"><strong>Feeling Like a Failure</strong> — Philippians 1:6 promises that God who began a good work in you will complete it. Failure does not define you. God's grace and faithfulness do. You are still His workmanship, still being made into who He created you to be.</p>
-<p style="margin:0 0 1rem;"><strong>Comparison and Jealousy</strong> — Galatians 6:4 invites you to test your own work and find satisfaction in what God has made you to be. Comparison steals your peace and blinds you to your unique calling. You were not created to be someone else.</p>
-<p style="margin:0 0 1rem;"><strong>Overthinking and Worry</strong> — Philippians 4:6-7 instructs believers not to be anxious, but to bring everything to God in prayer. Scripture promises God's peace will guard your mind. Casting your cares on Him is the antidote to overthinking.</p>
 <p style="margin:0 0 1rem;"><strong>Loneliness</strong> — Hebrews 13:5 says God will never leave you nor forsake you. Even when no human is near, the Holy Spirit dwells within every believer. You are seen. You are known. You are never truly alone.</p>
-<p style="margin:0 0 1rem;"><strong>No Purpose</strong> — Jeremiah 29:11 declares God has plans for you — plans for hope and a future. Ephesians 2:10 calls you His workmanship, created for good works prepared before you were born. Your life carries divine purpose.</p>
-<p style="margin:0 0 1rem;"><strong>Feeling Lost</strong> — Psalm 32:8 says God will instruct you and teach you in the way you should go. When the path is unclear, Scripture promises His guidance. You are not lost to Him, even when you feel lost to yourself.</p>
 <p style="margin:0 0 1rem;"><strong>Doubt and Unbelief</strong> — Mark 9:24 records a father crying out, "I believe; help my unbelief." Honest doubt brought to God is not weakness. Faith grows through wrestling, not avoiding. God meets you in the questions, not just the answers.</p>
 <p style="margin:0 0 1rem;"><strong>Anger and Bitterness</strong> — Ephesians 4:31-32 instructs believers to release bitterness and forgive as Christ forgave. Holding anger gives the enemy ground in your life. Forgiveness is not weakness — it is freedom and obedience to God.</p>
-<p style="margin:0 0 1rem;"><strong>Financial Stress</strong> — Philippians 4:19 promises God will supply all your needs according to His riches in glory. Scripture teaches that God is provider. Trust in His faithfulness, not the size of your account, brings true peace.</p>
-<p style="margin:0 0 1rem;"><strong>Feeling Unworthy</strong> — Ephesians 2:10 says you are God's workmanship. Psalm 139:14 declares you are fearfully and wonderfully made. Your worth is not earned — it is given. You are loved, chosen, and called by the Creator of the universe.</p>
 <p style="margin:0 0 1rem;"><strong>Grief and Loss</strong> — Psalm 34:18 says the Lord is close to the brokenhearted. Revelation 21:4 promises a day when He will wipe away every tear. Grief is a sacred space where God draws nearest. You do not grieve alone.</p>
-<p style="margin:0 0 1rem;"><strong>Broken Identity</strong> — 2 Corinthians 5:17 declares you are a new creation in Christ — the old has passed away. Your identity is not your past, your feelings, or your circumstances. You are who God says you are.</p>
-<p style="margin:0 0 1rem;"><strong>Perfectionism</strong> — 2 Corinthians 12:9 reminds you that God's grace is sufficient, and His power is made perfect in weakness. You were not called to be flawless. You were called to be faithful. God uses imperfect people on purpose.</p>
 <p style="margin:0 0 1rem;"><strong>Depression and Hopelessness</strong> — Psalm 42:11 asks the soul why it is downcast and answers — hope in God. Scripture acknowledges deep sorrow while pointing to God as the lifter of your head. You are seen. You are not alone. Hope is not lost.</p>
-<p style="margin:0 0 1rem;"><strong>Suicidal Thoughts</strong> — Your life is sacred and known by God. Psalm 139 declares you were fearfully and wonderfully made. If you are in crisis, please call or text 988 (Suicide and Crisis Lifeline) immediately. You are loved. You are needed. Your life has meaning.</p>
-<p style="margin:0 0 1rem;"><strong>Spiritual Dryness</strong> — Psalm 63:1 expresses thirst for God in a dry land. Seasons of dryness are not abandonment — they are invitations to deeper hunger. God meets the seeking heart with refreshing presence.</p>
-<p style="margin:0 0 1rem;"><strong>Adultery and Sexual Sin</strong> — 1 John 1:9 promises that if we confess our sins, God is faithful and just to forgive and cleanse us. Scripture offers true restoration, not just rules. God's grace meets repentance with full forgiveness and a new identity in Christ.</p>
-<p style="margin:0 0 1rem;"><strong>Trauma and Unhealed Wounds</strong> — Psalm 147:3 says God heals the brokenhearted and binds up their wounds. Healing is His ministry. Scripture offers both comfort for the pain and a path toward wholeness through Christ.</p>
-<p style="margin:0 0 1rem;"><strong>Verbal Abuse</strong> — Proverbs 18:21 reminds you that death and life are in the power of the tongue. Words spoken over you do not define you. Scripture gives you authority to declare God's truth louder than any voice that hurt you.</p>
-<p style="margin:0 0 1rem;"><strong>Emotional Abuse</strong> — Psalm 34:17-18 says when the righteous cry out, the Lord hears and delivers. God sees what others did to you. He calls you out of patterns of harm and into His healing love.</p>
-<p style="margin:0 0 1rem;"><strong>Feeling Abandoned</strong> — Isaiah 41:10 promises God is with you — do not be dismayed. Even when people leave, God remains. His presence is the constant. You are not forgotten. You are not left behind.</p>
-<p style="margin:0 0 1rem;"><strong>Victimization</strong> — Romans 8:37 declares you are more than a conqueror through Christ who loved you. What was meant for harm, God works for good. You are not defined by what happened to you. You are defined by who Christ is in you.</p>
-<p style="margin:0 0 1rem;"><strong>Self Sabotage</strong> — Romans 7:15-25 acknowledges the war between flesh and spirit, then points to the answer: thanks be to God through Jesus Christ. You are not stuck in your patterns. Christ in you is greater than the habits that hurt you.</p>
-<p style="margin:0 0 1rem;"><strong>Control</strong> — Proverbs 3:5-6 says trust in the Lord with all your heart and lean not on your own understanding. Surrender is not weakness. It is the beginning of peace. God holds what you cannot.</p>
+<p style="margin:0 0 1rem;"><strong>Feeling Unworthy</strong> — Ephesians 2:10 says you are God's workmanship. Psalm 139:14 declares you are fearfully and wonderfully made. Your worth is not earned — it is given. You are loved, chosen, and called by the Creator of the universe.</p>
 
 <h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Why Scripture-Based Mind Renewal Works</h2>
 <p style="margin:0 0 1rem;">Romans 12:2 calls believers to be transformed by the renewing of the mind. This is not motivation. It is not self-help. It is the spiritual discipline of replacing lies with God's Word until your thought patterns align with truth.</p>
-<p style="margin:0 0 1rem;">Proverbs 18:21 declares that death and life are in the power of the tongue. What you speak shapes what you believe. What you believe shapes how you live. Declarations rooted in Scripture are how you participate in your own transformation.</p>
 <p style="margin:0 0 1rem;">The mind renewed by Scripture is the mind freed from fear, shame, doubt, and despair. This is the work Declare and Believe was built to support — one struggle, one moment, one declaration at a time.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">How to Use Declare and Believe</h2>
-<p style="margin:0 0 1rem;"><strong>For Daily Practice</strong> — Start each morning by tapping one struggle and speaking the declaration over your day.</p>
-<p style="margin:0 0 1rem;"><strong>For Crisis Moments</strong> — When fear, shame, or despair hits at 2am, open the app and let Scripture speak directly to what you're carrying right now.</p>
-<p style="margin:0 0 1rem;"><strong>For Renewing Your Identity</strong> — Replace the lies the enemy has whispered with the truth of who God says you are. Every declaration is built to overwrite a false belief — a thought that you are unworthy, unloved, unseen, or unwanted — with Scripture that speaks the opposite. This is the practical work of renewing your mind: identifying the lie, naming the truth, and speaking it until it becomes how you see yourself.</p>
-<p style="margin:0 0 1rem;"><strong>For Prayer and Devotionals</strong> — Use the personalized verses and prayer as the foundation of your quiet time. Speak the declaration aloud as part of your worship.</p>
-<p style="margin:0 0 1rem;"><strong>For Sharing with Others</strong> — Save and share the response with someone who needs it. The Word of God spoken into someone's life is a gift.</p>
-
 <h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">About JC Kingdom Ventures</h2>
-<p style="margin:0 0 1rem;">Declare and Believe is built by JC Kingdom Ventures, a Kingdom-minded company committed to creating tools that help believers walk in their true identity in Christ. No matter your situation or struggle, God made no mistake when it came to you. Your life has purpose, your words have power, and your thoughts shape the direction of your future. So walk in faith, speak with intention, and never forget that you were created for a reason.</p>
+<p style="margin:0 0 1rem;">Declare and Believe is built by JC Kingdom Ventures, a Kingdom-minded company committed to creating tools that help believers walk in their true identity in Christ. No matter your situation or struggle, God made no mistake when it came to you. Your life has purpose, your words have power, and your thoughts shape the direction of your future.</p>
 
 </div>
-  </noscript>
-</Layout>
+</noscript>
+
+<script is:inline src="/declare/theme.js"></script>
+<script is:inline src="/declare/motion.js"></script>
+<script>
+  import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
+  import { openAuthModal } from '../app/declare/auth-modal.js';
+
+  // Signed-in users always skip Begin → straight to /today (covers cross-day).
+  initAuth().then(() => { try { if (isSignedIn()) location.replace('/today'); } catch (e) {} });
+
+  // Crossing the threshold records today's date — Begin won't reappear until tomorrow.
+  function crossToday(){ try { localStorage.setItem('declare-begin-day', new Date().toISOString().slice(0, 10)); } catch (e) {} }
+  document.querySelectorAll('#beginLink, #menuBtn, .hm-item').forEach((a) => a.addEventListener('click', crossToday));
+
+  // "Sign in" opens the in-place auth modal (Julienne); success → /today.
+  const signinBtn = document.getElementById('signinLink');
+  if (signinBtn) signinBtn.addEventListener('click', () => {
+    openAuthModal({ mode: 'signin', onSuccess: () => location.replace('/today') });
+  });
+
+  // Full-screen menu open/close.
+  const menuBtn = document.getElementById('menuBtn');
+  const menu = document.getElementById('heroMenu');
+  const menuClose = document.getElementById('menuClose');
+  function openMenu(){ menu.querySelectorAll('.m-menu-item').forEach((el, i) => el.style.setProperty('--i', i)); menu.classList.add('open'); menu.setAttribute('aria-hidden', 'false'); menuBtn.setAttribute('aria-expanded', 'true'); }
+  function closeMenu(){ menu.classList.remove('open'); menu.setAttribute('aria-hidden', 'true'); menuBtn.setAttribute('aria-expanded', 'false'); }
+  menuBtn.addEventListener('click', openMenu);
+  menuClose.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.classList.contains('open')) closeMenu(); });
+
+  // Greet a returning, signed-in user by name + part of day.
+  try {
+    const fn = localStorage.getItem('declare-firstname');
+    if (fn) {
+      const h = new Date().getHours();
+      const part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+      const k = document.getElementById('heroKicker');
+      if (k) k.textContent = 'Good ' + part + ', ' + fn;
+    }
+  } catch (e) {}
+</script>
+</body>
+</html>
