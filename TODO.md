@@ -4,11 +4,12 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
-- [ ] **Find a church** — add `PUBLIC_GMAPS_KEY` to **Cloudflare Pages → Production** env vars
-      (copy the value from local `.env`), then redeploy. Confirm in **Google Cloud** that the key has
-      **Maps JavaScript API + Places API enabled** and an **HTTP-referrer restriction** including
-      `https://declareandbelieve.com/*`. Live `/you` currently shows the "needs its Google Maps key"
-      fallback because the var is missing in production.
+- [~] **Build the designed-but-unbuilt content pages** — ship static like the SEO pages, wire links:
+      - **About** (`/about`) — the story/mission page. ← building now (custom founder copy)
+      - **FAQ** (`/faq`).
+      - **Give** (`/give`) — donations (V3 monetization).
+      - **Help** → **`mailto:support@declareandbelieve.com`** (no page — opens the user's mail client).
+      - ~~Listen~~ — removed (no page; links deleted).
 
 ## ✅ Verify on the live site (manual)
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
@@ -25,8 +26,6 @@ Done items move to the bottom or get deleted.
 - [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
       because it links to 6 sibling pages that don't exist yet (control, depression, fear,
       overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
-- [ ] **Orphan nav/footer links.** About, Give, Help, Listen have no real pages (currently point to
-      `/`). Build them or remove the links.
 
 ## 🎨 Polish / ongoing
 - [ ] **Cinematic motion parity.** unseen.co-style scroll animations + atmospheric design should
@@ -38,3 +37,4 @@ Done items move to the bottom or get deleted.
 ## ✔️ Recently shipped
 - v3 app + 14 SEO landing pages live; production Convex + Better Auth; real 404 page.
 - Entry flow: Begin page at `/` (v1 retired) + "How it works" landing at `/welcome`.
+- Find-a-church fixed (`PUBLIC_GMAPS_KEY` set in Cloudflare prod + preview; key restricted in Google Cloud).
