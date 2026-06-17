@@ -1,34 +1,55 @@
-/* Declare & Believe — real accounts (Supabase Auth).
+/* Declare & Believe — real accounts (Convex + Better Auth).
    Single source of truth for sign-up / sign-in / session state, same
    one-module pattern as vault-store and profile-store.
 
-   The anon key is public-class (like the Maps key): it only allows what
-   Supabase's row-level security allows, and we store no user data server-side
-   yet — the account simply gates actions. Keys live in the gitignored .env:
-     PUBLIC_SUPABASE_URL=...
-     PUBLIC_SUPABASE_ANON_KEY=...
+   The Convex SITE url is public-class: the client only does what the
+   Better Auth backend (deployment good-dotterel-906) allows. It lives in
+   the gitignored .env:
+     PUBLIC_CONVEX_SITE_URL=https://good-dotterel-906.convex.site
+     PUBLIC_AUTH_PROVIDERS=google   (read by auth-modal.js to render buttons)
 
-   UNCONFIGURED (keys missing): isConfigured() is false and every gate fails
-   OPEN — the app keeps working ungated rather than breaking. /signin shows
-   its "Almost ready" panel. */
+   UNCONFIGURED (url missing): isConfigured() is false and every gate fails
+   OPEN — the app keeps working ungated rather than breaking. */
 
-import { createClient } from '@supabase/supabase-js';
+import { createAuthClient } from 'better-auth/client';
+import { convexClient, crossDomainClient } from '@convex-dev/better-auth/client/plugins';
 
-const URL = import.meta.env.PUBLIC_SUPABASE_URL || '';
-const KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
+const SITE_URL = import.meta.env.PUBLIC_CONVEX_SITE_URL || '';
 
 let client = null;
-let session = null;
+let sessionData = null; // { user, session } | null
 let inited = null;
 const subs = [];
 
 export function isConfigured() {
-  return !!(URL && KEY);
+  return !!SITE_URL;
 }
 
-function sb() {
-  if (!client && isConfigured()) client = createClient(URL, KEY);
+function ac() {
+  if (!client && isConfigured()) {
+    client = createAuthClient({
+      baseURL: SITE_URL,
+      plugins: [convexClient(), crossDomainClient()],
+      // After a Google redirect the get-session call fails CORS because of an
+      // Authorization header (get-convex/better-auth #129). Strip it on every request.
+      fetchOptions: {
+        onRequest(context) {
+          if (context && context.headers) context.headers.delete('Authorization');
+        },
+      },
+    });
+  }
   return client;
+}
+
+function fire() { subs.forEach((cb) => { try { cb(); } catch (e) {} }); }
+
+async function refreshSession() {
+  try {
+    const res = await ac().getSession();
+    sessionData = (res && res.data) || null;
+  } catch (e) { /* keep last known */ }
+  return sessionData;
 }
 
 /* Resolve the persisted session once per page load; after this resolves,
@@ -36,14 +57,11 @@ function sb() {
 export function initAuth() {
   if (inited) return inited;
   if (!isConfigured()) {
-    console.warn('[auth] PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_ANON_KEY not set — sign-in gates are open.');
+    console.warn('[auth] PUBLIC_CONVEX_SITE_URL not set — sign-in gates are open.');
     inited = Promise.resolve(null);
     return inited;
   }
-  inited = sb().auth.getSession()
-    .then(({ data }) => { session = data.session || null; return session; })
-    .catch(() => { session = null; return null; });
-  sb().auth.onAuthStateChange((_event, s) => { session = s || null; subs.forEach((cb) => { try { cb(); } catch (e) {} }); });
+  inited = refreshSession();
   return inited;
 }
 
@@ -51,87 +69,88 @@ export function initAuth() {
 export function onAuthChange(cb) { subs.push(cb); }
 
 export function isSignedIn() {
-  return !!session;
+  return !!(sessionData && sessionData.user);
 }
 
 export function currentUser() {
-  if (!session || !session.user) return null;
-  const u = session.user;
-  return {
-    email: u.email || '',
-    firstName: (u.user_metadata && u.user_metadata.first_name) || '',
-  };
+  if (!sessionData || !sessionData.user) return null;
+  const u = sessionData.user;
+  const first = ((u.name || '').trim().split(/\s+/)[0]) || '';
+  return { email: u.email || '', firstName: first };
 }
 
-/* All three return { ok, error } — error is a human sentence, never a code. */
+/* All return { ok, error } — error is a human sentence, never a code.
+   Matches Better Auth error shape { message, code, status }. */
 function nice(err) {
-  const m = (err && err.message) || '';
-  if (/invalid login credentials/i.test(m)) return 'That email and password don’t match. Try again?';
-  if (/already registered/i.test(m)) return 'That email already has an account — sign in instead.';
-  if (/rate limit/i.test(m)) return 'Too many tries — wait a moment and try again.';
-  if (/valid email/i.test(m)) return 'That doesn’t look like an email address.';
-  if (/password should be at least/i.test(m)) return 'Use at least 8 characters for your password.';
+  const m = ((err && err.message) || '') + ' ' + ((err && err.code) || '');
+  const status = err && err.status;
+  if (/invalid.*(email|password|credentials)|INVALID_EMAIL_OR_PASSWORD/i.test(m)) return 'That email and password don’t match. Try again?';
+  if (/already.*exist|already registered|USER_ALREADY_EXISTS/i.test(m)) return 'That email already has an account — sign in instead.';
+  if (status === 429 || /rate.?limit|too many/i.test(m)) return 'Too many tries — wait a moment and try again.';
+  if (/valid email|INVALID_EMAIL/i.test(m)) return 'That doesn’t look like an email address.';
+  if (/password.*(short|at least|8)|PASSWORD_TOO_SHORT/i.test(m)) return 'Use at least 8 characters for your password.';
   if (/failed to fetch|network|load failed/i.test(m)) return 'Can’t reach the server — check your connection and try again.';
-  if (/provider is not enabled|not enabled/i.test(m)) return 'That sign-in option isn’t turned on yet.';
+  if (/provider.*(not enabled|disabled)|not enabled/i.test(m)) return 'That sign-in option isn’t turned on yet.';
   if (/same.*password|should be different/i.test(m)) return 'Choose a password different from your old one.';
-  if (/session.*missing|auth session|expired|invalid|otp/i.test(m)) return 'This reset link has expired — request a new one.';
-  if (/for security purposes|only request this after|rate/i.test(m)) return 'Just sent one — give it a minute before trying again.';
-  return m || 'Something went wrong — please try again.';
+  if (/token|expired|invalid|session.*missing|INVALID_TOKEN/i.test(m)) return 'This reset link has expired — request a new one.';
+  return (err && err.message) || 'Something went wrong — please try again.';
 }
 
 export async function signUp({ name, email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { data, error } = await sb().auth.signUp({
-    email, password,
-    options: { data: { first_name: name || '' } },
-  });
+  const { error } = await ac().signUp.email({ name: name || '', email, password });
   if (error) return { ok: false, error: nice(error) };
-  session = data.session || session;
-  // "Confirm email" ON in Supabase => no session until they click the email
-  if (!data.session) return { ok: true, needsConfirm: true };
+  await refreshSession(); fire();
+  // Verification is OFF ⇒ a session exists immediately. needsConfirm kept for shape only.
   return { ok: true };
 }
 
 export async function signIn({ email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { data, error } = await sb().auth.signInWithPassword({ email, password });
+  const { error } = await ac().signIn.email({ email, password });
   if (error) return { ok: false, error: nice(error) };
-  session = data.session || null;
+  await refreshSession(); fire();
   return { ok: true };
 }
 
-/* Forgot password — sends an email with a recovery link to `redirectTo`
-   (which must be in Supabase's redirect allow-list). The link lands on
-   /reset-password, where the recovery session lets updatePassword() run. */
+/* Forgot password — emails a reset link to `redirectTo?token=…`. The link lands
+   on /reset-password, which reads the token and calls updatePassword(). */
 export async function resetPassword(email, redirectTo) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { error } = await sb().auth.resetPasswordForEmail(email, { redirectTo });
+  const { error } = await ac().requestPasswordReset({ email, redirectTo });
   if (error) return { ok: false, error: nice(error) };
   return { ok: true };
 }
 
-/* Set a new password — only works while a recovery (or normal) session is
-   active, i.e. after the user has followed the reset link. */
+/* Set a new password using the token from the reset link in the URL.
+   Interface stays single-arg: the token is read here, not passed by the caller. */
 export async function updatePassword(password) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { error } = await sb().auth.updateUser({ password });
+  const token = new URLSearchParams(window.location.search).get('token');
+  if (!token) return { ok: false, error: 'This reset link has expired — request a new one.' };
+  const { error } = await ac().resetPassword({ newPassword: password, token });
   if (error) return { ok: false, error: nice(error) };
   return { ok: true };
 }
 
-/* OAuth (Google / Apple / Facebook). This LEAVES the page: the browser
-   redirects to the provider and returns to `redirectTo`, where the client
-   re-establishes the session from the URL automatically (detectSessionInUrl).
-   `redirectTo` must be listed in Supabase → Authentication → URL Configuration. */
+/* OAuth (Google). LEAVES the page: the browser redirects to the provider and
+   returns to `redirectTo` (callbackURL), where initAuth() re-establishes the
+   session on next load. */
 export async function signInWithProvider(provider, redirectTo) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { error } = await sb().auth.signInWithOAuth({ provider, options: { redirectTo } });
-  if (error) return { ok: false, error: nice(error) };
-  return { ok: true }; // success = the browser is now navigating away
+  try {
+    const { data, error } = await ac().signIn.social({ provider, callbackURL: redirectTo });
+    if (error) return { ok: false, error: nice(error) };
+    // Defensive: if the client returned a URL without auto-navigating, go there.
+    if (data && data.url && typeof window !== 'undefined') window.location.href = data.url;
+    return { ok: true }; // success = the browser is now navigating away
+  } catch (e) {
+    return { ok: false, error: nice(e) };
+  }
 }
 
 export async function signOut() {
   if (!isConfigured()) return;
-  try { await sb().auth.signOut(); } catch (e) {}
-  session = null;
+  try { await ac().signOut(); } catch (e) {}
+  sessionData = null; fire();
 }
