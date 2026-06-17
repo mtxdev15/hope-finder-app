@@ -4,12 +4,13 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
-- [~] **Build the designed-but-unbuilt content pages** — ship static like the SEO pages, wire links:
-      - **About** (`/about`) — the story/mission page. ← building now (custom founder copy)
-      - **FAQ** (`/faq`).
-      - **Give** (`/give`) — donations (V3 monetization).
-      - **Help** → **`mailto:support@declareandbelieve.com`** (no page — opens the user's mail client).
-      - ~~Listen~~ — removed (no page; links deleted).
+- [~] **Build remaining content pages** — ship static like the SEO pages, wire links:
+      - [x] **About** (`/about`) — live, custom founder copy.
+      - [x] **Help** → `mailto:support@declareandbelieve.com` (wired into About + `/welcome`).
+      - [x] ~~Listen~~ — removed (no links existed).
+      - [ ] **FAQ** (`/faq`).
+      - [ ] **Give** (`/give`) — donations (V3 monetization). When it ships, swap the About page's
+            primary CTA back from "Receive a word" to "Support Declare".
 
 ## ✅ Verify on the live site (manual)
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,

@@ -23,6 +23,14 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- About / story -->
+  <url>
+    <loc>https://declareandbelieve.com/about</loc>
+    <lastmod>2026-06-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
   <!-- Primary entry: receive a word -->
   <url>
     <loc>https://declareandbelieve.com/today</loc>
