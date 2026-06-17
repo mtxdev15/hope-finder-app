@@ -22,3 +22,5 @@ Allow: /
 
 User-agent: CCBot
 Allow: /
+
+Sitemap: https://declareandbelieve.com/sitemap.xml

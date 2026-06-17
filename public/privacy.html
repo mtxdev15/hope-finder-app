@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
+<meta charset="UTF-8" />
+<style id="anti-flash">/* __anti_flash__ — paints a solid theme color on the FIRST frame so there is
+   never a white blink between documents (the page's gradient layers on top once declare.css loads).
+   background-color !important survives the page's shorthand `background:var(--bgfield)` which would
+   otherwise reset the color to transparent before the custom property is defined. */
+html{background-color:#0E1A14!important;}
+html[data-theme="light"]{background-color:#FAF7F2!important;}
+.rl-overlay{opacity:0!important;visibility:hidden!important;}
+.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0c130f" />
+<title>Declare — Privacy Policy</title>
+<meta name="description" content="How Declare (a product of JC Kingdom Ventures) handles your information. What you carry is sacred — we keep your saved words and reflections private to your account." />
+<link rel="icon" type="image/png" sizes="64x64" href="/declare/brand/favicon-64.png" />
+<link rel="apple-touch-icon" href="/declare/brand/apple-touch-icon.png" />
+
+<!-- social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Declare — Privacy Policy" />
+<meta property="og:description" content="Name what's heavy and receive His Word for this moment." />
+<meta property="og:image" content="/declare/brand/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="/declare/brand/og.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="/declare/declare.css" />
+
+
+<style>
+  html,body{ background:var(--bgfield); }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 28px; }
+  .top{ position:sticky; top:0; z-index:20; padding:18px 0; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); background:linear-gradient(to bottom, rgba(12,19,15,.7), transparent); }
+  .topin{ max-width:720px; margin:0 auto; padding:0 28px; display:flex; align-items:center; justify-content:space-between; }
+  html[data-theme="light"] .top{ background:linear-gradient(to bottom, rgba(250,247,242,.8), transparent); }
+  .top .brand{ display:flex; align-items:center; gap:10px; }
+  .top .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(216,184,95,.7); }
+  .top .brand .wm{ font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); }
+  .top .home{ font-size:13px; color:var(--text2); }
+  .hero{ padding:60px 0 8px; }
+  .hero .kicker{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .hero h1{ font-family:'Cormorant Garamond',serif; font-size:clamp(40px,7vw,58px); font-weight:600; color:var(--text); margin-top:14px; line-height:1.05; }
+  .hero .upd{ font-size:13px; color:var(--muted); margin-top:16px; }
+  .lead{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; line-height:1.5; color:var(--soft); margin:30px 0 10px; }
+  .doc{ padding:14px 0 80px; }
+  .doc h2{ font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:var(--text); margin:38px 0 12px; }
+  .doc p{ font-size:15.5px; line-height:1.72; color:var(--text2); margin-bottom:14px; }
+  .doc ul{ margin:0 0 14px 0; padding-left:20px; }
+  .doc li{ font-size:15.5px; line-height:1.7; color:var(--text2); margin-bottom:8px; }
+  .doc a{ color:var(--goldd); font-weight:600; }
+  .doc strong{ color:var(--text); font-weight:600; }
+  .rise{ opacity:0; transform:translateY(16px); animation:rise .8s cubic-bezier(.2,.72,.2,1) forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .rise{ opacity:1!important; transform:none!important; animation:none!important; } }
+
+  /* ---------- site nav + slide-out menu (matches the rest of the site) ---------- */
+  .nav{ position:fixed; top:0; left:0; right:0; z-index:30; padding:16px 20px; pointer-events:none; }
+  .navin{ max-width:1760px; margin:0 auto; padding:15px 20px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; pointer-events:auto;
+    border-radius:999px; background:transparent; border:1px solid transparent; box-shadow:none;
+    transition:max-width .55s cubic-bezier(.2,.7,.2,1), padding .55s cubic-bezier(.2,.7,.2,1), background .5s ease, border-color .5s ease, box-shadow .5s ease; }
+  .nav.scrolled .navin{ max-width:1040px; padding:11px 14px 11px 22px;
+    background:rgba(20,30,24,.62); border-color:rgba(244,239,230,.1);
+    backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+    box-shadow:0 18px 50px -18px rgba(0,0,0,.7), 0 0 60px -16px rgba(216,184,95,.22), inset 0 1px 0 rgba(255,255,255,.06); }
+  html[data-theme="light"] .nav.scrolled .navin{ background:rgba(255,255,255,.66); border-color:rgba(34,56,46,.1); box-shadow:0 18px 44px -20px rgba(34,56,46,.3), 0 0 50px -18px rgba(201,168,76,.25), inset 0 1px 0 rgba(255,255,255,.8); }
+  .brand{ display:flex; align-items:center; gap:11px; justify-self:center; }
+  .brand .bdot{ width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 14px rgba(216,184,95,.7); animation:dotpulse 4.5s ease-in-out infinite; }
+  @keyframes dotpulse{ 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+  .brand .wm{ font-family:'Cormorant Garamond',serif; font-size:25px; font-weight:600; color:var(--text); letter-spacing:.01em; }
+  .navlinks{ display:flex; align-items:center; gap:28px; justify-self:start; }
+  .navlinks a{ font-size:14px; color:var(--text2); transition:color .2s ease; position:relative; }
+  .navlinks a:hover{ color:var(--text); }
+  .navlinks a::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .26s ease; }
+  .navlinks a:hover::after{ transform:scaleX(1); }
+  .navcta{ display:flex; align-items:center; gap:14px; justify-self:end; white-space:nowrap; }
+  .navcta .signin{ font-size:14px; color:var(--text2); transition:color .2s ease; }
+  .navcta .signin:hover{ color:var(--text); }
+  .navcta .begin{ display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:999px; background:var(--cta); color:var(--ctatext); font-size:14px; font-weight:600; box-shadow:0 10px 24px -10px rgba(216,184,95,.5); transition:transform .16s ease, filter .2s ease; }
+  .navcta .begin:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+  .navcta .begin svg{ width:15px; height:15px; }
+  .navmenu{ width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid var(--line2); background:var(--field); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .16s ease, background .2s ease; }
+  .navmenu:hover{ transform:translateY(-1px); }
+  .navmenu svg{ width:18px; height:18px; }
+  .menuscrim{ position:fixed; inset:0; z-index:40; background:rgba(8,14,11,.5); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .35s ease; }
+  .menuscrim.open{ opacity:1; pointer-events:auto; }
+  .menupanel{ position:fixed; top:0; right:0; bottom:0; z-index:41; width:min(460px,90vw); background:var(--bgfield); border-left:1px solid var(--line); box-shadow:-30px 0 80px -30px rgba(0,0,0,.7); transform:translateX(100%); transition:transform .42s cubic-bezier(.2,.7,.2,1); display:flex; flex-direction:column; padding:26px 38px 40px; overflow-y:auto; }
+  .menupanel.open{ transform:none; }
+  .menutop{ display:flex; align-items:center; justify-content:space-between; }
+  .menutop .mt-title{ font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:var(--text); }
+  .menutop .mt-actions{ display:flex; align-items:center; gap:14px; }
+  .menutop .signin{ font-size:14px; color:var(--text2); }
+  .menutop .begin{ display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:999px; background:var(--cta); color:var(--ctatext); font-size:14px; font-weight:600; }
+  .menuclose{ width:40px; height:40px; border-radius:50%; border:1px solid var(--line2); background:var(--field); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .menuclose svg{ width:16px; height:16px; }
+  .menusec{ margin-top:32px; }
+  .menusec .ms-lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+  .menusec .ms-link{ display:block; font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--muted); padding:7px 0; transition:color .2s ease, padding-left .25s cubic-bezier(.2,.7,.2,1); }
+  .menusec .ms-link:hover{ color:var(--text); padding-left:8px; }
+  .menucols{ display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:34px; }
+  .menucols h5{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+  .menucols a{ display:block; font-size:15px; color:var(--text2); margin-bottom:12px; transition:color .2s ease, padding-left .2s ease; }
+  .menucols a:hover{ color:var(--text); padding-left:3px; }
+  .menubene{ margin-top:auto; padding-top:30px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--goldd); }
+  .hero{ padding-top:122px; }
+  @media (max-width:680px){
+    .navin{ display:flex !important; align-items:center; justify-content:space-between; }
+    .navlinks{ display:none !important; }
+    .navcta .signin{ display:none !important; }
+    .brand{ justify-self:auto; }
+    .hero{ padding-top:104px; }
+  }
+</style>
+<script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"system";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+
+<style>/* __unseen_menu_v1__ — full-screen threshold menu + thin Unseen arrows (matches app motion) */
+.menuscrim{ background:rgba(8,14,11,.5) !important; z-index:198 !important; } html[data-theme="light"] .menupanel{ background:#FAF7F2 !important; }
+.menupanel{
+  left:0 !important; width:100% !important; max-width:none !important;
+  background:#0E1A14 !important; z-index:199 !important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.12) !important; backdrop-filter:blur(26px) saturate(1.12) !important;
+  border-left:0 !important; box-shadow:none !important;
+  transform:translateY(22px) !important; opacity:0; visibility:hidden !important; pointer-events:none !important;
+  transition:opacity .5s cubic-bezier(.2,.7,.2,1), transform .62s cubic-bezier(.16,1,.3,1), visibility .5s !important;
+  padding:clamp(30px,5.5vw,70px) clamp(26px,9vw,130px) !important; overflow-y:auto;
+}
+.menupanel.open{ transform:none !important; opacity:1; visibility:visible !important; pointer-events:auto !important; }
+.menupanel > *{ max-width:940px; margin-left:auto; margin-right:auto; width:100%; }
+.menusec{ margin-top:clamp(26px,5vh,60px) !important; }
+.menusec .ms-link{ font-size:clamp(34px,6.2vw,58px) !important; opacity:0; transform:translateY(18px);
+  transition:opacity .5s ease, transform .55s cubic-bezier(.16,1,.3,1), color .2s ease, padding-left .25s cubic-bezier(.2,.7,.2,1) !important; }
+.menupanel.open .ms-link{ opacity:1; transform:none; }
+.menupanel.open .ms-link:nth-child(2) > span.msw{ transition-delay:.05s; }
+.menupanel.open .ms-link:nth-child(3) > span.msw{ transition-delay:.11s; }
+.menupanel.open .ms-link:nth-child(4) > span.msw{ transition-delay:.17s; }
+.menupanel.open .ms-link:nth-child(5) > span.msw{ transition-delay:.23s; }
+.menupanel.open .ms-link:nth-child(6) > span.msw{ transition-delay:.29s; }
+.menucols, .menu-appearance, .menubene{ opacity:0; transform:translateY(14px);
+  transition:opacity .5s ease .28s, transform .55s cubic-bezier(.16,1,.3,1) .28s !important; }
+.menupanel.open .menucols, .menupanel.open .menu-appearance, .menupanel.open .menubene{ opacity:1; transform:none; }
+/* thin Unseen drawing-arrows */
+.navcta .begin svg, .cta svg, .coda-btn svg{ width:30px !important; height:9px !important; overflow:visible; }
+.navcta .begin:hover svg, .cta:hover svg, .coda-btn:hover svg{ transform:none !important; }
+.begin svg path:first-child, .cta svg path:first-child, .coda-btn svg path:first-child{ transform-origin:right center; transform:scaleX(.58); opacity:.62; transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .5s ease; }
+.begin:hover svg path:first-child, .cta:hover svg path:first-child, .coda-btn:hover svg path:first-child{ transform:scaleX(1); opacity:1; }
+.begin svg path:last-child, .cta svg path:last-child, .coda-btn svg path:last-child{ transition:transform .5s cubic-bezier(.16,1,.3,1); }
+.begin:hover svg path:last-child, .cta:hover svg path:last-child, .coda-btn:hover svg path:last-child{ transform:translateX(3px); }
+@media (prefers-reduced-motion: reduce){
+  .menupanel{ transform:none !important; }
+  .menupanel .ms-link > span.msw, .menucols, .menu-appearance, .menubene{ opacity:1 !important; transform:none !important; transition:none !important; }
+  .begin svg path, .cta svg path, .coda-btn svg path{ transform:none !important; opacity:1 !important; }
+}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="navin">
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#story">How it works</a>
+      <a href="/#why">Why Declare</a>
+      <a href="/">Support</a>
+    </nav>
+    <a class="brand" href="/"><span class="bdot" aria-hidden="true"></span><span class="wm">Declare</span></a>
+    <div class="navcta">
+      <a class="signin" href="/signin">Sign in</a>
+      <a class="begin" href="/today">Begin <svg viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+      <button class="navmenu" id="menuOpen" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="menuscrim" id="menuScrim"></div>
+<aside class="menupanel" id="menuPanel" aria-label="Menu">
+  <div class="menutop">
+    <span class="mt-title">Menu</span>
+    <div class="mt-actions">
+      <a class="signin" href="/signin">Sign in</a>
+      <a class="begin" href="/today">Begin</a>
+      <button class="menuclose" id="menuClose" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="menusec">
+    <div class="ms-lbl">Explore</div>
+    <a class="ms-link" href="/#story"><span class="msw">How it works</span></a>
+    <a class="ms-link" href="/#why"><span class="msw">Why Declare</span></a>
+    <a class="ms-link" href="/word"><span class="msw">The Word</span></a>
+    <a class="ms-link" href="/"><span class="msw">Support</span></a>
+    <a class="ms-link" href="/"><span class="msw">About</span></a>
+  </div>
+  <div class="menucols">
+    <div>
+      <h5>Company</h5>
+      <a href="/">Our mission</a>
+      <a href="/">Help &amp; support</a>
+      <a href="/">Give a tithe</a>
+      <a href="/crisis">Find help now</a>
+    </div>
+    <div>
+      <h5>Legal</h5>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
+  <div class="menu-appearance">
+    <div class="ms-lbl">Appearance</div>
+    <nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+  </div>
+  <div class="menubene">To God be the glory.</div>
+</aside>
+<div class="wrap">
+  <section class="hero rise">
+    <div class="kicker">Legal</div>
+    <h1>Privacy Policy</h1>
+    <div class="upd">Last updated: June 2026</div>
+  </section>
+  <p class="lead rise">What you carry is sacred. We treat your words, reflections, and prayers with the reverence they deserve.</p>
+  <div class="doc rise">
+    <h2>Who we are</h2>
+    <p>Declare is a product of <strong>JC Kingdom Ventures</strong> (&ldquo;Declare,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;), reachable at declareandbelieve.com. This policy explains what we collect, why, and the choices you have.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account details</strong> &mdash; your name, email, and country, so you can sign in and we can personalize your experience.</li>
+      <li><strong>What you save</strong> &mdash; the words, verses, declarations, and prayers you keep in Anchor, plus your chosen translation, text size, and home church.</li>
+      <li><strong>What you enter</strong> &mdash; the struggles you select or the words you type to receive Scripture. These are used to generate your response.</li>
+      <li><strong>Basic usage</strong> &mdash; limited, privacy-respecting analytics to keep Declare reliable and improve it.</li>
+    </ul>
+
+    <h2>How we use it</h2>
+    <p>To give you Scripture-rooted words, to save and sync what you keep in Anchor, to remember your preferences, and to keep the service secure. We do <strong>not</strong> sell your personal information, and we do not use the private contents of your reflections to build advertising profiles.</p>
+
+    <h2>AI-generated content</h2>
+    <p>Your selected struggle or free-text entry is sent securely to our language-model provider to generate your verse, reflection, declarations, and prayer. We minimize what we send and do not attach unnecessary identifying information.</p>
+
+    <h2>Crisis &amp; safety</h2>
+    <p>Declare never generates content for thoughts of self-harm. If crisis intent is detected, we route you to human help (such as the 988 Suicide &amp; Crisis Lifeline). See <a href="/crisis">Find help now</a>.</p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>Access, correct, or delete your account from <a href="/you">Account</a>.</li>
+      <li>Remove any saved item from Vault at any time.</li>
+      <li>Request a copy or full deletion of your data by emailing us.</li>
+    </ul>
+
+    <h2>Data retention &amp; security</h2>
+    <p>We keep your data only as long as your account is active or as needed to provide the service, and we protect it with industry-standard safeguards. No method of transmission is perfectly secure, but we work to protect what you entrust to us.</p>
+
+    <h2>Children</h2>
+    <p>Declare is intended for adults. We do not knowingly collect information from children under 13.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about your privacy? Email <a href="mailto:support@declareandbelieve.com">support@declareandbelieve.com</a>. See also our <a href="/terms">Terms of Service</a>.</p>
+  </div>
+</div>
+<script src="/declare/theme.js"></script>
+<script>
+(function(){
+  var nav=document.querySelector('.nav');
+  function onScroll(){ nav.classList.toggle('scrolled', window.scrollY>40); }
+  onScroll(); window.addEventListener('scroll', onScroll, {passive:true});
+  var scrim=document.getElementById('menuScrim'), panel=document.getElementById('menuPanel');
+  function openMenu(){ scrim.classList.add('open'); panel.classList.add('open'); }
+  function closeMenu(){ scrim.classList.remove('open'); panel.classList.remove('open'); }
+  document.getElementById('menuOpen').addEventListener('click', openMenu);
+  document.getElementById('menuClose').addEventListener('click', closeMenu);
+  scrim.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
+})();
+</script>
+</body>
+</html>
