@@ -30,6 +30,14 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         });
       },
     },
+    // Google OAuth. Credentials read from Convex env vars (never hardcoded).
+    // Redirect URI is {CONVEX_SITE_URL}/api/auth/callback/google, already registered in Google Cloud.
+    socialProviders: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      },
+    },
     plugins: [
       // Required for client-side frameworks (cross-domain cookies).
       crossDomain({ siteUrl }),
