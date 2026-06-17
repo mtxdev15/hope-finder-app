@@ -1,6 +1,6 @@
 /* Declare & Believe — device-local Vault store (V1 persistence decision).
    Everything a user keeps lives in localStorage under 'declare-vault-v1' —
-   no accounts yet ("Saved on this device"). Supabase migrates this later.
+   no accounts yet ("Saved on this device"). Convex migrates this later.
    Item shape (forward-compatible):
      { id, type: 'word' | 'verse' | 'declaration' | 'prayer',
        struggle?, translation?, verses?, explanation?, declarations?, prayer?,

@@ -3,7 +3,7 @@
    brand visual on the left, a compact form on the right, sign-in and
    create-account as two modes of the same card (toggle in the footer),
    inline validation, a loading state on the button, and a check-your-inbox
-   state when Supabase's "Confirm email" is on. The user never loses their
+   state for the password-reset email. The user never loses their
    place in the app.
 
      openAuthModal({ mode: 'signup'|'signin', message?, onSuccess? })
@@ -19,7 +19,7 @@ let root = null, state = null;
 
 /* Social logins appear ONLY for providers listed in PUBLIC_AUTH_PROVIDERS
    (comma-separated, e.g. "google" or "google,apple,facebook"). Until a
-   provider is both configured in Supabase AND named here, its button never
+   provider is both configured in Better Auth AND named here, its button never
    shows — no dead controls while setup is in progress. */
 const PROVIDERS = {
   google: { label: 'Continue with Google',

@@ -1,6 +1,6 @@
 /* Declare & Believe — device-local profile (V1 persistence decision).
    Who the user is, on THIS device — no accounts yet ("Saved on this device");
-   Supabase migrates this later. Shape:
+   Convex migrates this later. Shape:
      { name, about, favoriteVerse, interests: [..],
        church: { name, address, placeId } | null,
        since: ts (first time the app saw this person) } */

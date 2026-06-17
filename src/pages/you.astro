@@ -303,7 +303,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
     $('hubChurch').addEventListener('click', () => { P.church ? openHomeChurch() : openFinder(); });
 
-    /* ---------- real account session (Supabase) ---------- */
+    /* ---------- real account session (Convex + Better Auth) ---------- */
     function renderAuth() {
       const signedIn = isConfigured() && isSignedIn();
       const u = signedIn ? currentUser() : null;
