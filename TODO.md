@@ -34,6 +34,11 @@ Done items move to the bottom or get deleted.
       is preserved for crawlers. Monitor that the homepage keeps its indexing.
 
 ## ✔️ Recently shipped
+- **Struggles hub** (`/struggles`) — editorial index of all 13 struggle pages, grouped into 4
+  categories, with scroll-revealed serif rows + hover motion. Linked from the Begin menu, the
+  slide-out nav on every struggle page, and the footer (so users + Google discover them on-site,
+  not just via AI/search). In the sitemap.
+- Content pages: About (founder note + Our Mission), Help (`/help`), FAQ (`/faq`), Give (`/give`).
 - v3 app + 14 SEO landing pages live; production Convex + Better Auth; real 404 page.
 - Entry flow: Begin page at `/` (v1 retired) + "How it works" landing at `/welcome`.
 - Find-a-church fixed (`PUBLIC_GMAPS_KEY` set in Cloudflare prod + preview; key restricted in Google Cloud).
