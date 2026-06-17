@@ -4,13 +4,11 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
-- [~] **Build remaining content pages** — ship static like the SEO pages, wire links:
-      - [x] **About** (`/about`) — live, custom founder copy.
-      - [x] **Help** → `mailto:support@declareandbelieve.com` (wired into About + `/welcome`).
-      - [x] ~~Listen~~ — removed (no links existed).
-      - [ ] **FAQ** (`/faq`).
-      - [ ] **Give** (`/give`) — donations (V3 monetization). When it ships, swap the About page's
-            primary CTA back from "Receive a word" to "Support Declare".
+- [x] **Content pages built** — About (`/about`, founder note + Our Mission), Help (`/help`),
+      FAQ (`/faq`), Give (`/give`). All links routed site-wide; "Give a tithe" renamed to "Give".
+- [ ] **Wire Give payments (Stripe).** `/give` is the finished donation UI but the button is a
+      visual stub — it does NOT charge a card yet. Connect a processor (Stripe Checkout / Payment
+      Links, or similar) so "Give $X" actually collects the gift. Until then, no real donations flow.
 
 ## ✅ Verify on the live site (manual)
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
