@@ -152,7 +152,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
   <script>
     import { getProfile, setProfile, daysWith } from '../app/declare/profile-store.js';
     import { listItems, listCollections, onChange } from '../app/declare/vault-store.js';
-    import { initAuth, isConfigured, isSignedIn, currentUser, signOut, onAuthChange, isEmailVerified, resendVerification } from '../app/declare/auth-store.js';
+    import { initAuth, isConfigured, isSignedIn, currentUser, signOut, onAuthChange } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
@@ -312,9 +312,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       // device, not the session). Only fills a blank name; never overwrites.
       if (signedIn && u && u.firstName && !getProfile().name) P = setProfile({ name: u.firstName });
       $('yRole').textContent = signedIn ? ((u && u.email) || 'Signed in') : 'Guest · not signed in';
-      const verified = signedIn && isEmailVerified();
-      $('hubAuthD').textContent = !signedIn ? 'Sign in to keep what God gives you'
-        : (verified ? ('Signed in as ' + ((u && u.email) || 'you')) : 'Confirm your email. Tap to resend the link.');
+      $('hubAuthD').textContent = signedIn ? ('Signed in as ' + ((u && u.email) || 'you')) : 'Sign in to keep what God gives you';
       // keep the rail (name + avatar) in sync with the device profile across sign-in/out
       P = getProfile(); renderRail();
     }
@@ -322,12 +320,6 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       if (!(isConfigured() && isSignedIn())) {
         // Julienne model: the account card opens right here
         openAuthModal({ mode: 'signin', onSuccess: () => { renderAuth(); toast('Welcome back.'); } });
-        return;
-      }
-      // Unconfirmed account: tapping the card re-sends the confirmation link.
-      if (!isEmailVerified()) {
-        toast('Sending a confirmation link…');
-        resendVerification().then((r) => toast(r.ok ? 'Confirmation link sent. Check your inbox.' : (r.error || 'Could not send right now.')));
         return;
       }
       const u = currentUser() || {};

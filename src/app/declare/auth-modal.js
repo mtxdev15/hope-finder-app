@@ -345,8 +345,10 @@ async function submit(e) {
     root.querySelector('.am-card').classList.add('sent');
     return;
   }
-  const cb = state.onSuccess;
   closeAuthModal();
+  // A brand-new account goes straight into /today to start declaring.
+  if (signupMode) { window.location.href = '/today'; return; }
+  const cb = state.onSuccess;
   if (cb) { try { cb(); } catch (err) {} }
 }
 

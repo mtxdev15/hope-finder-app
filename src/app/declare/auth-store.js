@@ -84,24 +84,6 @@ export function currentUser() {
   return { email: u.email || '', firstName: first };
 }
 
-/* Has the signed-in user confirmed their email? */
-export function isEmailVerified() {
-  return !!(sessionData && sessionData.user && sessionData.user.emailVerified);
-}
-
-/* Re-send the confirm-your-email link to the signed-in user (also how an
-   already-registered, unconfirmed account gets a fresh link). */
-export async function resendVerification() {
-  if (!isConfigured() || !isSignedIn()) return { ok: false, error: 'Sign in first.' };
-  const email = (sessionData.user && sessionData.user.email) || '';
-  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/signin?verified=1';
-  try {
-    const { error } = await ac().sendVerificationEmail({ email, callbackURL });
-    if (error) return { ok: false, error: nice(error) };
-    return { ok: true };
-  } catch (e) { return { ok: false, error: nice(e) }; }
-}
-
 /* All return { ok, error } — error is a human sentence, never a code.
    Matches Better Auth error shape { message, code, status }. */
 function nice(err) {
@@ -122,17 +104,11 @@ function nice(err) {
 
 export async function signUp({ name, email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  // Where the confirm-email link lands the user once verified. It goes to the
-  // sign-in page (not straight in) because the cross-domain plugin can't bridge
-  // a session from /verify-email to this domain; /signin?verified=1 shows a
-  // "confirmed, sign in" message and they sign in normally.
-  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/signin?verified=1';
-  const { error } = await ac().signUp.email({ name: name || '', email, password, callbackURL });
+  // Simple sign-up: creates the account and a session immediately (no email
+  // verification step), so the caller can take them straight into the app.
+  const { error } = await ac().signUp.email({ name: name || '', email, password });
   if (error) return { ok: false, error: nice(error) };
   await refreshSession(); fire();
-  // Email verification is ON ⇒ no session exists until they confirm. Tell the
-  // modal to show "check your inbox" rather than treating this as signed-in.
-  if (!isSignedIn()) return { ok: true, needsConfirm: true };
   return { ok: true };
 }
 
