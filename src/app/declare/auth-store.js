@@ -49,11 +49,34 @@ export function getAuthClient() { return ac(); }
 
 function fire() { subs.forEach((cb) => { try { cb(); } catch (e) {} }); }
 
+/* Bound every auth network call so a stalled cross-domain request can never hang
+   the UI (the failure mode that hung sign-in on a mobile browser holding a stale
+   token). On timeout we resolve to a clean guest state and drop the bad token. */
+const AUTH_TIMEOUT_MS = 9000;
+function withTimeout(promise) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('auth-timeout')), AUTH_TIMEOUT_MS)),
+  ]);
+}
+/* Drop the cross-domain client's cached token/session so the next attempt starts
+   fresh (keys come from @convex-dev/better-auth's crossDomainClient). */
+function clearStaleAuth() {
+  try {
+    localStorage.removeItem('better-auth_cookie');
+    localStorage.removeItem('better-auth_session_data');
+  } catch (e) {}
+}
+
 async function refreshSession() {
   try {
-    const res = await ac().getSession();
+    const res = await withTimeout(ac().getSession());
     sessionData = (res && res.data) || null;
-  } catch (e) { /* keep last known */ }
+  } catch (e) {
+    // A hung/stale session must not block the app: fall back to guest and drop
+    // the dead token so this self-heals on the next try.
+    if (e && e.message === 'auth-timeout') { clearStaleAuth(); sessionData = null; }
+  }
   return sessionData;
 }
 
@@ -106,16 +129,28 @@ export async function signUp({ name, email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
   // Simple sign-up: creates the account and a session immediately (no email
   // verification step), so the caller can take them straight into the app.
-  const { error } = await ac().signUp.email({ name: name || '', email, password });
-  if (error) return { ok: false, error: nice(error) };
+  try {
+    const { error } = await withTimeout(ac().signUp.email({ name: name || '', email, password }));
+    if (error) return { ok: false, error: nice(error) };
+  } catch (e) {
+    if (e && e.message === 'auth-timeout') { clearStaleAuth(); return { ok: false, error: 'That took too long — please try again.' }; }
+    return { ok: false, error: nice(e) };
+  }
   await refreshSession(); fire();
   return { ok: true };
 }
 
 export async function signIn({ email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { error } = await ac().signIn.email({ email, password });
-  if (error) return { ok: false, error: nice(error) };
+  try {
+    const { error } = await withTimeout(ac().signIn.email({ email, password }));
+    if (error) return { ok: false, error: nice(error) };
+  } catch (e) {
+    // A stalled request (e.g. a stale cross-domain token wedging the call) must
+    // not hang the button: drop the bad token and let them retry clean.
+    if (e && e.message === 'auth-timeout') { clearStaleAuth(); return { ok: false, error: 'That took too long — please try again.' }; }
+    return { ok: false, error: nice(e) };
+  }
   await refreshSession(); fire();
   return { ok: true };
 }
