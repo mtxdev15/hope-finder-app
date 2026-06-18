@@ -28,14 +28,17 @@ const MODE = 'signin';
     }
 
     const mode = document.querySelector('.authpage').dataset.mode === 'signup' ? 'signup' : 'signin';
+    // Arriving from a confirm-email link: greet them, then send them into the app.
+    const justVerified = new URLSearchParams(location.search).get('verified') === '1';
+    const dest = justVerified ? '/today' : returnTo();
     initAuth().then(() => {
       if (!isConfigured()) { document.getElementById('apMissing').hidden = false; return; }
-      if (isSignedIn()) { location.replace(returnTo()); return; }
-      openAuthModal({ mode, returnTo: returnTo(), onSuccess: () => { location.href = returnTo(); } });
+      if (isSignedIn()) { location.replace(dest); return; }
+      openAuthModal({ mode, message: justVerified ? 'Your email is confirmed. Sign in to continue.' : '', returnTo: dest, onSuccess: () => { location.href = dest; } });
       // closing the modal on this shell means "never mind" — go back
       const watch = setInterval(() => {
         const w = document.querySelector('.am-wrap');
-        if (w && !w.classList.contains('open')) { clearInterval(watch); if (!isSignedIn()) location.href = returnTo(); }
+        if (w && !w.classList.contains('open')) { clearInterval(watch); if (!isSignedIn()) location.href = dest; }
       }, 300);
     });
   </script>

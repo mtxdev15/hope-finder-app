@@ -104,9 +104,11 @@ function nice(err) {
 
 export async function signUp({ name, email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  // callbackURL is where the confirm-email link lands the user once verified
-  // (Better Auth signs them in, then redirects here).
-  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/today';
+  // Where the confirm-email link lands the user once verified. It goes to the
+  // sign-in page (not straight in) because the cross-domain plugin can't bridge
+  // a session from /verify-email to this domain; /signin?verified=1 shows a
+  // "confirmed, sign in" message and they sign in normally.
+  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/signin?verified=1';
   const { error } = await ac().signUp.email({ name: name || '', email, password, callbackURL });
   if (error) return { ok: false, error: nice(error) };
   await refreshSession(); fire();

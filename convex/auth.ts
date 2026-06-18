@@ -30,12 +30,15 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         });
       },
     },
-    // Send a "confirm your email" link on sign-up; clicking it verifies the
-    // address and signs the user in, redirecting to the callbackURL the client
-    // passed (declareandbelieve.com/today).
+    // Send a "confirm your email" link on sign-up. autoSignIn is OFF on purpose:
+    // the @convex-dev/better-auth cross-domain plugin only bridges a session to
+    // the frontend for OAuth/magic-link redirects, NOT /verify-email — so an
+    // auto-session created here never reaches declareandbelieve.com. Instead the
+    // link verifies the address and redirects to /signin?verified=1, where the
+    // user signs in normally (which the cross-domain client handles correctly).
     emailVerification: {
       sendOnSignUp: true,
-      autoSignInAfterVerification: true,
+      autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         await sendVerificationEmail(requireActionCtx(ctx), {
           to: user.email,

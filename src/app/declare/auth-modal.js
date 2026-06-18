@@ -338,7 +338,7 @@ async function submit(e) {
   go.disabled = false; go.textContent = 'Continue';
   if (!res.ok) { fieldErr('amPwF', res.error); return; }
   if (res.needsConfirm) {
-    root.querySelector('#amInboxT').innerHTML = 'Check your inbox. We sent a confirmation link to <b></b>. Tap it to confirm your account and you are in.';
+    root.querySelector('#amInboxT').innerHTML = 'Check your inbox. We sent a confirmation link to <b></b>. Tap it to confirm, then sign in.';
     root.querySelector('#amInboxT b').textContent = email;
     root.querySelector('.am-card').classList.add('sent');
     setMode('signin'); // their next visit to the form is a sign-in
