@@ -1,28 +1,42 @@
-/* Declare & Believe — authenticated Convex data client (vault sync).
+/* Declare & Believe — authenticated Convex data client (vault + userData sync).
 
-   Talks to the Convex DATA endpoint (the .convex.cloud URL in PUBLIC_CONVEX_URL,
-   distinct from the .site auth URL). Auth token is minted from the existing
-   Better Auth session via ac().convex.token() — the same mechanism the
-   @convex-dev/better-auth React provider uses internally, here in vanilla JS.
+   Talks to the Convex DATA endpoint (PUBLIC_CONVEX_URL, the .convex.cloud URL,
+   distinct from the .site auth URL). The auth token is minted from the Better
+   Auth session via ac().convex.token().
+
+   IMPORTANT: the heavy Convex client (`convex/browser`) and the generated `api`
+   are LAZY-loaded — only when a real query/mutation runs. This keeps the Convex
+   client OUT of the static import graph of the auth modal / profile-store / the
+   sign-in path (importing it there once hung sign-in on mobile).
 
    Every call fails SOFT: if data isn't configured, the user isn't signed in, or
-   the network hiccups, these return null and the caller falls back to localStorage. */
+   the network hiccups, these return null and the caller stays on localStorage. */
 
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../convex/_generated/api';
 import { getAuthClient, isConfigured } from './auth-store.js';
 
 const URL = import.meta.env.PUBLIC_CONVEX_URL || '';
 
 let http = null;
-function client() {
-  if (!http && URL) http = new ConvexHttpClient(URL);
-  return http;
-}
+let apiRef = null;
 
-/* Data sync is available only when both the data URL and auth are configured. */
+/* Lightweight, synchronous — safe to call from anywhere without loading anything. */
 export function dataConfigured() {
   return !!URL && isConfigured();
+}
+
+/* Lazy-load the client + api on first real use. Returns false if not configured. */
+async function ensure() {
+  if (!URL) return false;
+  try {
+    if (!http) {
+      const { ConvexHttpClient } = await import('convex/browser');
+      http = new ConvexHttpClient(URL);
+    }
+    if (!apiRef) {
+      apiRef = (await import('../../../convex/_generated/api')).api;
+    }
+    return true;
+  } catch (e) { return false; }
 }
 
 async function freshToken() {
@@ -34,14 +48,12 @@ async function freshToken() {
   } catch (e) { return null; }
 }
 
-/* Get a client with a fresh auth token attached, or null if we can't authenticate. */
 async function authed() {
-  const c = client();
-  if (!c) return null;
+  if (!(await ensure())) return null;
   const t = await freshToken();
   if (!t) return null;
-  c.setAuth(t);
-  return c;
+  http.setAuth(t);
+  return http;
 }
 
 async function runQuery(fn, args) {
@@ -53,14 +65,14 @@ async function runMutation(fn, args) {
   catch (e) { return null; }
 }
 
-/* ── Vault operations (return null on any failure; caller stays on localStorage) ── */
-export function vaultList() { return runQuery(api.vault.list, {}); }
-export function vaultSave(payload) { return runMutation(api.vault.save, payload); }
-export function vaultRemove(clientId) { return runMutation(api.vault.remove, { clientId }); }
-export function collList() { return runQuery(api.vault.listCollections, {}); }
-export function collAdd(name, kind, ts) { return runMutation(api.vault.addCollection, { name, kind: kind ?? null, ts }); }
-export function collRemove(name) { return runMutation(api.vault.removeCollection, { name }); }
+/* ── Vault ── */
+export async function vaultList() { return (await ensure()) ? runQuery(apiRef.vault.list, {}) : null; }
+export async function vaultSave(payload) { return (await ensure()) ? runMutation(apiRef.vault.save, payload) : null; }
+export async function vaultRemove(clientId) { return (await ensure()) ? runMutation(apiRef.vault.remove, { clientId }) : null; }
+export async function collList() { return (await ensure()) ? runQuery(apiRef.vault.listCollections, {}) : null; }
+export async function collAdd(name, kind, ts) { return (await ensure()) ? runMutation(apiRef.vault.addCollection, { name, kind: kind ?? null, ts }) : null; }
+export async function collRemove(name) { return (await ensure()) ? runMutation(apiRef.vault.removeCollection, { name }) : null; }
 
 /* ── generic per-user key/value blobs (profile, journey, …) ── */
-export function udGetAll() { return runQuery(api.userdata.getAll, {}); }
-export function udSet(key, value) { return runMutation(api.userdata.set, { key, value }); }
+export async function udGetAll() { return (await ensure()) ? runQuery(apiRef.userdata.getAll, {}) : null; }
+export async function udSet(key, value) { return (await ensure()) ? runMutation(apiRef.userdata.set, { key, value }) : null; }
