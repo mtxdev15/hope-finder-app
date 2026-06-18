@@ -84,6 +84,24 @@ export function currentUser() {
   return { email: u.email || '', firstName: first };
 }
 
+/* Has the signed-in user confirmed their email? */
+export function isEmailVerified() {
+  return !!(sessionData && sessionData.user && sessionData.user.emailVerified);
+}
+
+/* Re-send the confirm-your-email link to the signed-in user (also how an
+   already-registered, unconfirmed account gets a fresh link). */
+export async function resendVerification() {
+  if (!isConfigured() || !isSignedIn()) return { ok: false, error: 'Sign in first.' };
+  const email = (sessionData.user && sessionData.user.email) || '';
+  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/signin?verified=1';
+  try {
+    const { error } = await ac().sendVerificationEmail({ email, callbackURL });
+    if (error) return { ok: false, error: nice(error) };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: nice(e) }; }
+}
+
 /* All return { ok, error } — error is a human sentence, never a code.
    Matches Better Auth error shape { message, code, status }. */
 function nice(err) {

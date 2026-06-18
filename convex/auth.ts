@@ -18,10 +18,13 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     baseURL: process.env.CONVEX_SITE_URL, // auto-provided by Convex
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
-    // Email + password. Email must be confirmed before the first sign-in.
+    // Email + password. Sign-in is NOT blocked on verification (instant access
+    // on sign-up = smooth UX, and the cross-domain plugin can't carry a session
+    // back from a confirm link anyway). We still SEND a confirmation email
+    // (emailVerification.sendOnSignUp below) and nudge unverified users in-app.
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: true,
+      requireEmailVerification: false,
       minPasswordLength: 8,
       sendResetPassword: async ({ user, url }) => {
         await sendResetPassword(requireActionCtx(ctx), {
