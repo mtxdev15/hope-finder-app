@@ -152,6 +152,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
   <script>
     import { getProfile, setProfile, daysWith } from '../app/declare/profile-store.js';
     import { listItems, listCollections, onChange } from '../app/declare/vault-store.js';
+    import { onChange as onAccountSync } from '../app/declare/account-sync.js';
     import { initAuth, isConfigured, isSignedIn, currentUser, signOut, onAuthChange } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
 
@@ -582,6 +583,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     renderRail(); renderFacts(); renderChips(); renderChurchHub();
     // refresh stats when the account's Vault syncs in from Convex
     onChange(renderRail);
+    // refresh the whole profile (name, church, interests) when it syncs in
+    onAccountSync(() => { P = getProfile(); renderRail(); renderFacts(); renderChips(); renderChurchHub(); });
   </script>
 
   <style is:global>

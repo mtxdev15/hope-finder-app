@@ -60,3 +60,7 @@ export function vaultRemove(clientId) { return runMutation(api.vault.remove, { c
 export function collList() { return runQuery(api.vault.listCollections, {}); }
 export function collAdd(name, kind, ts) { return runMutation(api.vault.addCollection, { name, kind: kind ?? null, ts }); }
 export function collRemove(name) { return runMutation(api.vault.removeCollection, { name }); }
+
+/* ── generic per-user key/value blobs (profile, journey, …) ── */
+export function udGetAll() { return runQuery(api.userdata.getAll, {}); }
+export function udSet(key, value) { return runMutation(api.userdata.set, { key, value }); }

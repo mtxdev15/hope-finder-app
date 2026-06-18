@@ -27,6 +27,18 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_and_client", ["userId", "clientId"]),
 
+  // Generic per-user key/value store for small JSON blobs that should follow the
+  // account (profile, journey progress, and future device-local state). `value`
+  // is the JSON-stringified blob the client keeps in localStorage; one row per
+  // (userId, key). Blobs are tiny and bounded, well under the 1MB doc limit.
+  userData: defineTable({
+    userId: v.string(),
+    key: v.string(),
+    value: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_key", ["userId", "key"]),
+
   vaultCollections: defineTable({
     userId: v.string(),
     name: v.string(),

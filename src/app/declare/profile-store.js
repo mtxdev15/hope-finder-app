@@ -5,7 +5,10 @@
        church: { name, address, placeId } | null,
        since: ts (first time the app saw this person) } */
 
+import { registerSyncKey, mirror } from './account-sync.js';
+
 const KEY = 'declare-profile-v1';
+registerSyncKey(KEY); // sync the profile to the account when signed in
 
 export function getProfile() {
   let p = null;
@@ -27,6 +30,7 @@ export function setProfile(patch) {
   const p = getProfile();
   Object.assign(p, patch);
   persist(p);
+  mirror(KEY); // push the updated profile to the account
   return p;
 }
 

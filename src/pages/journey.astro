@@ -274,6 +274,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     import { saveItem } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
+    // journey progress follows the account when signed in
+    ['db_active_journey', 'db_journeys_done', 'db_journey_lock'].forEach(registerSyncKey);
     initAuth(); // resolve any saved session before the user reaches a gate
 
     const $ = (id) => document.getElementById(id);
@@ -341,7 +344,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // ---- pacing lock: one day per calendar day, persisted ----
     function todayStr() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
     function loadLock() { try { return JSON.parse(localStorage.getItem('db_journey_lock') || '{}'); } catch (e) { return {}; } }
-    function saveLock(m) { try { localStorage.setItem('db_journey_lock', JSON.stringify(m)); } catch (e) {} }
+    function saveLock(m) { try { localStorage.setItem('db_journey_lock', JSON.stringify(m)); } catch (e) {} mirror('db_journey_lock'); }
     function lockFor() { return loadLock()[active.id] || null; }
     function setLock(time) { const m = loadLock(); const prev = m[active.id] || {}; m[active.id] = { date: todayStr(), time: (time !== undefined ? time : prev.time) || null, day: state.day, returned: state.returned }; saveLock(m); saveActive(); }
     function clearLock() { const m = loadLock(); delete m[active.id]; saveLock(m); }
@@ -349,9 +352,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     // ---- which journey is genuinely active, persisted across reloads ----
     const ACT_KEY = 'db_active_journey';
-    function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned })); } } catch (e) {} }
-    function loadActiveSaved() { try { return JSON.parse(localStorage.getItem(ACT_KEY) || 'null'); } catch (e) { return null; } }
-    function clearActiveSaved() { try { localStorage.removeItem(ACT_KEY); } catch (e) {} }
+    function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned })); } } catch (e) {} mirror(ACT_KEY); }
+    function loadActiveSaved() { try { const r = localStorage.getItem(ACT_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+    function clearActiveSaved() { try { localStorage.setItem(ACT_KEY, 'null'); } catch (e) {} mirror(ACT_KEY); }
     function setReminderOnly(time) { const m = loadLock(); const prev = m[active.id] || { date: todayStr() }; prev.time = time; m[active.id] = prev; saveLock(m); }
     function previewTomorrow() { const m = loadLock(); if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); } }
     function isLocked() { const l = lockFor(); return !!(l && l.date === todayStr() && state.day <= TOTAL); }
@@ -361,7 +364,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // ---- rooted (completed) journeys, persisted — keeps the grid honest ----
     const DONE_KEY = 'db_journeys_done';
     function loadDone() { try { const a = JSON.parse(localStorage.getItem(DONE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
-    function markDone(id) { const a = loadDone(); if (a.indexOf(id) < 0) { a.push(id); try { localStorage.setItem(DONE_KEY, JSON.stringify(a)); } catch (e) {} } }
+    function markDone(id) { const a = loadDone(); if (a.indexOf(id) < 0) { a.push(id); try { localStorage.setItem(DONE_KEY, JSON.stringify(a)); } catch (e) {} mirror(DONE_KEY); } }
 
     // ---- the Vine ----
     function fruitNames() { return PLAN.map(function (d) { return d.fruit; }); }
@@ -985,7 +988,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       return 'anxiety';
     }
 
-    (function init() {
+    function init() {
       // honest statuses: everything opens 'open'; the device decides what's
       // done and what's growing (the design file's authored demo statuses are
       // exactly that — demo)
@@ -1018,7 +1021,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       }
       // Brand-new visitor — no journey ever planted. Open the honest zero state.
       showZeroUI(); renderZero(loadDone().length > 0);
-    })();
+    }
+    // Build from synced state once the account's data has come down (instant for guests).
+    whenSynced().then(init);
   </script>
 
   <style is:global>
