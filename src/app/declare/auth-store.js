@@ -42,6 +42,11 @@ function ac() {
   return client;
 }
 
+/* The underlying Better Auth client — exposed so the Convex data layer
+   (convex-data.js) can mint a Convex JWT via ac().convex.token() for
+   authenticated queries/mutations. Returns null when accounts aren't configured. */
+export function getAuthClient() { return ac(); }
+
 function fire() { subs.forEach((cb) => { try { cb(); } catch (e) {} }); }
 
 async function refreshSession() {

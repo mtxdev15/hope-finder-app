@@ -77,7 +77,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   </main>
 
   <script>
-    import { listItems, removeItem, listCollections, addCollection, removeCollection } from '../app/declare/vault-store.js';
+    import { listItems, removeItem, listCollections, addCollection, removeCollection, onChange } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     initAuth(); // resolve any saved session before the user reaches a gate
@@ -331,6 +331,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     $('search').addEventListener('input', function () { query = this.value; clearTimeout(st); st = setTimeout(render, 90); });
 
     render();
+    // re-render when the account's Vault syncs in from Convex
+    onChange(render);
   </script>
 
   <style is:global>
