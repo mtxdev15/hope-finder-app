@@ -89,6 +89,7 @@ export function currentUser() {
 function nice(err) {
   const m = ((err && err.message) || '') + ' ' + ((err && err.code) || '');
   const status = err && err.status;
+  if (/not.?verified|EMAIL_NOT_VERIFIED|verify (your )?email/i.test(m)) return 'Please confirm your email first. Check your inbox for the link.';
   if (/invalid.*(email|password|credentials)|INVALID_EMAIL_OR_PASSWORD/i.test(m)) return 'That email and password don’t match. Try again?';
   if (/already.*exist|already registered|USER_ALREADY_EXISTS/i.test(m)) return 'That email already has an account — sign in instead.';
   if (status === 429 || /rate.?limit|too many/i.test(m)) return 'Too many tries — wait a moment and try again.';
@@ -103,10 +104,15 @@ function nice(err) {
 
 export async function signUp({ name, email, password }) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
-  const { error } = await ac().signUp.email({ name: name || '', email, password });
+  // callbackURL is where the confirm-email link lands the user once verified
+  // (Better Auth signs them in, then redirects here).
+  const callbackURL = (typeof window !== 'undefined' ? window.location.origin : '') + '/today';
+  const { error } = await ac().signUp.email({ name: name || '', email, password, callbackURL });
   if (error) return { ok: false, error: nice(error) };
   await refreshSession(); fire();
-  // Verification is OFF ⇒ a session exists immediately. needsConfirm kept for shape only.
+  // Email verification is ON ⇒ no session exists until they confirm. Tell the
+  // modal to show "check your inbox" rather than treating this as signed-in.
+  if (!isSignedIn()) return { ok: true, needsConfirm: true };
   return { ok: true };
 }
 

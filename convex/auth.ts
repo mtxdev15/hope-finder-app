@@ -6,7 +6,7 @@ import { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { betterAuth } from "better-auth/minimal";
 import authConfig from "./auth.config";
-import { sendResetPassword } from "./email";
+import { sendResetPassword, sendVerificationEmail } from "./email";
 
 const siteUrl = process.env.SITE_URL!;
 
@@ -18,13 +18,26 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     baseURL: process.env.CONVEX_SITE_URL, // auto-provided by Convex
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
-    // Email + password only. No verification. 8-char minimum, no other rules.
+    // Email + password. Email must be confirmed before the first sign-in.
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
       minPasswordLength: 8,
       sendResetPassword: async ({ user, url }) => {
         await sendResetPassword(requireActionCtx(ctx), {
+          to: user.email,
+          url,
+        });
+      },
+    },
+    // Send a "confirm your email" link on sign-up; clicking it verifies the
+    // address and signs the user in, redirecting to the callbackURL the client
+    // passed (declareandbelieve.com/today).
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendVerificationEmail(requireActionCtx(ctx), {
           to: user.email,
           url,
         });

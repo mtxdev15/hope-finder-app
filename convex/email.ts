@@ -31,3 +31,23 @@ export const sendResetPassword = async (
     text: `Reset your password: ${url}`,
   });
 };
+
+export const sendVerificationEmail = async (
+  ctx: ActionCtx,
+  { to, url }: { to: string; url: string },
+) => {
+  await resend.sendEmail(ctx, {
+    from: FROM_EMAIL,
+    to,
+    subject: "Confirm your email",
+    html: `
+      <div style="font-family: sans-serif; line-height: 1.6; color: #22382E;">
+        <h2 style="font-family: Georgia, serif;">Welcome to Declare &amp; Believe</h2>
+        <p>One quick step. Confirm your email and your words, verses, and journeys will follow you wherever you sign in.</p>
+        <p><a href="${url}" style="display:inline-block; padding:12px 22px; background:#C9A84C; color:#22382E; text-decoration:none; border-radius:10px; font-weight:600;">Confirm my email</a></p>
+        <p style="color:#6B6355; font-size:13px;">If you didn't create this account, you can safely ignore this email.</p>
+      </div>
+    `,
+    text: `Confirm your email for Declare & Believe: ${url}`,
+  });
+};
