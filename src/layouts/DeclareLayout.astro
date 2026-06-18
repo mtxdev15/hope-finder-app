@@ -12,6 +12,9 @@ const {
   ogImage = '/declare/brand/og.png',
   activeTab = '',
 } = Astro.props;
+
+// Google Tag Manager container id (loads GA4 via GTM). Renders nothing if unset.
+const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 ---
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -19,6 +22,9 @@ const {
 <!-- swallow benign "Transition was skipped" rejections from cross-document View Transitions -->
 <script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
+{GTM_ID && (
+<script is:inline define:vars={{ GTM_ID }}>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM_ID);</script>
+)}
 <!-- anti-flash: paint a solid themed background on the FIRST frame so document-to-document
      navigation never blinks white (declare.css gradients layer on top once loaded) -->
 <style is:inline id="anti-flash">html{background-color:#0E1A14!important;}
@@ -57,6 +63,9 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link rel="stylesheet" href="/declare/route-loader.css" />
 </head>
 <body class="app-shell">
+{GTM_ID && (
+<noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`} height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+)}
   <!-- design mast: brand dot + avatar entry to /you (design-source product pages) -->
   <div class="mast">
     <span class="dot" aria-hidden="true"></span>

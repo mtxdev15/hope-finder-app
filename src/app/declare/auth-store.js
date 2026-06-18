@@ -13,6 +13,7 @@
 
 import { createAuthClient } from 'better-auth/client';
 import { convexClient, crossDomainClient } from '@convex-dev/better-auth/client/plugins';
+import { track } from './analytics.js';
 
 const SITE_URL = import.meta.env.PUBLIC_CONVEX_SITE_URL || '';
 
@@ -137,6 +138,7 @@ export async function signUp({ name, email, password }) {
     return { ok: false, error: nice(e) };
   }
   await refreshSession(); fire();
+  track('signup_completed', { method: 'email' }); // Google goes through OAuth (signInWithProvider), tracked later
   return { ok: true };
 }
 

@@ -235,6 +235,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     import { saveItem, removeItem, isSaved, wordId } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    import { track } from '../app/declare/analytics.js';
     initAuth(); // resolve any saved session before the user reaches a gate
 
     // The Declare flow default per the Bible Integration Spec. The brain call,
@@ -373,11 +374,43 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     });
     sheetCta.addEventListener('click', () => go(''));
 
+    /* ---------- analytics: privacy-safe category + translation (see .agents/tracking-plan.md).
+       Preset chip labels are a closed UI set (never user free text); typed input is never
+       inspected and always reports as 'other', so the raw struggle text never reaches
+       track(). Both fields are bounded by allowlists — no free text is ever sent. ---------- */
+    function slugifyStruggle(label) {
+      return (label || '').toLowerCase().replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'other';
+    }
+    const KNOWN_STRUGGLES = new Set([
+      'fear_and_anxiety','shame_and_guilt','loneliness','anger_and_bitterness','doubt','grief_and_loss',
+      'feeling_like_a_failure','comparison','feeling_unworthy','broken_identity','feeling_lost','people_pleasing',
+      'emotional_and_verbal_abuse','rejection_and_abandonment','betrayal','self_sabotage','unforgiveness',
+      'family_conflict','marriage_struggles','divorce_separation','overthinking','depression','control',
+      'perfectionism','stress_and_burnout','spiritual_dryness','waiting_on_god','financial_stress',
+      'sexual_temptation','addiction','faith_crisis','feeling_spiritually_attacked','drifting_from_god',
+    ]);
+    function categoryOf(label) {
+      const s = slugifyStruggle(label);
+      return KNOWN_STRUGGLES.has(s) ? s : 'other';
+    }
+    const KNOWN_TRANSLATIONS = new Set(['nkjv', 'nlt', 'niv']);
+    function translationSlug(t) {
+      const s = (t || '').toLowerCase();
+      return KNOWN_TRANSLATIONS.has(s) ? s : 'other';
+    }
+
     /* ---------- generate (the unchanged brain) ---------- */
     function go(written) {
       const struggle = written || selected;
       if (!struggle) return;
       activeStruggle = struggle;
+      const typed = !!written; // typed free text is never sent; only a bounded category
+      track('struggle_submitted', {
+        struggle_category: typed ? 'other' : categoryOf(selected),
+        input_method: typed ? 'typed' : 'preset',
+        translation: translationSlug(TRANSLATION),
+      });
       closeSheet();
       showView(resultsView);
       runGen(struggle);

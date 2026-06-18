@@ -10,12 +10,18 @@
 //   • ?stay=1 forces Begin to show (for review)
 //
 // SEO: the homepage's rich <noscript> keyword block is preserved verbatim for crawlers.
+
+// Google Tag Manager container id (loads GA4 via GTM). Renders nothing if unset.
+const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 ---
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
+{GTM_ID && (
+<script is:inline define:vars={{ GTM_ID }}>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM_ID);</script>
+)}
 <style is:inline id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}.rl-overlay{opacity:0!important;visibility:hidden!important;}.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0c130f" />
@@ -103,6 +109,9 @@
 }catch(e){}})();</script>
 </head>
 <body>
+{GTM_ID && (
+<noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`} height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+)}
 
 <div class="stage app-shell">
   <div class="phone">
