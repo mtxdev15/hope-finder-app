@@ -18,10 +18,12 @@ Done items move to the bottom or get deleted.
 - [ ] **Submit sitemap** to Google Search Console: `https://declareandbelieve.com/sitemap.xml`.
 
 ## 🚀 Next features
-- [ ] **Vault → Convex (account-synced data).** Today the Vault, profile, and journey live in the
-      browser's `localStorage` — a user's saved verses don't follow them to another device. Add a
-      Convex schema + sync so signing in keeps their Word tied to their account. This is the real V2
-      payoff (the backend is auth-only right now).
+- [ ] **Fast-follow: sync profile + journey state** to Convex the same way the Vault does
+      (`profile-store.js` / journey localStorage keys), so the whole account follows the user.
+- [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
+      If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
+      links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
+      record then to keep verification emails out of spam.
 - [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
       because it links to 6 sibling pages that don't exist yet (control, depression, fear,
       overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
@@ -34,6 +36,10 @@ Done items move to the bottom or get deleted.
       is preserved for crawlers. Monitor that the homepage keeps its indexing.
 
 ## ✔️ Recently shipped
+- **Vault → Convex account sync** — signed-in users' saved words/verses/declarations/prayers +
+  collections persist server-side and follow them across devices (local-first; guests unaffected).
+- **Auth working + simplified** — fixed prod `BETTER_AUTH_SECRET` (was 500ing every auth call);
+  sign-up is now name + email + password, straight into `/today`, no email-verification step.
 - **Struggles hub** (`/struggles`) — editorial index of all 13 struggle pages, grouped into 4
   categories, with scroll-revealed serif rows + hover motion. Linked from the Begin menu, the
   slide-out nav on every struggle page, and the footer (so users + Google discover them on-site,
