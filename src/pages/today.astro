@@ -8,6 +8,7 @@
 // to /journey, a branded coming-soon page until the Journey chapter ships.
 // Single page: entry ⇄ results swap in place.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+import RateReview from '../components/RateReview.astro';
 ---
 <DeclareLayout
   title="Declare — Today"
@@ -147,6 +148,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
             <button class="nscard" id="anotherWord"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span><span class="nsm"><span class="nst">Receive another word</span><span class="nsd">For whatever else is heavy</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
           </div>
         </div>
+        {/* Rate & Review: bottom sentinel — IntersectionObserver shows the toast here. */}
+        <div id="rrSentinel" aria-hidden="true" style="height:1px;pointer-events:none;"></div>
       </div>
 
       <div id="resultsError" hidden>
@@ -228,6 +231,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     {/* toast (design: Results.html) */}
     <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg><span id="toastMsg">Saved to Vault.</span></div>
+
+    {/* Rate & Review surface (toast + multi-step sheet). Behavior wired in <script> below. */}
+    <RateReview />
   </main>
 
   <script>
@@ -236,7 +242,32 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     import { track } from '../app/declare/analytics.js';
-    initAuth(); // resolve any saved session before the user reaches a gate
+    import { initRateReview } from '../app/declare/rate-review.js';
+    import { isToastEligible, noteDismissed, noteSubmitted, recordWordReceived } from '../app/declare/rate-gate.js';
+    import { reviewsSubmit } from '../app/declare/convex-data.js';
+    import Lenis from 'lenis';
+
+    // Rate & Review: the gated results toast. RateReview.astro is mounted in this
+    // page; the bottom #rrSentinel triggers the toast once the gate passes. Set up
+    // after the session resolves so isSignedIn() is accurate. (initAuth is cached.)
+    initAuth().then(() => {
+      initRateReview({
+        isEligible: isToastEligible,
+        onDismiss: noteDismissed,
+        onSubmit: (payload) => { noteSubmitted(); reviewsSubmit(payload); },
+      });
+    });
+
+    // Cinematic smooth scroll on the results page (unseen.co feel). Desktop wheel
+    // only (Lenis default smoothTouch:false keeps native mobile momentum); skipped
+    // under reduced-motion.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      try {
+        const lenis = new Lenis({ smoothWheel: true });
+        const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
+        requestAnimationFrame(raf);
+      } catch (e) {}
+    }
 
     // The Declare flow default per the Bible Integration Spec. The brain call,
     // prompts, streaming, and crisis logic in declare-api.js are unchanged.
@@ -440,6 +471,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function render(ai) {
       content = ai;
       currentId = wordId(activeStruggle, ai.verses);
+      recordWordReceived(); // count toward the rate-prompt gate (>= 3 Words received)
       $('forLabel').textContent = 'For ' + activeStruggle;
 
       const v1 = ai.verses[0];
@@ -624,6 +656,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        .rise, tokens) come from the vendored declare.css. is:global because
        results/receive/speak rows are built at runtime via innerHTML.
        ────────────────────────────────────────────────────────────────── */
+    /* Lenis smooth scroll (results page) — recommended base rules. */
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    .lenis.lenis-stopped { overflow: hidden; }
+
     .today { position: relative; min-height: 100dvh; }
     /* view swap: author display rules (flex) would defeat the hidden attribute */
     .today .in[hidden], .today .results[hidden] { display: none !important; }

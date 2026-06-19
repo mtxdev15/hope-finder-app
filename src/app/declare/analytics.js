@@ -11,6 +11,11 @@ const ALLOWED = {
   // pass 1 — the two core conversions
   struggle_submitted: ['struggle_category', 'input_method', 'translation'],
   signup_completed: ['method'],
+  // pass 2 — rate & review (testimonial text is NEVER an allowed key)
+  rate_prompt_shown: [],
+  rate_started: ['source'],             // source: toast | profile | footer | menu
+  rate_submitted: ['rating', 'shared'], // rating: overall 1-5; shared: boolean
+  rate_dismissed: [],
   // later passes add: word_received, verse_saved, declaration_saved,
   // prayer_saved, journey_started, journey_day_completed,
   // struggle_page_cta_clicked

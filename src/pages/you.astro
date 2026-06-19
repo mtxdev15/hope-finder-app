@@ -8,6 +8,7 @@
 // Google Maps + Places when PUBLIC_GMAPS_KEY exists (.env, gitignored,
 // referrer-restricted) and degrades gracefully without it.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+import RateReview from '../components/RateReview.astro';
 const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 ---
 <DeclareLayout
@@ -83,10 +84,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               <div class="yh-t">Support Declare</div>
               <div class="yh-d">Help keep it free for all</div>
             </a>
-            <button class="yhubcard" data-soon>
+            <button class="yhubcard" id="yRateCard">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></div>
               <div class="yh-t">Rate Declare</div>
-              <div class="yh-d">Tell us how it has met you <span class="ybadge">Soon</span></div>
+              <div class="yh-d">Tell us how it has met you</div>
             </button>
           </div>
 
@@ -147,6 +148,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     </div>
 
     <div class="ytoast" id="yToast"></div>
+
+    {/* Rate & Review surface (opened by the profile card or a ?rate= deep-link). */}
+    <RateReview />
   </main>
 
   <script>
@@ -155,6 +159,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { onChange as onAccountSync } from '../app/declare/account-sync.js';
     import { initAuth, isConfigured, isSignedIn, currentUser, signOut, onAuthChange } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
+    import { initRateReview } from '../app/declare/rate-review.js';
+    import { noteSubmitted } from '../app/declare/rate-gate.js';
+    import { reviewsSubmit } from '../app/declare/convex-data.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const $ = (id) => document.getElementById(id);
@@ -295,6 +302,28 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 
     /* ---------- Soon stubs ---------- */
     document.querySelectorAll('[data-soon]').forEach((b) => b.addEventListener('click', () => toast('Coming soon — accounts arrive with V2.')));
+
+    /* ---------- Rate & Review: explicit entries (profile card + ?rate= deep-link) ----------
+       No auto toast here — only deliberate opens. Signed-out clicks (from the footer/
+       menu deep-links) route through sign-in, then open once the session lands. */
+    const rr = initRateReview({
+      onSubmit: (payload) => { noteSubmitted(); reviewsSubmit(payload); },
+    });
+    function openRate(source) {
+      if (isConfigured() && !isSignedIn()) {
+        let opened = false;
+        onAuthChange(() => { if (!opened && isSignedIn()) { opened = true; rr.open(source); } });
+        openAuthModal();
+        return;
+      }
+      rr.open(source);
+    }
+    const _rateCard = $('yRateCard');
+    if (_rateCard) _rateCard.addEventListener('click', () => openRate('profile'));
+    try {
+      const _rp = new URLSearchParams(location.search).get('rate');
+      if (_rp === 'footer' || _rp === 'menu' || _rp === 'profile') initAuth().then(() => openRate(_rp));
+    } catch (e) {}
 
     /* ---------- church hub card reflects the saved church ---------- */
     function renderChurchHub() {

@@ -1,0 +1,209 @@
+---
+// RateReview — Declare's "Rate and Review" surface (presentational only).
+// One component holds BOTH the bottom toast and the multi-step rating sheet.
+// Behavior lives in the co-located module src/app/declare/rate-review.js, which
+// exports initRateReview({ isEligible, onDismiss, onSubmit }) and returns
+// { open(source) }. This file is markup + scoped styles only — no data, no auth,
+// no gating. Airbnb-style flow (one question per screen, tap a star to advance,
+// thin progress bar, X to close), rendered in the declare.css design system
+// (Forest / Gold / Cream / Parchment, Cormorant Garamond headlines, DM Sans UI,
+// dark cinematic default). Reuses tokens + .sheet-scrim/.grabber/.btn-primary/
+// .coreglow from /declare/declare.css.
+---
+<!-- ============ TOAST (rises from the bottom of the results screen) ============ -->
+<div class="rr-toast" id="rrToast" role="status" aria-live="polite" hidden>
+  <div class="rr-toast-in">
+    <div class="rr-toast-txt">
+      <div class="rr-toast-h serif">Has Declare met you?</div>
+      <div class="rr-toast-s">A moment to share how the Word has met you.</div>
+    </div>
+    <div class="rr-toast-act">
+      <button class="rr-share btn btn-primary" id="rrToastShare" type="button">Share</button>
+      <button class="rr-not" id="rrToastNot" type="button">Not now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET (multi-step rating, opened by Share or an explicit entry) ============ -->
+<div class="sheet-scrim rr-scrim" id="rrScrim" aria-hidden="true"></div>
+<section class="rr-sheet" id="rrSheet" role="dialog" aria-modal="true" aria-label="Rate Declare" aria-hidden="true">
+  <div class="grabber" aria-hidden="true"></div>
+  <button class="rr-x" id="rrClose" type="button" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+  </button>
+
+  <div class="rr-progress" aria-hidden="true"><span class="rr-progress-fill" id="rrProgress"></span></div>
+
+  <div class="rr-stage">
+    <!-- Step 1 -->
+    <section class="rr-step" data-step="1" aria-label="Met you">
+      <div class="rr-h serif">Met you</div>
+      <div class="rr-sub">Did Declare meet you where you were?</div>
+      <div class="rr-stars" data-stars="met" role="radiogroup" aria-label="Met you rating">
+        <button class="rr-star" type="button" data-val="1" role="radio" aria-checked="false" aria-label="1 star"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="2" role="radio" aria-checked="false" aria-label="2 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="3" role="radio" aria-checked="false" aria-label="3 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="4" role="radio" aria-checked="false" aria-label="4 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="5" role="radio" aria-checked="false" aria-label="5 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+      </div>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="rr-step" data-step="2" aria-label="The Word" hidden>
+      <div class="rr-h serif">The Word</div>
+      <div class="rr-sub">Did the Scripture feel true and steady?</div>
+      <div class="rr-stars" data-stars="word" role="radiogroup" aria-label="The Word rating">
+        <button class="rr-star" type="button" data-val="1" role="radio" aria-checked="false" aria-label="1 star"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="2" role="radio" aria-checked="false" aria-label="2 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="3" role="radio" aria-checked="false" aria-label="3 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="4" role="radio" aria-checked="false" aria-label="4 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="5" role="radio" aria-checked="false" aria-label="5 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+      </div>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="rr-step" data-step="3" aria-label="Coming back" hidden>
+      <div class="rr-h serif">Coming back</div>
+      <div class="rr-sub">Would you return when things get heavy?</div>
+      <div class="rr-stars" data-stars="back" role="radiogroup" aria-label="Coming back rating">
+        <button class="rr-star" type="button" data-val="1" role="radio" aria-checked="false" aria-label="1 star"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="2" role="radio" aria-checked="false" aria-label="2 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="3" role="radio" aria-checked="false" aria-label="3 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="4" role="radio" aria-checked="false" aria-label="4 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+        <button class="rr-star" type="button" data-val="5" role="radio" aria-checked="false" aria-label="5 stars"><svg viewBox="0 0 24 24"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></button>
+      </div>
+    </section>
+
+    <!-- Step 4 — testimonial -->
+    <section class="rr-step rr-write" data-step="4" aria-label="Share how it has met you" hidden>
+      <div class="rr-h serif">Share how it has met you</div>
+      <div class="rr-sub">Optional. Your words could carry someone else.</div>
+      <textarea class="rr-note" id="rrNote" rows="4" maxlength="2000" placeholder="What would you tell someone carrying the same thing?" aria-label="Your testimony"></textarea>
+      <label class="rr-private" for="rrPrivate">
+        <input type="checkbox" id="rrPrivate" />
+        <span class="rr-private-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"></path></svg></span>
+        <span class="rr-private-lbl">Keep this private</span>
+      </label>
+      <div class="rr-notice" id="rrNotice" data-public="Your review will be publicly visible." data-private="Kept private. Only the Declare team will see it.">Your review will be publicly visible.</div>
+      <button class="btn btn-primary btn-full rr-submit" id="rrSubmit" type="button">Share my review</button>
+    </section>
+
+    <!-- Close — Blessing to you -->
+    <section class="rr-step rr-bless" data-step="close" aria-label="Blessing" hidden>
+      <div class="coreglow rr-bless-glow" aria-hidden="true"></div>
+      <div class="rr-bless-h serif">Blessing to you</div>
+      <div class="rr-bless-sub">Thank you for sharing. Go in peace.</div>
+      <button class="btn btn-primary rr-done" id="rrDone" type="button">Close</button>
+    </section>
+  </div>
+</section>
+
+<style is:global>
+  /* ── RateReview — scoped under .rr- so it never collides with the host page.
+     Tokens, .sheet-scrim, .grabber, .btn-primary, .coreglow, .serif come from
+     /declare/declare.css (loaded by the host Astro page). ── */
+
+  /* Toast: rises from the bottom of the results screen (spring slide-up). */
+  .rr-toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 58;
+    width: min(440px, calc(100% - 28px)); transform: translate(-50%, 24px); opacity: 0; pointer-events: none;
+    transition: transform .55s cubic-bezier(.16, 1, .3, 1), opacity .4s ease; }
+  .rr-toast[hidden] { display: none; }
+  .rr-toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+  .rr-toast-in { display: flex; align-items: center; gap: 14px; padding: 15px 16px 15px 18px;
+    background: var(--surface); border: 1px solid var(--line2); border-radius: 18px;
+    box-shadow: 0 22px 60px -22px rgba(0, 0, 0, .7), 0 0 30px -10px rgba(216, 184, 95, .25); }
+  .rr-toast-txt { flex: 1; min-width: 0; }
+  .rr-toast-h { font-size: 19px; font-weight: 600; color: var(--text); line-height: 1.1; }
+  .rr-toast-s { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .rr-toast-act { display: flex; flex-direction: column; align-items: stretch; gap: 6px; flex: 0 0 auto; }
+  .rr-share { padding: 9px 18px; font-size: 14px; border-radius: 999px; border: 0; cursor: pointer; font-family: inherit; font-weight: 600; }
+  .rr-not { background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; padding: 2px; }
+  .rr-not:hover { color: var(--text); }
+
+  /* Scrim + sheet (reuses .sheet-scrim; spring matches the /today share sheet). */
+  .rr-scrim { z-index: 64; }
+  .rr-sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: min(460px, 100%);
+    z-index: 65; background: var(--screen); border-radius: 28px 28px 0 0; box-shadow: 0 -28px 80px -22px rgba(0, 0, 0, .72);
+    padding: 8px 24px calc(26px + env(safe-area-inset-bottom)); max-height: 90vh; overflow: hidden;
+    display: flex; flex-direction: column; transition: transform .46s cubic-bezier(.2, .72, .2, 1); }
+  .rr-sheet.open { transform: translate(-50%, 0); }
+  .rr-x { position: absolute; top: 16px; right: 18px; z-index: 2; width: 34px; height: 34px; border-radius: 50%;
+    border: 0; background: var(--surface); color: var(--text); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: var(--chip-shadow, 0 2px 8px rgba(0, 0, 0, .25)); }
+  .rr-x svg { width: 15px; height: 15px; }
+
+  /* Thin progress bar (Airbnb-style), fills as steps advance. */
+  .rr-progress { height: 3px; border-radius: 999px; background: color-mix(in srgb, var(--line2) 70%, transparent);
+    margin: 22px 6px 6px; overflow: hidden; }
+  .rr-progress-fill { display: block; height: 100%; width: 25%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), var(--goldd)); box-shadow: 0 0 12px rgba(216, 184, 95, .5);
+    transition: width .5s cubic-bezier(.2, .72, .2, 1); }
+
+  .rr-stage { position: relative; flex: 1; min-height: 320px; display: flex; }
+
+  /* Each step crossfades + spring-slides in. */
+  .rr-step { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 22px 6px 6px; min-height: 320px; }
+  .rr-step[hidden] { display: none; }
+  .rr-step.rr-in { animation: rrStepIn .5s cubic-bezier(.16, 1, .3, 1) both; }
+  @keyframes rrStepIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .rr-h { font-size: clamp(30px, 8.5vw, 38px); font-weight: 600; color: var(--text); line-height: 1.05; letter-spacing: -.01em; }
+  .rr-sub { font-size: 14px; color: var(--muted); margin-top: 12px; max-width: 26ch; line-height: 1.5; }
+
+  /* Stars — large, tap to set; tapping advances. Staggered reveal on step show. */
+  .rr-stars { display: flex; gap: 8px; margin-top: 30px; }
+  .rr-star { background: none; border: 0; padding: 4px; cursor: pointer; line-height: 0; color: var(--line2);
+    transform: translateY(8px) scale(.85); opacity: 0; transition: color .2s ease, transform .18s ease; }
+  .rr-star svg { width: 38px; height: 38px; fill: currentColor; }
+  .rr-stars.revealed .rr-star { opacity: 1; transform: none; }
+  .rr-stars.revealed .rr-star:nth-child(1) { transition-delay: .04s; }
+  .rr-stars.revealed .rr-star:nth-child(2) { transition-delay: .10s; }
+  .rr-stars.revealed .rr-star:nth-child(3) { transition-delay: .16s; }
+  .rr-stars.revealed .rr-star:nth-child(4) { transition-delay: .22s; }
+  .rr-stars.revealed .rr-star:nth-child(5) { transition-delay: .28s; }
+  .rr-star.on { color: var(--gold); }
+  .rr-star.on svg { filter: drop-shadow(0 0 10px rgba(216, 184, 95, .55)); }
+  .rr-star:active { transform: scale(.86); }
+  @media (hover: hover) { .rr-stars:hover .rr-star { color: var(--line2); } .rr-star:hover, .rr-star:hover ~ .rr-star { } }
+
+  /* Step 4 — write */
+  .rr-write { justify-content: flex-start; padding-top: 30px; }
+  .rr-note { width: 100%; margin-top: 22px; min-height: 132px; resize: none; border-radius: 16px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 15px 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.55; outline: none; }
+  .rr-note::placeholder { color: var(--muted); }
+  .rr-note:focus { border-color: var(--gold); }
+  .rr-private { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; user-select: none; align-self: flex-start; }
+  .rr-private input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .rr-private-box { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--line2);
+    display: flex; align-items: center; justify-content: center; color: transparent; transition: border-color .2s ease, background .2s ease, color .2s ease; }
+  .rr-private-box svg { width: 13px; height: 13px; }
+  .rr-private input:checked + .rr-private-box { background: var(--gold); border-color: var(--gold); color: #22382E; }
+  .rr-private input:focus-visible + .rr-private-box { box-shadow: 0 0 0 3px rgba(216, 184, 95, .35); }
+  .rr-private-lbl { font-size: 14px; color: var(--text2, var(--text)); }
+  .rr-notice { font-size: 12.5px; color: var(--muted); margin-top: 14px; align-self: flex-start; line-height: 1.45; }
+  .rr-submit { margin-top: 22px; width: 100%; padding: 15px; border-radius: 14px; border: 0; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 600; }
+
+  /* Close — Blessing to you */
+  .rr-bless { position: relative; justify-content: center; }
+  .rr-bless-glow { height: 420px; opacity: .9; }
+  .rr-bless-h { position: relative; z-index: 1; font-size: clamp(38px, 11vw, 52px); font-weight: 600; color: var(--text);
+    line-height: 1.02; text-shadow: 0 0 50px rgba(216, 184, 95, .4); }
+  .rr-bless-sub { position: relative; z-index: 1; font-size: 15px; font-style: italic; color: var(--soft, var(--muted)); margin-top: 16px; }
+  .rr-done { position: relative; z-index: 1; margin-top: 30px; padding: 13px 30px; border-radius: 999px; border: 0; cursor: pointer; font-family: inherit; font-weight: 600; }
+
+  @media (min-width: 481px) {
+    .rr-sheet { border-radius: 28px; bottom: auto; top: 50%; transform: translate(-50%, -46%) scale(.97); opacity: 0; pointer-events: none;
+      transition: transform .42s cubic-bezier(.16, 1, .3, 1), opacity .32s ease; }
+    .rr-sheet.open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+    .rr-sheet .grabber { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rr-toast, .rr-sheet, .rr-progress-fill, .rr-star { transition-duration: .2s !important; }
+    .rr-step.rr-in { animation: none !important; }
+    .rr-stars .rr-star { opacity: 1 !important; transform: none !important; transition-delay: 0s !important; }
+  }
+</style>

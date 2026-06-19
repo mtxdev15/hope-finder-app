@@ -53,4 +53,23 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_and_name", ["userId", "name"]),
+
+  // Rate & Review submissions. One row per submission (a user may submit more
+  // than once over time; moderation handles duplicates). userId + firstName are
+  // derived server-side from the authenticated user. Every row is written as
+  // `pending`; nothing user-written goes public until manually set `approved`.
+  reviews: defineTable({
+    userId: v.string(),
+    firstName: v.string(),
+    score_met_you: v.number(),
+    score_the_word: v.number(),
+    score_coming_back: v.number(),
+    testimonial: v.optional(v.string()),
+    isPublic: v.boolean(),
+    status: v.union(v.literal("pending"), v.literal("approved")),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    // For the future testimonial wall: approved + public, newest first.
+    .index("by_status_public", ["status", "isPublic", "createdAt"]),
 });
