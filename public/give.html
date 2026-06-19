@@ -60,6 +60,9 @@
   .note{ text-align:center; font-size:12px; color:var(--muted); margin-top:14px; line-height:1.6; }
   .secure{ display:flex; align-items:center; justify-content:center; gap:7px; margin-top:8px; font-size:11px; color:var(--muted); }
   .secure svg{ width:13px; height:13px; color:var(--goldd); }
+  .soon{ margin-top:30px; padding:26px 22px; border-radius:18px; border:1px solid rgba(216,184,95,.28); background:rgba(216,184,95,.06); text-align:center; }
+  .soon-eyebrow{ display:inline-block; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:700; padding:5px 12px; border:1px solid rgba(216,184,95,.4); border-radius:999px; margin-bottom:14px; }
+  .soon-line{ font-size:14px; line-height:1.65; color:var(--text2); max-width:34ch; margin:0 auto; }
 </style>
 <script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"dark";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 </head>
@@ -85,28 +88,10 @@
       <div class="verse rise d2">&ldquo;Each one must give as he has decided in his heart, for God loves a cheerful giver.&rdquo;</div>
       <div class="vref rise d2">2 Corinthians 9:7</div>
 
-      <div class="lbl rise d3">Frequency</div>
-      <div class="freq rise d3" id="freq">
-        <button class="fbtn on" data-f="once">One-time</button>
-        <button class="fbtn" data-f="monthly">Monthly</button>
+      <div class="soon rise d3">
+        <div class="soon-eyebrow">Coming soon</div>
+        <div class="soon-line">A way to give is on the way. We are building secure giving now. Thank you for your heart to keep Declare free for everyone.</div>
       </div>
-
-      <div class="lbl rise d4" style="margin-top:18px">Amount</div>
-      <div class="amts rise d4" id="amts">
-        <button class="amt" data-a="10">$10</button>
-        <button class="amt on" data-a="25">$25</button>
-        <button class="amt" data-a="50">$50</button>
-        <button class="amt" data-a="100">$100</button>
-        <button class="amt" data-a="250">$250</button>
-        <button class="amt" data-a="500">$500</button>
-      </div>
-      <div class="custom rise d4">
-        <span class="cur">$</span>
-        <input id="customAmt" type="text" inputmode="numeric" autocomplete="off" placeholder="Other amount" aria-label="Custom amount" />
-      </div>
-
-      <button class="give rise d5" id="giveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg><span id="giveLabel">Give $25</span></button>
-      <div class="secure rise d6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure giving &middot; 100% goes to the mission</div>
       <div class="note rise d6">Declare is a ministry of JC Kingdom Ventures. Gifts may be tax-deductible where applicable.</div>
     </div>
   </div>
@@ -118,38 +103,6 @@
   var ps=document.getElementById('pageShare');
   if(ps) ps.addEventListener('click', function(){
     try{ DeclareShare.open({ type:'page', title:'Support Declare', subtitle:'Keep Declare free for all', url:location.href, embed:false }); }catch(e){}
-  });
-  var freq='once', amount=25;
-  var amts=document.getElementById('amts'), giveLabel=document.getElementById('giveLabel'), customAmt=document.getElementById('customAmt');
-  function commas(n){ return (n||0).toLocaleString('en-US'); }
-  function fmt(){ return '$'+ commas(amount? amount : 0) + (freq==='monthly'?'/mo':''); }
-  function updateLabel(){ giveLabel.textContent = (amount>0 ? 'Give '+fmt() : 'Choose an amount'); }
-  document.getElementById('freq').addEventListener('click', function(e){
-    var b=e.target.closest('.fbtn'); if(!b) return;
-    this.querySelectorAll('.fbtn').forEach(function(x){ x.classList.remove('on'); }); b.classList.add('on');
-    freq=b.dataset.f; updateLabel();
-  });
-  amts.addEventListener('click', function(e){
-    var b=e.target.closest('.amt'); if(!b) return;
-    amts.querySelectorAll('.amt').forEach(function(x){ x.classList.remove('on'); }); b.classList.add('on');
-    amount=parseInt(b.dataset.a,10); customAmt.value=''; updateLabel();
-  });
-  customAmt.addEventListener('input', function(){
-    var raw=this.value.replace(/[^0-9.]/g,'');
-    var firstDot=raw.indexOf('.');
-    if(firstDot>=0){ raw = raw.slice(0,firstDot+1) + raw.slice(firstDot+1).replace(/\./g,''); }
-    var parts=raw.split('.');
-    var intPart=parts[0].replace(/^0+(?=\d)/,'');
-    var formattedInt = intPart ? parseInt(intPart,10).toLocaleString('en-US') : '';
-    this.value = formattedInt + (parts.length>1 ? '.'+parts[1].slice(0,2) : '');
-    if(raw){ amts.querySelectorAll('.amt').forEach(function(x){ x.classList.remove('on'); }); var v=parseFloat(raw); amount=isNaN(v)?0:v; }
-    else { amount=0; }
-    updateLabel();
-  });
-  document.getElementById('giveBtn').addEventListener('click', function(){
-    if(!amount||amount<=0){ customAmt.focus(); return; }
-    // NOTE: payment processing (Stripe) not yet wired; visual confirmation only.
-    this.querySelector('#giveLabel').textContent='Thank you. '+fmt()+' ♥';
   });
 })();
 </script>
