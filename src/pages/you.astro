@@ -245,14 +245,15 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       const s = st.baseScale * st.zoom;
       cropEl.querySelector('#cropImg').style.transform = 'translate(' + st.tx + 'px,' + st.ty + 'px) scale(' + s + ')';
     }
-    function setZoom(z) {
+    function zoomAt(z, ax, ay) {           // zoom around an anchor point (px, in stage coords)
       const st = cropState; if (!st) return;
       z = Math.min(3, Math.max(1, z));
       const sOld = st.baseScale * st.zoom, sNew = st.baseScale * z;
-      const cx = (st.FRAME / 2 - st.tx) / sOld, cy = (st.FRAME / 2 - st.ty) / sOld;
-      st.zoom = z; st.tx = st.FRAME / 2 - cx * sNew; st.ty = st.FRAME / 2 - cy * sNew;
+      const ix = (ax - st.tx) / sOld, iy = (ay - st.ty) / sOld;  // image point under the anchor stays put
+      st.zoom = z; st.tx = ax - ix * sNew; st.ty = ay - iy * sNew;
       applyCrop();
     }
+    function setZoom(z) { const st = cropState; if (st) zoomAt(z, st.FRAME / 2, st.FRAME / 2); }
     function closeCropper() {
       if (cropEl) cropEl.hidden = true;
       if (cropState && cropState.url) { try { URL.revokeObjectURL(cropState.url); } catch (e) {} }
@@ -273,11 +274,39 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       document.body.appendChild(el);
       cropEl = el;
       const stage = el.querySelector('#cropStage'), zoom = el.querySelector('#cropZoom');
-      let dragging = false, lastX = 0, lastY = 0;
-      stage.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; try { stage.setPointerCapture(e.pointerId); } catch (_) {} });
-      stage.addEventListener('pointermove', function (e) { if (!dragging || !cropState) return; cropState.tx += e.clientX - lastX; cropState.ty += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; applyCrop(); });
-      function endDrag() { dragging = false; }
-      stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
+      // one finger drags; two fingers pinch-zoom (around the pinch centre) and pan together
+      const pointers = new Map();
+      let mode = 'idle', lastX = 0, lastY = 0, pinchDist0 = 1, pinchZoom0 = 1, pinchMid = null;
+      function pts() { const a = []; pointers.forEach(function (v) { a.push(v); }); return a; }
+      function stageXY(cx, cy) { const r = stage.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; }
+      stage.addEventListener('pointerdown', function (e) {
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+        if (pointers.size >= 2) {
+          const p = pts(); pinchDist0 = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+          pinchZoom0 = cropState ? cropState.zoom : 1;
+          pinchMid = stageXY((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2); mode = 'pinch';
+        } else { mode = 'drag'; lastX = e.clientX; lastY = e.clientY; }
+      });
+      stage.addEventListener('pointermove', function (e) {
+        if (!pointers.has(e.pointerId) || !cropState) return;
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (mode === 'pinch' && pointers.size >= 2) {
+          const p = pts(), d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+          const m = stageXY((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2);
+          cropState.tx += m.x - pinchMid.x; cropState.ty += m.y - pinchMid.y; pinchMid = m;   // pan with the fingers
+          zoomAt(pinchZoom0 * (d / pinchDist0), m.x, m.y); zoom.value = String(cropState.zoom);
+        } else if (mode === 'drag') {
+          cropState.tx += e.clientX - lastX; cropState.ty += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; applyCrop();
+        }
+      });
+      function liftPointer(e) {
+        pointers.delete(e.pointerId);
+        if (pointers.size === 1) { mode = 'drag'; const r = pts()[0]; lastX = r.x; lastY = r.y; }
+        else if (pointers.size === 0) { mode = 'idle'; }
+      }
+      stage.addEventListener('pointerup', liftPointer);
+      stage.addEventListener('pointercancel', liftPointer);
       stage.addEventListener('wheel', function (e) { if (!cropState) return; e.preventDefault(); setZoom(cropState.zoom - e.deltaY * 0.0016); zoom.value = String(cropState.zoom); }, { passive: false });
       zoom.addEventListener('input', function () { setZoom(parseFloat(zoom.value)); });
       el.querySelector('#cropCancel').addEventListener('click', closeCropper);
