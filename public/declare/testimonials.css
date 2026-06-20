@@ -1,0 +1,32 @@
+/* Declare & Believe — "How the Word has met people" testimonial wall.
+   Injected by /declare/testimonials.js into [data-testimonials]. Container-
+   responsive (one column in the narrow About frame, a grid on the wide Welcome
+   page). Uses declare.css tokens. */
+
+.tw { width: 100%; }
+.tw-head { text-align: center; max-width: 640px; margin: 0 auto 34px; }
+.tw-h { font-family: 'Cormorant Garamond', serif; font-size: clamp(27px, 4.4vw, 40px); font-weight: 600;
+  color: var(--text); line-height: 1.08; letter-spacing: -.01em; text-wrap: balance; margin: 0; }
+.tw-avg { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.tw-avgnum { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 600; color: var(--text); line-height: 1; }
+.tw-avgof { font-size: 13px; color: var(--muted); margin-left: -6px; }
+.tw-avgstars { display: inline-flex; gap: 3px; }
+.tw-count { font-size: 12px; color: var(--goldd); letter-spacing: .04em; }
+
+.tw-star { width: 18px; height: 18px; display: inline-block; flex: 0 0 auto; }
+.tw-star path { fill: none; stroke: var(--line2); stroke-width: 1.4; }
+.tw-star.on path { fill: var(--gold); stroke: var(--gold); }
+
+.tw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 16px; align-items: start; }
+.tw-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+  margin: 0; display: flex; flex-direction: column; gap: 13px; }
+.tw-card-top { display: flex; align-items: center; gap: 12px; }
+.tw-av { width: 40px; height: 40px; border-radius: 50%; flex: 0 0 auto;
+  background: radial-gradient(circle at 50% 35%, var(--gold), #B7922F); color: #221A06;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 700; }
+.tw-name { font-size: 14.5px; font-weight: 600; color: var(--text); }
+.tw-cardstars { display: flex; gap: 2px; margin-top: 4px; }
+.tw-cardstars .tw-star { width: 13px; height: 13px; }
+.tw-quote { font-size: 14.5px; line-height: 1.62; color: var(--text2, var(--text)); margin: 0; }
+.tw-date { font-size: 11.5px; letter-spacing: .04em; color: var(--muted); margin-top: auto; }
