@@ -194,15 +194,21 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     let _tt;
     function toast(m) { const t = $('yToast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
+    // A signed-out device is a guest: show a clean slate (name, church, verse, about,
+    // interests, photo, saved counts) no matter what is left in local storage. The data
+    // is not destroyed — it returns when they sign back in. Personal info is account-tied.
+    const signedInNow = () => isConfigured() && isSignedIn();
+
     /* ---------- rail: identity + real device stats ---------- */
     function renderRail() {
-      const name = (P.name || '').trim();
+      const sIn = signedInNow();
+      const name = sIn ? (P.name || '').trim() : '';
       $('yName').textContent = name || 'Friend';
       $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
       // uploaded photo (if any) overlays the initial; remove-link shows only with one
       (function () {
         const av = $('yAvatar'); let img = av.querySelector('.yav-img'); const rm = $('yAvRemove');
-        if (P.avatar) {
+        if (sIn && P.avatar) {
           if (!img) { img = document.createElement('img'); img.className = 'yav-img'; img.alt = ''; av.appendChild(img); }
           img.src = P.avatar; av.classList.add('has-photo'); if (rm) rm.hidden = false;
         } else {
@@ -212,11 +218,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       const d = daysWith(P);
       $('yDays').textContent = d;
       $('yDaysLbl').textContent = d === 1 ? 'day with Declare' : 'days with Declare';
-      const items = listItems();
+      const items = sIn ? listItems() : [];
       const words = items.filter((i) => i.type === 'word').length;
       const verses = items.filter((i) => i.type === 'verse').length;
-      let hls = 0; try { hls = Object.keys(JSON.parse(localStorage.getItem('declare-highlights') || '{}')).length; } catch (e) {}
-      const colls = listCollections().length;
+      let hls = 0; if (sIn) { try { hls = Object.keys(JSON.parse(localStorage.getItem('declare-highlights') || '{}')).length; } catch (e) {} }
+      const colls = sIn ? listCollections().length : 0;
       const rows = [
         [words, words === 1 ? 'word received & kept' : 'words received & kept'],
         [verses, verses === 1 ? 'verse saved from the Word' : 'verses saved from the Word'],
@@ -366,6 +372,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       { key: 'about', label: 'About me', empty: 'A line about your walk' },
     ];
     function factValue(k) {
+      if (!signedInNow()) return '';     // guest = clean slate, no leftover identity
       if (k === 'name') return P.name || '';
       if (k === 'church') return P.church ? P.church.name : '';
       if (k === 'verse') return P.favoriteVerse || '';
@@ -385,7 +392,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           const k = b.dataset.fact;
           // a saved church opens its detail card (Airbnb pattern); the finder
           // only appears when there's nothing saved yet
-          if (k === 'church') { P.church ? openHomeChurch() : openFinder(); return; }
+          if (k === 'church') { (signedInNow() && P.church) ? openHomeChurch() : openFinder(); return; }
           openEditor(k);
         });
       });
@@ -394,7 +401,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- interests ("Ask me about") ---------- */
     const INTERESTS = ['Worship', 'Prayer', 'Scripture study', 'Serving', 'Family', 'Testimony', 'Fasting', 'Missions', 'Youth', 'Music', 'Small groups', 'Bible journaling'];
     function renderChips() {
-      const mine = P.interests || [];
+      const mine = signedInNow() ? (P.interests || []) : [];
       $('yChips').innerHTML = mine.map((i) => '<span class="ychip on">' + esc(i) + '</span>').join('')
         + '<button class="ychip add" id="chipAdd">' + (mine.length ? 'Edit' : 'Choose what you love') + ' +</button>';
       $('chipAdd').addEventListener('click', openInterests);
@@ -409,9 +416,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function openEditor(k) {
       modalKey = k;
       const cfg = {
-        name: { t: 'Your name', s: 'Just a first name is perfect — it’s how Declare will greet you.', body: '<input class="ym-field" id="ymInput" maxlength="40" placeholder="e.g. Jeff" value="' + esc(P.name || '') + '">' },
-        verse: { t: 'Your anchor verse', s: 'The verse you keep coming back to.', body: '<input class="ym-field" id="ymInput" maxlength="80" placeholder="e.g. Isaiah 41:10" value="' + esc(P.favoriteVerse || '') + '">' },
-        about: { t: 'About you', s: 'A sentence or two about your walk — it stays on this device.', body: '<textarea class="ym-field" id="ymInput" rows="4" maxlength="280" placeholder="Write something honest…">' + esc(P.about || '') + '</textarea><div class="ym-count"><span id="ymCount">280</span> characters available</div>' },
+        name: { t: 'Your name', s: 'Just a first name is perfect — it’s how Declare will greet you.', body: '<input class="ym-field" id="ymInput" maxlength="40" placeholder="e.g. Jeff" value="' + esc((signedInNow() && P.name) || '') + '">' },
+        verse: { t: 'Your anchor verse', s: 'The verse you keep coming back to.', body: '<input class="ym-field" id="ymInput" maxlength="80" placeholder="e.g. Isaiah 41:10" value="' + esc((signedInNow() && P.favoriteVerse) || '') + '">' },
+        about: { t: 'About you', s: 'A sentence or two about your walk — it stays on this device.', body: '<textarea class="ym-field" id="ymInput" rows="4" maxlength="280" placeholder="Write something honest…">' + esc((signedInNow() && P.about) || '') + '</textarea><div class="ym-count"><span id="ymCount">280</span> characters available</div>' },
       }[k];
       $('ymTitle').textContent = cfg.t;
       $('ymSub').textContent = cfg.s;
@@ -528,11 +535,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 
     /* ---------- church hub card reflects the saved church ---------- */
     function renderChurchHub() {
-      $('hubChurchD').innerHTML = P.church
+      $('hubChurchD').innerHTML = (signedInNow() && P.church)
         ? esc(P.church.name) + ' <span class="ybadge home">Home</span>'
         : 'Discover a fellowship near you';
     }
-    $('hubChurch').addEventListener('click', () => { P.church ? openHomeChurch() : openFinder(); });
+    $('hubChurch').addEventListener('click', () => { (signedInNow() && P.church) ? openHomeChurch() : openFinder(); });
 
     /* ---------- real account session (Convex + Better Auth) ---------- */
     function renderAuth() {
