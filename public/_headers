@@ -1,0 +1,11 @@
+# Cloudflare Pages headers.
+# The testimonial wall assets have fixed filenames (not content-hashed), and the
+# default 4h browser cache made wall changes look stale until a hard refresh.
+# Force revalidation on every load so updates show immediately after a deploy.
+# (304 when unchanged, so it's cheap.)
+
+/declare/testimonials.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/declare/testimonials.css
+  Cache-Control: public, max-age=0, must-revalidate
