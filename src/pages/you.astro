@@ -161,7 +161,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { noteSubmitted } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit } from '../app/declare/convex-data.js';
+    import { reviewsSubmit, reviewsMine } from '../app/declare/convex-data.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const $ = (id) => document.getElementById(id);
@@ -306,8 +306,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- Rate & Review: explicit entries (profile card + ?rate= deep-link) ----------
        No auto toast here — only deliberate opens. Signed-out clicks (from the footer/
        menu deep-links) route through sign-in, then open once the session lands. */
+    const _rateCard = $('yRateCard');
     const rr = initRateReview({
-      onSubmit: (payload) => { noteSubmitted(); reviewsSubmit(payload); },
+      onSubmit: (payload) => {
+        noteSubmitted();
+        const p = reviewsSubmit(payload);
+        if (p && p.then) p.then(renderMyReview).catch(() => {});
+      },
     });
     function openRate(source) {
       if (isConfigured() && !isSignedIn()) {
@@ -318,8 +323,25 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       }
       rr.open(source);
     }
-    const _rateCard = $('yRateCard');
+    // After a review exists, the card shows what you rated (gold stars + status)
+    // instead of just looping back to the rating flow. Tapping it re-opens to update.
+    function renderMyReview() {
+      if (!(isConfigured() && isSignedIn()) || !_rateCard) return;
+      reviewsMine().then((r) => {
+        if (!r || !_rateCard) return;
+        const ov = Math.round((r.score_met_you + r.score_the_word + r.score_coming_back) / 3);
+        let stars = '';
+        for (let i = 1; i <= 5; i++) stars += '<span style="color:' + (i <= ov ? 'var(--gold)' : 'var(--line2)') + '">★</span>';
+        const status = r.status === 'approved' ? (r.isPublic ? 'Shared publicly' : 'Approved') : 'Pending review';
+        const t = _rateCard.querySelector('.yh-t'); if (t) t.textContent = 'Your review';
+        const d = _rateCard.querySelector('.yh-d');
+        if (d) d.innerHTML = '<span style="letter-spacing:1.5px">' + stars + '</span>'
+          + '<span style="color:var(--goldd);margin-left:9px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase">' + status + '</span>';
+      }).catch(() => {});
+    }
     if (_rateCard) _rateCard.addEventListener('click', () => openRate('profile'));
+    initAuth().then(renderMyReview);
+    onAuthChange(renderMyReview);
     try {
       const _rp = new URLSearchParams(location.search).get('rate');
       if (_rp === 'footer' || _rp === 'menu' || _rp === 'profile') initAuth().then(() => openRate(_rp));

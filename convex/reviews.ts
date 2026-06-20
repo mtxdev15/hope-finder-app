@@ -79,3 +79,29 @@ export const listApprovedPublic = query({
     }));
   },
 });
+
+// The signed-in user's own most recent review (any status), so the profile can
+// show what they rated instead of asking again. Returns null if they haven't
+// rated yet. Scoped to the caller; never takes a userId arg.
+export const myReview = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireUser(ctx);
+    const rows = await ctx.db
+      .query("reviews")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(1);
+    const r = rows[0];
+    if (!r) return null;
+    return {
+      score_met_you: r.score_met_you,
+      score_the_word: r.score_the_word,
+      score_coming_back: r.score_coming_back,
+      testimonial: r.testimonial,
+      isPublic: r.isPublic,
+      status: r.status,
+      createdAt: r.createdAt,
+    };
+  },
+});

@@ -82,3 +82,4 @@ export async function udSet(key, value) { return (await ensure()) ? runMutation(
    other helpers; a signed-out read path can be added when that wall ships). ── */
 export async function reviewsSubmit(payload) { return (await ensure()) ? runMutation(apiRef.reviews.submit, payload) : null; }
 export async function reviewsListApprovedPublic() { return (await ensure()) ? runQuery(apiRef.reviews.listApprovedPublic, {}) : null; }
+export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.reviews.myReview, {}) : null; }
