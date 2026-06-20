@@ -76,3 +76,9 @@ export async function collRemove(name) { return (await ensure()) ? runMutation(a
 /* ── generic per-user key/value blobs (profile, journey, …) ── */
 export async function udGetAll() { return (await ensure()) ? runQuery(apiRef.userdata.getAll, {}) : null; }
 export async function udSet(key, value) { return (await ensure()) ? runMutation(apiRef.userdata.set, { key, value }) : null; }
+
+/* ── reviews (rate & review) — submit requires sign-in; the approved/public
+   read is for a future testimonial wall (currently authed-only, same as the
+   other helpers; a signed-out read path can be added when that wall ships). ── */
+export async function reviewsSubmit(payload) { return (await ensure()) ? runMutation(apiRef.reviews.submit, payload) : null; }
+export async function reviewsListApprovedPublic() { return (await ensure()) ? runQuery(apiRef.reviews.listApprovedPublic, {}) : null; }
