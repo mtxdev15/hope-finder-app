@@ -228,18 +228,86 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       )).join('');
     }
 
-    /* ---------- profile photo: center-cropped + compressed, stored on the device
-       profile (so it syncs to the account and clears on sign-out like the rest) ---------- */
-    function avatarFromFile(file, size, cb) {
-      const img = new Image(); const url = URL.createObjectURL(file);
+    /* ---------- profile photo: pick → crop (drag to position + zoom) → save ----------
+       A circular-masked stage; the image is dragged/zoomed beneath it and the framed
+       square is exported at 256px JPEG to the device profile (syncs to the account,
+       clears on sign-out like the rest of the personal data). ---------- */
+    let cropEl = null, cropState = null;
+    function clampCrop() {
+      const st = cropState; if (!st) return;
+      const s = st.baseScale * st.zoom;
+      st.tx = Math.min(0, Math.max(st.FRAME - st.iw * s, st.tx));
+      st.ty = Math.min(0, Math.max(st.FRAME - st.ih * s, st.ty));
+    }
+    function applyCrop() {
+      const st = cropState; if (!st || !cropEl) return;
+      clampCrop();
+      const s = st.baseScale * st.zoom;
+      cropEl.querySelector('#cropImg').style.transform = 'translate(' + st.tx + 'px,' + st.ty + 'px) scale(' + s + ')';
+    }
+    function setZoom(z) {
+      const st = cropState; if (!st) return;
+      z = Math.min(3, Math.max(1, z));
+      const sOld = st.baseScale * st.zoom, sNew = st.baseScale * z;
+      const cx = (st.FRAME / 2 - st.tx) / sOld, cy = (st.FRAME / 2 - st.ty) / sOld;
+      st.zoom = z; st.tx = st.FRAME / 2 - cx * sNew; st.ty = st.FRAME / 2 - cy * sNew;
+      applyCrop();
+    }
+    function closeCropper() {
+      if (cropEl) cropEl.hidden = true;
+      if (cropState && cropState.url) { try { URL.revokeObjectURL(cropState.url); } catch (e) {} }
+      cropState = null;
+    }
+    function buildCropper() {
+      if (cropEl) return cropEl;
+      const el = document.createElement('div');
+      el.className = 'cropper'; el.hidden = true;
+      el.innerHTML =
+        '<div class="crop-card">' +
+          '<div class="crop-h">Position your photo</div>' +
+          '<div class="crop-tip">Drag to move, slide to zoom.</div>' +
+          '<div class="crop-stage" id="cropStage"><img class="crop-img" id="cropImg" alt="" draggable="false" /><div class="crop-ring" aria-hidden="true"></div></div>' +
+          '<div class="crop-zoom"><span class="crop-zi">&#8722;</span><input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom" /><span class="crop-zi crop-zi-lg">+</span></div>' +
+          '<div class="crop-actions"><button type="button" class="btn btn-ghost" id="cropCancel">Cancel</button><button type="button" class="btn btn-primary" id="cropSave">Save photo</button></div>' +
+        '</div>';
+      document.body.appendChild(el);
+      cropEl = el;
+      const stage = el.querySelector('#cropStage'), zoom = el.querySelector('#cropZoom');
+      let dragging = false, lastX = 0, lastY = 0;
+      stage.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; try { stage.setPointerCapture(e.pointerId); } catch (_) {} });
+      stage.addEventListener('pointermove', function (e) { if (!dragging || !cropState) return; cropState.tx += e.clientX - lastX; cropState.ty += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; applyCrop(); });
+      function endDrag() { dragging = false; }
+      stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
+      stage.addEventListener('wheel', function (e) { if (!cropState) return; e.preventDefault(); setZoom(cropState.zoom - e.deltaY * 0.0016); zoom.value = String(cropState.zoom); }, { passive: false });
+      zoom.addEventListener('input', function () { setZoom(parseFloat(zoom.value)); });
+      el.querySelector('#cropCancel').addEventListener('click', closeCropper);
+      el.addEventListener('click', function (e) { if (e.target === el) closeCropper(); });
+      el.querySelector('#cropSave').addEventListener('click', function () {
+        const st = cropState; if (!st) return;
+        const s = st.baseScale * st.zoom;
+        const sx = -st.tx / s, sy = -st.ty / s, sSize = st.FRAME / s, OUT = 256;
+        const c = document.createElement('canvas'); c.width = c.height = OUT;
+        try {
+          c.getContext('2d').drawImage(el.querySelector('#cropImg'), sx, sy, sSize, sSize, 0, 0, OUT, OUT);
+          P = setProfile({ avatar: c.toDataURL('image/jpeg', 0.85) }); renderRail();
+          closeCropper(); toast('Looking good.');
+        } catch (err) { toast("Couldn't save that image."); }
+      });
+      return el;
+    }
+    function openCropper(file) {
+      const el = buildCropper(), img = el.querySelector('#cropImg'), stage = el.querySelector('#cropStage'), zoom = el.querySelector('#cropZoom');
+      const url = URL.createObjectURL(file);
       img.onload = function () {
-        URL.revokeObjectURL(url);
-        const s = Math.min(img.width, img.height), sx = (img.width - s) / 2, sy = (img.height - s) / 2;
-        const c = document.createElement('canvas'); c.width = c.height = size;
-        try { c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, size, size); cb(c.toDataURL('image/jpeg', 0.82)); }
-        catch (e) { cb(null); }
+        img.style.visibility = 'hidden'; el.hidden = false;
+        requestAnimationFrame(function () {
+          const FRAME = stage.clientWidth || 280, iw = img.naturalWidth, ih = img.naturalHeight;
+          const baseScale = FRAME / Math.min(iw, ih);
+          cropState = { iw: iw, ih: ih, FRAME: FRAME, baseScale: baseScale, zoom: 1, tx: (FRAME - iw * baseScale) / 2, ty: (FRAME - ih * baseScale) / 2, url: url };
+          zoom.value = '1'; applyCrop(); img.style.visibility = 'visible';
+        });
       };
-      img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+      img.onerror = function () { try { URL.revokeObjectURL(url); } catch (e) {} toast("Couldn't read that image."); };
       img.src = url;
     }
     (function () {
@@ -250,10 +318,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         const f = e.target.files && e.target.files[0]; e.target.value = '';
         if (!f || !/^image\//.test(f.type)) return;
         if (f.size > 12 * 1024 * 1024) { toast('That image is a bit large. Try one under 12MB.'); return; }
-        avatarFromFile(f, 256, function (dataUrl) {
-          if (!dataUrl) { toast("Couldn't read that image."); return; }
-          P = setProfile({ avatar: dataUrl }); renderRail(); toast('Looking good.');
-        });
+        openCropper(f);
       });
       if (rm) rm.addEventListener('click', function () { P = setProfile({ avatar: '' }); renderRail(); toast('Photo removed.'); });
     })();
@@ -754,6 +819,26 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       font: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
     .you .yav-remove[hidden] { display: none; }
     .you .yav-remove:hover { color: var(--text); }
+    /* photo cropper */
+    .cropper { position: fixed; inset: 0; z-index: 320; display: flex; align-items: center; justify-content: center; padding: 20px;
+      background: rgba(8, 14, 11, .74); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .cropper[hidden] { display: none; }
+    .crop-card { width: min(380px, 92vw); background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--card-shadow); padding: 22px; }
+    .crop-h { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; }
+    .crop-tip { text-align: center; font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+    .crop-stage { position: relative; width: min(300px, 74vw); height: min(300px, 74vw); margin: 0 auto; border-radius: 14px; overflow: hidden; background: #0c130f; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .crop-stage:active { cursor: grabbing; }
+    .crop-img { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; pointer-events: none; -webkit-user-drag: none; }
+    .crop-ring { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 9999px rgba(8, 14, 11, .58); border: 2px solid rgba(216, 184, 95, .65); }
+    .crop-zoom { display: flex; align-items: center; gap: 12px; margin: 18px 6px 2px; }
+    .crop-zoom input[type=range] { flex: 1; accent-color: var(--gold); height: 4px; }
+    .crop-zi { color: var(--muted); font-size: 15px; line-height: 1; width: 16px; text-align: center; }
+    .crop-zi-lg { font-size: 20px; }
+    .crop-actions { display: flex; gap: 12px; margin-top: 20px; }
+    .crop-actions .btn { flex: 1; padding: 13px; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: filter .2s ease, transform .12s ease; }
+    .crop-actions .btn:active { transform: translateY(1px); }
+    .crop-actions .btn-primary { background: var(--cta); color: var(--ctatext); border: 0; box-shadow: 0 10px 24px -10px rgba(216, 184, 95, .5); }
+    .crop-actions .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); }
     .you .yname { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1.1; }
     .you .yrole { font-size: 12px; color: var(--muted); margin-top: 5px; }
     .you .ydivider { height: 1px; background: var(--line); margin: 18px 0 14px; }
