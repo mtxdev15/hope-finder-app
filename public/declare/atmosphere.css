@@ -38,17 +38,21 @@ html.lenis, html.lenis body{ height:auto; }
 #db-atmos{
   position:fixed; inset:0; z-index:-1; pointer-events:none; contain:layout style paint;
   background:
-    radial-gradient(120% 78% at 50% -6%, var(--atmos-glow), transparent 60%),
-    linear-gradient(var(--atmos-tint), var(--atmos-tint));
+    /* the light breaking through — a glow that blooms larger/brighter toward the sacred zones */
+    radial-gradient(135% 92% at 50% -8%, var(--atmos-glow), transparent 58%),
+    /* a soft ambient tint that warms or deepens the field — radial so it never flat-darkens */
+    radial-gradient(120% 80% at 50% 38%, var(--atmos-tint), transparent 78%);
 }
 
-/* ---- Zones → existing mood tokens (theme-agnostic; per-page --accent flows in) ---- */
-html[data-atmos="hero"]   { --atmos-glow:var(--topglow);  --atmos-tint:transparent; }
-html[data-atmos="answer"] { --atmos-glow:var(--glow1);    --atmos-tint:color-mix(in srgb, var(--accent, var(--gold)) 7%, transparent); }
-html[data-atmos="night"]  { --atmos-glow:transparent;     --atmos-tint:color-mix(in srgb, #000 28%, transparent); }
-html[data-atmos="word"]   { --atmos-glow:var(--glow2);    --atmos-tint:color-mix(in srgb, var(--return) 32%, transparent); }
-html[data-atmos="prayer"] { --atmos-glow:var(--pglow);    --atmos-tint:color-mix(in srgb, var(--prayer) 36%, transparent); }
-html[data-atmos="coda"]   { --atmos-glow:var(--rglow);    --atmos-tint:color-mix(in srgb, var(--return) 20%, transparent); }
+/* ---- Zones → existing mood tokens (theme-agnostic; per-page --accent flows in).
+   --atmos-glow drives the bloom, --atmos-tint the ambient warmth. Tuned so the
+   arc reads clearly: dim/cool hero → light at the Word → fullest at prayer. ---- */
+html[data-atmos="hero"]   { --atmos-glow:color-mix(in srgb, var(--topglow) 55%, transparent); --atmos-tint:transparent; }
+html[data-atmos="answer"] { --atmos-glow:var(--glow1); --atmos-tint:color-mix(in srgb, var(--accent, var(--gold)) 12%, transparent); }
+html[data-atmos="night"]  { --atmos-glow:transparent;  --atmos-tint:color-mix(in srgb, #040a07 42%, transparent); }
+html[data-atmos="word"]   { --atmos-glow:var(--glow2); --atmos-tint:color-mix(in srgb, var(--return) 30%, transparent); }
+html[data-atmos="prayer"] { --atmos-glow:var(--pglow); --atmos-tint:color-mix(in srgb, var(--prayer) 34%, transparent); }
+html[data-atmos="coda"]   { --atmos-glow:color-mix(in srgb, var(--rglow) 90%, transparent); --atmos-tint:color-mix(in srgb, var(--return) 18%, transparent); }
 
 /* Reduced motion: keep the dawn-arc MEANING (the colour still shifts per zone)
    but make it a quick cross-fade with no movement and no parallax. */
