@@ -64,6 +64,24 @@
     reduced: REDUCED
   };
 
+  // ---- Diagnostic readout ----
+  // Add ?motiondebug to the end of any page URL to see, in a corner badge,
+  // whether the browser is forcing reduced motion. If it shows REDUCED, the
+  // device's "Reduce Motion" setting is switching every animation off — that's
+  // the #1 reason the page looks static. Harmless: only appears with the flag.
+  if(/[?&#]motiondebug/i.test(location.href)){
+    var showBadge=function(){
+      var b=document.createElement('div');
+      b.textContent='motion: '+(REDUCED ? 'REDUCED — device "Reduce Motion" is ON' : 'FULL — animations are active');
+      b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;'+
+        'background:'+(REDUCED?'#7a1f1f':'#1f5a37')+';color:#fff;padding:9px 13px;'+
+        'font:600 13px/1.2 system-ui,-apple-system,sans-serif;border-radius:8px;'+
+        'box-shadow:0 6px 20px rgba(0,0,0,.4);pointer-events:none';
+      document.body.appendChild(b);
+    };
+    if(document.body) showBadge(); else document.addEventListener('DOMContentLoaded', showBadge);
+  }
+
   if(document.readyState!=='loading') init();
   else document.addEventListener('DOMContentLoaded', init);
 })();
