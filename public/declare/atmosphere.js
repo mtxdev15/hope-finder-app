@@ -38,31 +38,32 @@
   }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
   sections.forEach(function(s){ io.observe(s); });
 
-  // ---- Optional bounded parallax on [data-parallax] layers ----
+  // ---- Continuous viewport-relative parallax on [data-parallax] layers ----
+  // Each element drifts based on where it sits in the viewport (oevra's
+  // data-scroll="parallax" / data-scroll-y). It is ALWAYS moving as you scroll —
+  // 0 drift at viewport centre, easing up/down toward the edges. Bound, GPU-only.
   var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var layers = document.querySelectorAll('[data-parallax]');
   if (REDUCED || !layers.length) return;
-  var small = window.matchMedia && matchMedia('(max-width:480px)').matches;
+  var scale = (window.matchMedia && matchMedia('(max-width:480px)').matches) ? 0.55 : 1;
+  var queued = false;
 
-  function apply(scroll){
+  function apply(){
+    queued = false;
+    var vh = window.innerHeight || 800;
     for (var i=0;i<layers.length;i++){
       var el = layers[i];
-      var speed = parseFloat(el.getAttribute('data-parallax')) || 0.12;
-      if (small) speed *= 0.5;
-      var y = Math.max(-40, Math.min(40, scroll * speed));
+      var speed = (parseFloat(el.getAttribute('data-parallax')) || 0.1) * scale;
+      var r = el.getBoundingClientRect();
+      var fromCentre = (r.top + r.height/2) - vh/2;   // +below centre, -above
+      var y = -fromCentre * speed;                    // drift opposite → parallax
       el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
     }
   }
-  function onScroll(e){
-    var s = (e && (e.animatedScroll != null ? e.animatedScroll : e.scroll));
-    if (s == null) s = window.scrollY || window.pageYOffset || 0;
-    apply(s);
-  }
-  function attach(){
-    if (window.__declareLenis && window.__declareLenis.on){
-      window.__declareLenis.on('scroll', onScroll);
-    }
-  }
-  if (window.__declareLenis) attach();
-  else window.addEventListener('load', attach); // smoothscroll may init a tick later
+  function onScroll(){ if(!queued){ queued = true; requestAnimationFrame(apply); } }
+
+  if (window.__declareLenis && window.__declareLenis.on) window.__declareLenis.on('scroll', onScroll);
+  window.addEventListener('scroll', onScroll, { passive:true });   // native / mobile
+  window.addEventListener('resize', onScroll, { passive:true });
+  apply();
 })();

@@ -27,11 +27,14 @@
       return;
     }
 
+    // Fire when the element reaches the MIDDLE of the viewport (like oevra's
+    // data-scroll-start="top +=50%"), so the reveal happens in central vision —
+    // not at the bottom edge where it finishes before you're looking at it.
     var io = new IntersectionObserver(function(entries){
       entries.forEach(function(e){
         if(e.isIntersecting){ markIn(e.target); io.unobserve(e.target); }
       });
-    }, { rootMargin:'0px 0px -8% 0px', threshold:0.08 });
+    }, { rootMargin:'0px 0px -42% 0px', threshold:0 });
 
     targets.forEach(function(el){
       // already-visible-on-load elements reveal right away (above the fold)
