@@ -26,9 +26,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" /></noscript>
 <link rel="stylesheet" href="/declare/declare.css?v=2" />
+<link rel="stylesheet" href="/declare/chrome.css" />
 <link rel="stylesheet" href="/declare/share.css" />
 
 <style>
+  main{ padding-top:118px; padding-bottom:20px; }
+  main .shell{ max-width:760px; }
   .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
   .sub-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:12px 16px 0; }
   .sub-top .ttl{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
@@ -69,43 +72,127 @@
 <body>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T65GXR22" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
-<div class="stage app-shell"><div class="phone"><div class="screen">
-  <div class="topglow" aria-hidden="true"></div>
-  <div class="in">
-    <div class="bar"><span>9:41</span><span class="right"><span>&#9679;&#9679;&#9679;</span><span class="batt"></span></span></div>
-    <div class="sub-top">
-      <a class="iconbtn" href="/welcome" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
-      <span class="ttl">Support Declare</span>
-      <button class="iconbtn" id="pageShare" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
-    </div>
-    <div class="scroll">
-      <div class="ghero rise d1">
-        <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></div>
-        <h1>Keep Declare free<br>for all</h1>
-        <div class="gsub">Your gift puts God&rsquo;s Word in the hands of the next person searching at 3am, with no paywall, ever.</div>
-      </div>
-
-      <div class="verse rise d2">&ldquo;Each one must give as he has decided in his heart, for God loves a cheerful giver.&rdquo;</div>
-      <div class="vref rise d2">2 Corinthians 9:7</div>
-
-      <div class="soon rise d3">
-        <div class="soon-eyebrow">Coming soon</div>
-        <div class="soon-line">A way to give is on the way. We are building secure giving now. Thank you for your heart to keep Declare free for everyone.</div>
-      </div>
-      <div class="note rise d6">Declare is a ministry of JC Kingdom Ventures. Gifts may be tax-deductible where applicable.</div>
+<header class="nav">
+  <div class="navin">
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/welcome#seq">How it works</a>
+      <a href="/welcome#why">Why Declare</a>
+      <a href="/give">Support</a>
+    </nav>
+    <a class="brand" href="/welcome"><span class="bdot" aria-hidden="true"></span><span class="wm">Declare</span></a>
+    <div class="navcta">
+      <a class="signin" href="/signin">Sign in</a>
+      <a class="begin" href="/today">Begin <svg viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+      <button class="navmenu" id="menuOpen" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></button>
     </div>
   </div>
-</div></div></div>
+</header>
+
+<div class="menuscrim" id="menuScrim"></div>
+<aside class="menupanel" id="menuPanel" aria-label="Menu">
+  <div class="menutop">
+    <span class="mt-title">Menu</span>
+    <div class="mt-actions">
+      <a class="signin" href="/signin">Sign in</a>
+      <a class="begin" href="/today">Begin</a>
+      <button class="menuclose" id="menuClose" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="menusec">
+    <div class="ms-lbl">Explore</div>
+    <a class="ms-link" href="/welcome#seq"><span class="msw">How it works</span></a>
+    <a class="ms-link" href="/welcome#why"><span class="msw">Why Declare</span></a>
+    <a class="ms-link" href="/word"><span class="msw">The Word</span></a>
+    <a class="ms-link" href="/struggles"><span class="msw">Struggles</span></a>
+    <a class="ms-link" href="/give"><span class="msw">Support</span></a>
+    <a class="ms-link" href="/about"><span class="msw">About</span></a>
+  </div>
+  <div class="menucols">
+    <div>
+      <h5>Company</h5>
+      <a href="/about">Our mission</a>
+      <a href="/help">Help &amp; support</a>
+      <a href="/give">Give</a>
+      <a href="/crisis">Find help now</a>
+      <a href="/you?rate=menu">Rate Declare</a>
+    </div>
+    <div>
+      <h5>Legal</h5>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
+  <div class="menubene">
+    <span class="menubene-coda">To God be the glory.</span>
+    <nav class="themectl" aria-label="Theme"><button data-mode="light">Light</button><button data-mode="dark">Dark</button><button data-mode="system">Auto</button></nav>
+  </div>
+</aside>
+
+<main>
+  <div class="shell">
+    <div class="ghero rise d1">
+      <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></div>
+      <h1>Keep Declare free<br>for all</h1>
+      <div class="gsub">Your gift puts God&rsquo;s Word in the hands of the next person searching at 3am, with no paywall, ever.</div>
+    </div>
+
+    <div class="verse rise d2">&ldquo;Each one must give as he has decided in his heart, for God loves a cheerful giver.&rdquo;</div>
+    <div class="vref rise d2">2 Corinthians 9:7</div>
+
+    <div class="soon rise d3">
+      <div class="soon-eyebrow">Coming soon</div>
+      <div class="soon-line">A way to give is on the way. We are building secure giving now. Thank you for your heart to keep Declare free for everyone.</div>
+    </div>
+    <div class="note rise d6">Declare is a ministry of JC Kingdom Ventures. Gifts may be tax-deductible where applicable.</div>
+  </div>
+</main>
+
+<footer>
+  <div class="shell">
+    <div class="fgrid">
+      <div class="fbrand">
+        <div class="wm">Declare</div>
+        <div class="ft">Scripture-rooted words for the weight you carry. Romans 12:2.</div>
+      </div>
+      <div class="fcol">
+        <h4>Explore</h4>
+        <a href="/today">Declare</a>
+        <a href="/struggles">Struggles</a>
+        <a href="/word">The Word</a>
+        <a href="/journey">Journey</a>
+      </div>
+      <div class="fcol">
+        <h4>Company</h4>
+        <a href="/about">About</a>
+        <a href="/give">Support</a>
+        <a href="/give">Give</a>
+        <a href="/crisis">Find help now</a>
+        <a href="/you?rate=footer">Rate Declare</a>
+      </div>
+      <div class="fcol">
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+      <div class="fcol">
+        <h4>Get the app</h4>
+        <a class="appbadge" href="#" aria-label="Download on the App Store, coming soon">
+          <svg class="alogo" viewBox="0 0 24 24" fill="currentColor"><path d="M16.36 1.43c.06 .9-.28 1.78-.84 2.45-.6 .72-1.6 1.27-2.56 1.2-.08-.88 .33-1.8 .86-2.4 .6-.7 1.66-1.22 2.54-1.25z"/><path d="M18.9 8.2c-1.4-.05-2.6 .8-3.28 .8-.7 0-1.74-.76-2.86-.74-1.47 .02-2.83 .85-3.58 2.17-1.53 2.65-.4 6.57 1.1 8.72 .73 1.05 1.6 2.23 2.74 2.19 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.66 .71 2.86 .69 1.18-.02 1.93-1.07 2.65-2.12 .83-1.2 1.18-2.37 1.2-2.43-.03-.01-2.3-.88-2.32-3.5-.02-2.19 1.79-3.24 1.87-3.29-1.02-1.5-2.6-1.67-3.16-1.71z"/></svg>
+          <span class="atext"><span class="atop">Download on the</span><span class="abot">App Store</span></span>
+        </a>
+        <span class="appsoon">Coming soon</span>
+      </div>
+    </div>
+    <div class="fbot">
+      <span class="copy">&copy; 2026 JC Kingdom Ventures &middot; Made for the Kingdom</span>
+      <span class="fbrandmark">Declare &amp; <span class="bgold">Believe</span></span>
+      <span class="benediction">To God be the <span class="bgold">glory.</span></span>
+    </div>
+  </div>
+</footer>
+
 <script src="/declare/theme.js"></script>
-<script src="/declare/share.js"></script>
-<script>
-(function(){
-  var ps=document.getElementById('pageShare');
-  if(ps) ps.addEventListener('click', function(){
-    try{ DeclareShare.open({ type:'page', title:'Support Declare', subtitle:'Keep Declare free for all', url:location.href, embed:false }); }catch(e){}
-  });
-})();
-</script>
+<script src="/declare/menu.js" defer></script>
 <script src="/declare/vendor/lenis.min.js"></script>
 <script src="/declare/smoothscroll.js"></script>
 </body>

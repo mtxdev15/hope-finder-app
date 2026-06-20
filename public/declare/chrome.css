@@ -1,0 +1,177 @@
+/* chrome.css — canonical site chrome (editorial nav + slide-out menu + footer)
+   Lifted VERBATIM from public/about.html so the marketing/info pages share the
+   same persistent header, menu panel, and footer. Values, selectors, media
+   queries, and custom-property usage (--forest/--gold/--cream/etc) are unchanged.
+   Pages that include this must already load /declare/declare.css first.
+   Pair with /declare/menu.js to wire the open/close behavior. */
+
+/* per-page accent fallbacks — about.html defines these inline; pages that only
+   load declare.css don't, so the footer signup glow + menu arrows would lose
+   their accent. Same values about.html uses, scoped so a page may still override. */
+html[data-theme="dark"]{ --accent:#c79a3e; --accent-deep:#4a3814; --accent-soft:rgba(199,154,62,.5); }
+html[data-theme="light"]{ --accent:#9a7a24; --accent-deep:#e8dcc0; --accent-soft:rgba(154,122,36,.3); }
+
+/* editorial canvas — the footer (and re-homed page bodies) center inside this.
+   Same value about.html uses; included because the canonical footer wraps its
+   content in .shell and declare.css does not define it. */
+.shell{ max-width:1240px; margin:0 auto; padding:0 clamp(22px,5vw,64px); }
+
+/* ---------- top nav (full-width → floating pill on scroll) ---------- */
+.nav{ position:fixed; top:0; left:0; right:0; z-index:30; padding:16px 20px; pointer-events:none; }
+.navin{ max-width:1760px; margin:0 auto; padding:15px 20px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; pointer-events:auto;
+  border-radius:999px; background:transparent; border:1px solid transparent; box-shadow:none;
+  transition:max-width .55s cubic-bezier(.2,.7,.2,1), padding .55s cubic-bezier(.2,.7,.2,1), background .5s ease, border-color .5s ease, box-shadow .5s ease; }
+.nav.scrolled .navin{ max-width:1040px; padding:11px 14px 11px 22px;
+  background:rgba(20,30,24,.62); border-color:rgba(244,239,230,.1);
+  backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:0 18px 50px -18px rgba(0,0,0,.7), 0 0 60px -16px rgba(216,184,95,.22), inset 0 1px 0 rgba(255,255,255,.06); }
+html[data-theme="light"] .nav.scrolled .navin{ background:rgba(255,255,255,.66); border-color:rgba(34,56,46,.1); box-shadow:0 18px 44px -20px rgba(34,56,46,.3), 0 0 50px -18px rgba(201,168,76,.25), inset 0 1px 0 rgba(255,255,255,.8); }
+.brand{ display:flex; align-items:center; gap:11px; justify-self:center; }
+.brand .bdot{ width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 14px rgba(216,184,95,.7); animation:dotpulse 4.5s ease-in-out infinite; }
+.brand .wm{ font-family:'Cormorant Garamond',serif; font-size:25px; font-weight:600; color:var(--text); letter-spacing:.01em; }
+.navlinks{ display:flex; align-items:center; gap:28px; justify-self:start; }
+.navlinks a{ font-size:14px; color:var(--text2); transition:color .2s ease; position:relative; }
+.navlinks a:hover{ color:var(--text); }
+.navlinks a::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform .26s ease; }
+.navlinks a:hover::after{ transform:scaleX(1); }
+.navcta{ display:flex; align-items:center; gap:14px; justify-self:end; white-space:nowrap; }
+.navcta .signin{ font-size:14px; color:var(--text2); transition:color .2s ease; }
+.navcta .signin:hover{ color:var(--text); }
+.navcta .begin{ display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:999px; background:var(--cta); color:var(--ctatext); font-size:14px; font-weight:600; box-shadow:0 10px 24px -10px rgba(216,184,95,.5); transition:transform .16s ease, filter .2s ease; }
+.navcta .begin:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+.navcta .begin svg{ width:15px; height:15px; }
+.navmenu{ width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid var(--line2); background:var(--field); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .16s ease, background .2s ease; }
+.navmenu:hover{ transform:translateY(-1px); }
+.navmenu svg{ width:18px; height:18px; }
+
+/* slide-in menu panel */
+.menuscrim{ position:fixed; inset:0; z-index:40; background:rgba(8,14,11,.5); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .35s ease; }
+.menuscrim.open{ opacity:1; pointer-events:auto; }
+.menupanel{ position:fixed; top:0; right:0; bottom:0; z-index:41; width:min(460px,90vw); background:var(--bgfield); border-left:1px solid var(--line); box-shadow:-30px 0 80px -30px rgba(0,0,0,.7); transform:translateX(100%); transition:transform .42s cubic-bezier(.2,.7,.2,1); display:flex; flex-direction:column; padding:26px 38px 40px; overflow-y:auto; }
+.menupanel.open{ transform:none; }
+.menutop{ display:flex; align-items:center; justify-content:space-between; }
+.menutop .mt-title{ font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:var(--text); }
+.menutop .mt-actions{ display:flex; align-items:center; gap:14px; }
+.menutop .signin{ font-size:14px; color:var(--text2); }
+.menutop .begin{ display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:999px; background:var(--cta); color:var(--ctatext); font-size:14px; font-weight:600; }
+.menuclose{ width:40px; height:40px; border-radius:50%; border:1px solid var(--line2); background:var(--field); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.menuclose svg{ width:16px; height:16px; }
+.menusec{ margin-top:32px; }
+.menusec .ms-lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+.menusec .ms-link{ display:block; font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:600; color:var(--muted); padding:7px 0; transition:color .2s ease, padding-left .25s cubic-bezier(.2,.7,.2,1); }
+.menusec .ms-link:hover{ color:var(--text); padding-left:8px; }
+.menucols{ display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:34px; }
+.menucols h5{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+.menucols a{ display:block; font-size:15px; color:var(--text2); margin-bottom:12px; transition:color .2s ease, padding-left .2s ease; }
+.menucols a:hover{ color:var(--text); padding-left:3px; }
+.menubene{ margin-top:auto; padding-top:30px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--goldd); }
+
+/* ---------- footer ---------- */
+footer{ border-top:1px solid var(--line); padding:clamp(54px,7vw,80px) 0 40px; position:relative; z-index:1; }
+/* newsletter / app signup band */
+.fsignup{ position:relative; display:grid; grid-template-columns:1.1fr .9fr; gap:clamp(26px,4vw,60px); align-items:center;
+  padding:clamp(28px,3.6vw,50px); border-radius:24px; margin:0 0 clamp(48px,6vw,72px); overflow:hidden;
+  background:linear-gradient(160deg, rgba(42,54,47,.6), rgba(20,30,24,.5)); border:1px solid rgba(216,184,95,.14);
+  box-shadow:0 26px 64px -28px rgba(0,0,0,.7), 0 0 60px -22px var(--accent-soft); }
+html[data-theme="light"] .fsignup{ background:rgba(255,255,255,.72); border:1px solid rgba(34,56,46,.07); box-shadow:0 22px 50px -26px rgba(86,68,28,.18), inset 0 1px 0 rgba(255,255,255,.85); }
+.fsignup::after{ content:''; position:absolute; top:-42%; right:-8%; width:420px; height:420px; pointer-events:none; background:radial-gradient(circle, var(--accent-soft), transparent 62%); opacity:.5; }
+.fsignup-copy{ position:relative; z-index:1; }
+.fsignup-kicker{ display:inline-flex; align-items:center; gap:11px; white-space:nowrap; font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+.fsignup-kicker::before{ content:''; width:26px; height:1px; background:linear-gradient(90deg,var(--accent),transparent); }
+.fsignup h3{ font-family:'Cormorant Garamond',serif; font-size:clamp(24px,2.5vw,32px); font-weight:600; color:var(--text); line-height:1.16; margin:16px 0 0; text-wrap:balance; }
+.fsignup p{ font-size:15px; line-height:1.62; color:var(--text2); margin:12px 0 0; max-width:44ch; }
+.fsignup-form{ position:relative; z-index:1; }
+.finput{ display:flex; gap:8px; background:var(--field); border:1px solid var(--line2); border-radius:999px; padding:6px 6px 6px 20px; transition:border-color .25s ease, box-shadow .25s ease; }
+.finput:focus-within{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+.finput input{ flex:1; min-width:0; background:none; border:0; outline:0; font-family:'DM Sans',sans-serif; font-size:15px; color:var(--text); }
+.finput input::placeholder{ color:var(--muted); }
+.finput button{ flex:0 0 auto; display:inline-flex; align-items:center; gap:7px; padding:12px 22px; border:0; border-radius:999px; cursor:pointer;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--gold) 92%); color:#1c2a22; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600;
+  box-shadow:0 12px 26px -12px var(--accent-soft); transition:transform .16s ease, filter .2s ease; }
+.finput button:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+.finput button svg{ width:15px; height:15px; }
+.fsignup-fine{ display:block; font-size:12.5px; color:var(--muted); margin:13px 0 0 2px; }
+.fsignup-thanks{ display:none; position:relative; z-index:1; align-items:center; gap:11px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); }
+.fsignup-thanks svg{ width:22px; height:22px; color:var(--goldd); flex:0 0 auto; }
+.fsignup.done .fsignup-form{ display:none; }
+.fsignup.done .fsignup-thanks{ display:flex; }
+.fgrid{ display:grid; grid-template-columns:1.6fr 1fr 1fr .8fr 1.3fr; gap:36px; }
+.fbrand .wm{ font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:600; color:var(--text); }
+.fbrand .ft{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; color:var(--soft); margin-top:10px; max-width:30ch; line-height:1.5; }
+.fcol h4{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+.fcol a{ display:block; font-size:14.5px; color:var(--text2); margin-bottom:11px; transition:color .2s, padding-left .2s; }
+.fcol a:hover{ color:var(--text); padding-left:3px; }
+/* app store badge — official-style, compact */
+.fcol .appbadge{ display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:8px; border:1px solid rgba(255,255,255,.22);
+  background:#000; transition:transform .16s ease, box-shadow .25s ease; margin-bottom:13px; }
+.appbadge:hover{ transform:translateY(-1px); box-shadow:0 10px 24px -10px rgba(0,0,0,.7); }
+.appbadge .alogo{ flex:0 0 auto; width:16px; height:16px; color:#fff; }
+.appbadge .atext{ display:flex; flex-direction:column; line-height:1.02; color:#fff; white-space:nowrap; }
+.appbadge .atop{ font-size:8px; letter-spacing:.02em; }
+.appbadge .abot{ font-family:'DM Sans',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:.01em; }
+.appsoon{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+.appsoon::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+.fbot{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:48px; padding-top:24px; border-top:1px solid var(--line); flex-wrap:wrap; }
+.fbot .copy{ font-size:13px; color:var(--muted); line-height:1.55; flex:1 1 0; min-width:200px; }
+.fbot .fbrandmark{ flex:0 0 auto; white-space:nowrap; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); letter-spacing:.01em; text-align:center; }
+.fbot .bgold{ color:var(--gold); }
+.fbot .benediction{ flex:1 1 0; min-width:150px; text-align:right; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--text); }
+
+/* ========== RESPONSIVE — collapse rails, footer ========== */
+@media (max-width:640px){
+  .navlinks{ display:none; }
+  .fsignup{ grid-template-columns:1fr; gap:22px; }
+  .fgrid{ grid-template-columns:1fr 1fr; }
+  .fbrand{ grid-column:1 / -1; }
+  .fbot{ flex-direction:column; align-items:flex-start; }
+}
+
+/* __mobile_fix_v1__ — mobile polish: nav layout, footer alignment */
+@media (max-width:680px){
+  .navin{ display:flex !important; align-items:center; justify-content:space-between; gap:10px; }
+  .navin .navlinks{ display:none !important; }
+  .navin .brand{ justify-self:auto !important; }
+  .navin .brand .wm{ font-size:21px; }
+  .navin .navcta{ justify-self:auto !important; gap:9px; }
+  .navin .navcta .signin{ display:none !important; }
+  .fbot{ flex-direction:column !important; align-items:flex-start !important; gap:9px; }
+  .fbot .copy, .fbot .fbrandmark, .fbot .benediction{ text-align:left !important; min-width:0 !important; }
+}
+
+/* __unseen_menu_v1__ — full-screen threshold menu + thin Unseen arrows (matches app motion) */
+.menuscrim{ background:rgba(8,14,11,.5) !important; z-index:198 !important; } html[data-theme="light"] .menupanel{ background:#FAF7F2 !important; }
+.menupanel{
+  left:0 !important; width:100% !important; max-width:none !important;
+  background:#0E1A14 !important; z-index:199 !important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.12) !important; backdrop-filter:blur(26px) saturate(1.12) !important;
+  border-left:0 !important; box-shadow:none !important;
+  transform:translateY(22px) !important; opacity:0; visibility:hidden !important; pointer-events:none !important;
+  transition:opacity .5s cubic-bezier(.2,.7,.2,1), transform .62s cubic-bezier(.16,1,.3,1), visibility .5s !important;
+  padding:clamp(30px,5.5vw,70px) clamp(26px,9vw,130px) !important; overflow-y:auto;
+}
+.menupanel.open{ transform:none !important; opacity:1; visibility:visible !important; pointer-events:auto !important; }
+.menupanel > *{ max-width:940px; margin-left:auto; margin-right:auto; width:100%; }
+.menusec{ margin-top:clamp(26px,5vh,60px) !important; }
+.menusec .ms-link{ font-size:clamp(34px,6.2vw,58px) !important; opacity:0; transform:translateY(18px);
+  transition:opacity .5s ease, transform .55s cubic-bezier(.16,1,.3,1), color .2s ease, padding-left .25s cubic-bezier(.2,.7,.2,1) !important; }
+.menupanel.open .ms-link{ opacity:1; transform:none; }
+.menupanel.open .ms-link:nth-child(2) > span.msw{ transition-delay:.05s; }
+.menupanel.open .ms-link:nth-child(3) > span.msw{ transition-delay:.11s; }
+.menupanel.open .ms-link:nth-child(4) > span.msw{ transition-delay:.17s; }
+.menupanel.open .ms-link:nth-child(5) > span.msw{ transition-delay:.23s; }
+.menupanel.open .ms-link:nth-child(6) > span.msw{ transition-delay:.29s; }
+.menucols, .menu-appearance, .menubene{ opacity:0; transform:translateY(14px);
+  transition:opacity .5s ease .28s, transform .55s cubic-bezier(.16,1,.3,1) .28s !important; }
+.menupanel.open .menucols, .menupanel.open .menu-appearance, .menupanel.open .menubene{ opacity:1; transform:none; }
+/* thin Unseen drawing-arrows */
+.navcta .begin svg, .cta svg, .coda-btn svg{ width:30px !important; height:9px !important; overflow:visible; }
+.navcta .begin:hover svg, .cta:hover svg, .coda-btn:hover svg{ transform:none !important; }
+.begin svg path:first-child, .cta svg path:first-child, .coda-btn svg path:first-child{ transform-origin:right center; transform:scaleX(.58); opacity:.62; transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .5s ease; }
+.begin:hover svg path:first-child, .cta:hover svg path:first-child, .coda-btn:hover svg path:first-child{ transform:scaleX(1); opacity:1; }
+.begin svg path:last-child, .cta svg path:last-child, .coda-btn svg path:last-child{ transition:transform .5s cubic-bezier(.16,1,.3,1); }
+.begin:hover svg path:last-child, .cta:hover svg path:last-child, .coda-btn:hover svg path:last-child{ transform:translateX(3px); }
+@media (prefers-reduced-motion: reduce){
+  .menupanel{ transform:none !important; }
+  .menupanel .ms-link > span.msw, .menucols, .menu-appearance, .menubene{ opacity:1 !important; transform:none !important; transition:none !important; }
+  .begin svg path, .cta svg path, .coda-btn svg path{ transform:none !important; opacity:1 !important; }
+}

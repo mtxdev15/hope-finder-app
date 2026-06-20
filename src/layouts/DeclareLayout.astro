@@ -68,7 +68,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 )}
   <!-- design mast: brand dot + avatar entry to /you (design-source product pages) -->
   <div class="mast">
-    <span class="dot" aria-hidden="true"></span>
+    <a class="masthome" href="/welcome" aria-label="Declare home"><span class="dot" aria-hidden="true"></span></a>
     <a class="avatar" href="/you" aria-label="You">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path></svg>
     </a>
@@ -118,13 +118,17 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
         padding-left: 14px; padding-right: 14px; padding-top: 10px;
       }
     }
+    /* app->explore bridge: the mast brand dot is a link home to /welcome (logo = home),
+       so the app is not a one-way door. Comfortable tap target around the small dot
+       without shifting layout. */
+    .mast .masthome { display: inline-flex; align-items: center; padding: 10px; margin: -10px; line-height: 0; cursor: pointer; }
     /* mast: in-flow on mobile (declare.css base), pinned into the top band on desktop
        (design Today.html/Vault.html desktop treatment) */
     @media (min-width: 481px) {
       .mast { position: fixed; top: 0; left: 0; right: 0; z-index: 31; height: 60px;
         margin: 0; padding: 0 clamp(22px, 3vw, 44px);
         display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
-      .mast .dot { pointer-events: auto; }
+      .mast .masthome { pointer-events: auto; }
       /* desktop: the top bar already carries the You tab — hide the mast avatar
          (duplicate profile icon, per review) */
       .mast .avatar { display: none; }
