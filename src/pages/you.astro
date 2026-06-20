@@ -24,7 +24,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         {/* ───── left rail: profile card + on-this-device card (Airbnb rail) ───── */}
         <aside class="yrail">
           <div class="ycard yprofile m-rise">
-            <div class="yav" id="yAvatar"><span id="yAvText" class="serif">✝</span></div>
+            <div class="yav-wrap">
+              <button class="yav" id="yAvatar" type="button" aria-label="Add or change your photo"><span id="yAvText" class="serif">✝</span></button>
+              <span class="yav-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+            </div>
+            <input type="file" id="yAvFile" accept="image/*" hidden />
+            <button type="button" class="yav-remove" id="yAvRemove" hidden>Remove photo</button>
             <div class="yname serif" id="yName">Friend</div>
             <div class="yrole" id="yRole">Guest &middot; not signed in</div>
             <div class="ydivider"></div>
@@ -194,6 +199,16 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       const name = (P.name || '').trim();
       $('yName').textContent = name || 'Friend';
       $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
+      // uploaded photo (if any) overlays the initial; remove-link shows only with one
+      (function () {
+        const av = $('yAvatar'); let img = av.querySelector('.yav-img'); const rm = $('yAvRemove');
+        if (P.avatar) {
+          if (!img) { img = document.createElement('img'); img.className = 'yav-img'; img.alt = ''; av.appendChild(img); }
+          img.src = P.avatar; av.classList.add('has-photo'); if (rm) rm.hidden = false;
+        } else {
+          if (img) img.remove(); av.classList.remove('has-photo'); if (rm) rm.hidden = true;
+        }
+      })();
       const d = daysWith(P);
       $('yDays').textContent = d;
       $('yDaysLbl').textContent = d === 1 ? 'day with Declare' : 'days with Declare';
@@ -212,6 +227,36 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         '<li' + (n ? ' class="has"' : '') + '><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><b>' + n + '</b> ' + l + '</li>'
       )).join('');
     }
+
+    /* ---------- profile photo: center-cropped + compressed, stored on the device
+       profile (so it syncs to the account and clears on sign-out like the rest) ---------- */
+    function avatarFromFile(file, size, cb) {
+      const img = new Image(); const url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        const s = Math.min(img.width, img.height), sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+        const c = document.createElement('canvas'); c.width = c.height = size;
+        try { c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, size, size); cb(c.toDataURL('image/jpeg', 0.82)); }
+        catch (e) { cb(null); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+      img.src = url;
+    }
+    (function () {
+      const av = $('yAvatar'), file = $('yAvFile'), rm = $('yAvRemove');
+      if (!av || !file) return;
+      av.addEventListener('click', function () { file.click(); });
+      file.addEventListener('change', function (e) {
+        const f = e.target.files && e.target.files[0]; e.target.value = '';
+        if (!f || !/^image\//.test(f.type)) return;
+        if (f.size > 12 * 1024 * 1024) { toast('That image is a bit large. Try one under 12MB.'); return; }
+        avatarFromFile(f, 256, function (dataUrl) {
+          if (!dataUrl) { toast("Couldn't read that image."); return; }
+          P = setProfile({ avatar: dataUrl }); renderRail(); toast('Looking good.');
+        });
+      });
+      if (rm) rm.addEventListener('click', function () { P = setProfile({ avatar: '' }); renderRail(); toast('Photo removed.'); });
+    })();
 
     /* ---------- About-you fact grid (Airbnb icon rows -> modal editors) ---------- */
     const IC = {
@@ -690,10 +735,25 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* rail cards */
     .you .ycard { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--card-shadow); padding: 24px; }
     .you .yprofile { text-align: center; }
-    .you .yav { width: 96px; height: 96px; margin: 4px auto 14px; border-radius: 50%; background: radial-gradient(120% 120% at 30% 20%, #2b463a, #16241c);
+    .you .yav-wrap { position: relative; width: 96px; height: 96px; margin: 4px auto 14px; }
+    .you .yav { width: 96px; height: 96px; margin: 0; padding: 0; border-radius: 50%; background: radial-gradient(120% 120% at 30% 20%, #2b463a, #16241c);
       border: 2px solid var(--gold); box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 12%, transparent), 0 18px 40px -16px rgba(0, 0, 0, .6);
-      display: flex; align-items: center; justify-content: center; }
+      display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; cursor: pointer;
+      -webkit-appearance: none; appearance: none; transition: transform .18s cubic-bezier(.2, .7, .2, 1), box-shadow .25s ease; }
+    .you .yav:hover { transform: translateY(-2px); }
+    .you .yav:active { transform: scale(.96); }
+    .you .yav:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
     .you .yav span { font-size: 40px; color: var(--goldd); font-weight: 600; }
+    .you .yav .yav-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .you .yav.has-photo span { display: none; }
+    .you .yav-cam { position: absolute; right: -1px; bottom: 1px; width: 28px; height: 28px; border-radius: 50%;
+      background: var(--cta); color: var(--ctatext); display: flex; align-items: center; justify-content: center;
+      border: 2.5px solid var(--surface); box-shadow: 0 4px 12px -3px rgba(0, 0, 0, .5); pointer-events: none; }
+    .you .yav-cam svg { width: 14px; height: 14px; }
+    .you .yav-remove { display: block; margin: -8px auto 12px; padding: 0; background: none; border: 0; cursor: pointer;
+      font: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+    .you .yav-remove[hidden] { display: none; }
+    .you .yav-remove:hover { color: var(--text); }
     .you .yname { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1.1; }
     .you .yrole { font-size: 12px; color: var(--muted); margin-top: 5px; }
     .you .ydivider { height: 1px; background: var(--line); margin: 18px 0 14px; }
