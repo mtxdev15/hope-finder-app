@@ -24,10 +24,10 @@
   --ease-exit:cubic-bezier(.4,0,1,1);       /* accelerate away              */
 
   /* ---- rhythm ---- */
-  --m-stagger:120ms;     /* gap between sequential children — felt cascade */
-  --m-reveal:820ms;      /* scroll-reveal duration — cinematic, unhurried  */
-  --m-rise:46px;         /* reveal travel — clearly seen, still reverent   */
-  --m-blur:9px;          /* reveal blur veil                   */
+  --m-stagger:150ms;     /* gap between sequential children — felt cascade */
+  --m-reveal:1000ms;     /* scroll-reveal duration — cinematic, unhurried  */
+  --m-rise:62px;         /* reveal travel — clearly seen, still reverent   */
+  --m-blur:10px;         /* reveal blur veil                   */
   --m-lift:-4px;         /* hover elevation                    */
 }
 
@@ -48,7 +48,7 @@
   }
   .m-rise{ transform:translateY(var(--m-rise)); }
   .m-scale{ transform:scale(.97); }
-  .m-veil, .rv{ transform:translateY(var(--m-rise)); filter:blur(var(--m-blur)); }
+  .m-veil, .rv{ transform:translateY(var(--m-rise)) scale(.965); filter:blur(var(--m-blur)); }
 
   .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in, .rv.m-in, .rv.in{
     opacity:1; transform:none; filter:blur(0);
