@@ -1,0 +1,57 @@
+/* ============================================================
+   DECLARE — Scroll atmosphere  (atmosphere.css)
+   The page background morphs slowly as the reader descends through
+   the narrative: darkness → the 2am low → light breaking through at
+   the Word → fullest light at prayer → settled dusk at the coda.
+
+   How it works: atmosphere.js writes the active zone to
+   <html data-atmos="..."> and injects one fixed layer (#db-atmos).
+   CSS does the morph (~1200ms). Every colour references a declare.css
+   token, so light/dark themes are automatic. Reverent pace, never a
+   scrub — it morphs at the same dignified speed no matter how fast you
+   scroll, like dawn. Stands down to a quick cross-fade under
+   prefers-reduced-motion (colour only, no movement).
+   ============================================================ */
+
+/* Lenis smooth-scroll support rules (were missing site-wide). */
+html.lenis, html.lenis body{ height:auto; }
+.lenis.lenis-smooth{ scroll-behavior:auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent]{ overscroll-behavior:contain; }
+.lenis.lenis-stopped{ overflow:hidden; }
+
+/* Typed custom props so the colour morph is smooth (Safari 16.4+, Chrome,
+   Firefox 128+). Where @property is unsupported the swap is instant — still
+   correct, just no tween. */
+@property --atmos-tint{ syntax:'<color>'; inherits:true; initial-value:transparent; }
+@property --atmos-glow{ syntax:'<color>'; inherits:true; initial-value:transparent; }
+
+:root{
+  --atmos-tint:transparent;
+  --atmos-glow:var(--topglow, transparent);
+  transition:--atmos-tint 1200ms var(--ease-reveal, cubic-bezier(.16,1,.3,1)),
+             --atmos-glow 1200ms var(--ease-calm, cubic-bezier(.4,0,.2,1));
+}
+
+/* The single morphing layer, injected once by atmosphere.js as the first child
+   of <body>. Sits BEHIND all content (z-index:-1), above the base body bg, so it
+   tints the air around the cards and never touches text legibility. */
+#db-atmos{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; contain:layout style paint;
+  background:
+    radial-gradient(120% 78% at 50% -6%, var(--atmos-glow), transparent 60%),
+    linear-gradient(var(--atmos-tint), var(--atmos-tint));
+}
+
+/* ---- Zones → existing mood tokens (theme-agnostic; per-page --accent flows in) ---- */
+html[data-atmos="hero"]   { --atmos-glow:var(--topglow);  --atmos-tint:transparent; }
+html[data-atmos="answer"] { --atmos-glow:var(--glow1);    --atmos-tint:color-mix(in srgb, var(--accent, var(--gold)) 7%, transparent); }
+html[data-atmos="night"]  { --atmos-glow:transparent;     --atmos-tint:color-mix(in srgb, #000 28%, transparent); }
+html[data-atmos="word"]   { --atmos-glow:var(--glow2);    --atmos-tint:color-mix(in srgb, var(--return) 32%, transparent); }
+html[data-atmos="prayer"] { --atmos-glow:var(--pglow);    --atmos-tint:color-mix(in srgb, var(--prayer) 36%, transparent); }
+html[data-atmos="coda"]   { --atmos-glow:var(--rglow);    --atmos-tint:color-mix(in srgb, var(--return) 20%, transparent); }
+
+/* Reduced motion: keep the dawn-arc MEANING (the colour still shifts per zone)
+   but make it a quick cross-fade with no movement and no parallax. */
+@media (prefers-reduced-motion: reduce){
+  :root{ transition-duration:240ms; transition-timing-function:linear; }
+}

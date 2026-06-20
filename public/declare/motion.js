@@ -12,14 +12,14 @@
   function autoStagger(scope){
     // any element with [data-m-stagger] sequences its reveal children
     (scope||document).querySelectorAll('[data-m-stagger]').forEach(function(group){
-      var kids = group.querySelectorAll(':scope > .m-rise, :scope > .m-fade, :scope > .m-scale, :scope > .m-veil');
+      var kids = group.querySelectorAll(':scope > .m-rise, :scope > .m-fade, :scope > .m-scale, :scope > .m-veil, :scope > .rv');
       kids.forEach(function(k,i){ if(getcomputed(k)) k.style.setProperty('--i', i); });
     });
   }
   function getcomputed(k){ return !k.style.getPropertyValue('--i'); }
 
   function init(){
-    var targets = document.querySelectorAll('.m-rise, .m-fade, .m-scale, .m-veil');
+    var targets = document.querySelectorAll('.m-rise, .m-fade, .m-scale, .m-veil, .rv');
     autoStagger(document);
 
     if(REDUCED || !('IntersectionObserver' in window)){
@@ -49,7 +49,7 @@
   window.DeclareMotion = {
     reveal: function(scope, opts){
       opts = opts || {};
-      var els = (scope||document).querySelectorAll('.m-rise, .m-fade, .m-scale, .m-veil');
+      var els = (scope||document).querySelectorAll('.m-rise, .m-fade, .m-scale, .m-veil, .rv');
       autoStagger(scope||document);
       if(REDUCED){ els.forEach(markIn); return; }
       var base = opts.delay || 0, step = opts.stagger || 90;

@@ -36,7 +36,9 @@
    Also fire on [data-deck-active] / print so nothing stays hidden.
    ============================================================ */
 @media (prefers-reduced-motion: no-preference){
-  .m-rise, .m-fade, .m-scale, .m-veil{
+  /* .rv is the legacy alias used across the marketing pages — same end-state as
+     .m-veil, revealed by motion.js (.m-in) or a legacy inline observer (.in). */
+  .m-rise, .m-fade, .m-scale, .m-veil, .rv{
     opacity:0; will-change:opacity, transform, filter;
     transition:opacity var(--m-premium) var(--ease-reveal),
                transform var(--m-premium) var(--ease-reveal),
@@ -45,9 +47,9 @@
   }
   .m-rise{ transform:translateY(var(--m-rise)); }
   .m-scale{ transform:scale(.97); }
-  .m-veil{ transform:translateY(var(--m-rise)); filter:blur(var(--m-blur)); }
+  .m-veil, .rv{ transform:translateY(var(--m-rise)); filter:blur(var(--m-blur)); }
 
-  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in{
+  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in, .rv.m-in, .rv.in{
     opacity:1; transform:none; filter:blur(0);
   }
 }
@@ -155,8 +157,8 @@
    7. REDUCED MOTION — gentle fades only, no travel/loops
    ============================================================ */
 @media (prefers-reduced-motion: reduce){
-  .m-rise, .m-fade, .m-scale, .m-veil{ opacity:0; transition:opacity var(--m-normal) linear; transform:none !important; filter:none !important; }
-  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in{ opacity:1; }
+  .m-rise, .m-fade, .m-scale, .m-veil, .rv{ opacity:0; transition:opacity var(--m-normal) linear; transform:none !important; filter:none !important; }
+  .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in, .rv.m-in, .rv.in{ opacity:1; }
   .m-breath, .m-breath-soft, .m-halo{ animation:none !important; }
   .tabbar{ animation:none !important; }
   .tab.center .tdisc{ animation:none !important; }
