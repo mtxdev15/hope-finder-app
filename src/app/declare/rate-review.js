@@ -19,7 +19,7 @@
 import { track } from './analytics.js';
 
 const SESSION_SHOWN_KEY = 'declare-rate-session-shown';
-const ADVANCE_MS = 280; // let the star fill animate before moving on
+const ADVANCE_MS = 620; // let the star fill + glow land before the step springs away
 
 export function initRateReview(opts) {
   const o = opts || {};
