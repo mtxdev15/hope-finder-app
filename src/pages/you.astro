@@ -149,6 +149,22 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 
     <div class="ytoast" id="yToast"></div>
 
+    {/* your-review view (read-only summary of what you rated) */}
+    <div class="ymodal yrvmodal" id="yrvModal">
+      <div class="ym-back" id="yrvBack"></div>
+      <div class="ym-panel">
+        <button class="ym-x" id="yrvX" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <h3 class="serif">Your review</h3>
+        <p class="yrv-status" id="yrvStatus"></p>
+        <div class="yrv-dims" id="yrvDims"></div>
+        <blockquote class="yrv-quote" id="yrvQuote" hidden></blockquote>
+        <div class="ym-actions yrv-actions">
+          <button class="btn btn-primary" id="yrvUpdate" type="button">Update my review</button>
+          <a class="yrv-others" href="/welcome">See what others are saying</a>
+        </div>
+      </div>
+    </div>
+
     {/* Rate & Review surface (opened by the profile card or a ?rate= deep-link). */}
     <RateReview />
   </main>
@@ -307,6 +323,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        No auto toast here — only deliberate opens. Signed-out clicks (from the footer/
        menu deep-links) route through sign-in, then open once the session lands. */
     const _rateCard = $('yRateCard');
+    let _myReview = null;
     const rr = initRateReview({
       onSubmit: (payload) => {
         noteSubmitted();
@@ -328,6 +345,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function renderMyReview() {
       if (!(isConfigured() && isSignedIn()) || !_rateCard) return;
       reviewsMine().then((r) => {
+        _myReview = r || null;
         if (!r || !_rateCard) return;
         const ov = Math.round((r.score_met_you + r.score_the_word + r.score_coming_back) / 3);
         let stars = '';
@@ -339,7 +357,29 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           + '<span style="color:var(--goldd);margin-left:9px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase">' + status + '</span>';
       }).catch(() => {});
     }
-    if (_rateCard) _rateCard.addEventListener('click', () => openRate('profile'));
+    // Read-only "Your review" view (what you rated), with an update option.
+    function dStars(n) {
+      let s = '';
+      for (let i = 1; i <= 5; i++) s += '<span style="color:' + (i <= n ? 'var(--gold)' : 'var(--line2)') + '">★</span>';
+      return s;
+    }
+    function openReviewView() {
+      const r = _myReview; if (!r) return;
+      $('yrvStatus').textContent = r.status === 'approved' ? (r.isPublic ? 'Shared publicly on the site' : 'Approved') : 'Pending review';
+      $('yrvDims').innerHTML =
+          '<div class="yrv-dim"><span class="yrv-lbl">Met you</span><span class="yrv-stars">' + dStars(r.score_met_you) + '</span></div>'
+        + '<div class="yrv-dim"><span class="yrv-lbl">The Word</span><span class="yrv-stars">' + dStars(r.score_the_word) + '</span></div>'
+        + '<div class="yrv-dim"><span class="yrv-lbl">Coming back</span><span class="yrv-stars">' + dStars(r.score_coming_back) + '</span></div>';
+      const q = $('yrvQuote');
+      if (r.testimonial) { q.textContent = '“' + r.testimonial + '”'; q.hidden = false; }
+      else { q.hidden = true; }
+      $('yrvModal').classList.add('open');
+    }
+    function closeReviewView() { $('yrvModal').classList.remove('open'); }
+    $('yrvX') && $('yrvX').addEventListener('click', closeReviewView);
+    $('yrvBack') && $('yrvBack').addEventListener('click', closeReviewView);
+    $('yrvUpdate') && $('yrvUpdate').addEventListener('click', () => { closeReviewView(); openRate('profile'); });
+    if (_rateCard) _rateCard.addEventListener('click', () => { if (_myReview) openReviewView(); else openRate('profile'); });
     initAuth().then(renderMyReview);
     onAuthChange(renderMyReview);
     try {
@@ -726,6 +766,18 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     @keyframes ymIn { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: none; } }
     .you .ym-x { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .you .ym-x svg { width: 15px; height: 15px; }
+
+    /* your-review view (reuses .ymodal / .ym-panel) */
+    .you .yrv-status { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--goldd); font-weight: 600; margin: 4px 0 20px; }
+    .you .yrv-dims { display: flex; flex-direction: column; gap: 13px; }
+    .you .yrv-dim { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .you .yrv-dim .yrv-lbl { font-size: 14.5px; color: var(--text2, var(--text)); }
+    .you .yrv-dim .yrv-stars { letter-spacing: 2px; font-size: 16px; white-space: nowrap; }
+    .you .yrv-quote { margin: 20px 0 0; padding: 15px 16px; border-radius: 13px; background: var(--surface); border: 1px solid var(--line);
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 17px; line-height: 1.55; color: var(--text); }
+    .you .yrv-actions { margin-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .you .yrv-others { font-size: 13.5px; color: var(--goldd); text-decoration: none; }
+    .you .yrv-others:hover { color: var(--gold); text-decoration: underline; }
     .you .ym-panel h3 { font-size: 24px; font-weight: 600; color: var(--text); padding-right: 40px; }
     .you .ym-panel p { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
     .you .ym-field { width: 100%; margin-top: 16px; font-family: inherit; font-size: 16px; color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 13px; padding: 14px 15px; resize: none; }
