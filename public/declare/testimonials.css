@@ -28,26 +28,25 @@
 .tw-star.on path { fill: var(--gold); stroke: var(--gold); }
 
 /* Marquee — continuous horizontal auto-scroll (oevra "words of affirmation"). */
-.tw-marquee { margin-top: 38px; overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
-.tw-track { display: flex; align-items: flex-start; gap: 18px; width: max-content;
+.tw-marquee { position: relative; margin-top: 44px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.tw-marquee::before { content: ''; position: absolute; inset: -12% 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(48% 120% at 50% 50%, rgba(216, 184, 95, .12), transparent 72%); }
+.tw-track { position: relative; z-index: 1; display: flex; align-items: stretch; gap: 20px; width: max-content;
   animation: tw-scroll var(--tw-dur, 60s) linear infinite; }
 @keyframes tw-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .tw-marquee:hover .tw-track { animation-play-state: paused; }
 
-.tw-card { flex: 0 0 auto; width: clamp(268px, 78vw, 358px); border-radius: 18px; padding: 26px 24px;
-  display: flex; flex-direction: column; gap: 15px;
-  background: color-mix(in srgb, var(--gold) 5%, rgba(255, 255, 255, .045));
-  border: 1px solid color-mix(in srgb, var(--gold) 22%, var(--line));
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.tw-mark { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--gold); opacity: .85; }
-.tw-quote { margin: 0; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 20px; line-height: 1.4; color: var(--text); text-wrap: pretty; }
+.tw-card { flex: 0 0 auto; width: clamp(282px, 82vw, 386px); border-radius: 22px; padding: 32px 30px;
+  display: flex; flex-direction: column; gap: 22px;
+  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .14);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.tw-mark { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .55); flex: 0 0 auto; }
+.tw-quote { margin: 0; font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: clamp(20px, 2.3vw, 24px); line-height: 1.36; color: var(--text); text-wrap: pretty; }
 .tw-div { display: block; }
-.tw-cite { display: flex; align-items: center; gap: 11px; }
-.tw-cardstars { display: inline-flex; gap: 2px; }
-.tw-cardstars .tw-star { width: 13px; height: 13px; }
-.tw-name { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--goldd); font-weight: 600; }
+.tw-name { margin-top: auto; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   .tw-track { animation: none; transform: none; }

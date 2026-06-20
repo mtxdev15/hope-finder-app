@@ -35,26 +35,28 @@
     for (var i = 0; i < list.length; i++) sum += (list[i].score_met_you + list[i].score_the_word + list[i].score_coming_back) / 3;
     var avg = sum / list.length;
 
-    // Cards: testimonial-bearing first, rendered into a seamless scrolling marquee.
-    var cardArr = list.slice().sort(function (a, b) { return (b.testimonial ? 1 : 0) - (a.testimonial ? 1 : 0); });
+    // Marquee cards from testimonial-bearing reviews (oevra "words of affirmation").
+    var cardArr = list.filter(function (r) { return r.testimonial && r.testimonial.trim(); });
     function oneCard(r) {
       var name = (r.firstName || 'Friend').trim() || 'Friend';
-      var quote = r.testimonial ? '<blockquote class="tw-quote">' + esc(r.testimonial) + '</blockquote>' : '';
       return '<figure class="tw-card">'
         + '<span class="tw-mark" aria-hidden="true"></span>'
-        + quote
+        + '<blockquote class="tw-quote">' + esc(r.testimonial) + '</blockquote>'
         + '<svg class="tw-div" width="28" height="2" viewBox="0 0 28 2" fill="none" aria-hidden="true"><path d="M0 1L28 1" stroke="var(--gold)" stroke-width="2" stroke-dasharray="4 4 10 6"></path></svg>'
-        + '<figcaption class="tw-cite"><span class="tw-cardstars" aria-label="' + overall(r) + ' out of 5">' + stars(overall(r)) + '</span><span class="tw-name">' + esc(name) + '</span></figcaption>'
+        + '<figcaption class="tw-name">' + esc(name) + '</figcaption>'
         + '</figure>';
     }
-    var cardsHtml = cardArr.map(oneCard).join('');
-    // Repeat so one "set" comfortably exceeds the viewport, then duplicate for the -50% loop.
-    var reps = Math.max(2, Math.ceil(8 / cardArr.length));
-    var base = '';
-    for (var k = 0; k < reps; k++) base += cardsHtml;
-    var dur = cardArr.length * reps * 6; // seconds; keeps an even pace as the count grows
-    var track = '<div class="tw-track" style="--tw-dur:' + dur + 's">' + base
-      + '<span style="display:contents" aria-hidden="true">' + base + '</span></div>';
+    var marquee = '';
+    if (cardArr.length) {
+      var cardsHtml = cardArr.map(oneCard).join('');
+      // Repeat so one "set" comfortably exceeds the viewport, then duplicate for the -50% loop.
+      var reps = Math.max(2, Math.ceil(8 / cardArr.length));
+      var base = '';
+      for (var k = 0; k < reps; k++) base += cardsHtml;
+      var dur = cardArr.length * reps * 6; // seconds; even pace as the count grows
+      marquee = '<div class="tw-marquee"><div class="tw-track" style="--tw-dur:' + dur + 's">' + base
+        + '<span style="display:contents" aria-hidden="true">' + base + '</span></div></div>';
+    }
 
     mount.innerHTML = '<div class="tw">'
       + '<div class="tw-head">'
@@ -70,7 +72,7 @@
       + dimRow('Coming back', dimAvg(list, 'score_coming_back'))
       + '</div>'
       + '</div>'
-      + '<div class="tw-marquee">' + track + '</div>'
+      + marquee
       + '</div>';
     mount.removeAttribute('hidden');
 
