@@ -68,6 +68,17 @@ function clearStaleAuth() {
     localStorage.removeItem('better-auth_session_data');
   } catch (e) {}
 }
+/* Sign-out wipes device-local personal info so a signed-out device is a clean
+   guest: no name, church, anchor verse, about, interests, or rate state left for
+   the next person. This data mirrors to the account, so signing back in restores
+   it. Saved words/verses (the vault) are left intact on purpose. */
+function clearPersonalData() {
+  try {
+    localStorage.removeItem('declare-profile-v1');
+    localStorage.removeItem('declare-rate-v1');
+    localStorage.removeItem('declare-words-received');
+  } catch (e) {}
+}
 
 async function refreshSession() {
   try {
@@ -196,5 +207,8 @@ export async function signInWithProvider(provider, redirectTo) {
 export async function signOut() {
   if (!isConfigured()) return;
   try { await ac().signOut(); } catch (e) {}
-  sessionData = null; fire();
+  sessionData = null;
+  clearPersonalData();   // a signed-out device is a guest; nothing personal lingers
+  clearStaleAuth();
+  fire();
 }

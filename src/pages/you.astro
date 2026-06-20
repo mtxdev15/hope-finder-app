@@ -399,14 +399,15 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function renderAuth() {
       const signedIn = isConfigured() && isSignedIn();
       const u = signedIn ? currentUser() : null;
-      // first sign-in mirrors the account's name onto this device, so the rail
-      // greets them right away — and it STAYS after sign-out (it lives on the
-      // device, not the session). Only fills a blank name; never overwrites.
+      // First sign-in mirrors the account's name onto this device so the rail
+      // greets them right away. Only fills a blank name; never overwrites. On
+      // sign-out the profile is cleared (see signOut), so the guest slate is blank.
       if (signedIn && u && u.firstName && !getProfile().name) P = setProfile({ name: u.firstName });
       $('yRole').textContent = signedIn ? ((u && u.email) || 'Signed in') : 'Guest · not signed in';
       $('hubAuthD').textContent = signedIn ? ('Signed in as ' + ((u && u.email) || 'you')) : 'Sign in to keep what God gives you';
-      // keep the rail (name + avatar) in sync with the device profile across sign-in/out
-      P = getProfile(); renderRail();
+      // Re-read the profile and re-render every personal surface so name, facts,
+      // interests and the church hub reflect the current account/guest state.
+      P = getProfile(); renderRail(); renderFacts(); renderChips(); renderChurchHub();
     }
     $('hubAuth').addEventListener('click', () => {
       if (!(isConfigured() && isSignedIn())) {
