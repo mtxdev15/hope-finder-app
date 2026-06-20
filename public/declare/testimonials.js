@@ -30,6 +30,55 @@
     catch (e) { return ''; }
   }
 
+  // Draggable + pausable marquee. Auto-drifts left like the CSS version, but the
+  // visitor can grab/swipe it left or right, and it pauses while they interact
+  // (and on hover), then resumes after they stop. JS drives the transform so it
+  // works the same on touch and mouse. touch-action:pan-y keeps vertical page
+  // scrolling free. Content is duplicated, so the wrap is seamless both ways.
+  function initMarquee(marquee) {
+    var track = marquee.querySelector('.tw-track');
+    if (!track) return;
+    marquee.classList.add('tw-js');
+    var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = 1;
+    function measure() { W = (track.scrollWidth / 2) || 1; }
+    measure();
+
+    var offset = 0, speed = 0.4;          // px/frame — calm, ~24px/s
+    var paused = false, dragging = false, idle = null, startX = 0, startOffset = 0;
+
+    function wrap(o) { o = o % W; return o < 0 ? o + W : o; }
+    function apply() { track.style.transform = 'translate3d(' + (-offset).toFixed(2) + 'px,0,0)'; }
+    function frame() {
+      if (!paused && !dragging && !reduced) { offset = wrap(offset + speed); apply(); }
+      requestAnimationFrame(frame);
+    }
+    function resumeSoon(ms) { clearTimeout(idle); idle = setTimeout(function () { paused = false; }, ms || 1200); }
+
+    marquee.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') paused = true; });
+    marquee.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !dragging) resumeSoon(150); });
+    marquee.addEventListener('pointerdown', function (e) {
+      dragging = true; paused = true; startX = e.clientX; startOffset = offset;
+      marquee.classList.add('tw-grabbing');
+      try { marquee.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    marquee.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      offset = wrap(startOffset - (e.clientX - startX));
+      apply();
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false; marquee.classList.remove('tw-grabbing'); resumeSoon(1400);
+    }
+    marquee.addEventListener('pointerup', endDrag);
+    marquee.addEventListener('pointercancel', endDrag);
+    window.addEventListener('resize', measure, { passive: true });
+
+    apply();
+    requestAnimationFrame(frame);
+  }
+
   function render(list) {
     var sum = 0;
     for (var i = 0; i < list.length; i++) sum += (list[i].score_met_you + list[i].score_the_word + list[i].score_coming_back) / 3;
@@ -75,6 +124,9 @@
       + marquee
       + '</div>';
     mount.removeAttribute('hidden');
+
+    var mq = mount.querySelector('.tw-marquee');
+    if (mq) initMarquee(mq);
 
     // Arrived via "See what others are saying" (#testimonials)? Land on the section.
     if (location.hash === '#testimonials') {

@@ -38,6 +38,12 @@
 @keyframes tw-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .tw-marquee:hover .tw-track { animation-play-state: paused; }
 
+/* JS-enhanced (testimonials.js): auto-scrolls, but you can grab/swipe to slide it
+   and it pauses while you read, then drifts again. JS owns the transform. */
+.tw-marquee.tw-js { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.tw-marquee.tw-js.tw-grabbing { cursor: grabbing; }
+.tw-marquee.tw-js .tw-track { animation: none; will-change: transform; }
+
 .tw-card { flex: 0 0 auto; width: clamp(282px, 82vw, 386px); border-radius: 22px; padding: 32px 30px;
   display: flex; flex-direction: column; gap: 22px;
   background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .14);
@@ -49,6 +55,8 @@
 .tw-name { margin-top: auto; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--goldd); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
-  .tw-track { animation: none; transform: none; }
-  .tw-marquee { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* No-JS fallback only: a static, natively-swipeable row. When JS is active
+     (.tw-js) it stops auto-drift but keeps drag, so these must not override it. */
+  .tw-marquee:not(.tw-js) .tw-track { animation: none; transform: none; }
+  .tw-marquee:not(.tw-js) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
