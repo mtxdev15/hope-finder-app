@@ -318,8 +318,11 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 .menu-appearance .ms-lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
 .menupanel .themectl{ position:static; inset:auto; z-index:auto; display:inline-flex; gap:2px; width:auto; padding:4px; border-radius:999px;
   background:var(--field); border:1px solid var(--line2); backdrop-filter:none; -webkit-backdrop-filter:none; }
-.menupanel .themectl button{ font-size:11.5px; letter-spacing:.02em; padding:8px 18px; border-radius:999px; color:var(--text2); }
+.menupanel .themectl button{ font-family:'DM Sans', sans-serif; font-style:normal; font-size:11.5px; letter-spacing:.02em; padding:8px 18px; border-radius:999px; color:var(--text2); }
 .menupanel .themectl button.on{ background:var(--screen); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+/* footer line: brand coda on the left, theme toggle tucked to the right */
+.menupanel .menubene{ display:flex; align-items:center; justify-content:space-between; gap:14px 24px; flex-wrap:wrap; }
+.menubene-coda{ flex:0 1 auto; }
 
 
 /* ============================================================
