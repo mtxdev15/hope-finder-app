@@ -24,9 +24,10 @@
   --ease-exit:cubic-bezier(.4,0,1,1);       /* accelerate away              */
 
   /* ---- rhythm ---- */
-  --m-stagger:90ms;      /* gap between sequential children    */
-  --m-rise:24px;         /* reveal travel (40% intensity)      */
-  --m-blur:8px;          /* reveal blur veil                   */
+  --m-stagger:120ms;     /* gap between sequential children — felt cascade */
+  --m-reveal:820ms;      /* scroll-reveal duration — cinematic, unhurried  */
+  --m-rise:46px;         /* reveal travel — clearly seen, still reverent   */
+  --m-blur:9px;          /* reveal blur veil                   */
   --m-lift:-4px;         /* hover elevation                    */
 }
 
@@ -40,9 +41,9 @@
      .m-veil, revealed by motion.js (.m-in) or a legacy inline observer (.in). */
   .m-rise, .m-fade, .m-scale, .m-veil, .rv{
     opacity:0; will-change:opacity, transform, filter;
-    transition:opacity var(--m-premium) var(--ease-reveal),
-               transform var(--m-premium) var(--ease-reveal),
-               filter var(--m-premium) var(--ease-calm);
+    transition:opacity var(--m-reveal) var(--ease-reveal),
+               transform var(--m-reveal) var(--ease-reveal),
+               filter var(--m-reveal) var(--ease-calm);
     transition-delay:calc(var(--i, 0) * var(--m-stagger));
   }
   .m-rise{ transform:translateY(var(--m-rise)); }
