@@ -35,6 +35,8 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="/declare/declare.css?v=2" />
+<link rel="stylesheet" href="/declare/motion.css?v=1" />
+<link rel="stylesheet" href="/declare/atmosphere.css?v=1" />
 
 
 
@@ -122,10 +124,8 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   .menucols a:hover{ color:var(--text); padding-left:3px; }
   .menubene{ margin-top:auto; padding-top:30px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--goldd); }
 
-  /* ---------- scroll reveal ---------- */
-  .rv{ opacity:0; transform:translateY(26px); filter:blur(8px); transition:opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1), filter 1s ease; }
-  .rv.in{ opacity:1; transform:none; filter:blur(0); }
-  @media (prefers-reduced-motion: reduce){ .rv{ opacity:1 !important; transform:none !important; filter:none !important; } .brand .bdot{ animation:none; } }
+  /* .rv scroll reveals now come from /declare/motion.css + motion.js (shared engine) */
+  @media (prefers-reduced-motion: reduce){ .brand .bdot{ animation:none; } }
 
   /* ========== HERO — asymmetric, left-weighted ========== */
   .hero{ position:relative; padding:172px 0 96px; overflow:hidden; }
@@ -489,7 +489,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 </aside>
 
 <main>
-  <section class="hero" data-screen-label="Hero">
+  <section class="hero" data-screen-label="Hero" data-atmos="hero">
     <div class="glow" aria-hidden="true"></div>
     <div class="shell">
       <div class="grid herorow">
@@ -508,7 +508,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     </div>
   </section>
 
-  <section class="sec answer">
+  <section class="sec answer" data-atmos="answer">
     <div class="shell">
       <div class="grid">
         <div class="railcol rv"><div class="rail"><span class="no">01</span> The answer</div></div>
@@ -520,7 +520,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     </div>
   </section>
 
-  <section class="twoam">
+  <section class="twoam" data-atmos="night">
     <div class="shell">
       <div class="grid">
         <div class="railtop rv"><div class="rail"><span class="no">02</span> We know why you&rsquo;re here</div></div>
@@ -535,14 +535,14 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     </div>
   </section>
 
-  <section class="word">
+  <section class="word" data-atmos="word">
     <div class="shell">
       <div class="grid">
         <div class="head rv">
           <h2>Three verses for when money is tight.</h2>
           <div class="rail"><span class="no">03</span> The Word</div>
         </div>
-        <div class="verses">
+        <div class="verses" data-m-stagger>
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
@@ -585,7 +585,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     </div>
   </section>
 
-  <section class="prayersec">
+  <section class="prayersec" data-atmos="prayer">
     <div class="shell">
       <div class="grid">
         <div class="vlabel rv"><span>A prayer for you</span></div>
@@ -617,7 +617,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   </section>
 
     <!-- CLOSING CODA -->
-  <section class="coda" data-screen-label="Closing">
+  <section class="coda" data-screen-label="Closing" data-atmos="coda">
     <div class="coda-cta">
       <div class="shell">
         <div class="grid">
@@ -730,8 +730,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   document.getElementById('menuClose').addEventListener('click', closeMenu);
   scrim.addEventListener('click', closeMenu);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
-  var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin:'0px 0px -10% 0px', threshold:0.08 });
-  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+  // .rv scroll reveals are handled by the shared /declare/motion.js engine
   var decls=document.getElementById('decls');
   if(decls){ var dio=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ decls.classList.add('go'); dio.disconnect(); } }); }, { threshold:0.3 }); dio.observe(decls); }
   document.getElementById('faq').addEventListener('click', function(e){ var q=e.target.closest('.q'); if(q) q.classList.toggle('open'); });
@@ -739,5 +738,9 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
 })();
 </script>
+<script src="/declare/vendor/lenis.min.js"></script>
+<script src="/declare/smoothscroll.js"></script>
+<script src="/declare/motion.js"></script>
+<script src="/declare/atmosphere.js"></script>
 </body>
 </html>
