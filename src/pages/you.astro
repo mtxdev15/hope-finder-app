@@ -345,10 +345,76 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       img.onerror = function () { try { URL.revokeObjectURL(url); } catch (e) {} toast("Couldn't read that image."); };
       img.src = url;
     }
+    /* tapping the avatar offers a native choice: take a photo (in-app camera, so it
+       works on desktop too) or choose one (the OS picker, which on phones already
+       shows Photo Library / Take Photo / Files). Both feed the cropper. */
+    let pmEl = null, camEl = null, camStream = null;
+    function closePhotoMenu() { if (pmEl) pmEl.hidden = true; }
+    function buildPhotoMenu() {
+      if (pmEl) return pmEl;
+      const el = document.createElement('div');
+      el.className = 'cammodal'; el.hidden = true;
+      el.innerHTML =
+        '<div class="cam-card">' +
+          '<div class="cam-h">Profile photo</div>' +
+          '<button type="button" class="pm-opt" id="pmCamera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg>Take a photo</button>' +
+          '<button type="button" class="pm-opt" id="pmChoose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>Choose a photo</button>' +
+          '<button type="button" class="pm-opt pm-remove" id="pmRemove" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Remove photo</button>' +
+          '<button type="button" class="btn btn-ghost" id="pmCancel" style="width:100%;margin-top:8px;padding:13px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);background:transparent;border:1px solid var(--line2)">Cancel</button>' +
+        '</div>';
+      document.body.appendChild(el); pmEl = el;
+      el.querySelector('#pmCamera').addEventListener('click', function () { closePhotoMenu(); openCamera(); });
+      el.querySelector('#pmChoose').addEventListener('click', function () { closePhotoMenu(); $('yAvFile').click(); });
+      el.querySelector('#pmRemove').addEventListener('click', function () { closePhotoMenu(); P = setProfile({ avatar: '' }); renderRail(); toast('Photo removed.'); });
+      el.querySelector('#pmCancel').addEventListener('click', closePhotoMenu);
+      el.addEventListener('click', function (e) { if (e.target === el) closePhotoMenu(); });
+      return el;
+    }
+    function openPhotoMenu() {
+      const el = buildPhotoMenu();
+      el.querySelector('#pmRemove').hidden = !(P && P.avatar);
+      el.hidden = false;
+    }
+    function stopCam() { if (camStream) { try { camStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} camStream = null; } }
+    function closeCamera() { stopCam(); if (camEl) camEl.hidden = true; }
+    function buildCamera() {
+      if (camEl) return camEl;
+      const el = document.createElement('div');
+      el.className = 'cammodal'; el.hidden = true;
+      el.innerHTML =
+        '<div class="cam-card">' +
+          '<div class="cam-h">Take a photo</div>' +
+          '<div class="cam-stage"><video id="camVideo" autoplay playsinline muted></video><div class="crop-ring" aria-hidden="true"></div></div>' +
+          '<div class="cam-actions"><button type="button" class="btn btn-ghost" id="camCancel">Cancel</button><button type="button" class="btn btn-primary" id="camShoot">Capture</button></div>' +
+        '</div>';
+      document.body.appendChild(el); camEl = el;
+      el.querySelector('#camCancel').addEventListener('click', closeCamera);
+      el.querySelector('#camShoot').addEventListener('click', function () {
+        const v = el.querySelector('#camVideo');
+        if (!v.videoWidth) { toast('The camera is still starting…'); return; }
+        const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight;
+        const ctx = cv.getContext('2d');
+        ctx.translate(cv.width, 0); ctx.scale(-1, 1);   // mirror to match the selfie preview
+        ctx.drawImage(v, 0, 0);
+        cv.toBlob(function (blob) { closeCamera(); if (blob) openCropper(blob); else toast("Couldn't capture that."); }, 'image/jpeg', 0.92);
+      });
+      return el;
+    }
+    async function openCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('yAvFile').click(); return; }
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false }); }
+      catch (e) { toast('Camera unavailable. Choose a photo instead.'); $('yAvFile').click(); return; }
+      camStream = stream;
+      const el = buildCamera();
+      const v = el.querySelector('#camVideo'); v.srcObject = stream;
+      el.hidden = false;
+      if (v.play) v.play().catch(function () {});
+    }
     (function () {
       const av = $('yAvatar'), file = $('yAvFile'), rm = $('yAvRemove');
       if (!av || !file) return;
-      av.addEventListener('click', function () { file.click(); });
+      av.addEventListener('click', openPhotoMenu);
       file.addEventListener('change', function (e) {
         const f = e.target.files && e.target.files[0]; e.target.value = '';
         if (!f || !/^image\//.test(f.type)) return;
@@ -875,6 +941,22 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .crop-actions .btn:active { transform: translateY(1px); }
     .crop-actions .btn-primary { background: var(--cta); color: var(--ctatext); border: 0; box-shadow: 0 10px 24px -10px rgba(216, 184, 95, .5); }
     .crop-actions .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); }
+    /* photo source menu + in-app camera */
+    .cammodal { position: fixed; inset: 0; z-index: 320; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8,14,11,.74); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .cammodal[hidden] { display: none; }
+    .cam-card { width: min(380px, 92vw); background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--card-shadow); padding: 22px; }
+    .cam-h { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 16px; }
+    .cam-stage { position: relative; width: min(300px, 74vw); height: min(300px, 74vw); margin: 0 auto; border-radius: 14px; overflow: hidden; background: #0c130f; }
+    .cam-stage video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+    .cam-actions { display: flex; gap: 12px; margin-top: 18px; }
+    .cam-actions .btn { flex: 1; padding: 13px; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: filter .2s ease, transform .12s ease; }
+    .cam-actions .btn:active { transform: translateY(1px); }
+    .cam-actions .btn-primary { background: var(--cta); color: var(--ctatext); border: 0; box-shadow: 0 10px 24px -10px rgba(216,184,95,.5); }
+    .cam-actions .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); }
+    .pm-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; margin-bottom: 9px; border-radius: 14px; background: var(--field); border: 1px solid var(--line); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; -webkit-appearance: none; appearance: none; text-align: left; transition: background .18s ease; }
+    .pm-opt:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+    .pm-opt svg { width: 20px; height: 20px; color: var(--goldd); flex: 0 0 auto; }
+    .pm-opt.pm-remove, .pm-opt.pm-remove svg { color: var(--clay); }
     .you .yname { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1.1; }
     .you .yrole { font-size: 12px; color: var(--muted); margin-top: 5px; }
     .you .ydivider { height: 1px; background: var(--line); margin: 18px 0 14px; }
