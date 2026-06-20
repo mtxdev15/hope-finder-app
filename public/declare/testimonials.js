@@ -12,6 +12,12 @@
 
   function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function overall(r) { return Math.round((r.score_met_you + r.score_the_word + r.score_coming_back) / 3); }
+  function dimAvg(list, key) { var s = 0; for (var i = 0; i < list.length; i++) s += list[i][key]; return s / list.length; }
+  function dimRow(label, v) {
+    return '<div class="tw-dim"><span class="tw-dim-lbl">' + label + '</span>'
+      + '<span class="tw-dim-bar"><span class="tw-dim-fill" style="width:' + (v / 5 * 100).toFixed(0) + '%"></span></span>'
+      + '<span class="tw-dim-num">' + v.toFixed(1) + '</span></div>';
+  }
   function stars(n) {
     var s = '';
     for (var i = 1; i <= 5; i++) {
@@ -47,7 +53,13 @@
       + '<span class="tw-avgnum serif">' + avg.toFixed(1) + '</span><span class="tw-avgof">of 5</span>'
       + '<span class="tw-avgstars" aria-hidden="true">' + stars(Math.round(avg)) + '</span>'
       + '<span class="tw-count">' + list.length + (list.length === 1 ? ' testimony' : ' testimonies') + '</span>'
-      + '</div></div>'
+      + '</div>'
+      + '<div class="tw-dims">'
+      + dimRow('Met you', dimAvg(list, 'score_met_you'))
+      + dimRow('The Word', dimAvg(list, 'score_the_word'))
+      + dimRow('Coming back', dimAvg(list, 'score_coming_back'))
+      + '</div>'
+      + '</div>'
       + '<div class="tw-grid">' + cards + '</div>'
       + '</div>';
     mount.removeAttribute('hidden');
