@@ -643,7 +643,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       const sub = $('yRlsSub'); if (sub) sub.textContent = 'Everything we have shipped lately, in plain language.';
       $('yRlsBody').innerHTML = RELEASES.map(function(r){
         return '<div class="yrls-rel"><div class="yrls-vh"><span class="yrls-v">Version ' + r.v + '</span><span class="yrls-date">' + r.date + '</span></div>'
-          + r.items.map(function(it){ return '<div class="yrls-item"><span class="' + rlsTagClass(it[0]) + '">' + it[0] + '</span><span class="yrls-txt">' + it[1] + '</span></div>'; }).join('')
+          + r.items.map(function(it){ return '<div class="yrls-item"><span class="yrls-tagcol"><span class="' + rlsTagClass(it[0]) + '">' + it[0] + '</span></span><span class="yrls-txt">' + it[1] + '</span></div>'; }).join('')
           + '</div>';
       }).join('');
       $('yRlsModal').classList.add('open');
@@ -653,6 +653,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     $('yRlsX') && $('yRlsX').addEventListener('click', closeWhatsNew);
     $('yRlsBack') && $('yRlsBack').addEventListener('click', closeWhatsNew);
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && $('yRlsModal') && $('yRlsModal').classList.contains('open')) closeWhatsNew(); });
+    // footer "What's new" links land here with ?whatsnew=1 and open the log directly
+    try { if (new URLSearchParams(location.search).get('whatsnew')) openWhatsNew(); } catch (e) {}
 
     /* ---------- church hub card reflects the saved church ---------- */
     function renderChurchHub() {
@@ -1082,9 +1084,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yrls-vh { display: flex; align-items: baseline; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--line2); }
     .you .yrls-v { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--gold); }
     .you .yrls-date { font-size: 12px; color: var(--muted); }
-    .you .yrls-item { display: flex; align-items: flex-start; gap: 11px; }
+    .you .yrls-item { display: flex; align-items: flex-start; gap: 13px; }
     .you .yrls-txt { font-size: 14px; line-height: 1.5; color: var(--text); }
-    .you .yrls-tag { flex: 0 0 auto; margin-top: 1px; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 0; border-radius: 999px; width: 62px; text-align: center; }
+    /* fixed-width column keeps the descriptions aligned; the pill hugs its own text */
+    .you .yrls-tagcol { flex: 0 0 88px; display: flex; }
+    .you .yrls-tag { display: inline-flex; align-items: center; margin-top: 1px; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
     .you .yrls-tag.is-new { background: rgba(201,168,76,.16); color: var(--gold); }
     .you .yrls-tag.is-imp { background: rgba(232,224,208,.12); color: #d9d0bd; }
     .you .yrls-tag.is-fixed { background: rgba(255,255,255,.06); color: var(--muted); }
