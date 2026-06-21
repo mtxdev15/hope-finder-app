@@ -579,22 +579,45 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     rtrans.addEventListener('click', (e) => {
       const rt = e.target.closest('.rt');
       if (rt) {
+        const keep = topVerseN();
         const t = rt.dataset.t, i = cmpSet.indexOf(t);
         if (i >= 0) { if (cmpSet.length > 1) cmpSet.splice(i, 1); }
         else { cmpSet.push(t); if (cmpSet.length > 3) cmpSet.shift(); }
-        renderTrans(); renderBody(); return;
+        renderTrans(); renderBody(keep); return;
       }
       if (e.target.closest('#transsel')) { openTmenu(); return; }
       if (e.target.closest('#aaBtn')) { openDsheet(); return; }
       if (e.target.closest('#cmp')) {
+        const keep = topVerseN();
         compare = !compare;
         if (compare && cmpSet.length < 2) {
           const mine = byId(readT).label;
           cmpSet = [mine].concat(TRANSLATIONS.map((t) => t.label).filter((x) => x !== mine)).slice(0, 2);
         }
-        renderTrans(); renderBody();
+        renderTrans(); renderBody(keep);
       }
     });
+
+    /* ---------- keep the reader on the same verse across re-renders ---------- */
+    // Which verse is sitting just under the sticky controls right now (what the
+    // reader is on). Used so Compare / a translation switch can return to it.
+    function topVerseN() {
+      const cr = rscroll.getBoundingClientRect();
+      const els = rbody.querySelectorAll('[data-n]');
+      for (let i = 0; i < els.length; i++) {
+        if (els[i].getBoundingClientRect().bottom >= cr.top + 96) return els[i].getAttribute('data-n');
+      }
+      return null;
+    }
+    // Rest a verse just below the controls. Shared by verse-jump and the re-render restore.
+    function scrollToVerseN(n, opts) {
+      opts = opts || {};
+      const el = rbody.querySelector('[data-n="' + n + '"]'); if (!el) return false;
+      const tr = el.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
+      rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 90, behavior: opts.smooth ? 'smooth' : 'auto' });
+      if (opts.flash) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2200); }
+      return true;
+    }
 
     /* ---------- body render (single + compare) ---------- */
     function loadingPanel() {
@@ -610,7 +633,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       if (uniq.length) { rcopyright.innerHTML = uniq.map((c) => '<div>' + esc(c) + '</div>').join(''); rcopyright.hidden = false; }
       else { rcopyright.hidden = true; rcopyright.innerHTML = ''; }
     }
-    function renderBody() {
+    function renderBody(keepN) {
       const myReq = ++reqId;
       rbody.innerHTML = loadingPanel(); rcopyright.hidden = true;
       if (!compare) {
@@ -623,6 +646,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           fireFums(j.fumsToken);
           updateVerseJump(j.verses);
           applyHighlights();
+          if (keepN) requestAnimationFrame(() => scrollToVerseN(keepN));
         });
       } else {
         Promise.all(cmpSet.map((label) => fetchChapter(curUsfm, curChap, byLabel(label).id).then((j) => ({ t: label, j })))).then((res) => {
@@ -642,6 +666,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           res.forEach((r) => { if (r.j) fireFums(r.j.fumsToken); });
           updateVerseJump(base);
           applyHighlights();
+          if (keepN) requestAnimationFrame(() => scrollToVerseN(keepN));
         });
       }
     }
@@ -658,11 +683,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     vjgrid.addEventListener('click', (e) => {
       const t = e.target.closest('.vjtile'); if (!t) return;
       vjump.classList.remove('open');
-      const target = rbody.querySelector('[data-n="' + t.dataset.n + '"]'); if (!target) return;
-      const tr = target.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
-      rscroll.scrollTo({ top: rscroll.scrollTop + (tr.top - cr.top) - 90, behavior: 'smooth' });
-      target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
-      setTimeout(() => target.classList.remove('flash'), 2200);
+      scrollToVerseN(t.dataset.n, { smooth: true, flash: true });
     });
 
     /* ---------- reader tools: toast · translation menu · display ---------- */
@@ -680,9 +701,10 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     }
     tmlist.addEventListener('click', (e) => {
       const r = e.target.closest('.tmrow'); if (!r) return;
+      const keep = topVerseN();
       setReadT(r.dataset.t);
       tmenu.classList.remove('open');
-      renderTrans(); renderBody();
+      renderTrans(); renderBody(keep);
     });
 
     function openDsheet() { dsheet.classList.add('open'); }
