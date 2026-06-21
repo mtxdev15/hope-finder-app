@@ -99,9 +99,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               <div class="yh-t">Rate Declare</div>
               <div class="yh-d">Tell us how it has met you</div>
             </button>
+            <button class="yhubcard" id="yWhatsNew">
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.3 4.3 1.9-4.3 1.9L12 15l-1.9-4.3L5.8 9l4.3-1.9L12 3z"></path><path d="M18.5 13.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg></div>
+              <div class="yh-t">What&rsquo;s new</div>
+              <div class="yh-d">Updates, improvements, and fixes</div>
+            </button>
           </div>
 
-          <div class="yver m-fade">DECLARE &middot; VERSION 3.2</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.3</div>
         </section>
       </div>
     </div>
@@ -172,6 +177,17 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           <button class="btn btn-primary" id="yrvUpdate" type="button">Update my review</button>
           <a class="yrv-others" href="/welcome#testimonials">See what others are saying</a>
         </div>
+      </div>
+    </div>
+
+    {/* what's new (release notes) — read-only log of updates, improvements, fixes */}
+    <div class="ymodal yrlsmodal" id="yRlsModal">
+      <div class="ym-back" id="yRlsBack"></div>
+      <div class="ym-panel">
+        <button class="ym-x" id="yRlsX" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <h3 class="serif">What&rsquo;s new</h3>
+        <p class="yrls-sub" id="yRlsSub"></p>
+        <div class="yrls-body" id="yRlsBody"></div>
       </div>
     </div>
 
@@ -604,6 +620,40 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       if (_rp === 'footer' || _rp === 'menu' || _rp === 'profile') initAuth().then(() => openRate(_rp));
     } catch (e) {}
 
+    /* ---------- What's new (release notes) ---------- */
+    // Newest first. The top entry's version drives the footer label, so the two never drift.
+    const RELEASES = [
+      { v: '3.3', date: 'June 2026', items: [
+        ['New', 'One consistent menu now appears on every page, so you can keep exploring instead of being sent into the app.'],
+        ['New', 'A Help and support shortcut, right here in your account.'],
+        ['New', 'This What’s new log, so you can always see what changed.'],
+        ['Improved', 'Clearer labels across the menu and footer (Give, Help and support).'],
+        ['Fixed', 'Creating an account with Google now works for everyone.'],
+      ] },
+      { v: '3.2', date: 'Earlier', items: [
+        ['New', 'Add and crop a profile photo, or take one with your camera.'],
+        ['New', 'A wall of what people are saying across the site.'],
+        ['Improved', 'Smoother, calmer motion as you scroll.'],
+        ['Fixed', 'Signing out now fully clears your info on a shared device.'],
+      ] },
+    ];
+    (function setVer(){ const el = $('yVer'); if (el && RELEASES[0]) el.textContent = 'DECLARE · VERSION ' + RELEASES[0].v; })();
+    function rlsTagClass(t){ return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
+    function openWhatsNew() {
+      const sub = $('yRlsSub'); if (sub) sub.textContent = 'Everything we have shipped lately, in plain language.';
+      $('yRlsBody').innerHTML = RELEASES.map(function(r){
+        return '<div class="yrls-rel"><div class="yrls-vh"><span class="yrls-v">Version ' + r.v + '</span><span class="yrls-date">' + r.date + '</span></div>'
+          + r.items.map(function(it){ return '<div class="yrls-item"><span class="' + rlsTagClass(it[0]) + '">' + it[0] + '</span><span class="yrls-txt">' + it[1] + '</span></div>'; }).join('')
+          + '</div>';
+      }).join('');
+      $('yRlsModal').classList.add('open');
+    }
+    function closeWhatsNew() { $('yRlsModal').classList.remove('open'); }
+    $('yWhatsNew') && $('yWhatsNew').addEventListener('click', openWhatsNew);
+    $('yRlsX') && $('yRlsX').addEventListener('click', closeWhatsNew);
+    $('yRlsBack') && $('yRlsBack').addEventListener('click', closeWhatsNew);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && $('yRlsModal') && $('yRlsModal').classList.contains('open')) closeWhatsNew(); });
+
     /* ---------- church hub card reflects the saved church ---------- */
     function renderChurchHub() {
       $('hubChurchD').innerHTML = (signedInNow() && P.church)
@@ -1024,6 +1074,20 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .appearance .themectl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
 
     .you .yver { text-align: center; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 40px; }
+
+    /* what's new (release notes) modal */
+    .you .yrls-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px; }
+    .you .yrls-body { display: flex; flex-direction: column; gap: 24px; max-height: 60vh; overflow-y: auto; }
+    .you .yrls-rel { display: flex; flex-direction: column; gap: 11px; }
+    .you .yrls-vh { display: flex; align-items: baseline; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--line2); }
+    .you .yrls-v { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: .04em; color: var(--gold); }
+    .you .yrls-date { font-size: 12px; color: var(--muted); }
+    .you .yrls-item { display: flex; align-items: flex-start; gap: 11px; }
+    .you .yrls-txt { font-size: 14px; line-height: 1.5; color: var(--text); }
+    .you .yrls-tag { flex: 0 0 auto; margin-top: 1px; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 0; border-radius: 999px; width: 62px; text-align: center; }
+    .you .yrls-tag.is-new { background: rgba(201,168,76,.16); color: var(--gold); }
+    .you .yrls-tag.is-imp { background: rgba(232,224,208,.12); color: #d9d0bd; }
+    .you .yrls-tag.is-fixed { background: rgba(255,255,255,.06); color: var(--muted); }
 
     /* ===== editor modal (house pattern) ===== */
     .you .ymodal { position: fixed; inset: 0; z-index: 70; display: none; }
