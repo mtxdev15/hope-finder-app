@@ -136,6 +136,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       <div class="vbar" id="vbar">
         <div class="grabber"></div>
         <div class="vbref" id="vbref">Verse</div>
+        <div class="hlpalette" id="hlPalette" hidden>
+          <button class="hlsw c-gold" data-c="gold" aria-label="Gold highlight"></button>
+          <button class="hlsw c-rose" data-c="rose" aria-label="Rose highlight"></button>
+          <button class="hlsw c-sky" data-c="sky" aria-label="Sky highlight"></button>
+          <button class="hlsw c-mint" data-c="mint" aria-label="Mint highlight"></button>
+          <button class="hlsw c-lilac" data-c="lilac" aria-label="Lilac highlight"></button>
+          <button class="hlsw hlsw-none" data-c="none" aria-label="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14"></path><circle cx="12" cy="12" r="9"></circle></svg></button>
+        </div>
         <div class="vbacts">
           <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"></path><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"></path></svg><span>Highlight</span></button>
           <button class="vbtn" id="vbSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg><span>Save</span></button>
@@ -738,13 +746,23 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     }
 
     /* ---------- highlights (device-local, design scheme) ---------- */
+    // Highlight colors. Stored value is a color id; legacy `1` (boolean) maps to gold.
+    const HL_COLORS = ['gold', 'rose', 'sky', 'mint', 'lilac'];
+    function normColor(v) { return HL_COLORS.indexOf(v) >= 0 ? v : 'gold'; }
     function getHL() { try { return JSON.parse(localStorage.getItem('declare-highlights') || '{}'); } catch (e) { return {}; } }
     function hlKey(n) { return curBook + ' ' + curChap + ':' + n; }
     function isHL(n) { return !!getHL()[hlKey(n)]; }
-    function applyHighlights() { rbody.querySelectorAll('[data-n]').forEach((el) => el.classList.toggle('hl', isHL(el.dataset.n))); }
+    function applyHighlights() {
+      const o = getHL();
+      rbody.querySelectorAll('[data-n]').forEach((el) => {
+        const v = o[hlKey(el.dataset.n)];
+        if (v) { el.classList.add('hl'); el.setAttribute('data-hlc', normColor(v)); }
+        else { el.classList.remove('hl'); el.removeAttribute('data-hlc'); }
+      });
+    }
 
     /* ---------- verse selection (one OR many) + actions ---------- */
-    const vbar = $('vbar'), vbref = $('vbref'), vbHl = $('vbHl'), vbSave = $('vbSave');
+    const vbar = $('vbar'), vbref = $('vbref'), vbHl = $('vbHl'), vbSave = $('vbSave'), hlPalette = $('hlPalette');
     const sel = new Set();                 // selected verse numbers (as strings); tap to add/remove
     function selNums() { return [...sel].map((x) => parseInt(x, 10)).filter((x) => !isNaN(x)).sort((a, b) => a - b); }
     // compress sorted verse numbers into a readable range: "10" / "8-11" / "8,10-11"
@@ -753,7 +771,13 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++; parts.push(i === j ? '' + nums[i] : nums[i] + '-' + nums[j]); i = j + 1; }
       return parts.join(',');
     }
-    function closeVbar() { vbar.classList.remove('open'); sel.clear(); rbody.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); }
+    function closeVbar() { vbar.classList.remove('open'); hlPalette.hidden = true; sel.clear(); rbody.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); }
+    // common highlight color of the whole selection (null if mixed or unhighlighted)
+    function selColor() {
+      const o = getHL(), nums = selNums(); if (!nums.length || !o[hlKey(nums[0])]) return null;
+      const first = normColor(o[hlKey(nums[0])]);
+      return nums.every((m) => o[hlKey(m)] && normColor(o[hlKey(m)]) === first) ? first : null;
+    }
     function verseText(el) {
       const v = el.querySelector('.vt'); if (v) return v.textContent.trim();
       const c = el.querySelector('.pcell .pcx'); return c ? c.textContent.trim() : '';
@@ -768,6 +792,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     function paintVbar() {
       const n = sel.size;
       vbHl.classList.toggle('on', n > 0 && allSelHL());
+      const sc = selColor();
+      hlPalette.querySelectorAll('.hlsw').forEach((b) => b.classList.toggle('on', b.dataset.c === sc));
       const saved = isSaved(saveId());
       vbSave.classList.toggle('on', saved);
       vbSave.querySelector('span').textContent = saved ? 'Saved' : 'Save';
@@ -777,6 +803,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       if (e.target.closest('a,button')) return;
       const el = e.target.closest('.vrse,.pverse'); if (!el || el.dataset.n === undefined) return;
       const n = el.dataset.n;
+      hlPalette.hidden = true;                                            // changing the selection collapses the palette
       if (sel.has(n)) { sel.delete(n); el.classList.remove('sel'); }     // tap again to deselect
       else { sel.add(n); el.classList.add('sel'); }                       // tap to add to the passage
       if (!sel.size) { closeVbar(); return; }
@@ -784,15 +811,18 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       vbar.classList.add('open');
     });
     $('vbClose').addEventListener('click', closeVbar);
-    vbHl.addEventListener('click', () => {
+    // Highlight opens a pastel palette; picking a swatch colors the whole selection.
+    vbHl.addEventListener('click', () => { if (!sel.size) return; hlPalette.hidden = !hlPalette.hidden; paintVbar(); });
+    hlPalette.addEventListener('click', (e) => { const b = e.target.closest('.hlsw'); if (b) applyColor(b.dataset.c); });
+    function applyColor(c) {
       if (!sel.size) return;
       if (!ensureSignedIn('Create a free account to keep your highlights.')) return;
-      const o = getHL(), nums = selNums(), on = nums.every((n) => !!o[hlKey(n)]);
-      nums.forEach((n) => { const k = hlKey(n); if (on) delete o[k]; else o[k] = 1; });    // toggle the whole selection together
+      const o = getHL(), nums = selNums();
+      nums.forEach((n) => { const k = hlKey(n); if (c === 'none') delete o[k]; else o[k] = c; });
       try { localStorage.setItem('declare-highlights', JSON.stringify(o)); } catch (e) {}
-      toast(on ? 'Highlight removed' : (nums.length > 1 ? 'Verses highlighted' : 'Verse highlighted'));
-      paintVbar(); applyHighlights();
-    });
+      toast(c === 'none' ? 'Highlight removed' : (nums.length > 1 ? 'Verses highlighted' : 'Verse highlighted'));
+      hlPalette.hidden = true; paintVbar(); applyHighlights();
+    }
     vbSave.addEventListener('click', () => {
       if (!sel.size) return;
       if (!ensureSignedIn('Create a free account to save this to your Vault.')) return;
@@ -991,8 +1021,30 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .w-reader .vrse.flash .vt { animation: vflash 2s ease; }
     @keyframes vflash { 0%, 30% { background: rgba(216, 184, 95, .3); } 100% { background: transparent; } }
     .w-reader .vrse.sel .vt { box-shadow: 0 0 0 2px rgba(216, 184, 95, .55); }
-    .w-reader .vrse.hl .vt, .w-reader .pverse.hl { background: rgba(216, 184, 95, .2); }
+    .w-reader .vrse.hl .vt, .w-reader .pverse.hl { background: rgba(216, 184, 95, .2); }  /* gold = default + legacy */
+    .w-reader .vrse.hl[data-hlc='rose'] .vt,  .w-reader .pverse.hl[data-hlc='rose']  { background: rgba(226, 150, 170, .26); }
+    .w-reader .vrse.hl[data-hlc='sky'] .vt,   .w-reader .pverse.hl[data-hlc='sky']   { background: rgba(140, 180, 224, .26); }
+    .w-reader .vrse.hl[data-hlc='mint'] .vt,  .w-reader .pverse.hl[data-hlc='mint']  { background: rgba(150, 205, 172, .26); }
+    .w-reader .vrse.hl[data-hlc='lilac'] .vt, .w-reader .pverse.hl[data-hlc='lilac'] { background: rgba(190, 160, 224, .26); }
+    /* a touch more presence over the cream (light) background */
+    html[data-theme="light"] .w-reader .vrse.hl[data-hlc='rose'] .vt  { background: rgba(220, 120, 150, .32); }
+    html[data-theme="light"] .w-reader .vrse.hl[data-hlc='sky'] .vt   { background: rgba(110, 160, 220, .30); }
+    html[data-theme="light"] .w-reader .vrse.hl[data-hlc='mint'] .vt  { background: rgba(110, 190, 150, .30); }
+    html[data-theme="light"] .w-reader .vrse.hl[data-hlc='lilac'] .vt { background: rgba(170, 140, 220, .30); }
     .w-reader .vrse.hl-land .vt { background: rgba(216, 184, 95, .18); }
+    /* highlight color palette in the action bar */
+    .w-reader .hlpalette { display: flex; gap: 14px; justify-content: center; align-items: center; padding: 2px 0 12px; }
+    .w-reader .hlpalette[hidden] { display: none; }
+    .w-reader .hlsw { width: 30px; height: 30px; border: 0; border-radius: 50%; padding: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); transition: transform .14s ease; }
+    .w-reader .hlsw:active { transform: scale(.88); }
+    .w-reader .hlsw.on { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: 2px; }
+    .w-reader .hlsw.c-gold { background: #C9A84C; }
+    .w-reader .hlsw.c-rose { background: #E29CB0; }
+    .w-reader .hlsw.c-sky { background: #9CC0E6; }
+    .w-reader .hlsw.c-mint { background: #A6D4AC; }
+    .w-reader .hlsw.c-lilac { background: #C2A8E0; }
+    .w-reader .hlsw-none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+    .w-reader .hlsw-none svg { width: 16px; height: 16px; }
 
     .w-reader .pcols { display: grid; gap: 14px; }
     .w-reader .pverse { border-top: 1px solid var(--line); padding: 13px 7px 5px; border-radius: 8px; cursor: pointer; }
