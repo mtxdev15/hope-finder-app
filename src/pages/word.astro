@@ -743,55 +743,67 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     function isHL(n) { return !!getHL()[hlKey(n)]; }
     function applyHighlights() { rbody.querySelectorAll('[data-n]').forEach((el) => el.classList.toggle('hl', isHL(el.dataset.n))); }
 
-    /* ---------- verse selection + actions ---------- */
+    /* ---------- verse selection (one OR many) + actions ---------- */
     const vbar = $('vbar'), vbref = $('vbref'), vbHl = $('vbHl'), vbSave = $('vbSave');
-    let selEl = null, selN = null;
-    function closeVbar() { vbar.classList.remove('open'); if (selEl) selEl.classList.remove('sel'); selEl = null; selN = null; }
+    const sel = new Set();                 // selected verse numbers (as strings); tap to add/remove
+    function selNums() { return [...sel].map((x) => parseInt(x, 10)).filter((x) => !isNaN(x)).sort((a, b) => a - b); }
+    // compress sorted verse numbers into a readable range: "10" / "8-11" / "8,10-11"
+    function compressRange(nums) {
+      const parts = []; let i = 0;
+      while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++; parts.push(i === j ? '' + nums[i] : nums[i] + '-' + nums[j]); i = j + 1; }
+      return parts.join(',');
+    }
+    function closeVbar() { vbar.classList.remove('open'); sel.clear(); rbody.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); }
     function verseText(el) {
       const v = el.querySelector('.vt'); if (v) return v.textContent.trim();
       const c = el.querySelector('.pcell .pcx'); return c ? c.textContent.trim() : '';
     }
-    function curRef() { return curBook + ' ' + curChap + ':' + selN; }
+    function curRef() { return curBook + ' ' + curChap + ':' + compressRange(selNums()); }
     function saveId() { return 'verse:' + curRef(); }
+    // selected verses in scripture order, with text — for copy / share / save
+    function selVerses() { return selNums().map((n) => { const el = rbody.querySelector('[data-n="' + n + '"]'); return { n: n, t: el ? verseText(el) : '' }; }); }
+    function passageBody() { const vs = selVerses(); return vs.length <= 1 ? (vs[0] ? vs[0].t : '') : vs.map((v) => v.n + ' ' + v.t).join(' '); }
+    function passageQuote() { return '“' + passageBody() + '” — ' + curRef() + ' (' + byId(readT).label + ')'; }
+    function allSelHL() { const o = getHL(); return selNums().every((n) => !!o[hlKey(n)]); }
     function paintVbar() {
-      vbHl.classList.toggle('on', isHL(selN));
+      const n = sel.size;
+      vbHl.classList.toggle('on', n > 0 && allSelHL());
       const saved = isSaved(saveId());
       vbSave.classList.toggle('on', saved);
       vbSave.querySelector('span').textContent = saved ? 'Saved' : 'Save';
+      vbref.textContent = curRef() + (n > 1 ? '  ·  ' + n + ' verses' : '') + '  ·  ' + byId(readT).label;
     }
     rbody.addEventListener('click', (e) => {
       if (e.target.closest('a,button')) return;
       const el = e.target.closest('.vrse,.pverse'); if (!el || el.dataset.n === undefined) return;
-      if (el.classList.contains('sel')) { closeVbar(); return; }
-      rbody.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel'));
-      el.classList.add('sel'); selEl = el; selN = el.dataset.n;
-      vbref.textContent = curRef() + '  ·  ' + byId(readT).label;
+      const n = el.dataset.n;
+      if (sel.has(n)) { sel.delete(n); el.classList.remove('sel'); }     // tap again to deselect
+      else { sel.add(n); el.classList.add('sel'); }                       // tap to add to the passage
+      if (!sel.size) { closeVbar(); return; }
       paintVbar();
       vbar.classList.add('open');
     });
     $('vbClose').addEventListener('click', closeVbar);
     vbHl.addEventListener('click', () => {
-      if (!selEl) return;
+      if (!sel.size) return;
       if (!ensureSignedIn('Create a free account to keep your highlights.')) return;
-      const o = getHL(), k = hlKey(selN);
-      if (o[k]) { delete o[k]; toast('Highlight removed'); } else { o[k] = 1; toast('Verse highlighted'); }
+      const o = getHL(), nums = selNums(), on = nums.every((n) => !!o[hlKey(n)]);
+      nums.forEach((n) => { const k = hlKey(n); if (on) delete o[k]; else o[k] = 1; });    // toggle the whole selection together
       try { localStorage.setItem('declare-highlights', JSON.stringify(o)); } catch (e) {}
+      toast(on ? 'Highlight removed' : (nums.length > 1 ? 'Verses highlighted' : 'Verse highlighted'));
       paintVbar(); applyHighlights();
     });
     vbSave.addEventListener('click', () => {
-      if (!selEl) return;
-      if (!ensureSignedIn('Create a free account to save this verse to your Vault.')) return;
+      if (!sel.size) return;
+      if (!ensureSignedIn('Create a free account to save this to your Vault.')) return;
       const id = saveId();
       if (isSaved(id)) { removeItem(id); toast('Removed from Vault.'); }
-      else {
-        saveItem({ id, type: 'verse', ref: curRef(), text: verseText(selEl), translation: byId(readT).label });
-        toast('Saved to Vault.');
-      }
+      else { saveItem({ id, type: 'verse', ref: curRef(), text: passageBody(), translation: byId(readT).label }); toast(sel.size > 1 ? 'Passage saved to Vault.' : 'Saved to Vault.'); }
       paintVbar();
     });
     $('vbCopy').addEventListener('click', () => {
-      if (!selEl) return;
-      const s = '“' + verseText(selEl) + '” — ' + curRef() + ' (' + byId(readT).label + ')';
+      if (!sel.size) return;
+      const s = passageQuote();
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(() => toast('Copied'), () => toast('Copied'));
       else toast('Copied');
     });
@@ -815,8 +827,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     let shareTxt = '', shareRef = '', shareTrans = '';
     const shareFull = () => '“' + shareTxt + '” — ' + shareRef + ' (' + shareTrans + ')';
     $('vbShare').addEventListener('click', () => {
-      if (!selEl) return;
-      shareTxt = verseText(selEl); shareRef = curRef(); shareTrans = byId(readT).label;
+      if (!sel.size) return;
+      shareTxt = passageBody(); shareRef = curRef(); shareTrans = byId(readT).label;
       closeVbar();
       loadShareStack().then(() => {
         if (window.DeclareShare) {
