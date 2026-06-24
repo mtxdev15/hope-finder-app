@@ -23,7 +23,7 @@ I am not a professional developer. I am learning as I build. Always:
 ## Tech Stack
 - **Framework:** Astro (V1)
 - **Styling:** Tailwind CSS (V1)
-- **AI Engine:** Anthropic Claude (claude-haiku-4-5-20251001)
+- **AI Engine:** Anthropic Claude — Haiku 4.5 (claude-haiku-4-5-20251001) for the instant struggle response; Sonnet 4.6 (claude-sonnet-4-6) for the 5-day Journey
 - **API Security:** Cloudflare Workers (proxy — API key never touches frontend)
 - **Worker URL:** hope-finder-worker.thinktoro.workers.dev
 - **Rate Limiting:** 10 requests per IP per minute (enforced in the Worker)
@@ -85,12 +85,16 @@ declareandbelieve.com (live)
 ---
 
 ## AI Companion
-**Name:** HopeFinder Companion
-**Model:** claude-haiku-4-5-20251001
-**Temperature:** 0.7
-**Max tokens:** 1500
+**Name:** HopeFinder Companion (the instant struggle response)
+**Model:** claude-haiku-4-5-20251001 (Haiku 4.5 — fast, low-cost, the right tier for instant JSON)
+**Temperature:** per caller — 1.0 on `/`, 0.9 on `/today` (module default 0.9)
+**Max tokens:** 2048
 **Prompt caching:** Enabled — system prompt cached as ephemeral
-Full instructions in `declare-and-believe-system-prompt.md`
+Full instructions (and the live source of truth, `src/app/declare/declare-api.js`) in `declare-and-believe-system-prompt.md`
+
+**5-day deliverance Journey:** a separate feature in `public/declare/journey-engine.js`, generated one
+day at a time on **Claude Sonnet 4.6** (`claude-sonnet-4-6`, max_tokens 1500) — chosen for deeper,
+more personal transformation. Flip back to Haiku 4.5 in that file if ever needed.
 
 ---
 
@@ -111,8 +115,9 @@ The app uses claude-haiku-4-5-20251001 for pastoral response generation. Request
 - Frontend (src/pages/index.astro) → Cloudflare Worker (worker/src/index.js) → Anthropic API
 - Streaming via Server-Sent Events: the Worker pipes Anthropic's response body through without buffering, and the frontend reads chunks with a stream reader.
 - Prompt caching: the system prompt is wrapped with `cache_control: { type: 'ephemeral' }` for ~10x cost reduction on repeat calls.
-- max_tokens: 1500 (sized for the JSON response shape).
+- max_tokens: 2048 (sized for the JSON response shape).
 - Defensive JSON extraction: the frontend slices content between first `{` and last `}` to handle cases where the model appends safety/crisis text after the JSON object.
+- The 5-day deliverance Journey (`public/declare/journey-engine.js`) is a separate flow, generated one day at a time on **Claude Sonnet 4.6** (`claude-sonnet-4-6`, max_tokens 1500) for deeper, more personal transformation. The instant struggle response above stays on Haiku 4.5.
 
 <!-- convex-ai-start -->
 

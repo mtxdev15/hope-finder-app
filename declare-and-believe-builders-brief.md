@@ -43,7 +43,7 @@ Jeff will drive traffic through his **Podcast** and **YouTube Channel**. The too
 | Styling | Tailwind CSS | Live ✓ |
 | AI Assistant | Claude Code (CLI) | Ready ✓ |
 | IDE | VS Code | Ready ✓ |
-| AI Engine | Anthropic Claude (claude-haiku-4-5-20251001) | Integrated ✓ |
+| AI Engine | Claude Haiku 4.5 (struggle response) + Sonnet 4.6 (5-day Journey) | Integrated ✓ |
 | API Security | Cloudflare Workers (serverless proxy) | Live ✓ |
 | Worker URL | hope-finder-worker.thinktoro.workers.dev | Live ✓ |
 | Hosting | Cloudflare Pages | Live ✓ |
@@ -51,8 +51,8 @@ Jeff will drive traffic through his **Podcast** and **YouTube Channel**. The too
 | Version Control | GitHub (hope-finder-app) | Ready ✓ |
 | Database | Supabase (PostgreSQL) | V2 |
 | Auth | Supabase Auth | V2 |
-| Bible API | YouVersion (pending approval) | Applied / waiting |
-| Bible Bridge | Claude writes verse text until YouVersion approved | Active ✓ |
+| Bible reader API | api.bible (scripture.api.bible) | Live ✓ |
+| Verse text (response) | Claude writes inline in NKJV/NLT/NIV | Active ✓ |
 | Payments | Stripe | V3 |
 | Analytics | Cloudflare Analytics | V3 |
 
@@ -169,14 +169,16 @@ The visual identity is fully defined. See `declare-and-believe-brand.html` for t
 
 ## AI Engine
 
-**Name:** HopeFinder Companion
-**Model:** claude-haiku-4-5-20251001
-**Temperature:** 0.7
-**Max tokens:** 1500
+**Name:** HopeFinder Companion (the instant struggle response)
+**Model:** claude-haiku-4-5-20251001 (Haiku 4.5)
+**Temperature:** per caller — 1.0 on `/`, 0.9 on `/today`
+**Max tokens:** 2048
+
+**5-day Journey (separate):** `public/declare/journey-engine.js` runs on Claude Sonnet 4.6 (`claude-sonnet-4-6`, max_tokens 1500) for deeper, more personal transformation.
 
 Full system prompt lives in `declare-and-believe-system-prompt.md`. That file is the source of truth for all AI behavior. Any changes to tone, declarations, format, or crisis protocol are made in declare-and-believe-system-prompt.md first, then reflected in src/pages/index.astro.
 
-**Verse text:** Claude writes verse text directly in the selected translation (NKJV, NLT, NIV) until YouVersion API is approved. When YouVersion is integrated, the `text` field returns to `""` and YouVersion fills it. No other structural changes needed.
+**Verse text:** Claude writes the verse text inline in the selected translation (NKJV, NLT, NIV) for the pastoral response. The separate Word reader (`/word`) is backed by api.bible (six translations: NKJV, NIV, NLT, KJV, WEB, ASV) via the Worker `/bible` route.
 
 ---
 

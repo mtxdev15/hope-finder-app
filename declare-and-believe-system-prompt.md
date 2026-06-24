@@ -4,8 +4,10 @@
 > **Source of truth:** the live prompt and request parameters are in code at
 > `src/app/declare/declare-api.js` (the `generateContent` function). Both the legacy app at `/`
 > (`src/app/app.jsx`) and the v3 flow at `/today` (`src/pages/today.astro`) import from that one
-> module. This file mirrors what is deployed there. The separate 7-day Journey feature uses its own
-> prompt in `public/declare/journey-engine.js` (same model), not the prompt below.
+> module. This file mirrors what is deployed there. The separate 5-day deliverance Journey uses its
+> own prompt in `public/declare/journey-engine.js`, generated one day at a time on **Claude Sonnet
+> 4.6** (chosen for deeper, more personal transformation; the instant struggle response stays on
+> Haiku 4.5). It is not the prompt below.
 
 ---
 
@@ -175,13 +177,18 @@ Translation selected: NKJV
 - The struggle text plus selected translation are sent in the user message.
 
 ### Preset struggle options (the live set)
-These are the chips in `src/components/StruggleInput.astro` (the source of truth for the list):
+The intake quick-picks live in `src/pages/today.astro` (the `data-struggle` chips). 33 today; a few
+are shown and "More +" reveals the rest. Free text is always available for anything not listed.
 
-Fear & Anxiety · Shame & Guilt · Feeling Like a Failure · Comparison · Overthinking · Loneliness ·
-No Purpose · Lost · Doubt · Anger & Bitterness · Financial Stress · Feeling Unworthy · Grief & Loss ·
-Broken Identity · Perfectionism · Depression · Suicidal Thoughts · Spiritual Dryness ·
-Adultery / Fornication · Self Trauma · Verbal Abuse · Emotional Abuse · Abandoned · Victimization ·
-Self Sabotage · Control
+Addiction · Anger & Bitterness · Betrayal · Broken Identity · Comparison · Control · Depression ·
+Divorce / Separation · Doubt · Drifting from God · Emotional & Verbal Abuse · Faith Crisis ·
+Family Conflict · Fear & Anxiety · Feeling Like a Failure · Feeling Lost · Feeling Spiritually Attacked ·
+Feeling Unworthy · Financial Stress · Grief & Loss · Loneliness · Marriage Struggles · Overthinking ·
+People Pleasing · Perfectionism · Rejection & Abandonment · Self-Sabotage · Sexual Temptation ·
+Shame & Guilt · Spiritual Dryness · Stress & Burnout · Unforgiveness · Waiting on God
+
+The pre-written content library (`src/data/content.js`, `DB_CONTENT`) holds 34 such entries with
+hand-written verses, mindset, declarations, and prayer, used as the offline / fallback content.
 
 ---
 
