@@ -25,6 +25,19 @@
   var CONVEX_URL = 'https://keen-hamster-650.convex.cloud';
   var cumulativeIdle = 0.04; // globe idle level, raised gently by total giving
 
+  // the signed-in user's id (if any), so a gift links to their account for history.
+  // The Better Auth + Convex adapter uses the Convex document id as the user id, and
+  // the server scopes giving history by safeGetAuthUser()._id — read both field names
+  // (_id or id) so we always send the value that matches, whatever the client stored.
+  function getGiverId() {
+    try {
+      var d = localStorage.getItem('better-auth_session_data');
+      if (!d) return null;
+      var u = (JSON.parse(d) || {}).user;
+      return (u && (u._id || u.id)) || null;
+    } catch (e) { return null; }
+  }
+
   /* ---------- localized data ---------- */
   var CUR_SYM = { USD: '$', EUR: '€', GBP: '£', CAD: '$', AUD: '$', NGN: '₦', INR: '₹', BRL: 'R$', KES: 'KSh', PHP: '₱' };
   var CUR_NAMES = ES ? {
@@ -451,10 +464,12 @@
   function doGive() {
     if (!S.amount || S.amount <= 0) { sheetClose(); customInput.focus(); return; }
     setGiveBusy(true);
+    var payload = { amount: S.amount, currency: S.currency, recurring: S.recurring, frequency: S.freq, path: location.pathname };
+    var uid = getGiverId(); if (uid) payload.userId = uid;
     fetch(WORKER + '/give/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: S.amount, currency: S.currency, recurring: S.recurring, frequency: S.freq, path: location.pathname })
+      body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.url) { window.location.href = d.url; }
       else { setGiveBusy(false); alert((d && d.error) || T.payErr); }

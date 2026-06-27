@@ -83,3 +83,6 @@ export async function udSet(key, value) { return (await ensure()) ? runMutation(
 export async function reviewsSubmit(payload) { return (await ensure()) ? runMutation(apiRef.reviews.submit, payload) : null; }
 export async function reviewsListApprovedPublic() { return (await ensure()) ? runQuery(apiRef.reviews.listApprovedPublic, {}) : null; }
 export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.reviews.myReview, {}) : null; }
+
+/* ── giving history (signed-in user's own gifts, newest first) ── */
+export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
