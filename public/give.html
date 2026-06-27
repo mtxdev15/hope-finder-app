@@ -10,14 +10,17 @@
 <style id="anti-flash">html{background-color:#0E1A14!important;}html[data-theme="light"]{background-color:#FAF7F2!important;}.rl-overlay{opacity:0!important;visibility:hidden!important;}.rl-overlay.rl-show{opacity:1!important;visibility:visible!important;}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0c130f" />
-<title>Support Declare &amp; Believe</title>
-<meta name="description" content="Keep Declare free for all. Your gift puts God's Word in the hands of the next person searching at 3am, with no paywall, ever." />
+<title>Give — Declare &amp; Believe</title>
+<meta name="description" content="Sow into the river. Your gift keeps the living Word flowing, free for everyone, everywhere." />
 <link rel="canonical" href="https://declareandbelieve.com/give" />
+<link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+<link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
+<link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
 <link rel="icon" type="image/png" sizes="64x64" href="/declare/brand/favicon-64.png" />
 <link rel="apple-touch-icon" href="/declare/brand/apple-touch-icon.png" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Support Declare &amp; Believe" />
-<meta property="og:description" content="Keep Declare free for all." />
+<meta property="og:title" content="Give — Declare &amp; Believe" />
+<meta property="og:description" content="Sow into the river. Your gift keeps the living Word flowing, free for everyone, everywhere." />
 <meta property="og:image" content="/declare/brand/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="/declare/brand/og.png" />
@@ -26,47 +29,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" /></noscript>
 <link rel="stylesheet" href="/declare/declare.css?v=2" />
-<link rel="stylesheet" href="/declare/chrome.css" />
+<link rel="stylesheet" href="/declare/motion.css" />
 <link rel="stylesheet" href="/declare/share.css" />
-
-<style>
-  main{ padding-top:118px; padding-bottom:20px; }
-  main .shell{ max-width:760px; }
-  .in{ position:relative; z-index:1; display:flex; flex-direction:column; flex:1; overflow:hidden; }
-  .sub-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:12px 16px 0; }
-  .sub-top .ttl{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
-  .scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 26px 48px; scrollbar-width:none; }
-  .scroll::-webkit-scrollbar{ display:none; }
-  .ghero{ text-align:center; padding:14px 0 4px; }
-  .ghero .gi{ width:62px; height:62px; margin:0 auto 18px; border-radius:50%; background:radial-gradient(circle at 50% 35%, var(--gold), #B7922F); display:flex; align-items:center; justify-content:center; color:#221A06; box-shadow:0 0 0 8px rgba(216,184,95,.1), 0 12px 30px -8px rgba(216,184,95,.6); }
-  .ghero .gi svg{ width:28px; height:28px; }
-  .ghero h1{ font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:var(--text); line-height:1.1; }
-  .ghero .gsub{ font-size:14px; line-height:1.6; color:var(--text2); margin-top:12px; }
-  .verse{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.5; color:var(--text); text-align:center; margin:26px 0 6px; }
-  .vref{ text-align:center; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
-  .lbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:500; margin:30px 0 12px; }
-  .freq{ display:flex; gap:8px; margin-bottom:14px; }
-  .fbtn{ flex:1; padding:11px; border-radius:12px; border:1px solid var(--line2); background:transparent; color:var(--text); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:.2s; }
-  .fbtn.on{ background:rgba(216,184,95,.16); border-color:rgba(216,184,95,.45); color:var(--goldd); }
-  .amts{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .amt{ padding:18px 0; border-radius:14px; border:1px solid var(--line2); background:var(--surface); box-shadow:var(--card-shadow); color:var(--text); font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; cursor:pointer; transition:transform .2s ease, background .2s ease, border-color .2s ease; }
-  .amt:active{ transform:scale(.97); }
-  .amt.on{ background:var(--gold); border-color:var(--gold); color:#22382E; }
-  .custom{ display:flex; align-items:center; gap:10px; margin-top:10px; padding:14px 16px; background:var(--surface); border-radius:14px; box-shadow:var(--card-shadow); }
-  .custom .cur{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--goldd); font-weight:600; }
-  .custom input{ flex:1; border:0; background:transparent; outline:none; font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:var(--text); }
-  .custom input::placeholder{ color:var(--muted); }
-  .give{ width:100%; margin-top:22px; padding:17px; border-radius:16px; border:0; background:var(--cta); color:var(--ctatext); font-family:inherit; font-size:15.5px; font-weight:600; cursor:pointer; box-shadow:0 14px 32px -10px rgba(216,184,95,.55); display:flex; align-items:center; justify-content:center; gap:9px; transition:transform .16s ease, filter .2s ease; }
-  .give:active{ transform:translateY(1px) scale(.992); }
-  .give:hover{ filter:brightness(1.04); }
-  .give svg{ width:18px; height:18px; }
-  .note{ text-align:center; font-size:12px; color:var(--muted); margin-top:14px; line-height:1.6; }
-  .secure{ display:flex; align-items:center; justify-content:center; gap:7px; margin-top:8px; font-size:11px; color:var(--muted); }
-  .secure svg{ width:13px; height:13px; color:var(--goldd); }
-  .soon{ margin-top:30px; padding:26px 22px; border-radius:18px; border:1px solid rgba(216,184,95,.28); background:rgba(216,184,95,.06); text-align:center; }
-  .soon-eyebrow{ display:inline-block; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:700; padding:5px 12px; border:1px solid rgba(216,184,95,.4); border-radius:999px; margin-bottom:14px; }
-  .soon-line{ font-size:14px; line-height:1.65; color:var(--text2); max-width:34ch; margin:0 auto; }
-</style>
+<link rel="stylesheet" href="/declare/chrome.css" />
+<link rel="stylesheet" href="/declare/give.css" />
 <script>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"dark";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 </head>
 <body>
@@ -119,6 +85,7 @@
       <h5>Legal</h5>
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
+      <a href="/give-terms">Giving terms</a>
     </div>
   </div>
   <div class="menubene">
@@ -127,24 +94,168 @@
   </div>
 </aside>
 
-<main>
-  <div class="shell">
-    <div class="ghero rise d1">
-      <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.2l-1.7-1.6a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></div>
-      <h1>Keep Declare free<br>for all</h1>
-      <div class="gsub">Your gift puts God&rsquo;s Word in the hands of the next person searching at 3am, with no paywall, ever.</div>
-    </div>
+<div class="give-page" data-acc="water" data-layout="cards" data-tone="poetic" data-globe="on">
 
-    <div class="verse rise d2">&ldquo;Each one must give as he has decided in his heart, for God loves a cheerful giver.&rdquo;</div>
-    <div class="vref rise d2">2 Corinthians 9:7</div>
+  <div class="atmos" aria-hidden="true"><div class="halo"></div><div class="mist"></div></div>
 
-    <div class="soon rise d3">
-      <div class="soon-eyebrow">Coming soon</div>
-      <div class="soon-line">A way to give is on the way. We are building secure giving now. Thank you for your heart to keep Declare free for everyone.</div>
-    </div>
-    <div class="note rise d6">Declare is a ministry of JC Kingdom Ventures. Gifts may be tax-deductible where applicable.</div>
+  <main>
+    <!-- GIVE HERO — everything needed to give, in one screen -->
+    <section class="give-hero" id="giveTop">
+      <div class="gh-inner">
+
+        <!-- LEFT: the soul -->
+        <div class="gh-soul">
+          <div class="eyebrow">Give</div>
+          <h1>The Word is <em>alive.</em></h1>
+          <p class="lede" data-poetic="Your gift keeps it flowing — free for every soul reaching for it." data-plain="Your gift keeps Declare free for everyone who opens it.">Your gift keeps it flowing — free for every soul reaching for it.</p>
+          <div class="globe-wrap">
+            <div class="g-core" aria-hidden="true"></div>
+            <canvas id="globe" aria-hidden="true"></canvas>
+            <div class="g-ring" aria-hidden="true"></div>
+          </div>
+          <div class="amount-stage">
+            <div class="amt-big"><span class="amt-cur">$</span><span class="amt-val" id="bigVal">100</span><span class="amt-per" id="bigPer"></span></div>
+            <div class="impact" id="impact"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: the form -->
+        <div class="gh-form">
+          <div class="lbl-row"><span class="lbl">Choose your gift</span><button class="cur-pill" data-open-sheet="curSheet" aria-label="Currency"><span id="curCode">USD</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+          <div class="amts" id="amts">
+            <div class="acard custom" id="customCard">
+              <span class="cc" id="customCur">$</span>
+              <input id="customAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="Enter another amount" aria-label="Custom amount" />
+            </div>
+          </div>
+
+          <div class="opt-card" id="optRecur">
+            <div class="opt-toggle">
+              <span class="leaf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c0-8 6-13 16-13 0 10-6 14-16 13z"/><path d="M9 16c2.5-2.5 5-4 8-5.5"/></svg></span>
+              <div class="tx">
+                <div class="t1"><span data-poetic="Keep the river flowing" data-plain="Make this a monthly gift">Keep the river flowing</span></div>
+                <div class="t2" data-poetic="Become part of the Wellspring" data-plain="Repeat this gift automatically">Become part of the Livingwater</div>
+              </div>
+              <button class="sw" id="swRecur" role="switch" aria-label="Make recurring" data-on="0"><i></i></button>
+            </div>
+            <div class="recur-detail">
+             <div class="rd-in">
+              <div class="row" data-open-sheet="freqSheet"><span class="rk">Frequency</span><span class="rval" id="freqVal">Monthly <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row" data-open-sheet="dateSheet"><span class="rk">Starts</span><span class="rval" id="dateVal">Today <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="wellnote">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>
+                <span data-poetic="You’re joining the Wellspring — a spring that never runs dry. Every gift renews the Word for someone new." data-plain="Your gift repeats automatically. Pause or cancel anytime from your account.">You’re joining the Living water, a spring that never runs dry. Every gift renews the Word for someone new.</span>
+              </div>
+             </div>
+            </div>
+          </div>
+
+          <div class="opt-card">
+            <div class="pay-row" data-open-sheet="paySheet">
+              <span class="pm-logo" id="payLogo"></span>
+              <div class="pm-tx"><div class="t1" id="payName">Apple Pay</div><div class="t2" id="paySub">Default · Face ID</div></div>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <button class="give-btn give-btn-inline" data-give-btn>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>
+            <span data-give-label>Give $100 Now</span>
+          </button>
+          <div class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure giving · encrypted end-to-end</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- WHY — short supporting story (optional scroll) -->
+    <section class="why">
+      <div class="why-hd">
+        <div class="bnum rv">Why your gift matters</div>
+        <h2 class="rv" style="--d:80">You’re keeping a river flowing</h2>
+      </div>
+      <div class="why-grid">
+        <div class="why-card rv">
+          <div class="wc-num">01 · In the beginning</div>
+          <h3>A garden, and a Tree of Life</h3>
+          <div class="vline">“In the middle of the garden he placed the tree of life… A river flowed from the land of Eden, watering the garden.”</div>
+          <span class="vref">Genesis 2:9–10 · NLT</span>
+        </div>
+        <div class="why-card rv" style="--d:90">
+          <div class="wc-num">02 · Living water</div>
+          <h3>A river that never runs dry</h3>
+          <div class="vline">“The water I give them becomes a fresh, bubbling spring within them, giving them eternal life.”</div>
+          <span class="vref">John 4:14 · NLT</span>
+        </div>
+        <div class="why-card rv" style="--d:180">
+          <div class="wc-num">03 · To the ends of the earth</div>
+          <h3>Now it flows through a screen</h3>
+          <div class="vline">“As the waters fill the sea, so the earth will be filled with people who know the LORD.”</div>
+          <span class="vref">Isaiah 11:9 · NLT</span>
+        </div>
+      </div>
+      <div class="why-foot rv">
+        <p data-poetic="Your gift is a seed and a stream at once — it keeps the Word free, and carries it to someone new." data-plain="Your gift keeps Declare free to run, and helps it reach someone who hasn’t heard yet.">Your gift is a seed and a stream at once — it keeps the Word free, and carries it to someone new.</p>
+        <button class="give-up" data-give-jump>Give now<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      </div>
+    </section>
+  </main>
+
+  <!-- dock CTA (mobile) -->
+  <div class="dock" id="dock">
+    <button class="give-btn" data-give-btn>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>
+      <span data-give-label>Give $100 Now</span>
+    </button>
   </div>
-</main>
+
+  <!-- scrim + sheets -->
+  <div class="gscrim" id="gscrim"></div>
+
+  <div class="sheet" id="curSheet">
+    <div class="grab"></div>
+    <div class="sh-hd"><h3>Currency</h3><button class="done" data-sheet-done aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg></button></div>
+    <div class="sh-body" id="curBody"></div>
+  </div>
+
+  <div class="sheet" id="freqSheet">
+    <div class="grab"></div>
+    <div class="sh-hd"><h3>Frequency</h3><button class="done" data-sheet-done aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg></button></div>
+    <div class="sh-body" id="freqBody"></div>
+  </div>
+
+  <div class="sheet" id="dateSheet">
+    <div class="grab"></div>
+    <div class="sh-hd"><h3>Process Date</h3><button class="done" data-sheet-done aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg></button></div>
+    <div class="sh-body">
+      <div class="cal">
+        <div class="cal-hd"><span class="mo" id="calMonth">June 2026</span><span class="nav"><button id="calPrev" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button id="calNext" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></span></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-foot" id="calFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="paySheet">
+    <div class="grab"></div>
+    <div class="sh-hd"><h3>Payment Method</h3><button class="done" data-sheet-done aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg></button></div>
+    <div class="sh-body" id="payBody"></div>
+  </div>
+
+  <!-- confirmation -->
+  <div class="confirm" id="confirm">
+    <div class="ripple" aria-hidden="true"></div>
+    <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg></div>
+    <h2>Thank you.</h2>
+    <div class="csum"><span id="cAmt" style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;color:var(--acc-bright)">$100</span><br><span id="cSum"></span></div>
+    <div class="cverse">“Those who refresh others will themselves be refreshed.” — Proverbs 11:25 · NLT</div>
+    <div class="cbtns">
+      <button class="c-share" id="cShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>Share the river</button>
+      <button class="c-done" id="cDone">Done</button>
+    </div>
+  </div>
+
+</div>
 
 <footer>
   <div class="shell">
@@ -173,6 +284,7 @@
         <h4>Legal</h4>
         <a href="/terms">Terms</a>
         <a href="/privacy">Privacy</a>
+        <a href="/give-terms">Giving terms</a>
       </div>
       <div class="fcol">
         <h4>Get the app</h4>
@@ -191,9 +303,20 @@
   </div>
 </footer>
 
+<script>window.GIVE_DEFAULTS = {
+  "storyIntensity": 87,
+  "accent": "water",
+  "amountLayout": "cards",
+  "copyTone": "poetic",
+  "globe": true,
+  "defaultFrequency": "once"
+};</script>
 <script src="/declare/theme.js"></script>
 <script src="/declare/menu.js" defer></script>
+<script src="/declare/share.js"></script>
+<script src="/declare/give-globe.js"></script>
+<script src="/declare/give.js"></script>
 <script src="/declare/vendor/lenis.min.js"></script>
-<script src="/declare/smoothscroll.js"></script>
+<script src="/declare/smoothscroll.js" defer></script>
 </body>
 </html>

@@ -28,9 +28,26 @@ Done items move to the bottom or get deleted.
       `/terms`; authorized domains cleaned (added declareandbelieve.com, removed stale Supabase domain).
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
-- [ ] **Wire Give payments (Stripe).** `/give` is the finished donation UI but the button is a
-      visual stub — it does NOT charge a card yet. Connect a processor (Stripe Checkout / Payment
-      Links, or similar) so "Give $X" actually collects the gift. Until then, no real donations flow.
+- [ ] **Give redesign + Stripe checkout (branch `feat/declare-checkout-dev`).** Replacing the old
+      stub `/give` with the cinematic "Sow into the river" design (Tree of Life / living water / world
+      globe / amount cards / recurring Wellspring / Apple Pay) and wiring real giving via Stripe.
+      Architecture: hosted Stripe Checkout created by the Worker (`POST /give/checkout`); secret in
+      `wrangler secret STRIPE_SECRET_KEY` (test sandbox "Declare checkout dev" now, live later).
+      - [x] Phase 1 — design ported into `public/give.html` + `public/declare/give.{css,js}` +
+            `give-globe.js` (exact, Tweaks panel stripped, absolute paths, back → `/welcome`). Builds clean.
+      - [x] Phase 0 — `STRIPE_SECRET_KEY` (test) loaded into the Worker.
+      - [x] Phase 2 — Worker `/give/checkout` route (one-time + subscription) deployed; `give.js`
+            `doGive()` redirects to Stripe; Thank-you on `?status=success`. Verified via curl (test
+            sessions return). REMAINING: Stripe Dashboard branding (logo + Forest/Gold) + browser test.
+      - [ ] Phase 3 — test card + Apple Pay, one-time + recurring, on a Cloudflare preview URL.
+      - [ ] Phase 4 (later) — go live (live keys, merge to main) + Convex `donations` webhook/backfill.
+      - [ ] Giving history — let signed-in users see what they have given (total + a list of past gifts).
+            Needs each gift linked to the account (pass the user's email/id to Stripe Checkout) + the
+            Convex `donations` table (webhook). Pair with Stripe's hosted Customer Portal for receipts +
+            self-serve cancel/manage of recurring gifts. UI on `/you` or a small `/giving` page. Builds
+            directly on Phases 2 and 4.
+      - [ ] Copy/ratio pass — "set free" wording, per-person ratio (design = $2.50/person), yearly
+            option, for-profit "gifts are not tax-deductible" disclosure (JC Kingdom Ventures, LLC).
 
 ## ✅ Verify on the live site (manual)
 - [ ] **Confirm Google sign-in for the reporter.** Publishing the OAuth app to production fixed the
@@ -43,6 +60,14 @@ Done items move to the bottom or get deleted.
 - [ ] **Submit sitemap** to Google Search Console: `https://declareandbelieve.com/sitemap.xml`.
 
 ## 🚀 Next features
+- [ ] **Spanish translation (large, phased).** Big underserved market. Three layers: (1) Bible text —
+      add a Spanish translation to the `/word` reader via api.bible (RV1960 is copyrighted and may be
+      gated; RVR1909 is the free fallback); (2) AI content — add a `language` param so the struggle
+      response (`src/app/declare/declare-api.js`) and the 5-day Journey (`public/declare/journey-engine.js`)
+      generate in Spanish, plus Spanish fallback banks + `DB_CONTENT_ES`; (3) static UI — ~190-240
+      hardcoded strings + 33 struggle chips + ~20 SEO pages, and a language toggle / `/es` routing
+      (only proof so far: `public/es/heridas-de-la-iglesia.html`). Recommend phasing: core flow +
+      results + Journey first, then full UI. Voice: Latin American (es-LA), informal "tú".
 - [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
       If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
       links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
