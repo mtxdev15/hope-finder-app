@@ -629,7 +629,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         }).join('');
         var mg = $('ygManage');
         if (mg) {
-          if (YG_PORTAL && gifts.some(function (g) { return g.recurring; })) { mg.href = YG_PORTAL; mg.hidden = false; }
+          if (YG_PORTAL) { mg.href = YG_PORTAL; mg.hidden = false; }
           else mg.hidden = true;
         }
         card.hidden = false;
