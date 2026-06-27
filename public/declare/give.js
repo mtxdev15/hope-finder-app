@@ -21,6 +21,10 @@
   /* ---------- language ---------- */
   var ES = !!(page && page.getAttribute('data-lang') === 'es');
 
+  /* ---------- live giving counter (public Convex read) ---------- */
+  var CONVEX_URL = 'https://keen-hamster-650.convex.cloud';
+  var cumulativeIdle = 0.04; // globe idle level, raised gently by total giving
+
   /* ---------- localized data ---------- */
   var CUR_SYM = { USD: '$', EUR: '€', GBP: '£', CAD: '$', AUD: '$', NGN: '₦', INR: '₹', BRL: 'R$', KES: 'KSh', PHP: '₱' };
   var CUR_NAMES = ES ? {
@@ -86,6 +90,7 @@
     sharePageTitle: 'Ofrenda a Declare',
     shareGiftText: 'Acabo de sembrar una semilla en Declare para que la Palabra de Dios siga fluyendo gratis para todos. Únete:',
     shareHelpText: 'Ayuda a que la Palabra de Dios siga fluyendo gratis para todos en Declare. Da aquí:',
+    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'persona ya ha' : 'personas ya han') + ' recibido la Palabra'; },
     processing: 'Redirigiendo…', payErr: 'Algo salió mal al iniciar tu ofrenda. Inténtalo de nuevo.'
   } : {
     addPay: 'Add new payment method', opening: 'Opening secure form…',
@@ -109,6 +114,7 @@
     sharePageTitle: 'Give to Declare',
     shareGiftText: 'I just sowed a seed into Declare to keep God’s Word flowing free for everyone. Join me:',
     shareHelpText: 'Help keep God’s Word flowing free for everyone on Declare. Give here:',
+    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'person has' : 'people have') + ' received the Word so far'; },
     processing: 'Redirecting…', payErr: 'Something went wrong starting your gift. Please try again.'
   };
 
@@ -233,7 +239,7 @@
     if (icb && a > 0) { tween(lastShown.ppl, ppl, 620, function (v) { icb.textContent = commas(v); }); }
     lastShown.ppl = ppl;
 
-    if (globe) globe.setLevel(a > 0 ? levelOf(ppl) : 0.04);
+    if (globe) globe.setLevel(a > 0 ? levelOf(ppl) : cumulativeIdle);
 
     // button(s)
     var amtStr = curSym() + commas(a);
@@ -505,6 +511,30 @@
   document.addEventListener('click', function (e) { if (e.target.closest('.themectl button')) setTimeout(function () { globe && globe.refresh(); }, 60); });
 
   /* ============================================================
+     LIVE GIVING COUNTER — public, unauthenticated read of the running total.
+     ============================================================ */
+  function renderTotal(people) {
+    var el = $('#giveTotal');
+    if (!el) return;
+    if (!(people > 0)) { el.hidden = true; return; }
+    el.innerHTML = T.totalLine(commas(people), people === 1);
+    el.hidden = false;
+    var n = el.querySelector('.gt-n');
+    if (n) tween(0, people, 1100, function (v) { n.textContent = commas(v); });
+    // a gentle baseline glow on the globe that grows with total giving
+    cumulativeIdle = Math.min(0.45, 0.1 + Math.sqrt(people) / 220);
+    if (globe && (!S.amount || S.amount <= 0)) globe.setLevel(cumulativeIdle);
+  }
+  function loadTotal() {
+    fetch(CONVEX_URL + '/api/query', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: 'gifts:getTotal', args: {} }),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.status === 'success' && d.value) renderTotal(d.value.people || 0);
+    }).catch(function () {});
+  }
+
+  /* ============================================================
      BOOT
      ============================================================ */
   buildCards();
@@ -514,6 +544,7 @@
   selectAmount(S.amount, false);
   buildCal();
   render();
+  loadTotal();
 
   // returning from Stripe (success) → show the Thank-you screen
   (function () {
