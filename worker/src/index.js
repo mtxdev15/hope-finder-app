@@ -458,15 +458,18 @@ async function handleWebhook(request, env) {
   }
   const payload = await request.text();
   const ok = await verifyStripeSignature(payload, request.headers.get('Stripe-Signature'), env.STRIPE_WEBHOOK_SECRET);
+  console.log('[give/webhook] sig ok=' + ok);
   if (!ok) return new Response('Invalid signature', { status: 400 });
 
   let event;
   try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
+  console.log('[give/webhook] event type=' + (event && event.type));
 
   if (event && event.type === 'checkout.session.completed') {
     const s = (event.data && event.data.object) || {};
     const amountCents = Number(s.amount_total);
     const md = s.metadata || {};
+    console.log('[give/webhook] amount_total=' + s.amount_total + ' mode=' + s.mode + ' id=' + s.id + ' convexUrl=' + (env.CONVEX_SITE_URL || 'MISSING') + ' giftSecret=' + (env.GIFT_WEBHOOK_SECRET ? 'set' : 'MISSING'));
     if (Number.isFinite(amountCents) && amountCents > 0 && env.CONVEX_SITE_URL && env.GIFT_WEBHOOK_SECRET) {
       const recordBody = {
         sessionId: s.id,
@@ -481,8 +484,12 @@ async function handleWebhook(request, env) {
         headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
         body: JSON.stringify(recordBody),
       });
+      const rt = await r.text();
+      console.log('[give/webhook] convex record status=' + r.status + ' body=' + rt.slice(0, 120));
       // If Convex rejects, return 500 so Stripe retries (Convex is idempotent).
       if (!r.ok) return new Response('record failed', { status: 500 });
+    } else {
+      console.log('[give/webhook] SKIPPED record (amount not positive or config missing)');
     }
   }
   return new Response(JSON.stringify({ received: true }), {

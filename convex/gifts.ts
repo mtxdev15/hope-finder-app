@@ -104,3 +104,14 @@ export const myGifts = query({
     }));
   },
 });
+
+// INTERNAL admin/test helper: wipe the counter + dedupe rows back to zero.
+// Run with `npx convex run gifts:clearStats --prod`.
+export const clearStats = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const r of await ctx.db.query("giftStats").take(100)) await ctx.db.delete(r._id);
+    for (const r of await ctx.db.query("giftEvents").take(2000)) await ctx.db.delete(r._id);
+    return null;
+  },
+});
