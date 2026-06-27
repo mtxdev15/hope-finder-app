@@ -103,7 +103,7 @@
     sharePageTitle: 'Ofrenda a Declare',
     shareGiftText: 'Acabo de sembrar una semilla en Declare para que la Palabra de Dios siga fluyendo gratis para todos. Únete:',
     shareHelpText: 'Ayuda a que la Palabra de Dios siga fluyendo gratis para todos en Declare. Da aquí:',
-    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'persona ya ha' : 'personas ya han') + ' recibido la Palabra'; },
+    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'persona liberada' : 'personas liberadas') + ' por la Palabra de Dios'; },
     processing: 'Redirigiendo…', payErr: 'Algo salió mal al iniciar tu ofrenda. Inténtalo de nuevo.'
   } : {
     addPay: 'Add new payment method', opening: 'Opening secure form…',
@@ -127,7 +127,7 @@
     sharePageTitle: 'Give to Declare',
     shareGiftText: 'I just sowed a seed into Declare to keep God’s Word flowing free for everyone. Join me:',
     shareHelpText: 'Help keep God’s Word flowing free for everyone on Declare. Give here:',
-    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'person has' : 'people have') + ' received the Word so far'; },
+    totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'person' : 'people') + ' set free by the Word of God'; },
     processing: 'Redirecting…', payErr: 'Something went wrong starting your gift. Please try again.'
   };
 
