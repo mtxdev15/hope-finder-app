@@ -52,6 +52,52 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   .doc a{ color:var(--goldd); font-weight:600; }
   .doc strong{ color:var(--text); font-weight:600; }
   .faqdiv{ height:1px; background:var(--line); margin:44px 0 0; }
+
+  /* FAQ accordion */
+  .faq{ margin-top:8px; border-top:1px solid var(--line); }
+  .faq-item{ border-bottom:1px solid var(--line); }
+  .faq-q{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:18px; text-align:left;
+    background:transparent; border:0; cursor:pointer; padding:18px 2px; font-family:'DM Sans',sans-serif;
+    font-size:16px; font-weight:600; color:var(--text); transition:color .2s ease; }
+  .faq-q:hover{ color:var(--goldd); }
+  .faq-chev{ flex:0 0 auto; width:18px; height:18px; color:var(--goldd); transition:transform .32s cubic-bezier(.2,.7,.2,1); }
+  .faq-item.open > .faq-q{ color:var(--goldd); }
+  .faq-item.open > .faq-q .faq-chev{ transform:rotate(180deg); }
+  .faq-a{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .32s cubic-bezier(.2,.7,.2,1); }
+  .faq-item.open > .faq-a{ grid-template-rows:1fr; }
+  .faq-a-in{ overflow:hidden; }
+  .faq-a p{ margin:0 2px 18px; font-size:15.5px; line-height:1.72; color:var(--text2); }
+  .faq-a a{ color:var(--goldd); font-weight:600; }
+  @media (prefers-reduced-motion:reduce){ .faq-a, .faq-chev{ transition:none; } }
+
+  /* site footer (matches the rest of the site) */
+  .shell{ max-width:1240px; margin:0 auto; padding:0 clamp(22px,5vw,64px); }
+  footer{ border-top:1px solid var(--line); padding:clamp(54px,7vw,80px) 0 40px; position:relative; z-index:1; margin-top:clamp(40px,7vh,90px); }
+  .fgrid{ display:grid; grid-template-columns:1.6fr 1fr 1fr .8fr 1.3fr; gap:36px; }
+  .fbrand .wm{ font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:600; color:var(--text); }
+  .fbrand .ft{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; color:var(--soft); margin-top:10px; max-width:30ch; line-height:1.5; }
+  .fcol h4{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; margin-bottom:14px; }
+  .fcol a{ display:block; font-size:14.5px; color:var(--text2); margin-bottom:11px; transition:color .2s, padding-left .2s; }
+  .fcol a:hover{ color:var(--text); padding-left:3px; }
+  .fcol .appbadge{ display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:8px; border:1px solid rgba(255,255,255,.22); background:#000; transition:transform .16s ease, box-shadow .25s ease; margin-bottom:13px; }
+  .appbadge:hover{ transform:translateY(-1px); box-shadow:0 10px 24px -10px rgba(0,0,0,.7); }
+  .appbadge .alogo{ flex:0 0 auto; width:16px; height:16px; color:#fff; }
+  .appbadge .atext{ display:flex; flex-direction:column; line-height:1.02; color:#fff; white-space:nowrap; }
+  .appbadge .atop{ font-size:8px; letter-spacing:.02em; }
+  .appbadge .abot{ font-family:'DM Sans',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:.01em; }
+  .appsoon{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+  .appsoon::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .fbot{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:48px; padding-top:24px; border-top:1px solid var(--line); flex-wrap:wrap; }
+  .fbot .copy{ font-size:13px; color:var(--muted); line-height:1.55; flex:1 1 0; min-width:200px; }
+  .fbot .fbrandmark{ flex:0 0 auto; white-space:nowrap; font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; color:var(--text); letter-spacing:.01em; text-align:center; }
+  .fbot .bgold{ color:var(--gold); }
+  .fbot .benediction{ flex:1 1 0; min-width:150px; text-align:right; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--text); }
+  @media (max-width:680px){
+    .fgrid{ grid-template-columns:1fr 1fr; }
+    .fbrand{ grid-column:1 / -1; }
+    .fbot{ flex-direction:column; align-items:flex-start; gap:9px; }
+    .fbot .copy, .fbot .fbrandmark, .fbot .benediction{ text-align:left; min-width:0; }
+  }
   .rise{ opacity:0; transform:translateY(16px); animation:rise .8s cubic-bezier(.2,.72,.2,1) forwards; }
   @keyframes rise{ to{ opacity:1; transform:none; } }
   @media (prefers-reduced-motion: reduce){ .rise{ opacity:1!important; transform:none!important; animation:none!important; } }
@@ -259,42 +305,102 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 
     <h2>Giving FAQs</h2>
 
-    <h3>Is my gift tax-deductible?</h3>
-    <p>No. Declare is run by JC Kingdom Ventures, LLC, a for-profit company, so gifts are not tax-deductible.</p>
-
-    <h3>Where does my gift go?</h3>
-    <p>It keeps Declare free and running, and helps it reach the next person searching for God&rsquo;s Word at 3am.</p>
-
-    <h3>Can I give once instead of monthly?</h3>
-    <p>Yes. Use the toggle to give a single gift or a recurring one. One-time is the default.</p>
-
-    <h3>How do I cancel or change a recurring gift?</h3>
-    <p>Email <a href="mailto:support@declareandbelieve.com">support@declareandbelieve.com</a> and we will take care of it right away. Canceling stops all future gifts.</p>
-
-    <h3>Will I get a receipt?</h3>
-    <p>Yes. You will get an emailed receipt for every gift.</p>
-
-    <h3>Is my payment secure?</h3>
-    <p>Yes. Payments run through Stripe, a trusted processor used by millions of businesses. We never see or store your card number.</p>
-
-    <h3>What payment methods can I use?</h3>
-    <p>Apple Pay, Google Pay, and major debit and credit cards.</p>
-
-    <h3>Can I give from outside the United States?</h3>
-    <p>Yes. Gifts are charged in US dollars. Your bank may add a small conversion fee.</p>
-
-    <h3>Can I get a refund?</h3>
-    <p>Gifts are non-refundable, but if there was an obvious error like a double charge, email us within 90 days and we will fix it.</p>
-
-    <h3>How much should I give?</h3>
-    <p>Whatever you feel led to give. Every amount helps keep the Word flowing.</p>
-
-    <h3>Who runs Declare?</h3>
-    <p>Declare &amp; Believe is a ministry of JC Kingdom Ventures, LLC.</p>
+    <div class="faq">
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Is my gift tax-deductible?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>No. Declare is run by JC Kingdom Ventures, LLC, a for-profit company, so gifts are not tax-deductible.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Where does my gift go?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>It keeps Declare free and running, and helps it reach the next person searching for God&rsquo;s Word at 3am.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can I give once instead of monthly?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Yes. Use the toggle to give a single gift or a recurring one. One-time is the default.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How do I cancel or change a recurring gift?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Email <a href="mailto:support@declareandbelieve.com">support@declareandbelieve.com</a> and we will take care of it right away. Canceling stops all future gifts.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Will I get a receipt?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Yes. You will get an emailed receipt for every gift.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Is my payment secure?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Yes. Payments run through Stripe, a trusted processor used by millions of businesses. We never see or store your card number.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What payment methods can I use?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Apple Pay, Google Pay, and major debit and credit cards.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can I give from outside the United States?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Yes. Gifts are charged in US dollars. Your bank may add a small conversion fee.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can I get a refund?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Gifts are non-refundable, but if there was an obvious error like a double charge, email us within 90 days and we will fix it.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How much should I give?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Whatever you feel led to give. Every amount helps keep the Word flowing.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Who runs Declare?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="faq-a"><div class="faq-a-in"><p>Declare &amp; Believe is a ministry of JC Kingdom Ventures, LLC.</p></div></div>
+      </div>
+    </div>
 
     <p style="margin-top:32px"><a href="/give">Back to Give</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/privacy">Privacy Policy</a></p>
   </div>
 </div>
+
+<footer>
+  <div class="shell">
+    <div class="fgrid">
+      <div class="fbrand">
+        <div class="wm">Declare</div>
+        <div class="ft">Scripture-rooted words for the weight you carry. Romans 12:2.</div>
+      </div>
+      <div class="fcol">
+        <h4>Explore</h4>
+        <a href="/today">Declare</a>
+        <a href="/struggles">Struggles</a>
+        <a href="/word">The Word</a>
+        <a href="/journey">Journey</a>
+      </div>
+      <div class="fcol">
+        <h4>Company</h4>
+        <a href="/about">About</a>
+        <a href="/help">Help &amp; support</a>
+        <a href="/give">Give</a>
+        <a href="/crisis">Find help now</a>
+        <a href="/you?rate=footer">Rate Declare</a>
+        <a href="/you?whatsnew=1">What&rsquo;s new</a>
+      </div>
+      <div class="fcol">
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/give-terms">Giving terms</a>
+      </div>
+      <div class="fcol">
+        <h4>Get the app</h4>
+        <a class="appbadge" href="#" aria-label="Download on the App Store, coming soon">
+          <svg class="alogo" viewBox="0 0 24 24" fill="currentColor"><path d="M16.36 1.43c.06 .9-.28 1.78-.84 2.45-.6 .72-1.6 1.27-2.56 1.2-.08-.88 .33-1.8 .86-2.4 .6-.7 1.66-1.22 2.54-1.25z"/><path d="M18.9 8.2c-1.4-.05-2.6 .8-3.28 .8-.7 0-1.74-.76-2.86-.74-1.47 .02-2.83 .85-3.58 2.17-1.53 2.65-.4 6.57 1.1 8.72 .73 1.05 1.6 2.23 2.74 2.19 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.66 .71 2.86 .69 1.18-.02 1.93-1.07 2.65-2.12 .83-1.2 1.18-2.37 1.2-2.43-.03-.01-2.3-.88-2.32-3.5-.02-2.19 1.79-3.24 1.87-3.29-1.02-1.5-2.6-1.67-3.16-1.71z"/></svg>
+          <span class="atext"><span class="atop">Download on the</span><span class="abot">App Store</span></span>
+        </a>
+        <span class="appsoon">Coming soon</span>
+      </div>
+    </div>
+    <div class="fbot">
+      <span class="copy">&copy; 2026 JC Kingdom Ventures &middot; Made for the Kingdom</span>
+      <span class="fbrandmark">Declare &amp; <span class="bgold">Believe</span></span>
+      <span class="benediction">To God be the <span class="bgold">glory.</span></span>
+    </div>
+  </div>
+</footer>
 <script src="/declare/theme.js"></script>
 <script>
 (function(){
@@ -308,6 +414,13 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   document.getElementById('menuClose').addEventListener('click', closeMenu);
   scrim.addEventListener('click', closeMenu);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
+  // FAQ accordion
+  document.querySelectorAll('.faq-q').forEach(function(b){
+    b.addEventListener('click', function(){
+      var it=b.closest('.faq-item'), open=it.classList.toggle('open');
+      b.setAttribute('aria-expanded', open?'true':'false');
+    });
+  });
 })();
 </script>
 </body>
