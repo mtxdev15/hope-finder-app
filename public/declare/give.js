@@ -25,6 +25,16 @@
   var CONVEX_URL = 'https://keen-hamster-650.convex.cloud';
   var cumulativeIdle = 0.04; // globe idle level, raised gently by total giving
 
+  // the signed-in user's id (if any), so a gift links to their account for history
+  function getGiverId() {
+    try {
+      var d = localStorage.getItem('better-auth_session_data');
+      if (!d) return null;
+      var s = JSON.parse(d);
+      return (s && s.user && s.user._id) || null;
+    } catch (e) { return null; }
+  }
+
   /* ---------- localized data ---------- */
   var CUR_SYM = { USD: '$', EUR: '€', GBP: '£', CAD: '$', AUD: '$', NGN: '₦', INR: '₹', BRL: 'R$', KES: 'KSh', PHP: '₱' };
   var CUR_NAMES = ES ? {
@@ -451,10 +461,12 @@
   function doGive() {
     if (!S.amount || S.amount <= 0) { sheetClose(); customInput.focus(); return; }
     setGiveBusy(true);
+    var payload = { amount: S.amount, currency: S.currency, recurring: S.recurring, frequency: S.freq, path: location.pathname };
+    var uid = getGiverId(); if (uid) payload.userId = uid;
     fetch(WORKER + '/give/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: S.amount, currency: S.currency, recurring: S.recurring, frequency: S.freq, path: location.pathname })
+      body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.url) { window.location.href = d.url; }
       else { setGiveBusy(false); alert((d && d.error) || T.payErr); }

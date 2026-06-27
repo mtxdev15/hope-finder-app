@@ -106,6 +106,18 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             </button>
           </div>
 
+          <div class="ygiving" id="yGiving" hidden>
+            <div class="yg-hd">
+              <div class="yg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
+              <div class="yg-head">
+                <div class="yg-ttl">Your giving</div>
+                <div class="yg-tot" id="ygTotal"></div>
+              </div>
+            </div>
+            <ul class="yg-list" id="ygList"></ul>
+            <a class="yg-again" href="/give">Give again</a>
+          </div>
+
           <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.8</div>
         </section>
       </div>
@@ -203,7 +215,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { noteSubmitted } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit, reviewsMine } from '../app/declare/convex-data.js';
+    import { reviewsSubmit, reviewsMine, myGifts } from '../app/declare/convex-data.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const $ = (id) => document.getElementById(id);
@@ -590,6 +602,30 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           + '<span style="color:var(--goldd);margin-left:9px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase">' + status + '</span>';
       }).catch(() => {});
     }
+
+    /* ---------- Your giving: a signed-in user's own gift history (newest first) ---------- */
+    function ygMoney(cents) {
+      var n = (cents || 0) / 100;
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: (cents % 100 ? 2 : 0), maximumFractionDigits: 2 });
+    }
+    function ygDate(ts) {
+      try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+      catch (e) { return ''; }
+    }
+    function renderGiving() {
+      const card = $('yGiving'); if (!card) return;
+      if (!signedInNow()) { card.hidden = true; return; }
+      myGifts().then((gifts) => {
+        if (!gifts || !gifts.length) { card.hidden = true; return; }
+        const totalCents = gifts.reduce((s, g) => s + (g.amountCents || 0), 0);
+        $('ygTotal').textContent = ygMoney(totalCents) + ' · ' + gifts.length + (gifts.length === 1 ? ' gift' : ' gifts');
+        $('ygList').innerHTML = gifts.slice(0, 8).map(function (g) {
+          var badge = g.recurring ? '<span class="yg-badge">' + (g.frequency === 'semimonthly' ? 'Twice a month' : 'Monthly') + '</span>' : '';
+          return '<li><span class="yg-amt">' + ygMoney(g.amountCents) + '</span>' + badge + '<span class="yg-date">' + ygDate(g.giftedAt) + '</span></li>';
+        }).join('');
+        card.hidden = false;
+      }).catch(() => { card.hidden = true; });
+    }
     // Read-only "Your review" view (what you rated), with an update option.
     function dStars(n) {
       let s = '';
@@ -615,6 +651,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     if (_rateCard) _rateCard.addEventListener('click', () => { if (_myReview) openReviewView(); else openRate('profile'); });
     initAuth().then(renderMyReview);
     onAuthChange(renderMyReview);
+    initAuth().then(renderGiving);
+    onAuthChange(renderGiving);
     try {
       const _rp = new URLSearchParams(location.search).get('rate');
       if (_rp === 'footer' || _rp === 'menu' || _rp === 'profile') initAuth().then(() => openRate(_rp));
@@ -1095,6 +1133,24 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .appearance .themectl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
 
     .you .yver { text-align: center; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 40px; }
+
+    /* Your giving — signed-in gift history, styled to match the hub cards */
+    .you .ygiving { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--card-shadow); padding: 22px 22px 18px; margin-top: 18px; }
+    .you .ygiving[hidden] { display: none; }
+    .you .yg-hd { display: flex; align-items: center; gap: 13px; margin-bottom: 14px; }
+    .you .yg-ic { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 12px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
+    .you .yg-ic svg { width: 19px; height: 19px; }
+    .you .yg-ttl { font-size: 15px; font-weight: 600; color: var(--text); }
+    .you .yg-tot { font-size: 12.5px; color: var(--goldd); font-weight: 600; margin-top: 2px; }
+    .you .yg-list { list-style: none; margin: 0; padding: 0; }
+    .you .yg-list li { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+    .you .yg-list li:first-child { border-top: 0; }
+    .you .yg-amt { font-weight: 600; color: var(--text); }
+    .you .yg-badge { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--goldd);
+      border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; padding: 2px 8px; }
+    .you .yg-date { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .you .yg-again { display: inline-block; margin-top: 15px; font-size: 13px; font-weight: 600; color: var(--goldd); text-decoration: none; }
+    .you .yg-again:hover { color: var(--gold); text-decoration: underline; }
 
     /* what's new (release notes) modal */
     .you .yrls-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px; }
