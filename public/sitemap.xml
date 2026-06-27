@@ -32,7 +32,24 @@
   </url>
 
   <!-- Support / help / answers -->
-  <url><loc>https://declareandbelieve.com/give</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/give</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/dar</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
   <url><loc>https://declareandbelieve.com/help</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://declareandbelieve.com/faq</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
@@ -84,5 +101,6 @@
   <!-- Legal -->
   <url><loc>https://declareandbelieve.com/privacy</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://declareandbelieve.com/terms</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://declareandbelieve.com/give-terms</loc><lastmod>2026-06-25</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 
 </urlset>

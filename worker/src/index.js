@@ -322,6 +322,93 @@ async function handleUnsplash(request, env, pathname) {
   return jsonResponse({ query: q, results }, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
+/* ===== Stripe Checkout — the Give flow ============================================
+   POST /give/checkout  { amount, currency, recurring, frequency, path }
+   Creates a Stripe Checkout Session and returns { url } for the browser to redirect to.
+   The secret key lives in env.STRIPE_SECRET_KEY (test now, live later); the browser never
+   sees it. Apple Pay / Google Pay / card all appear automatically on Stripe's hosted page.
+   ================================================================================= */
+const FREQ_INTERVAL = {
+  semimonthly: { interval: 'week',  interval_count: 2 }, // "twice a month" → every 2 weeks (Stripe has no 1st-&-15th)
+  monthly:     { interval: 'month', interval_count: 1 },
+};
+
+async function handleCheckout(request, env) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
+  }
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (checkRateLimit(ip)) {
+    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
+  }
+  if (!env.STRIPE_SECRET_KEY) {
+    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
+  }
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
+
+  const amount = Number(body && body.amount);
+  if (!isFinite(amount) || amount < 1 || amount > 100000) {
+    return jsonResponse({ error: 'Please choose an amount between $1 and $100,000.' }, 400, CORS_HEADERS);
+  }
+  const recurring = !!(body && body.recurring);
+  const freqKey = String((body && body.frequency) || 'monthly');
+  const unitAmount = Math.round(amount * 100); // cents, USD for v1
+
+  // Build return URLs from an allowlisted origin so /es/dar comes back to /es/dar, etc.
+  const origin = request.headers.get('Origin') || '';
+  const okOrigin =
+    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
+    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
+    /^http:\/\/localhost(:\d+)?$/i.test(origin);
+  const base = okOrigin ? origin : 'https://declareandbelieve.com';
+  const rawPath = String((body && body.path) || '/give');
+  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
+  const successQ = 'status=success&amt=' + encodeURIComponent(amount) + (recurring ? '&rec=1&freq=' + encodeURIComponent(freqKey) : '');
+  const successUrl = base + path + '?' + successQ;
+  const cancelUrl = base + path + '?status=cancel';
+
+  const p = new URLSearchParams();
+  p.set('mode', recurring ? 'subscription' : 'payment');
+  p.set('success_url', successUrl);
+  p.set('cancel_url', cancelUrl);
+  p.set('line_items[0][quantity]', '1');
+  p.set('line_items[0][price_data][currency]', 'usd');
+  p.set('line_items[0][price_data][unit_amount]', String(unitAmount));
+  p.set('line_items[0][price_data][product_data][name]', recurring ? 'Recurring gift — Declare & Believe' : 'Gift — Declare & Believe');
+  if (recurring) {
+    const iv = FREQ_INTERVAL[freqKey] || FREQ_INTERVAL.monthly;
+    p.set('line_items[0][price_data][recurring][interval]', iv.interval);
+    p.set('line_items[0][price_data][recurring][interval_count]', String(iv.interval_count));
+  } else {
+    p.set('submit_type', 'donate');
+  }
+
+  let res, data;
+  try {
+    res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: p.toString(),
+    });
+    data = await res.json();
+  } catch (e) {
+    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
+  }
+  if (!res.ok || !data || !data.url) {
+    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
+    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
+  }
+  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
+}
+
 export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
@@ -334,6 +421,9 @@ export default {
     }
     if (pathname === '/bible') {
       return handleBible(request, env);
+    }
+    if (pathname === '/give/checkout') {
+      return handleCheckout(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====
