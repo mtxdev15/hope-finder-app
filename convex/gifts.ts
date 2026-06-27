@@ -1,0 +1,106 @@
+import { v } from "convex/values";
+import { query, internalMutation } from "./_generated/server";
+import { authComponent } from "./auth";
+
+// $1.25 reaches one person (mirrors PER_PERSON in public/declare/give.js).
+const PER_PERSON_CENTS = 125;
+
+// PUBLIC: the running giving total for the live impact counter on /give.
+// Unauthenticated (like reviews.listApprovedPublic) — exposes only aggregate
+// numbers, never any donor data. Reads the single denormalized "total" row.
+export const getTotal = query({
+  args: {},
+  handler: async (ctx) => {
+    const row = await ctx.db
+      .query("giftStats")
+      .withIndex("by_key", (q) => q.eq("key", "total"))
+      .unique();
+    const totalCents = row?.totalCents ?? 0;
+    const giftCount = row?.giftCount ?? 0;
+    return {
+      totalCents,
+      giftCount,
+      people: Math.round(totalCents / PER_PERSON_CENTS),
+    };
+  },
+});
+
+// INTERNAL: called only by the Stripe webhook httpAction (http.ts). Increments
+// the public counter once per Stripe session (idempotent via giftEvents), and
+// records per-user history when the giver was signed in. Never exposed publicly.
+export const record = internalMutation({
+  args: {
+    sessionId: v.string(),
+    amountCents: v.number(),
+    currency: v.string(),
+    recurring: v.boolean(),
+    frequency: v.optional(v.string()),
+    userId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (!Number.isFinite(args.amountCents) || args.amountCents <= 0) return null;
+
+    // Idempotency: skip if this Stripe session was already counted.
+    const seen = await ctx.db
+      .query("giftEvents")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .unique();
+    if (seen) return null;
+    await ctx.db.insert("giftEvents", { sessionId: args.sessionId });
+
+    // Increment the public counter (denormalized single row).
+    const row = await ctx.db
+      .query("giftStats")
+      .withIndex("by_key", (q) => q.eq("key", "total"))
+      .unique();
+    if (row) {
+      await ctx.db.patch(row._id, {
+        totalCents: row.totalCents + args.amountCents,
+        giftCount: row.giftCount + 1,
+      });
+    } else {
+      await ctx.db.insert("giftStats", {
+        key: "total",
+        totalCents: args.amountCents,
+        giftCount: 1,
+      });
+    }
+
+    // Per-user history (only when the giver was signed in at checkout).
+    if (args.userId) {
+      await ctx.db.insert("giftHistory", {
+        userId: args.userId,
+        amountCents: args.amountCents,
+        currency: args.currency,
+        recurring: args.recurring,
+        ...(args.frequency ? { frequency: args.frequency } : {}),
+        sessionId: args.sessionId,
+        giftedAt: Date.now(),
+      });
+    }
+    return null;
+  },
+});
+
+// AUTHED: the signed-in user's own giving history, newest first. Scoped to the
+// caller; never takes a userId arg (derived server-side).
+export const myGifts = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id as string;
+    const rows = await ctx.db
+      .query("giftHistory")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(100);
+    return rows.map((r) => ({
+      amountCents: r.amountCents,
+      currency: r.currency,
+      recurring: r.recurring,
+      giftedAt: r.giftedAt,
+      ...(r.frequency ? { frequency: r.frequency } : {}),
+    }));
+  },
+});

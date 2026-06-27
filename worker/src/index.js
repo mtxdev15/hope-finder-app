@@ -388,6 +388,11 @@ async function handleCheckout(request, env) {
     p.set('submit_type', 'donate');
   }
 
+  // metadata the webhook reads to record the gift (counter + per-user history)
+  p.set('metadata[recurring]', recurring ? '1' : '0');
+  p.set('metadata[frequency]', freqKey);
+  if (body && body.userId) p.set('metadata[userId]', String(body.userId));
+
   let res, data;
   try {
     res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -409,6 +414,82 @@ async function handleCheckout(request, env) {
   return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
 }
 
+/* ===== Stripe webhook → Convex counter =============================================
+   Stripe POSTs here on a completed gift. We verify the signature, then tell Convex
+   to increment the public counter (and record per-user history when the giver was
+   signed in). The Convex side is idempotent, so retries are safe. ================== */
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+async function verifyStripeSignature(payload, sigHeader, secret) {
+  if (!sigHeader) return false;
+  let t = '';
+  const v1 = [];
+  sigHeader.split(',').forEach((part) => {
+    const i = part.indexOf('=');
+    if (i < 0) return;
+    const k = part.slice(0, i), val = part.slice(i + 1);
+    if (k === 't') t = val;
+    else if (k === 'v1') v1.push(val);
+  });
+  if (!t || !v1.length) return false;
+  // replay protection: reject events older than 5 minutes
+  const age = Math.abs(Date.now() / 1000 - Number(t));
+  if (!Number.isFinite(age) || age > 300) return false;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(t + '.' + payload));
+  const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return v1.some((sig) => timingSafeEqualHex(sig, expected));
+}
+
+async function handleWebhook(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    return new Response('Webhook not configured', { status: 500 });
+  }
+  const payload = await request.text();
+  const ok = await verifyStripeSignature(payload, request.headers.get('Stripe-Signature'), env.STRIPE_WEBHOOK_SECRET);
+  if (!ok) return new Response('Invalid signature', { status: 400 });
+
+  let event;
+  try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
+
+  if (event && event.type === 'checkout.session.completed') {
+    const s = (event.data && event.data.object) || {};
+    const amountCents = Number(s.amount_total);
+    const md = s.metadata || {};
+    if (Number.isFinite(amountCents) && amountCents > 0 && env.CONVEX_SITE_URL && env.GIFT_WEBHOOK_SECRET) {
+      const recordBody = {
+        sessionId: s.id,
+        amountCents: amountCents,
+        currency: s.currency || 'usd',
+        recurring: md.recurring === '1' || s.mode === 'subscription',
+      };
+      if (md.frequency) recordBody.frequency = md.frequency;
+      if (md.userId) recordBody.userId = md.userId;
+      const r = await fetch(env.CONVEX_SITE_URL + '/give/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
+        body: JSON.stringify(recordBody),
+      });
+      // If Convex rejects, return 500 so Stripe retries (Convex is idempotent).
+      if (!r.ok) return new Response('record failed', { status: 500 });
+    }
+  }
+  return new Response(JSON.stringify({ received: true }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
@@ -424,6 +505,9 @@ export default {
     }
     if (pathname === '/give/checkout') {
       return handleCheckout(request, env);
+    }
+    if (pathname === '/give/webhook') {
+      return handleWebhook(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====
