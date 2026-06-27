@@ -43,6 +43,7 @@
   function shareTitle(t){ return t==='church'?'Share this church':t==='verse'?'Share this verse':t==='reading'?'Share this reading':'Share'; }
   function shareSub(t){ return t==='church'?'Invite someone to come and see':t==='verse'?'Pass along a word of life':t==='reading'?'Share today\u2019s reading':'Send this to a friend'; }
   function shareText(p){
+    if(p.text) return p.text;            // caller-supplied full message (already branded; no append)
     if(p.type==='church') return 'Come worship with me at '+p.title+' \u2014 on Declare.';
     if(p.type==='verse')  return '\u201C'+p.title+'\u201D \u2014 shared from Declare.';
     if(p.type==='reading')return p.title+' \u2014 today\u2019s reading on Declare.';

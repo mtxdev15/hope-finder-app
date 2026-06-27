@@ -84,6 +84,8 @@
     confWell: 'Te has unido al <b>Manantial</b>. ',
     shareGaveTitle: 'Acabo de ofrendar a Declare', shareSub: 'Mantén la Palabra fluyendo, gratis para todos.',
     sharePageTitle: 'Ofrenda a Declare',
+    shareGiftText: 'Acabo de sembrar una semilla en Declare para que la Palabra de Dios siga fluyendo gratis para todos. Únete:',
+    shareHelpText: 'Ayuda a que la Palabra de Dios siga fluyendo gratis para todos en Declare. Da aquí:',
     processing: 'Redirigiendo…', payErr: 'Algo salió mal al iniciar tu ofrenda. Inténtalo de nuevo.'
   } : {
     addPay: 'Add new payment method', opening: 'Opening secure form…',
@@ -105,6 +107,8 @@
     confWell: 'You’ve joined the <b>Wellspring</b>. ',
     shareGaveTitle: 'I just gave to Declare', shareSub: 'Keep the Word flowing — free for all.',
     sharePageTitle: 'Give to Declare',
+    shareGiftText: 'I just sowed a seed into Declare to keep God’s Word flowing free for everyone. Join me:',
+    shareHelpText: 'Help keep God’s Word flowing free for everyone on Declare. Give here:',
     processing: 'Redirecting…', payErr: 'Something went wrong starting your gift. Please try again.'
   };
 
@@ -458,7 +462,7 @@
     if (globe) globe.setLevel(levelOf(peopleOf(S.amount)));
   });
   $('#cShare').addEventListener('click', function () {
-    if (window.DeclareShare) DeclareShare.open({ type: 'page', title: T.shareGaveTitle, subtitle: T.shareSub, url: location.href, embed: false });
+    if (window.DeclareShare) DeclareShare.open({ type: 'page', title: T.shareGaveTitle, subtitle: T.shareSub, text: T.shareGiftText, url: location.origin + location.pathname, embed: false });
   });
 
   /* ============================================================
@@ -494,7 +498,7 @@
 
   /* ---- header share ---- */
   $('#pageShare') && $('#pageShare').addEventListener('click', function () {
-    if (window.DeclareShare) DeclareShare.open({ type: 'page', title: T.sharePageTitle, subtitle: T.shareSub, url: location.href, embed: false });
+    if (window.DeclareShare) DeclareShare.open({ type: 'page', title: T.sharePageTitle, subtitle: T.shareSub, text: T.shareHelpText, url: location.origin + location.pathname, embed: false });
   });
 
   // re-read globe colors when the theme flips
