@@ -116,9 +116,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             </div>
             <ul class="yg-list" id="ygList"></ul>
             <a class="yg-again" href="/give">Give again</a>
+            <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.8</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.9.0</div>
         </section>
       </div>
     </div>
@@ -604,6 +605,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
 
     /* ---------- Your giving: a signed-in user's own gift history (newest first) ---------- */
+    // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
+    // Empty string = the "Manage giving" link stays hidden until the link is pasted here.
+    const YG_PORTAL = '';
     function ygMoney(cents) {
       var n = (cents || 0) / 100;
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: (cents % 100 ? 2 : 0), maximumFractionDigits: 2 });
@@ -623,6 +627,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           var badge = g.recurring ? '<span class="yg-badge">' + (g.frequency === 'semimonthly' ? 'Twice a month' : 'Monthly') + '</span>' : '';
           return '<li><span class="yg-amt">' + ygMoney(g.amountCents) + '</span>' + badge + '<span class="yg-date">' + ygDate(g.giftedAt) + '</span></li>';
         }).join('');
+        var mg = $('ygManage');
+        if (mg) {
+          if (YG_PORTAL && gifts.some(function (g) { return g.recurring; })) { mg.href = YG_PORTAL; mg.hidden = false; }
+          else mg.hidden = true;
+        }
         card.hidden = false;
       }).catch(() => { card.hidden = true; });
     }
@@ -660,34 +669,44 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 
     /* ---------- What's new (release notes) ---------- */
     // Newest first. The top entry's version drives the footer label, so the two never drift.
+    // Semantic Versioning — MAJOR.MINOR.PATCH. MAJOR: a sweeping redesign or a
+    // change that shifts how the app works. MINOR: a new, backward-compatible
+    // feature. PATCH: a backward-compatible bug fix or small refinement, no new
+    // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
-      { v: '3.8', date: 'June 2026', items: [
+      { v: '3.9.0', date: 'June 2026', items: [
+        ['New', 'Your giving now lives in your account: see your gift history and your total in one place, on every device.'],
+        ['New', 'A live counter on the give page, climbing with every gift as more people are set free by the Word of God.'],
+        ['New', 'Manage a recurring gift anytime, and keep your giving together by saving it to a free account.'],
+        ['Improved', 'Warmer language on the give page, which now greets you by name when you are signed in, with cleaner spacing up top.'],
+      ] },
+      { v: '3.8.0', date: 'June 2026', items: [
         ['New', 'Giving is here. Support the mission in seconds with Apple Pay or card, as a single gift or a recurring one, in English and Spanish. Every gift keeps the Word free and flowing for the next person who needs it.'],
       ] },
-      { v: '3.7', date: 'June 2026', items: [
+      { v: '3.7.0', date: 'June 2026', items: [
         ['Improved', 'The 5-day Journey now speaks deeper and more personally, getting to the root and meeting you with the voice of Jesus.'],
       ] },
-      { v: '3.6', date: 'June 2026', items: [
+      { v: '3.6.0', date: 'June 2026', items: [
         ['Fixed', 'In light mode, the closing call to action is now clearly visible.'],
         ['Improved', 'A clearer, warmer light theme: cards stand out and the background has more depth.'],
       ] },
-      { v: '3.5', date: 'June 2026', items: [
+      { v: '3.5.0', date: 'June 2026', items: [
         ['Improved', 'A warmer, clearer welcome page that speaks to both men and women.'],
         ['Improved', 'The main action now reads Receive the Word consistently across the app.'],
       ] },
-      { v: '3.4', date: 'June 2026', items: [
+      { v: '3.4.0', date: 'June 2026', items: [
         ['New', 'Highlight verses in soft colors: gold, rose, sky, mint, or lilac.'],
         ['New', 'Select a whole passage, then highlight, save, copy, or share it together.'],
         ['Fixed', 'Comparing or switching translation now keeps your place on the verse you were reading.'],
       ] },
-      { v: '3.3', date: 'June 2026', items: [
+      { v: '3.3.0', date: 'June 2026', items: [
         ['New', 'One consistent menu now appears on every page, so you can keep exploring instead of being sent into the app.'],
         ['New', 'A Help and support shortcut, right here in your account.'],
         ['New', 'This What’s new log, so you can always see what changed.'],
         ['Improved', 'Clearer labels across the menu and footer (Give, Help and support).'],
         ['Fixed', 'Creating an account with Google now works for everyone.'],
       ] },
-      { v: '3.2', date: 'Earlier', items: [
+      { v: '3.2.0', date: 'Earlier', items: [
         ['New', 'Add and crop a profile photo, or take one with your camera.'],
         ['New', 'A wall of what people are saying across the site.'],
         ['Improved', 'Smoother, calmer motion as you scroll.'],
@@ -1151,6 +1170,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yg-date { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
     .you .yg-again { display: inline-block; margin-top: 15px; font-size: 13px; font-weight: 600; color: var(--goldd); text-decoration: none; }
     .you .yg-again:hover { color: var(--gold); text-decoration: underline; }
+    .you .yg-manage { display: inline-block; margin: 15px 0 0 18px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; }
+    .you .yg-manage[hidden] { display: none; }
+    .you .yg-manage:hover { color: var(--text); text-decoration: underline; }
 
     /* what's new (release notes) modal */
     .you .yrls-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px; }

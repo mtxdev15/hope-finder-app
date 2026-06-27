@@ -434,6 +434,9 @@
 
   var confirm = $('#confirm');
   var WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
+  // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
+  // Empty = the "Manage your giving" link stays hidden on the thank-you screen.
+  var PORTAL_URL = '';
   var giveBtns = $$('[data-give-btn]');
 
   // show the Thank-you screen for a gift (used on the success return from Stripe)
@@ -450,6 +453,9 @@
       var tail = recurring ? ', ' + pp : '';
       $('#cSum').innerHTML = T.confPoet(n, noun, head, tail);
     }
+    // Soft account nudge for guests only; manage-link for recurring gifts (when a portal is set).
+    var ca = $('#cAccount'); if (ca) ca.hidden = !!getGiverId();
+    var cm = $('#cManage'); if (cm) { if (recurring && PORTAL_URL) { cm.setAttribute('href', PORTAL_URL); cm.hidden = false; } else cm.hidden = true; }
     confirm.classList.add('show'); dock.classList.remove('show');
     if (globe) globe.setLevel(Math.min(1, levelOf(ppl) + 0.12));
   }
