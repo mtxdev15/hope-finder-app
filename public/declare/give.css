@@ -83,7 +83,9 @@ html,body{ background:var(--bg); }
    GIVE HERO — fills the first screen; no scroll needed to give
    ============================================================ */
 .give-hero{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center;
-  min-height:min(820px, calc(100svh - 59px)); padding:clamp(24px,4vh,52px) clamp(20px,5vw,48px) clamp(32px,6vh,72px); }
+  min-height:min(820px, calc(100svh - 59px));
+  /* top clears the fixed nav (~59px) with breathing room; was 52px max, which let the heading tuck under it */
+  padding:clamp(88px,10vh,116px) clamp(20px,5vw,48px) clamp(32px,6vh,72px); }
 .gh-inner{ width:100%; max-width:1180px; display:grid; gap:clamp(28px,4vw,72px); align-items:center; }
 
 /* LEFT — the soul */
