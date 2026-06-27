@@ -607,7 +607,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- Your giving: a signed-in user's own gift history (newest first) ---------- */
     // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
     // Empty string = the "Manage giving" link stays hidden until the link is pasted here.
-    const YG_PORTAL = '';
+    const YG_PORTAL = 'https://billing.stripe.com/p/login/dRmfZidrIh248Ae5HZasg00';
     function ygMoney(cents) {
       var n = (cents || 0) / 100;
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: (cents % 100 ? 2 : 0), maximumFractionDigits: 2 });

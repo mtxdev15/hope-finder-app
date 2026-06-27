@@ -436,7 +436,7 @@
   var WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
   // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
   // Empty = the "Manage your giving" link stays hidden on the thank-you screen.
-  var PORTAL_URL = '';
+  var PORTAL_URL = 'https://billing.stripe.com/p/login/dRmfZidrIh248Ae5HZasg00';
   var giveBtns = $$('[data-give-btn]');
 
   // show the Thank-you screen for a gift (used on the success return from Stripe)
