@@ -329,9 +329,7 @@ async function handleUnsplash(request, env, pathname) {
    sees it. Apple Pay / Google Pay / card all appear automatically on Stripe's hosted page.
    ================================================================================= */
 const FREQ_INTERVAL = {
-  weekly:      { interval: 'week',  interval_count: 1 },
-  biweekly:    { interval: 'week',  interval_count: 2 },
-  semimonthly: { interval: 'month', interval_count: 1 }, // Stripe has no native twice-monthly; bills monthly
+  semimonthly: { interval: 'week',  interval_count: 2 }, // "twice a month" → every 2 weeks (Stripe has no 1st-&-15th)
   monthly:     { interval: 'month', interval_count: 1 },
 };
 

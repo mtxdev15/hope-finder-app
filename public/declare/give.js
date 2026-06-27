@@ -36,17 +36,13 @@
   Object.keys(CUR_SYM).forEach(function (k) { CUR[k] = { sym: CUR_SYM[k], name: CUR_NAMES[k] }; });
 
   var FREQ = ES ? [
-    { k: 'weekly', label: 'Semanal', word: 'Semanal', per: '/sem', every: 'semana' },
-    { k: 'biweekly', label: 'Cada dos semanas', word: 'Cada 2 Semanas', per: '/2sem', every: 'dos semanas' },
-    { k: 'semimonthly', label: 'Dos veces al mes (1 y 15)', word: 'Dos Veces al Mes', per: '/mes', every: 'ciclo' },
+    { k: 'semimonthly', label: 'Dos veces al mes', word: 'Dos Veces al Mes', per: '/mes', every: 'cycle' },
     { k: 'monthly', label: 'Mensual', word: 'Mensual', per: '/mes', every: 'mes' }
   ] : [
-    { k: 'weekly', label: 'Weekly', word: 'Weekly', per: '/wk', every: 'week' },
-    { k: 'biweekly', label: 'Every two weeks', word: 'Every 2 Weeks', per: '/2wk', every: 'two weeks' },
-    { k: 'semimonthly', label: 'Twice monthly (1st & 15th)', word: 'Twice a Month', per: '/mo', every: 'cycle' },
+    { k: 'semimonthly', label: 'Twice a month', word: 'Twice a Month', per: '/mo', every: 'cycle' },
     { k: 'monthly', label: 'Monthly', word: 'Monthly', per: '/mo', every: 'month' }
   ];
-  var freqOf = function (k) { for (var i = 0; i < FREQ.length; i++) if (FREQ[i].k === k) return FREQ[i]; return FREQ[3]; };
+  var freqOf = function (k) { for (var i = 0; i < FREQ.length; i++) if (FREQ[i].k === k) return FREQ[i]; return FREQ[FREQ.length - 1]; };
 
   var PAY = ES ? [
     { k: 'apple', name: 'Apple Pay', sub: 'Predeterminado · Face ID', icon: 'apple' },
