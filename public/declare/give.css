@@ -94,6 +94,10 @@ html,body{ background:var(--bg); }
 .gh-soul h1 em{ font-style:italic; color:var(--acc-bright); }
 .gh-soul .lede{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(17px,1.6vw,21px); line-height:1.5;
   color:var(--text2); max-width:34ch; margin:14px 0 0; }
+/* live giving counter (cumulative "people receiving the Word") */
+.give-total{ margin:13px 0 0; font-size:13.5px; line-height:1.5; color:var(--text2); letter-spacing:.01em; }
+.give-total[hidden]{ display:none; }
+.give-total .gt-n{ color:var(--acc-bright); font-weight:700; font-variant-numeric:tabular-nums; }
 
 /* globe sits inside the soul, framed by the live amount + impact */
 .globe-wrap{ position:relative; width:min(300px,68%); aspect-ratio:1; margin:clamp(14px,2.4vw,26px) 0 0; }

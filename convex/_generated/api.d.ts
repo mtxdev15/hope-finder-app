@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as email from "../email.js";
+import type * as gifts from "../gifts.js";
 import type * as http from "../http.js";
 import type * as reviews from "../reviews.js";
 import type * as userdata from "../userdata.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   email: typeof email;
+  gifts: typeof gifts;
   http: typeof http;
   reviews: typeof reviews;
   userdata: typeof userdata;

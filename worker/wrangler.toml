@@ -2,6 +2,11 @@ name = "hope-finder-worker"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
+# Convex httpAction base URL (the .site domain). Public, not a secret.
+# The giving webhook posts the counter increment to CONVEX_SITE_URL + /give/record.
+[vars]
+CONVEX_SITE_URL = "https://keen-hamster-650.convex.site"
+
 # Bible reader cache (public-domain WEB text, cached forever).
 # SETUP (you must run this — it touches your Cloudflare account):
 #   cd worker && npx wrangler kv namespace create BIBLE_KV

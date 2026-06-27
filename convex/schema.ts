@@ -72,4 +72,30 @@ export default defineSchema({
     .index("by_user", ["userId"])
     // For the future testimonial wall: approved + public, newest first.
     .index("by_status_public", ["status", "isPublic", "createdAt"]),
+
+  // Public giving counter — a single denormalized "total" row (Convex has no
+  // count operator). Incremented by the Stripe webhook on each completed gift.
+  giftStats: defineTable({
+    key: v.string(), // always "total"
+    totalCents: v.number(),
+    giftCount: v.number(),
+  }).index("by_key", ["key"]),
+
+  // Per-user giving history (only when the giver was signed in). userId is the
+  // Better Auth user _id, attached via Stripe metadata at checkout.
+  giftHistory: defineTable({
+    userId: v.string(),
+    amountCents: v.number(),
+    currency: v.string(),
+    recurring: v.boolean(),
+    frequency: v.optional(v.string()),
+    sessionId: v.string(),
+    giftedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Idempotency: one row per processed Stripe Checkout session, so webhook
+  // retries never double-count.
+  giftEvents: defineTable({
+    sessionId: v.string(),
+  }).index("by_session", ["sessionId"]),
 });
