@@ -38,6 +38,7 @@ http.route({
       recurring: !!(body && body.recurring),
       ...(body.frequency ? { frequency: String(body.frequency) } : {}),
       ...(body.userId ? { userId: String(body.userId) } : {}),
+      ...(body.subscriptionId ? { subscriptionId: String(body.subscriptionId) } : {}),
     });
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

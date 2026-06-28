@@ -114,6 +114,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
                 <div class="yg-tot" id="ygTotal"></div>
               </div>
             </div>
+            <div class="yg-next" id="ygNext" hidden></div>
             <ul class="yg-list" id="ygList"></ul>
             <a class="yg-again" href="/give">Give again</a>
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
@@ -608,6 +609,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
     // Empty string = the "Manage giving" link stays hidden until the link is pasted here.
     const YG_PORTAL = 'https://billing.stripe.com/p/login/dRmfZidrIh248Ae5HZasg00';
+    const YG_WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
     function ygMoney(cents) {
       var n = (cents || 0) / 100;
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: (cents % 100 ? 2 : 0), maximumFractionDigits: 2 });
@@ -631,6 +633,28 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         if (mg) {
           if (YG_PORTAL) { mg.href = YG_PORTAL; mg.hidden = false; }
           else mg.hidden = true;
+        }
+        // Next-charge line: live status for the most recent recurring gift, so a
+        // canceled gift never shows a phantom date.
+        var nx = $('ygNext');
+        if (nx) {
+          nx.hidden = true;
+          var rec = null;
+          for (var i = 0; i < gifts.length; i++) { if (gifts[i].recurring && gifts[i].subscriptionId) { rec = gifts[i]; break; } }
+          if (rec) {
+            fetch(YG_WORKER + '/give/subscription', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subscriptionId: rec.subscriptionId }),
+            }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+              if (!d || d.status !== 'active' || !d.currentPeriodEnd) return;
+              var freq = rec.frequency === 'semimonthly' ? 'Twice a month' : 'Monthly';
+              var when = ygDate(d.currentPeriodEnd * 1000);
+              nx.textContent = d.cancelAtPeriodEnd
+                ? (freq + ' · ends ' + when)
+                : (freq + ' · next gift of ' + ygMoney(rec.amountCents) + ' on ' + when);
+              nx.hidden = false;
+            }).catch(function () {});
+          }
         }
         card.hidden = false;
       }).catch(() => { card.hidden = true; });
@@ -1173,6 +1197,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yg-manage { display: inline-block; margin: 15px 0 0 18px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; }
     .you .yg-manage[hidden] { display: none; }
     .you .yg-manage:hover { color: var(--text); text-decoration: underline; }
+    .you .yg-next { margin: 0 0 14px; padding: 9px 13px; border-radius: 11px; background: var(--field); font-size: 12.5px; color: var(--text2); }
+    .you .yg-next[hidden] { display: none; }
 
     /* what's new (release notes) modal */
     .you .yrls-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 18px; }

@@ -479,6 +479,7 @@ async function handleWebhook(request, env) {
       };
       if (md.frequency) recordBody.frequency = md.frequency;
       if (md.userId) recordBody.userId = md.userId;
+      if (s.subscription) recordBody.subscriptionId = s.subscription;
       const r = await fetch(env.CONVEX_SITE_URL + '/give/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
@@ -495,6 +496,31 @@ async function handleWebhook(request, env) {
   return new Response(JSON.stringify({ received: true }), {
     status: 200, headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// Live subscription status for the "Your giving" card: looks up a recurring gift's
+// next charge date + status straight from Stripe, so a canceled gift never shows a
+// phantom date. The subscription id comes from the caller's own authed gift history.
+async function handleSubscription(request, env) {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
+  if (!env.STRIPE_SECRET_KEY) return jsonResponse({ error: 'not configured' }, 500, CORS_HEADERS);
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'bad request' }, 400, CORS_HEADERS); }
+  const id = String((body && body.subscriptionId) || '');
+  if (!/^sub_[A-Za-z0-9]+$/.test(id)) return jsonResponse({ error: 'bad id' }, 400, CORS_HEADERS);
+  const r = await fetch('https://api.stripe.com/v1/subscriptions/' + id, {
+    headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
+  });
+  if (!r.ok) return jsonResponse({ error: 'not found' }, 404, CORS_HEADERS);
+  const sub = await r.json();
+  const item = sub.items && sub.items.data && sub.items.data[0];
+  const periodEnd = sub.current_period_end || (item && item.current_period_end) || null;
+  return jsonResponse({
+    status: sub.status,
+    currentPeriodEnd: periodEnd,
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+  }, 200, CORS_HEADERS);
 }
 
 export default {
@@ -515,6 +541,9 @@ export default {
     }
     if (pathname === '/give/webhook') {
       return handleWebhook(request, env);
+    }
+    if (pathname === '/give/subscription') {
+      return handleSubscription(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====

@@ -91,6 +91,7 @@ export default defineSchema({
     frequency: v.optional(v.string()),
     sessionId: v.string(),
     giftedAt: v.number(),
+    subscriptionId: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   // Idempotency: one row per processed Stripe Checkout session, so webhook

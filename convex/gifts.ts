@@ -36,6 +36,7 @@ export const record = internalMutation({
     recurring: v.boolean(),
     frequency: v.optional(v.string()),
     userId: v.optional(v.string()),
+    subscriptionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (!Number.isFinite(args.amountCents) || args.amountCents <= 0) return null;
@@ -74,6 +75,7 @@ export const record = internalMutation({
         currency: args.currency,
         recurring: args.recurring,
         ...(args.frequency ? { frequency: args.frequency } : {}),
+        ...(args.subscriptionId ? { subscriptionId: args.subscriptionId } : {}),
         sessionId: args.sessionId,
         giftedAt: Date.now(),
       });
@@ -101,6 +103,7 @@ export const myGifts = query({
       recurring: r.recurring,
       giftedAt: r.giftedAt,
       ...(r.frequency ? { frequency: r.frequency } : {}),
+      ...(r.subscriptionId ? { subscriptionId: r.subscriptionId } : {}),
     }));
   },
 });
