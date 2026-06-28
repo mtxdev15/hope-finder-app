@@ -83,6 +83,12 @@ Done items move to the bottom or get deleted.
       review (separate, multi-day). Makes the sign-in screen show your mark + "Sign in to Declare."
 
 ## ✔️ Recently shipped
+- **Giving system — fully live.** Cinematic `/give` + `/es/dar` with Stripe Checkout (one-time +
+  recurring, Apple Pay); webhook → Convex public impact counter ("X people set free by the Word of
+  God"); account-linked gift history + live next-charge line on `/you`; Stripe Customer Portal to
+  manage/cancel; "Manage giving" on the give pages + the Giving terms FAQ; Spanish Giving terms page
+  (`/es/terminos-de-donacion`) + hreflang + sitemap. SemVer adopted (now v3.9.1). Supersedes the old
+  "Give redesign + Stripe checkout" block above.
 - **Site-wide navigation unified** — every explore page's logo/back goes to `/welcome` (no longer
   dumps people into the app); give/help/faq/struggles now share the canonical header + slide-out menu
   + footer (shared `public/declare/chrome.css` + `menu.js`); the in-app mast brand links back to
