@@ -19,10 +19,7 @@ Done items move to the bottom or get deleted.
       sections, recommended); 2) intro voice (reframe to Declare, drop Righteously Unrighteous,
       recommended); 3) delivery (instant download + email, recommended); 4) keep the list for the iOS
       launch (recommended). Generate the PDF via headless-Chrome print (no new deps).
-- [ ] **Rotate two secrets printed in a Claude session.** While listing prod Convex env vars, the
-      values of `RESEND_API_KEY` and `BETTER_AUTH_SECRET` were echoed. Rotate both: Resend is painless;
-      `BETTER_AUTH_SECRET` signs everyone out, so do it at a quiet time. Claude writes the new values
-      into the env directly (no pasting secrets into chat).
+- [x] **Rotate two secrets — DONE (Jeff rotated `RESEND_API_KEY` + `BETTER_AUTH_SECRET`).**
 - [ ] **Finish Google OAuth branding (Google Auth Platform → Branding).** App published to production
       (auth fixed). Still: set App name = Declare, support email, home page, privacy `/privacy`, terms
       `/terms`; authorized domains cleaned (added declareandbelieve.com, removed stale Supabase domain).
