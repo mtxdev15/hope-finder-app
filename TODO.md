@@ -54,7 +54,8 @@ Done items move to the bottom or get deleted.
       password-reset email (Resend).
 - [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
-- [ ] **Submit sitemap** to Google Search Console: `https://declareandbelieve.com/sitemap.xml`.
+- [x] **Submit sitemap** to Google Search Console — DONE (Status: Success in GSC). Re-submit after
+      big sitemap changes to force a re-read.
 
 ## 🚀 Next features
 - [ ] **Spanish translation (large, phased).** Big underserved market. Three layers: (1) Bible text —
