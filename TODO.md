@@ -47,9 +47,7 @@ Done items move to the bottom or get deleted.
             option, for-profit "gifts are not tax-deductible" disclosure (JC Kingdom Ventures, LLC).
 
 ## ✅ Verify on the live site (manual)
-- [ ] **Confirm Google sign-in for the reporter.** Publishing the OAuth app to production fixed the
-      "can't create an account" block. Have the user who reported it (macaulay.bmt@gmail.com) retry
-      "Sign in with Google" and confirm an account is created.
+- [x] **Confirm Google sign-in for the reporter — DONE.** They can sign in / create an account now.
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
       password-reset email (Resend).
 - [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
