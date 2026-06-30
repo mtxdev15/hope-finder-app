@@ -176,7 +176,7 @@ import RateReview from '../components/RateReview.astro';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
         </button>
       </div>
-      <div class="ssscroll">
+      <div class="ssscroll" data-lenis-prevent>
         <form class="input" id="sheetForm" autocomplete="off" style="margin-top:16px">
           <input type="text" placeholder="Or write it in your own words&hellip;" aria-label="Write it in your own words" />
           <button class="send" type="submit" aria-label="Receive the Word">
@@ -222,7 +222,7 @@ import RateReview from '../components/RateReview.astro';
 
     {/* share chooser (design: Results.html .sps) */}
     <div class="sps-scrim" id="spsScrim"></div>
-    <section class="sps" id="sps" aria-hidden="true" aria-label="Choose what to share">
+    <section class="sps" id="sps" aria-hidden="true" aria-label="Choose what to share" data-lenis-prevent>
       <div class="grab" aria-hidden="true"></div>
       <h3>Share this word</h3>
       <div class="sps-sub">Choose what to send</div>
