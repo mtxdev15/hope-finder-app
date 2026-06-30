@@ -465,6 +465,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function curDay() { return reviewDay || state.day; }
     function dstate() { const k = curDay(); if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false }; return dayState[k]; }
 
+    // Build a Word-reader deep link from a day's scripture reference (e.g. "Philippians 4:6-7").
+    const READ_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Revelations': 'Revelation' };
+    function dayVerseLink(ref) {
+      const m = (ref || '').match(/^(.*?)\s+(\d+)\s*:\s*(\d+)/);
+      if (!m) return '/word';
+      const book = READ_ALIASES[m[1].trim()] || m[1].trim();
+      return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
+    }
     function renderDayFlow() {
       clearInterval(renderDayLoading._t);
       const fd = curDay(), reviewing = !!reviewDay;
@@ -490,7 +498,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         + '<div class="df-sh">' + active.from + ' <span class="arr">&rarr;</span> ' + active.to + '</div>'
         + welcome
         // 1 — RECEIVE
-        + '<div class="block scripture"><div class="lab"><span class="step">1</span>Receive &middot; ' + d.ref + ' ' + d.ver + '</div>'
+        + '<div class="block scripture"><div class="lab"><span class="step">1</span>Receive &middot; <a class="vref-link" href="' + dayVerseLink(d.ref) + '">' + d.ref + ' ' + d.ver + '<svg class="vref-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
           + '<div class="verse">“' + d.verse + '”</div><div class="insight">' + d.insight + '</div></div>'
         // 2 — PRAY
         + '<div class="block pray"><div class="lab"><span class="step">2</span>Pray</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
@@ -1237,6 +1245,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     .journey .block { border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px; margin-top: 15px; background: var(--surface); box-shadow: var(--chip-shadow); }
     .journey .block .lab { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    /* Tappable scripture reference → opens the verse in the Word reader (themed for light + dark). */
+    .journey .block .lab .vref-link { color: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      border-bottom: 1px solid color-mix(in srgb, var(--goldd) 42%, transparent); padding-bottom: 1px; transition: color .2s ease, border-color .2s ease; }
+    .journey .block .lab .vref-link .vref-go { width: 10px; height: 10px; opacity: .75; }
+    @media (hover: hover) { .journey .block .lab .vref-link:hover { color: var(--gold); border-bottom-color: var(--gold); } }
+    .journey .block .lab .vref-link:active { color: var(--gold); }
     .journey .block p { font-size: 14.5px; line-height: 1.62; color: var(--text2); margin-top: 11px; }
     .journey .block.scripture { border-left: 3px solid var(--gold); }
     .journey .block.scripture .verse { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 20px; line-height: 1.42; color: var(--text); margin-top: 12px; }
