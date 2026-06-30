@@ -579,12 +579,12 @@ import RateReview from '../components/RateReview.astro';
     function loadShareStack() {
       if (shareStack) return shareStack;
       shareStack = new Promise((resolve) => {
-        ['/declare/share.css', '/declare/card-studio.css'].forEach((href) => {
+        ['/declare/share.css?v=3.10.2', '/declare/card-studio.css?v=3.10.2'].forEach((href) => {
           const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
         });
-        const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js';
+        const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js?v=3.10.2';
         s1.onload = () => {
-          const s2 = document.createElement('script'); s2.src = '/declare/share.js';
+          const s2 = document.createElement('script'); s2.src = '/declare/share.js?v=3.10.2';
           s2.onload = resolve; document.head.appendChild(s2);
         };
         document.head.appendChild(s1);
