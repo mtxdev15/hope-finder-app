@@ -131,7 +131,8 @@ function mirror(op) {
    undefined is not a valid Convex value). */
 function toPayload(item) {
   const p = { clientId: item.id, type: item.type, ts: item.ts || Date.now() };
-  ['struggle', 'translation', 'explanation', 'prayer', 'text', 'ref', 'coll'].forEach((k) => {
+  ['struggle', 'translation', 'explanation', 'prayer', 'text', 'ref', 'coll',
+   'bgKind', 'bgPhotoId', 'bgSrc', 'bgBy', 'bgByLink', 'bgColor'].forEach((k) => {
     if (item[k] != null) p[k] = item[k];
   });
   if (Array.isArray(item.verses)) p.verses = item.verses.map((v) => ({ ref: v.ref || '', text: v.text || '' }));

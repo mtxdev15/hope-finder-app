@@ -20,6 +20,14 @@ export default defineSchema({
     text: v.optional(v.string()),
     ref: v.optional(v.string()),
     coll: v.optional(v.string()),
+    // Verse-image cards saved from Card Studio: a lightweight background reference
+    // (a hotlinked Unsplash photo + its credit, or a solid color). No blob storage.
+    bgKind: v.optional(v.string()), // 'photo' | 'solid'
+    bgPhotoId: v.optional(v.string()),
+    bgSrc: v.optional(v.string()),
+    bgBy: v.optional(v.string()),
+    bgByLink: v.optional(v.string()),
+    bgColor: v.optional(v.string()),
     // Bounded by the app's response shape (verses <= 3, declarations <= 5).
     verses: v.optional(v.array(v.object({ ref: v.string(), text: v.string() }))),
     declarations: v.optional(v.array(v.string())),

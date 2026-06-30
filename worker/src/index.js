@@ -300,6 +300,37 @@ async function handleUnsplash(request, env, pathname) {
     await fetch(d, { headers: { Authorization: 'Client-ID ' + env.UNSPLASH_ACCESS_KEY } });
     return jsonResponse({ ok: true }, 200, { 'Cache-Control': 'no-store' });
   }
+  if (pathname === '/unsplash/photo') {
+    // Single-photo metadata by API photo id — used to capture/refresh curated photos
+    // (attribution + download_location). Heavily cached: photo metadata is static.
+    const id = (url.searchParams.get('id') || '').trim();
+    if (!/^[A-Za-z0-9_-]{5,40}$/.test(id)) {
+      return jsonResponse({ error: 'Invalid photo id.' }, 400);
+    }
+    const cache = caches.default;
+    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const hit = await cache.match(cacheKey);
+    if (hit) return hit;
+    const photoRes = await fetch(
+      'https://api.unsplash.com/photos/' + id,
+      { headers: { Authorization: 'Client-ID ' + env.UNSPLASH_ACCESS_KEY, 'Accept-Version': 'v1' } }
+    );
+    if (!photoRes.ok) {
+      return jsonResponse({ error: 'Photo unavailable.' }, 502);
+    }
+    const p = await photoRes.json();
+    const out = {
+      id: p.id,
+      thumb: p.urls && p.urls.small,
+      full: (p.urls && p.urls.regular) || (p.urls && p.urls.full),
+      name: p.user && p.user.name,
+      link: p.user && p.user.links && p.user.links.html,
+      download_location: p.links && p.links.download_location,
+    };
+    const resp = jsonResponse(out, 200, { 'Cache-Control': 'public, max-age=86400' });
+    await cache.put(cacheKey, resp.clone());
+    return resp;
+  }
   const q = (url.searchParams.get('q') || '').trim();
   if (q.length < 2 || q.length > 60) {
     return jsonResponse({ error: 'Search needs between 2 and 60 characters.' }, 400);
@@ -313,6 +344,7 @@ async function handleUnsplash(request, env, pathname) {
   }
   const data = await apiRes.json();
   const results = (data.results || []).map((p) => ({
+    id: p.id,
     thumb: p.urls && p.urls.small,
     full: (p.urls && p.urls.regular) || (p.urls && p.urls.full),
     name: p.user && p.user.name,
@@ -527,7 +559,7 @@ export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
     const pathname = new URL(request.url).pathname;
-    if (pathname === '/unsplash/search' || pathname === '/unsplash/track') {
+    if (pathname === '/unsplash/search' || pathname === '/unsplash/track' || pathname === '/unsplash/photo') {
       return handleUnsplash(request, env, pathname);
     }
     if (pathname === '/bible/search') {

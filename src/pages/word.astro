@@ -24,12 +24,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 >
   <main class="word">
     <div class="topglow" aria-hidden="true"></div>
+    {/* global brightness dim — driven by the Reading-preferences slider; sits below the sheet */}
+    <div class="appdim" id="appDim" aria-hidden="true"></div>
 
     {/* ================= LIBRARY (design: browse view) ================= */}
     <div class="w-col" id="browse">
       <div class="whead">
         <span class="wlbl">The library</span>
-        <a class="gear" href="/you" aria-label="Reader settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2.4"></circle><circle cx="15" cy="17" r="2.4"></circle></svg></a>
+        <button class="gear" id="libPrefs" type="button" aria-label="Reading preferences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2.4"></circle><circle cx="15" cy="17" r="2.4"></circle></svg></button>
       </div>
       <div class="wtitle">The Word</div>
 
@@ -86,12 +88,57 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       </div>
     </div>
 
+    {/* ===== Reading preferences — one Display sheet, opened from the library gear AND the
+            reader's Aa button. Responsive: bottom sheet on mobile, centered modal on desktop. ===== */}
+    <div class="lsheet" id="lsheet" hidden>
+      <div class="lsback" data-lsclose></div>
+      <div class="lspanel" role="dialog" aria-label="Reading preferences">
+        <div class="lsgrab"></div>
+        <div class="lstitle">Reading preferences</div>
+        <div class="lssub">How Scripture looks across the app.</div>
+        <div class="lspreview" id="lsPreview">For God so loved the world that he gave his only Son.</div>
+        <div class="lssec">
+          <div class="lslbl">Theme</div>
+          <div class="lsseg" id="libThemeSeg">
+            <button type="button" data-mode="light">Light</button>
+            <button type="button" data-mode="dark">Dark</button>
+            <button type="button" data-mode="auto">Auto</button>
+          </div>
+        </div>
+        <div class="lssec">
+          <div class="lslbl">Brightness</div>
+          <div class="lsbright">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 6.5V6M6.5 12H6M12 17.5v.5M17.5 12h.5"></path></svg>
+            <input type="range" id="libBright" min="40" max="100" value="100" aria-label="Brightness" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"></path></svg>
+          </div>
+        </div>
+        <div class="lssec">
+          <div class="lslbl">Font style</div>
+          <div class="lsseg" id="libFontSeg">
+            <button type="button" class="ff-cormorant" data-f="cormorant">Cormorant</button>
+            <button type="button" class="ff-lora" data-f="lora">Lora</button>
+            <button type="button" class="ff-sans" data-f="sans">DM&nbsp;Sans</button>
+          </div>
+        </div>
+        <div class="lssec">
+          <div class="lslbl">Text size</div>
+          <div class="lsseg" id="libSizeSeg">
+            <button type="button" class="sz1" data-s="Small">A</button>
+            <button type="button" class="sz2" data-s="Medium">A</button>
+            <button type="button" class="sz3" data-s="Large">A</button>
+          </div>
+        </div>
+        <button type="button" class="lsdone" data-lsclose>Done</button>
+      </div>
+    </div>
+
     {/* ================= READER (design: reader view) ================= */}
     <div class="w-reader" id="reader">
       <div class="topglow" aria-hidden="true"></div>
       <div class="rtop">
         <div class="rhead">
-          <button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+          <span class="rh-lead"><button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button></span>
           <button class="rbook" id="rbook" aria-label="Back to the library">John</button>
           <span class="rh-actions">
             <button class="iconbtn rsglass" id="readerSearch" aria-label="Search the Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
@@ -174,38 +221,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       </div>
 
       {/* display sheet */}
-      <div class="rsheet" id="dsheet">
-        <div class="rsback"></div>
-        <div class="rspanel">
-          <div class="grabber"></div>
-          <div class="rstitle">Display</div>
-          <div class="dspreview" id="dsPreview">For God so loved the world that he gave his only Son.</div>
-          <div class="dssec">
-            <div class="dslbl">Brightness</div>
-            <div class="bright">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 6.5V6M6.5 12H6M12 17.5v.5M17.5 12h.5"></path></svg>
-              <input type="range" id="brightRange" min="40" max="100" value="100" aria-label="Brightness" />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"></path></svg>
-            </div>
-          </div>
-          <div class="dssec">
-            <div class="dslbl">Text size</div>
-            <div class="dsseg" id="sizeSeg">
-              <button class="sz1" data-s="Small">A</button>
-              <button class="sz2 on" data-s="Medium">A</button>
-              <button class="sz3" data-s="Large">A</button>
-            </div>
-          </div>
-          <div class="dssec">
-            <div class="dslbl">Font style</div>
-            <div class="dsseg" id="fontSeg">
-              <button class="ff-cormorant on" data-f="cormorant">Cormorant</button>
-              <button class="ff-lora" data-f="lora">Lora</button>
-              <button class="ff-sans" data-f="sans">DM&nbsp;Sans</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Display settings now live in the unified #lsheet (opened from the reader's Aa button
+          and the library gear) — see "Reading preferences" above. */}
 
       {/* share sheet (fallback when the Card Studio stack is unavailable) */}
       <div class="rsheet" id="sharesheet">
@@ -594,7 +611,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         renderTrans(); renderBody(keep); return;
       }
       if (e.target.closest('#transsel')) { openTmenu(); return; }
-      if (e.target.closest('#aaBtn')) { openDsheet(); return; }
+      if (e.target.closest('#aaBtn')) { openLsheet(); return; }
       if (e.target.closest('#cmp')) {
         const keep = topVerseN();
         compare = !compare;
@@ -698,7 +715,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     const wtoast = $('wtoast'), wtoastMsg = $('wtoastMsg'); let _wtt;
     function toast(m) { wtoastMsg.textContent = m; wtoast.classList.add('show'); clearTimeout(_wtt); _wtt = setTimeout(() => wtoast.classList.remove('show'), 1800); }
 
-    const dim = $('dim'), tmenu = $('tmenu'), tmlist = $('tmlist'), dsheet = $('dsheet');
+    const dim = $('appDim') || $('dim'), tmenu = $('tmenu'), tmlist = $('tmlist');
     document.querySelectorAll('.rsheet .rsback').forEach((b) => b.addEventListener('click', () => b.closest('.rsheet').classList.remove('open')));
 
     function openTmenu() {
@@ -715,28 +732,44 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       renderTrans(); renderBody(keep);
     });
 
-    function openDsheet() { dsheet.classList.add('open'); }
+    // applyDisplay is the single source of truth — it reads the shared localStorage keys and
+    // syncs the reading body + the unified Reading-preferences sheet, so brightness/theme/font/
+    // size stay identical whether opened from the library gear or the reader's Aa button.
     function applyDisplay() {
-      let size = 'Medium', font = 'cormorant', bright = 100;
+      let size = 'Medium', font = 'lora', bright = 100;
       try { size = localStorage.getItem('declare-textsize') || 'Medium'; } catch (e) {}
-      try { font = localStorage.getItem('declare-fontstyle') || 'cormorant'; } catch (e) {}
+      try { font = localStorage.getItem('declare-fontstyle') || 'lora'; } catch (e) {}
       try { const b = parseInt(localStorage.getItem('declare-brightness'), 10); if (!isNaN(b)) bright = b; } catch (e) {}
       const fs = { Small: 'fs-s', Medium: 'fs-m', Large: 'fs-l' }[size] || 'fs-m';
       rbody.className = 'rbody ' + fs + ' ff-' + font;
       dim.style.opacity = ((100 - bright) / 100 * 0.62).toFixed(3);
-      const br = $('brightRange'); if (br) br.value = bright;
-      $('sizeSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.s === size));
-      $('fontSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.f === font));
+      const lb = $('libBright'); if (lb) lb.value = bright;
+      const ss = $('libSizeSeg'); if (ss) ss.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.s === size));
+      const fsg = $('libFontSeg'); if (fsg) fsg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.f === font));
+      let mode = 'dark'; try { mode = localStorage.getItem('declare-theme') || 'dark'; } catch (e) {}
+      const themeSeg = $('libThemeSeg'); if (themeSeg) themeSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.mode === mode));
       const fam = { cormorant: "'Cormorant Garamond',serif", lora: "'Lora',serif", sans: "'DM Sans',sans-serif" };
       const sz = { Small: '18px', Medium: '22px', Large: '27px' };
-      const dp = $('dsPreview'); dp.style.fontFamily = fam[font] || fam.cormorant; dp.style.fontSize = sz[size] || sz.Medium;
+      const dp = $('lsPreview'); if (dp) { dp.style.fontFamily = fam[font] || fam.cormorant; dp.style.fontSize = sz[size] || sz.Medium; }
     }
-    $('brightRange').addEventListener('input', function () {
-      try { localStorage.setItem('declare-brightness', this.value); } catch (e) {}
-      dim.style.opacity = ((100 - this.value) / 100 * 0.62).toFixed(3);
-    });
-    $('sizeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-textsize', b.dataset.s); } catch (err) {} applyDisplay(); });
-    $('fontSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-fontstyle', b.dataset.f); } catch (err) {} applyDisplay(); });
+
+    /* The unified Reading-preferences sheet — opened from the library gear AND the reader's
+       Aa button. Theme, brightness, font and text size all share storage with the reader, so
+       every surface stays in sync via applyDisplay(). Gentle open/close to match the iOS feel. */
+    const lsheet = $('lsheet'), libPrefs = $('libPrefs');
+    let lsTimer;
+    function openLsheet() { clearTimeout(lsTimer); applyDisplay(); lsheet.hidden = false; void lsheet.offsetWidth; lsheet.classList.add('open'); }
+    function closeLsheet() { lsheet.classList.remove('open'); lsTimer = setTimeout(() => { lsheet.hidden = true; }, 540); }
+    if (libPrefs) libPrefs.addEventListener('click', openLsheet);
+    if (lsheet) {
+      lsheet.querySelectorAll('[data-lsclose]').forEach((b) => b.addEventListener('click', closeLsheet));
+      $('libThemeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (window.DeclareTheme) window.DeclareTheme.set(b.dataset.mode); applyDisplay(); });
+      $('libBright').addEventListener('input', function () { try { localStorage.setItem('declare-brightness', this.value); } catch (err) {} dim.style.opacity = ((100 - this.value) / 100 * 0.62).toFixed(3); });
+      $('libSizeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-textsize', b.dataset.s); } catch (err) {} applyDisplay(); });
+      $('libFontSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem('declare-fontstyle', b.dataset.f); } catch (err) {} applyDisplay(); });
+      enableSwipeDown(lsheet.querySelector('.lspanel'), closeLsheet);
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lsheet && !lsheet.hidden && lsheet.classList.contains('open')) closeLsheet(); });
 
     function enableSwipeDown(el, onClose) {
       if (!el) return; let sy = null, dy = 0;
@@ -862,7 +895,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       closeVbar();
       loadShareStack().then(() => {
         if (window.DeclareShare) {
-          window.DeclareShare.open({ type: 'verse', text: shareTxt, ref: shareRef + ' · ' + shareTrans, url: location.href });
+          window.DeclareShare.open({ type: 'verse', text: shareTxt, ref: shareRef + ' · ' + shareTrans, url: location.href, save: saveItem });
         } else {
           sharePrev.innerHTML = '<div class="sp-v">“' + esc(shareTxt) + '”</div><div class="sp-r">' + esc(shareRef) + ' · ' + shareTrans + '</div>';
           $('shSystem').style.display = navigator.share ? '' : 'none';
@@ -877,7 +910,6 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     applyDisplay();
     paintPills();
     enableSwipeDown(vbar, closeVbar);
-    enableSwipeDown(dsheet.querySelector('.rspanel'), () => dsheet.classList.remove('open'));
     enableSwipeDown(tmenu.querySelector('.rspanel'), () => tmenu.classList.remove('open'));
     enableSwipeDown(sharesheet.querySelector('.rspanel'), () => sharesheet.classList.remove('open'));
     enableSwipeDown(rsearch.querySelector('.rspanel'), () => rsearch.classList.remove('open'));
@@ -908,12 +940,67 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
        components come from the vendored declare.css.
        ────────────────────────────────────────────────────────────────── */
     .word { position: relative; min-height: 100dvh; }
+    .appdim { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 55; transition: opacity .2s ease; }
     .word .w-col { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding-bottom: 110px; }
 
     .word .whead { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 2px; color: var(--text); }
     .word .wlbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; }
-    .word .whead .gear { color: var(--muted); display: flex; }
-    .word .whead .gear svg { width: 19px; height: 19px; }
+    .word .whead .gear { color: var(--muted); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin: -8px -8px -8px 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color .2s ease, background .25s ease, transform .18s cubic-bezier(.34,1.56,.64,1); }
+    .word .whead .gear:hover { color: var(--text); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+    .word .whead .gear:active { transform: scale(.86); }
+    .word .whead .gear svg { width: 19px; height: 19px; transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+    .word .whead .gear:active svg { transform: rotate(90deg); }
+
+    /* Reading preferences sheet — gentle, iOS-style motion (soft spring slide, blur fade, staggered rows) */
+    .lsheet { position: fixed; inset: 0; z-index: 60; }
+    .lsheet[hidden] { display: none; }
+    .lsheet .lsback { position: absolute; inset: 0; background: rgba(6,11,8,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; transition: opacity .42s ease; }
+    .lsheet.open .lsback { opacity: 1; }
+    .lsheet .lspanel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin-inline: auto;
+      background: var(--surface); border-radius: 28px 28px 0 0; padding: 10px 22px calc(26px + env(safe-area-inset-bottom));
+      box-shadow: 0 -24px 64px -22px rgba(0,0,0,.7), 0 0 0 1px var(--line);
+      transform: translateY(102%); transition: transform .52s cubic-bezier(.32,.72,0,1); }
+    .lsheet.open .lspanel { transform: none; }
+    .lsgrab { width: 42px; height: 5px; border-radius: 999px; background: var(--line2); margin: 2px auto 16px; }
+    .lstitle { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); }
+    .lssub { text-align: center; font-size: 12.5px; color: var(--muted); margin: 3px 0 16px; }
+    .lspreview { text-align: center; padding: 2px 6px 18px; color: var(--text); line-height: 1.4; min-height: 32px; font-family: 'Lora', serif; font-size: 20px; }
+    .lssec { margin-bottom: 18px; opacity: 0; transform: translateY(12px); }
+    .lsheet.open .lssec { animation: lsRise .5s cubic-bezier(.22,1,.36,1) forwards; }
+    .lsheet.open .lssec:nth-child(5) { animation-delay: .04s; }
+    .lsheet.open .lssec:nth-child(6) { animation-delay: .09s; }
+    .lsheet.open .lssec:nth-child(7) { animation-delay: .14s; }
+    .lsheet.open .lssec:nth-child(8) { animation-delay: .19s; }
+    @keyframes lsRise { to { opacity: 1; transform: none; } }
+    .lsbright { display: flex; align-items: center; gap: 13px; }
+    .lsbright svg { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; }
+    .lsbright input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 999px; background: var(--line2); outline: none; }
+    .lsbright input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+    .lsbright input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--gold); cursor: pointer; }
+    .lslbl { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 500; margin-bottom: 9px; }
+    .lsseg { display: flex; gap: 6px; }
+    .lsseg button { flex: 1; border: 1px solid var(--line2); background: transparent; color: var(--text); border-radius: 13px; padding: 12px 4px; cursor: pointer; font-family: inherit; font-size: 14px;
+      -webkit-tap-highlight-color: transparent; transition: background .25s ease, border-color .25s ease, transform .16s cubic-bezier(.34,1.56,.64,1); }
+    .lsseg button:active { transform: scale(.94); }
+    .lsseg button.on { background: rgba(216,184,95,.16); border-color: rgba(216,184,95,.5); color: var(--text); }
+    .lsseg .ff-cormorant { font-family: 'Cormorant Garamond', serif; } .lsseg .ff-lora { font-family: 'Lora', serif; } .lsseg .ff-sans { font-family: 'DM Sans', sans-serif; }
+    .lsseg .sz1 { font-size: 13px; } .lsseg .sz2 { font-size: 16px; } .lsseg .sz3 { font-size: 19px; }
+    .lsdone { width: 100%; margin-top: 8px; padding: 14px; border: 0; border-radius: 999px; background: var(--gold); color: #15241B; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform .16s cubic-bezier(.34,1.56,.64,1); }
+    .lsdone:active { transform: scale(.97); }
+    @media (prefers-reduced-motion: reduce) {
+      .lsheet .lsback, .lsheet .lspanel, .lssec, .lsseg button, .word .whead .gear, .word .whead .gear svg { transition: none; animation: none; }
+      .lssec { opacity: 1; transform: none; }
+    }
+    /* Desktop: present as a centered modal (gentle scale-in) rather than a full-width bottom sheet. */
+    @media (min-width: 600px) {
+      .lsheet { display: flex; align-items: center; justify-content: center; }
+      .lsheet[hidden] { display: none; }
+      .lsheet .lspanel { position: relative; left: auto; right: auto; bottom: auto; width: 420px; max-width: calc(100vw - 40px);
+        border-radius: 26px; padding: 18px 26px 26px; box-shadow: 0 40px 120px -30px rgba(0,0,0,.7), 0 0 0 1px var(--line);
+        transform: translateY(14px) scale(.97); opacity: 0; transition: transform .42s cubic-bezier(.22,1,.36,1), opacity .32s ease; }
+      .lsheet.open .lspanel { transform: none; opacity: 1; }
+      .lsgrab { display: none; }
+    }
     .word .wtitle { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; padding: 4px 22px 2px; color: var(--text); }
 
     .word .search { display: flex; align-items: center; gap: 11px; margin: 12px 22px 0; padding: 14px 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--card-shadow); }
@@ -955,7 +1042,9 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .word .vp-loading, .w-reader .rs-results .vp-loading { padding: 18px 22px; color: var(--muted); font-size: 14px; }
 
     /* in-reader search: animated magnifier + sheet/modal field */
-    .w-reader .rh-actions { display: flex; align-items: center; gap: 2px; }
+    /* Equal-weight side clusters so the book title centers on the viewport, not on the gap. */
+    .w-reader .rh-lead { flex: 1; display: flex; align-items: center; justify-content: flex-start; }
+    .w-reader .rh-actions { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
     .w-reader .rsglass svg { transition: transform .34s var(--ease-reveal, cubic-bezier(.16, 1, .3, 1)); }
     @media (hover: hover) { .w-reader .rsglass:hover svg { transform: scale(1.14) rotate(-8deg); color: var(--goldd); } }
     .w-reader .rsglass:active svg { transform: scale(.92); }
@@ -976,7 +1065,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     .w-reader .rhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px 2px; }
     .w-reader .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .w-reader .iconbtn svg { width: 20px; height: 20px; }
-    .w-reader .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 1; background: none; border: 0; cursor: pointer; padding: 0; }
+    .w-reader .rbook { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; flex: 0 1 auto; min-width: 0; background: none; border: 0; cursor: pointer; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .w-reader .rsub { text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--goldd); padding-bottom: 6px; }
     .w-reader .rscroll { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
     .w-reader .rscroll::-webkit-scrollbar { display: none; }

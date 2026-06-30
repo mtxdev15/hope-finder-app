@@ -1019,7 +1019,7 @@ function UnsplashPicker({ current, onPick, onClose }) {
           </div>
           <div className="bg-grid">
             {active.photos.map((p) =>
-            <button key={p.id} className={'bg-thumb' + (current === p.full ? ' on' : '')} onClick={() => onPick(p.full)} title={'Photo: ' + p.by}>
+            <button key={p.id} className={'bg-thumb' + (current === p.full ? ' on' : '')} onClick={() => onPick(p.full, p)} title={'Photo: ' + p.by}>
                 <img src={p.thumb} alt="" loading="lazy" />
                 {current === p.full && <span className="bg-check"><Icon name="check" size={16} /></span>}
               </button>
@@ -1074,8 +1074,24 @@ function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, on
   const emailVerified = !!(account && account.verified && account.email && draft.email &&
   account.email.trim().toLowerCase() === draft.email.trim().toLowerCase());
   const [bannerUrl, setBannerUrl] = useState(() => localStorage.getItem('db_banner_url') || '');
+  const [bannerBy, setBannerBy] = useState(() => localStorage.getItem('db_banner_by') || '');
+  const [bannerLink, setBannerLink] = useState(() => localStorage.getItem('db_banner_link') || '');
   const [bgPicker, setBgPicker] = useState(false);
-  const pickBanner = (url) => {setBannerUrl(url);if (url) localStorage.setItem('db_banner_url', url);else localStorage.removeItem('db_banner_url');setBgPicker(false);};
+  // meta is the Unsplash photo object (by/link/track) for library photos; absent for uploads.
+  const pickBanner = (url, meta) => {
+    setBannerUrl(url);
+    if (url) localStorage.setItem('db_banner_url', url); else localStorage.removeItem('db_banner_url');
+    if (meta && meta.by) {
+      setBannerBy(meta.by); setBannerLink(meta.link || '');
+      localStorage.setItem('db_banner_by', meta.by); localStorage.setItem('db_banner_link', meta.link || '');
+      // Unsplash compliance: trigger the photo's download_location when it's applied.
+      if (meta.track) { try { fetch('https://hope-finder-worker.thinktoro.workers.dev/unsplash/track?d=' + encodeURIComponent(meta.track)); } catch (e) {} }
+    } else {
+      setBannerBy(''); setBannerLink('');
+      localStorage.removeItem('db_banner_by'); localStorage.removeItem('db_banner_link');
+    }
+    setBgPicker(false);
+  };
   const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('db_avatar_url') || '');
   const [avPicker, setAvPicker] = useState(false);
   const pickAvatar = (url) => { setAvatarUrl(url); if (url) localStorage.setItem('db_avatar_url', url); else localStorage.removeItem('db_avatar_url'); setAvPicker(false); };
@@ -1098,6 +1114,8 @@ function ProfileScreen({ profile, onSave, saved, onRemoveVerse, onRemoveDecl, on
         <div className="pf-bannerslot" />}
         <button className="pf-back" onClick={onBack} aria-label="Back"><Icon name="arrow" size={20} /></button>
         <button className="pf-bgbtn" onClick={() => setBgPicker(true)}><Icon name="camera" size={15} /> Background</button>
+        {bannerUrl && bannerBy &&
+        <div className="pf-bannercredit">Photo by <a href={(bannerLink || 'https://unsplash.com') + '?utm_source=declare&utm_medium=referral'} target="_blank" rel="noopener">{bannerBy}</a> on <a href="https://unsplash.com/?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a></div>}
       </div>
       {bgPicker && <UnsplashPicker current={bannerUrl} onPick={pickBanner} onClose={() => setBgPicker(false)} />}
       {avPicker && <AvatarPicker current={avatarUrl} onPick={pickAvatar} onClose={() => setAvPicker(false)} />}

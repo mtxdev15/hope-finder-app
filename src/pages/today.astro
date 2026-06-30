@@ -624,7 +624,7 @@ import RateReview from '../components/RateReview.astro';
       closeSps();
       loadShareStack().then(() => {
         setTimeout(() => {
-          window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: 'For ' + activeStruggle.toLowerCase(), url: location.href });
+          window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: 'For ' + activeStruggle.toLowerCase(), url: location.href, save: saveItem });
         }, 180);
       });
     });

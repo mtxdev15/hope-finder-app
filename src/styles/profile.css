@@ -24,6 +24,11 @@
   transition:transform .12s;
 }
 .pf-bgbtn:active{ transform:scale(.95); }
+.pf-bannercredit{
+  position:absolute; bottom:10px; left:14px; z-index:3; max-width:60%;
+  font-size:10.5px; line-height:1.3; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.6);
+}
+.pf-bannercredit a{ color:#fff; text-decoration:underline; }
 
 /* ---- Unsplash background picker ---- */
 .bg-modal .modal-title{ white-space:nowrap; }

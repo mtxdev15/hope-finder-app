@@ -13,13 +13,28 @@
   transform:translateY(100%); transition:transform .5s cubic-bezier(.18,.72,.16,1); }
 .cst-scrim.cst-on .cst{ transform:none; }
 
+/* Desktop / web: the studio is a mobile-first sheet, so on wider screens present it as a
+   centered phone-sized panel over a dimmed backdrop (instead of stretching full-viewport,
+   which pushed the dock off-screen and detached the share sheet). */
+@media (min-width:600px){
+  .cst-scrim.open{ display:flex; align-items:center; justify-content:center; }
+  .cst-scrim.open::before{ content:''; position:absolute; inset:0; background:rgba(5,9,7,.66);
+    backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); opacity:0; transition:opacity .4s ease; }
+  .cst-scrim.cst-on.open::before{ opacity:1; }
+  .cst{ position:relative; inset:auto; width:440px; max-width:calc(100vw - 40px); height:min(90vh,880px);
+    border-radius:28px; overflow:hidden; box-shadow:0 40px 120px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.05); }
+}
+
 /* top bar */
 .cst-top{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:max(12px,env(safe-area-inset-top)) 16px 8px; }
 .cst-ib{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line2); background:color-mix(in srgb,var(--surface) 78%,transparent);
   color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
 .cst-ib svg{ width:18px; height:18px; }
-.cst-title{ flex:1; text-align:center; font-size:13px; font-weight:600; letter-spacing:.02em; color:var(--text); }
+/* Equal-weight side clusters so the title centers on the viewport, not the gap. */
+.cst-lead{ flex:1; display:flex; justify-content:flex-start; }
+.cst-trail{ flex:1; display:flex; justify-content:flex-end; }
+.cst-title{ flex:0 1 auto; text-align:center; font-size:13px; font-weight:600; letter-spacing:.02em; color:var(--text); white-space:nowrap; }
 
 /* stage / live preview */
 .cst-stage{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px 18px 12px; position:relative; }
@@ -139,19 +154,27 @@
 .cst-sub.open{ display:block; }
 .cst-sub .sb-bd{ position:absolute; inset:0; background:rgba(5,9,7,.6); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; transition:opacity .3s; }
 .cst-sub.cst-on .sb-bd{ opacity:1; }
-.cst-sub .sb-sheet{ position:absolute; left:0; right:0; bottom:0; background:var(--screen); border-radius:24px 24px 0 0;
+.cst-sub .sb-sheet{ position:absolute; left:0; right:0; bottom:0; max-width:520px; margin-inline:auto; background:var(--screen); border-radius:24px 24px 0 0;
   box-shadow:0 -22px 60px -22px rgba(0,0,0,.7); padding:10px 20px calc(22px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .4s cubic-bezier(.2,.7,.2,1); }
 .cst-sub.cst-on .sb-sheet{ transform:none; }
 .cst-grab{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:2px auto 14px; }
 .cst-sh-h{ font-family:'Cormorant Garamond',serif; font-size:23px; font-weight:600; color:var(--text); text-align:center; }
 .cst-sh-s{ font-size:12.5px; color:var(--muted); text-align:center; margin:3px 0 18px; }
-.cst-plats{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 8px; }
+.cst-savevault{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:340px; margin:2px auto 18px; padding:13px 18px; border:1px solid var(--gold,#C9A84C); border-radius:999px; background:rgba(201,168,76,.12); color:var(--text); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; transition:transform .12s, background .18s; }
+.cst-savevault svg{ width:17px; height:17px; color:var(--gold,#C9A84C); }
+.cst-savevault:hover{ background:rgba(201,168,76,.2); }
+.cst-savevault:active{ transform:scale(.97); }
+/* Modern share grid: circular platform icons (iOS "Send to" style — Lemon8 / Uptime /
+   Hypelist on Mobbin) laid out 4-per-row so every option is visible with no scrolling,
+   on both desktop and mobile. */
+.cst-plats{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px 6px; justify-items:center; }
 .cst-plat{ display:flex; flex-direction:column; align-items:center; gap:8px; border:0; background:none; cursor:pointer; font-family:inherit; opacity:0; transform:translateY(10px); }
 .cst-sub.cst-on .cst-plat{ animation:cstRise .45s cubic-bezier(.2,.72,.2,1) forwards; }
 @keyframes cstRise{ to{ opacity:1; transform:none; } }
-.cst-plat .pi{ width:54px; height:54px; border-radius:16px; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 8px 18px -8px rgba(0,0,0,.5); }
+.cst-plat .pi{ width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 8px 18px -8px rgba(0,0,0,.5); transition:transform .14s; }
+.cst-plat:active .pi{ transform:scale(.92); }
 .cst-plat .pi svg{ width:25px; height:25px; }
-.cst-plat .pl{ font-size:11px; color:var(--text2); font-weight:500; }
+.cst-plat .pl{ font-size:11px; color:var(--text2); font-weight:500; white-space:nowrap; }
 .cst-plat .pl small{ display:block; color:var(--muted); font-size:9px; }
 
 /* toast */
@@ -196,3 +219,6 @@
 .cst-attr{ font-size:10.5px; color:var(--muted); margin:-2px 2px 10px; }
 .cst-attr a{ color:var(--goldd); text-decoration:none; }
 .cst-attr a:hover{ text-decoration:underline; }
+.cst-credit{ flex:0 0 auto; text-align:center; font-size:10.5px; color:var(--muted); padding:0 18px 8px; line-height:1.3; }
+.cst-credit a{ color:var(--goldd); text-decoration:none; }
+.cst-credit a:hover{ text-decoration:underline; }

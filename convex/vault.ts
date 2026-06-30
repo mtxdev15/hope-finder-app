@@ -25,6 +25,12 @@ const itemArgs = {
   text: v.optional(v.string()),
   ref: v.optional(v.string()),
   coll: v.optional(v.string()),
+  bgKind: v.optional(v.string()),
+  bgPhotoId: v.optional(v.string()),
+  bgSrc: v.optional(v.string()),
+  bgBy: v.optional(v.string()),
+  bgByLink: v.optional(v.string()),
+  bgColor: v.optional(v.string()),
   verses: v.optional(v.array(v.object({ ref: v.string(), text: v.string() }))),
   declarations: v.optional(v.array(v.string())),
 };

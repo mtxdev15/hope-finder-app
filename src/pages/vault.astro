@@ -121,8 +121,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           (it.verses || []).forEach((v) => truths.push({ parentId: it.id, type: 'verse', body: v.text, vref: v.ref, coll: it.struggle || 'Saved', trans: it.translation, ts: it.ts, parentKind: 'word' }));
           (it.declarations || []).forEach((d) => truths.push({ parentId: it.id, type: 'declaration', body: d, coll: it.struggle || 'Saved', ts: it.ts, parentKind: 'word' }));
           if (it.prayer) truths.push({ parentId: it.id, type: 'prayer', body: it.prayer, coll: it.struggle || 'Saved', ts: it.ts, parentKind: 'word' });
-        } else if (it.type === 'verse') {
-          truths.push({ parentId: it.id, type: 'verse', body: it.text, vref: it.ref, coll: 'Saved verses', trans: it.translation, ts: it.ts, parentKind: 'verse' });
+        } else if (it.type === 'verse' || it.type === 'declaration') {
+          truths.push({ parentId: it.id, type: it.type, body: it.text, vref: it.ref, coll: it.type === 'declaration' ? 'Declarations' : 'Saved verses', trans: it.translation, ts: it.ts, parentKind: it.type,
+            bgKind: it.bgKind, bgSrc: it.bgSrc, bgBy: it.bgBy, bgByLink: it.bgByLink, bgColor: it.bgColor, bgPhotoId: it.bgPhotoId });
         } else if (it.type === 'prayer') {
           truths.push({ parentId: it.id, type: 'prayer', body: it.prayer || it.text, coll: it.struggle || 'Prayers', ts: it.ts, parentKind: 'prayer' });
         }
@@ -211,10 +212,17 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           foot = '<div class="ft-ref">' + esc(t.vref) + (t.trans ? ' · ' + esc(t.trans) : '') + '</div>'
             + '<a class="ft-read" href="' + readLink(t.vref) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>Read in the Word</a>';
         }
+        let bgBlock = '';
+        if (t.bgKind === 'photo' && t.bgSrc) {
+          bgBlock = '<div class="ft-bg"><img src="' + esc(t.bgSrc) + '" loading="lazy" alt="">'
+            + '<div class="ft-bgcredit">Photo by <a href="' + esc(t.bgByLink || 'https://unsplash.com') + '?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">' + esc(t.bgBy || 'Unsplash') + '</a> on <a href="https://unsplash.com/?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a></div></div>';
+        } else if (t.bgKind === 'solid' && t.bgColor) {
+          bgBlock = '<div class="ft-bg"><span class="ft-bgsolid" style="background:' + esc(t.bgColor) + '"></span></div>';
+        }
         return '<div class="ftruth ' + (t.type === 'declaration' ? 'dec' : t.type === 'prayer' ? 'pray' : '') + '" style="--tagt:' + cfg.tagt + ';animation-delay:' + (i * 70) + 'ms"><span class="ft-glow"></span>'
           + '<span class="ft-acts"><button class="ft-share" data-i="' + i + '" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>'
           + '<button class="ft-del" data-i="' + i + '" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 13h9l1-13"/></svg></button></span>'
-          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + (t.type === 'declaration' ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + '</div>';
+          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + (t.type === 'declaration' ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
       }).join('');
       if (!focusList.length) {
         html = '<div class="empty-note">Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.</div>'
@@ -247,8 +255,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           e.stopPropagation();
           const t = focusList[+b.dataset.i];
           const stype = t.type === 'verse' ? 'verse' : t.type === 'declaration' ? 'declaration' : 'reading';
+          const bg = t.bgKind === 'photo' && t.bgSrc ? { kind: 'photo', src: t.bgSrc, by: t.bgBy, byLink: t.bgByLink, id: t.bgPhotoId }
+            : t.bgKind === 'solid' && t.bgColor ? { kind: 'solid', value: t.bgColor } : null;
           loadShareStack().then(() => {
-            if (window.DeclareShare) window.DeclareShare.open({ type: stype, text: t.body, ref: t.vref ? t.vref + (t.trans ? ' · ' + t.trans : '') : (t.type === 'prayer' ? 'A prayer' : ''), subtitle: t.coll || 'From your Vault', url: location.href });
+            if (window.DeclareShare) window.DeclareShare.open({ type: stype, text: t.body, ref: t.vref ? t.vref + (t.trans ? ' · ' + t.trans : '') : (t.type === 'prayer' ? 'A prayer' : ''), subtitle: t.coll || 'From your Vault', url: location.href, bg });
           });
         };
       });
@@ -436,6 +446,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       font-size: 12px; letter-spacing: .02em; font-weight: 700; color: var(--goldd); transition: .18s; }
     .vault .ft-read:hover { background: rgba(255, 255, 255, .13); border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
     .vault .ft-read svg { width: 14px; height: 14px; }
+    .vault .ft-bg { position: relative; z-index: 2; margin-top: 13px; }
+    .vault .ft-bg img { display: block; width: 100%; height: 96px; object-fit: cover; border-radius: 12px; }
+    .vault .ft-bgsolid { display: block; width: 100%; height: 56px; border-radius: 12px; }
+    .vault .ft-bgcredit { font-size: 10.5px; color: rgba(243, 239, 230, .55); margin-top: 6px; }
+    .vault .ft-bgcredit a { color: var(--goldd); text-decoration: none; }
+    .vault .ft-bgcredit a:hover { text-decoration: underline; }
+    html[data-theme="light"] .vault .ft-bgcredit { color: var(--muted); }
 
     /* go deeper bridge */
     .vault .vdeep { position: relative; margin-top: 6px; padding: 20px; border-radius: 18px; overflow: hidden;

@@ -905,7 +905,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const d7 = PLAN[TOTAL - 1];
       loadShareStack().then(function () {
         if (window.DeclareShare) {
-          window.DeclareShare.open({ type: 'journey', text: d7.declare, ref: (d7.ref || '') + (d7.ver ? ' · ' + d7.ver : ''), subtitle: active.from + ' → ' + active.to, url: location.href });
+          window.DeclareShare.open({ type: 'journey', text: d7.declare, ref: (d7.ref || '') + (d7.ver ? ' · ' + d7.ver : ''), subtitle: active.from + ' → ' + active.to, url: location.href, save: saveItem });
         } else { openShareSheet(jcShareText()); }
       });
     });

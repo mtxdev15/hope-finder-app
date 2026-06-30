@@ -19,15 +19,56 @@
   /* ---------- Unsplash library: curated themes (no key) + live search (Worker) ---------- */
   var WORKER='https://hope-finder-worker.thinktoro.workers.dev';
   var THEMES=[
-    { key:'mountains', name:'Mountains', ids:['1506905925346-21bda4d32df4','1464822759023-fed622ff2c3b','1519681393784-d120267933ba','1486870591958-9b9d0d1dda99','1454496522488-7a8e488e8606','1426604966848-d7adac402bff'] },
-    { key:'ocean',     name:'Ocean',     ids:['1439853949127-fa647821eba0','1507525428034-b723cf961d3e','1505142468610-359e7d316be0','1476673160081-cf065607f449','1447752875215-b2761acb3c5d'] },
-    { key:'sky',       name:'Sky',       ids:['1444703686981-a3abbc4d4fe3','1419242902214-272b3f66ee7a','1517685352821-92cf88aee5a5','1494500764479-0c8f2919a3d8','1475924156734-496f6cac6ec1'] },
-    { key:'forest',    name:'Forest',    ids:['1441974231531-c6227db76b6e','1470071459604-3b5ec3a7fe05','1502082553048-f009c37129b9','1505765050516-f72dcac9c60e','1500530855697-b586d89ba3ee','1441260038675-7329ab4cc264'] },
-    { key:'light',     name:'Light',     ids:['1472214103451-9374bd1c798e','1518837695005-2083093ee35b','1469474968028-56623f02e42e','1495616811223-4d98c6e9c869','1507400492013-162706c8c05e'] },
-    { key:'fields',    name:'Fields',    ids:['1490750967868-88aa4486c946','1465056836041-7f43ac27dcb5','1416169607655-0c2b3ce2e1cc','1490682143684-14369e18dce8','1519046904884-53103b34b206','1501785888041-af3ef285b470'] }
+    { key:'mountains', name:'Mountains', photos:[
+      { id:'wVjd0eWNqI8', by:"Paul Earle", link:'https://unsplash.com/@paulearlephotography', track:'https://api.unsplash.com/photos/wVjd0eWNqI8/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1483354483454-4cd359948304?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1483354483454-4cd359948304?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'MKddvpUfIWw', by:"Katelyn G", link:'https://unsplash.com/@katelyn_g', track:'https://api.unsplash.com/photos/MKddvpUfIWw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1721456794513-66071e3de1ff?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1721456794513-66071e3de1ff?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'pfywsjCLzKQ', by:"Daniel J. Schwarz", link:'https://unsplash.com/@danieljschwarz', track:'https://api.unsplash.com/photos/pfywsjCLzKQ/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1597327108036-262f75e2db6f?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1597327108036-262f75e2db6f?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'WAk7yzm44dM', by:"Vidar Nordli-Mathisen", link:'https://unsplash.com/@vidarnm', track:'https://api.unsplash.com/photos/WAk7yzm44dM/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1525045095963-43054687e444?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1525045095963-43054687e444?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'kKvQJ6rK6S4', by:"Shur Shu", link:'https://unsplash.com/@shurshu', track:'https://api.unsplash.com/photos/kKvQJ6rK6S4/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1486520299386-6d106b22014b?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1486520299386-6d106b22014b?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'hrHsSoY4lWY', by:"Rajesh Kavasseri", link:'https://unsplash.com/@saveri', track:'https://api.unsplash.com/photos/hrHsSoY4lWY/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxjYWxtJTIwbW91bnRhaW5zfGVufDF8fHx8MTc4Mjc3NzE1NHww', full:'https://images.unsplash.com/photo-1561765781-f7de2b8c56a5?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1561765781-f7de2b8c56a5?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] },
+    { key:'ocean', name:'Ocean', photos:[
+      { id:'n7a2OJDSZns', by:"Harli  Marten", link:'https://unsplash.com/@harlimarten', track:'https://api.unsplash.com/photos/n7a2OJDSZns/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1474540412665-1cdae210ae6b?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1474540412665-1cdae210ae6b?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'IZ01rjX0XQA', by:"Thomas Vimare", link:'https://unsplash.com/@vimarethomas', track:'https://api.unsplash.com/photos/IZ01rjX0XQA/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1468581264429-2548ef9eb732?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1468581264429-2548ef9eb732?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'cfR-V1QuEKw', by:"yucar studios", link:'https://unsplash.com/@yucar', track:'https://api.unsplash.com/photos/cfR-V1QuEKw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1457195740896-7f345efef228?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1457195740896-7f345efef228?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'7NjKwGDUmBM', by:"Sergei A", link:'https://unsplash.com/@sakulich', track:'https://api.unsplash.com/photos/7NjKwGDUmBM/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1444791252404-500e5b11f71b?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1444791252404-500e5b11f71b?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'TH2cSJMA4ik', by:"damien dufour", link:'https://unsplash.com/@damiendufourphotographie', track:'https://api.unsplash.com/photos/TH2cSJMA4ik/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1614923756087-ca9f44b6ec55?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1614923756087-ca9f44b6ec55?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'uafTsSj9Nb8', by:"Daniel Halseth", link:'https://unsplash.com/@dhalseth', track:'https://api.unsplash.com/photos/uafTsSj9Nb8/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxvY2VhbiUyMGhvcml6b24lMjBjYWxtfGVufDF8fHx8MTc4Mjc3NzE1NXww', full:'https://images.unsplash.com/photo-1573510459738-7ea3373bcc82?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1573510459738-7ea3373bcc82?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] },
+    { key:'sky', name:'Sky', photos:[
+      { id:'v9bnfMCyKbg', by:"Billy Huynh", link:'https://unsplash.com/@billy_huy', track:'https://api.unsplash.com/photos/v9bnfMCyKbg/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'6sf5rf8QYFE', by:"Wolf Zimmermann", link:'https://unsplash.com/@wzimmermann', track:'https://api.unsplash.com/photos/6sf5rf8QYFE/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1560837616-fee1f3d8753a?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1560837616-fee1f3d8753a?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'kIr8e-01eAw', by:"Sonny Mauricio", link:'https://unsplash.com/@northernstatemedia', track:'https://api.unsplash.com/photos/kIr8e-01eAw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1617150119111-09bbb85178b0?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1617150119111-09bbb85178b0?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'lR96g3H5VmA', by:"Sally", link:'https://unsplash.com/@its_sally', track:'https://api.unsplash.com/photos/lR96g3H5VmA/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1612404748636-568ca4155994?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1612404748636-568ca4155994?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'MHNjEBeLTgw', by:"Carlos Torres", link:'https://unsplash.com/@elcarito', track:'https://api.unsplash.com/photos/MHNjEBeLTgw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'WHJ1VaQpPsg', by:"Matt Palmer", link:'https://unsplash.com/@mattpalmer', track:'https://api.unsplash.com/photos/WHJ1VaQpPsg/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxzb2Z0JTIwc2t5JTIwY2xvdWRzfGVufDF8fHx8MTc4Mjc3NzE1Nnww', full:'https://images.unsplash.com/photo-1547963802-25f153e14080?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1547963802-25f153e14080?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] },
+    { key:'forest', name:'Forest', photos:[
+      { id:'sp-p7uuT0tw', by:"Sebastian Unrau", link:'https://unsplash.com/@sebastian_unrau', track:'https://api.unsplash.com/photos/sp-p7uuT0tw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'MMJx78V7xS8', by:"Steven Kamenar", link:'https://unsplash.com/@skamenar', track:'https://api.unsplash.com/photos/MMJx78V7xS8/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'SrASYZZpyjw', by:"Kyle Glenn", link:'https://unsplash.com/@kylejglenn', track:'https://api.unsplash.com/photos/SrASYZZpyjw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1506452305024-9d3f02d1c9b5?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1506452305024-9d3f02d1c9b5?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'TFyi0QOx08c', by:"Jay Mantri", link:'https://unsplash.com/@jaymantri', track:'https://api.unsplash.com/photos/TFyi0QOx08c/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'eGD69I3ODC4', by:"Michael Krahn", link:'https://unsplash.com/@michael_g_krahn', track:'https://api.unsplash.com/photos/eGD69I3ODC4/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1596237563267-84ffd99c80e1?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1596237563267-84ffd99c80e1?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'4CDdd1RCt6w', by:"Marek Szturc", link:'https://unsplash.com/@marxgall', track:'https://api.unsplash.com/photos/4CDdd1RCt6w/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxmb3Jlc3QlMjBsaWdodCUyMG1pc3R5fGVufDF8fHx8MTc4Mjc3NzE1N3ww', full:'https://images.unsplash.com/photo-1544039161-b0c20826c6f6?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1544039161-b0c20826c6f6?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] },
+    { key:'light', name:'Light', photos:[
+      { id:'NM74bZrDkdE', by:"MARIOLA GROBELSKA", link:'https://unsplash.com/@mariolagr', track:'https://api.unsplash.com/photos/NM74bZrDkdE/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1781120324447-2a1b0dfc4513?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1781120324447-2a1b0dfc4513?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'cyVCN2d3hRc', by:"MARIOLA GROBELSKA", link:'https://unsplash.com/@mariolagr', track:'https://api.unsplash.com/photos/cyVCN2d3hRc/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1781120324423-f2892818b713?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1781120324423-f2892818b713?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'tTBtNy1_uKw', by:"Dmytro Yarish", link:'https://unsplash.com/@dmytro_yarish', track:'https://api.unsplash.com/photos/tTBtNy1_uKw/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1757273967499-8a650435ecf2?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1757273967499-8a650435ecf2?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'-_NPeS3z0GY', by:"Dmytro Yarish", link:'https://unsplash.com/@dmytro_yarish', track:'https://api.unsplash.com/photos/-_NPeS3z0GY/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1757274054783-00b8a7e1614e?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1757274054783-00b8a7e1614e?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'u3esR7u_sHg', by:"Asse Slotendijk", link:'https://unsplash.com/@asses', track:'https://api.unsplash.com/photos/u3esR7u_sHg/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1765370847579-70d5d83401d2?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1765370847579-70d5d83401d2?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'7bXbSOnQ2YA', by:"Dmytro Yarish", link:'https://unsplash.com/@dmytro_yarish', track:'https://api.unsplash.com/photos/7bXbSOnQ2YA/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxzb2Z0JTIwbGlnaHQlMjBhYnN0cmFjdHxlbnwxfHx8fDE3ODI3NzcxNTh8MA', full:'https://images.unsplash.com/photo-1757273967483-0cf2835bcce3?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1757273967483-0cf2835bcce3?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] },
+    { key:'fields', name:'Fields', photos:[
+      { id:'fh1RIFQI_8M', by:"Adam Pluchrat", link:'https://unsplash.com/@grandeadamo', track:'https://api.unsplash.com/photos/fh1RIFQI_8M/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1626348448069-9b156d20faeb?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1626348448069-9b156d20faeb?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'6bTPFgsnvhE', by:"stenedit", link:'https://unsplash.com/@stenedit', track:'https://api.unsplash.com/photos/6bTPFgsnvhE/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwyfHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1627842822558-c1f15aef9838?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1627842822558-c1f15aef9838?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'3Sur4XMMK6E', by:"stenedit", link:'https://unsplash.com/@stenedit', track:'https://api.unsplash.com/photos/3Sur4XMMK6E/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHwzfHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1627842821274-dea040dcd484?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1627842821274-dea040dcd484?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'FHweDPl7aKE', by:"stenedit", link:'https://unsplash.com/@stenedit', track:'https://api.unsplash.com/photos/FHweDPl7aKE/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw0fHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1627841849651-2f80be5db524?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1627841849651-2f80be5db524?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'VrtEnvv3_sY', by:"stenedit", link:'https://unsplash.com/@stenedit', track:'https://api.unsplash.com/photos/VrtEnvv3_sY/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw1fHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1627841849662-98917d5ccf2c?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1627841849662-98917d5ccf2c?auto=format&fit=crop&w=240&h=240&q=60' },
+      { id:'jNS66zeR6bI', by:"stenedit", link:'https://unsplash.com/@stenedit', track:'https://api.unsplash.com/photos/jNS66zeR6bI/download?ixid=M3w5NzUzODB8MHwxfHNlYXJjaHw2fHxnb2xkZW4lMjBmaWVsZCUyMG1lYWRvd3xlbnwxfHx8fDE3ODI3NzcxNTl8MA', full:'https://images.unsplash.com/photo-1627841849657-dc1ab2a230fe?auto=format&fit=crop&w=1600&q=80', thumb:'https://images.unsplash.com/photo-1627841849657-dc1ab2a230fe?auto=format&fit=crop&w=240&h=240&q=60' }
+    ] }
   ];
   var US={ theme:'mountains', q:'', results:null, attr:null, req:0, timer:null };
-  function photoURL(id, full){ return 'https://images.unsplash.com/photo-'+id+(full?'?w=1200&q=80&auto=format&fit=crop':'?w=200&h=200&q=55&auto=format&fit=crop'); }
 
   /* ---------- fonts ---------- */
   var FONTS = [
@@ -40,20 +81,9 @@
   ];
   var FB = {}; FONTS.forEach(function(f){ FB[f.key]=f; });
 
-  /* ---------- moods (procedural cinematic) ---------- */
-  var MOODS = [
-    { key:'dawn',   name:'Dawn',   top:'#243a4a', bot:'#0b141b', light:'rgba(255,224,180,0.55)', text:'light' },
-    { key:'gold',   name:'Gold',   top:'#3a2f17', bot:'#130c05', light:'rgba(255,214,140,0.6)',  text:'light' },
-    { key:'forest', name:'Forest', top:'#26402f', bot:'#0a1410', light:'rgba(206,240,196,0.42)', text:'light' },
-    { key:'dusk',   name:'Dusk',   top:'#3a2a47', bot:'#120d1d', light:'rgba(255,188,212,0.45)', text:'light' },
-    { key:'ember',  name:'Ember',  top:'#481f19', bot:'#150706', light:'rgba(255,168,118,0.55)', text:'light' },
-    { key:'deep',   name:'Deep',   top:'#1d2b3a', bot:'#070c12', light:'rgba(150,200,255,0.42)', text:'light' },
-    { key:'night',  name:'Night',  top:'#14201a', bot:'#04070a', light:'rgba(216,184,95,0.45)',  text:'light' },
-    { key:'mist',   name:'Mist',   top:'#ece5d6', bot:'#cabda6', light:'rgba(255,255,255,0.65)', text:'dark' }
-  ];
+  /* ---------- gradient fallbacks (a few refined, offline-safe) ---------- */
   var GRADS = [
-    ['#2c4b3b','#13251c'], ['#3b3421','#1a160c'], ['#2a404b','#121e24'],
-    ['#44302a','#1f1512'], ['#352a45','#171221'], ['#1d3a32','#0a1714']
+    ['#2c4b3b','#13251c'], ['#2a404b','#121e24'], ['#352a45','#171221']
   ];
   var SOLIDS = ['#13211A','#22382E','#3A2F17','#2A404B','#451F19','#0c130f','#FAF7F2','#D8B85F'];
 
@@ -83,16 +113,25 @@
   /* ---------- helpers ---------- */
   function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function hexToRgb(h){ h=h.replace('#',''); if(h.length===3) h=h.split('').map(function(c){return c+c;}).join(''); var n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255]; }
-  function rgbToHex(r,g,b){ return '#'+[r,g,b].map(function(v){ v=Math.max(0,Math.min(255,Math.round(v))); return ('0'+v.toString(16)).slice(-2); }).join(''); }
-  function rotateHue(hex, deg){
-    var c=hexToRgb(hex), r=c[0]/255,g=c[1]/255,b=c[2]/255;
-    var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, h,s,d=mx-mn;
-    if(!d){ h=s=0; } else { s=l>0.5?d/(2-mx-mn):d/(mx+mn);
-      h = mx===r ? (g-b)/d+(g<b?6:0) : mx===g ? (b-r)/d+2 : (r-g)/d+4; h/=6; }
-    h=(h*360+deg)%360; if(h<0)h+=360; h/=360;
-    function t(p,q,t){ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
-    var q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
-    return rgbToHex(t(p,q,h+1/3)*255, t(p,q,h)*255, t(p,q,h-1/3)*255);
+
+  /* Smooth photo blur without ctx.filter (Safari doesn't apply it on canvas). We render
+     the cover-fit photo, then progressively HALVE it down and DOUBLE it back up to the exact
+     card size. Each bilinear step is a box filter; stacking them approximates a Gaussian, so
+     the result is smooth (not the blocky single-upscale artifact) with no zoom. */
+  function smoothStep(src, sw, sh){
+    var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(sw)); c.height=Math.max(1,Math.round(sh));
+    var x=c.getContext('2d'); x.imageSmoothingEnabled=true; if(x.imageSmoothingQuality) x.imageSmoothingQuality='high';
+    x.drawImage(src,0,0,c.width,c.height); return c;
+  }
+  function blurredCover(img, W, H, dx, dy, dw, dh, blur){
+    var a=document.createElement('canvas'); a.width=W; a.height=H;
+    var ax=a.getContext('2d'); ax.imageSmoothingEnabled=true; if(ax.imageSmoothingQuality) ax.imageSmoothingQuality='high';
+    ax.drawImage(img, dx, dy, dw, dh);
+    var smallDim=Math.max(4, Math.round(Math.min(W,H)/(1+blur*0.6)));
+    var cur=a, cw=W, ch=H;
+    while(Math.min(cw,ch) > smallDim){ cw=Math.max(smallDim, cw/2); ch=Math.max(smallDim, ch/2); cur=smoothStep(cur,cw,ch); }
+    while(cur.width < W || cur.height < H){ cw=Math.min(W, cur.width*2); ch=Math.min(H, cur.height*2); cur=smoothStep(cur,cw,ch); }
+    return cur;
   }
 
   /* ---------- rendering ---------- */
@@ -101,10 +140,10 @@
     if(bg.kind==='photo' && bg.img){
       var iw=bg.img.width, ih=bg.img.height, ir=iw/ih, fr=W/H, dw,dh,dx,dy;
       if(ir>fr){ dh=H; dw=H*ir; } else { dw=W; dh=W/ir; }
-      var blur = (D&&D.blur)||0, infl=blur*2.4;
-      dw+=infl*2; dh+=infl*2; dx=(W-dw)/2; dy=(H-dh)/2;
-      if(blur){ ctx.save(); ctx.filter='blur('+blur+'px)'; ctx.drawImage(bg.img,dx,dy,dw,dh); ctx.restore(); }
-      else { ctx.drawImage(bg.img,dx,dy,dw,dh); }
+      dx=(W-dw)/2; dy=(H-dh)/2;
+      var blur = (D&&D.blur)||0;
+      if(blur){ ctx.drawImage(blurredCover(bg.img,W,H,dx,dy,dw,dh,blur),0,0,W,H); }
+      else { ctx.drawImage(bg.img, dx, dy, dw, dh); }
       var dk = (D&&D.dark!=null)?D.dark:0.28;
       if(dk){ ctx.fillStyle='rgba(0,0,0,'+dk+')'; ctx.fillRect(0,0,W,H); }
       var sc=ctx.createLinearGradient(0,0,0,H);
@@ -117,35 +156,9 @@
       var g=ctx.createLinearGradient(0,0,W*0.3,H); g.addColorStop(0,bg.value[0]); g.addColorStop(1,bg.value[1]);
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H); vignette(ctx,W,H,0.34); grain(ctx,W,H,0.04); return;
     }
-    paintMood(ctx,W,H,bg.value,bg.seed||0);
-  }
-
-  function paintMood(ctx,W,H,m,seed){
-    var top = seed?rotateHue(m.top,seed):m.top, bot = seed?rotateHue(m.bot,seed):m.bot;
-    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,top); g.addColorStop(1,bot);
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    // warm top light
-    ctx.globalCompositeOperation='screen';
-    var r=ctx.createRadialGradient(W*0.5,-H*0.06,0, W*0.5,-H*0.06,H*0.72);
-    r.addColorStop(0,m.light); r.addColorStop(0.5,m.light.replace(/[\d.]+\)$/,'0.12)')); r.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=r; ctx.fillRect(0,0,W,H);
-    // god rays
-    ctx.save();
-    var apexX=W*0.5, apexY=-H*0.04, rays=20, spread=Math.PI*0.9;
-    for(var i=0;i<rays;i++){
-      var base=(-spread/2)+(i/(rays-1))*spread + (seed*0.0009);
-      var jitter=((i*53+seed)%17)/17;
-      var a1=base-0.006-jitter*0.004, a2=base+0.006+jitter*0.004, len=H*1.25;
-      ctx.beginPath(); ctx.moveTo(apexX,apexY);
-      ctx.lineTo(apexX+Math.sin(a1)*len, apexY+Math.cos(a1)*len);
-      ctx.lineTo(apexX+Math.sin(a2)*len, apexY+Math.cos(a2)*len); ctx.closePath();
-      ctx.fillStyle = m.light.replace(/[\d.]+\)$/,(0.05+jitter*0.05).toFixed(3)+')');
-      ctx.fill();
-    }
-    ctx.restore();
-    ctx.globalCompositeOperation='source-over';
-    vignette(ctx,W,H,0.4);
-    grain(ctx,W,H,0.05);
+    // fallback: a calm solid (used briefly while the default photo decodes, or offline)
+    ctx.fillStyle = (bg && typeof bg.value==='string') ? bg.value : '#22382E';
+    ctx.fillRect(0,0,W,H); grain(ctx,W,H,0.03);
   }
   function vignette(ctx,W,H,amt){
     var v=ctx.createRadialGradient(W*0.5,H*0.42,Math.min(W,H)*0.18, W*0.5,H*0.52,Math.max(W,H)*0.72);
@@ -180,11 +193,14 @@
     var col = dark? '#191512' : '#FCF8EE';
     var pad=W*0.115, maxW=W-pad*2;
     var sizeMul = d.size||1;
-    var base = W*0.082*f.scale*sizeMul;
     function setF(sz){ ctx.font = f.w+' '+sz+'px '+f.fam; }
+    // 1) auto-fit a baseline so long passages don't overflow (independent of the user's size)
+    var base = W*0.082*f.scale;
     setF(base);
     var lines=wrapLines(ctx,d.text,maxW), guard=0;
     while(lines.length>(d.type==='declaration'?7:6) && base>W*0.044 && guard++<14){ base*=0.93; setF(base); lines=wrapLines(ctx,d.text,maxW); }
+    // 2) apply the user's Text size on top of that baseline, then re-wrap at the final size
+    base*=sizeMul; setF(base); lines=wrapLines(ctx,d.text,maxW);
     var lh=base*(f.k==='hand'?1.12:1.26);
     var hasRef=!!d.ref;
     var refSize=W*0.03, refGap=W*0.06;
@@ -249,14 +265,31 @@
   var root, scrim, D, dpr=Math.min(window.devicePixelRatio||1, 2.5);
   var P = {};
 
+  /* A calm curated photo leads each card type. The photo loads async, so the card
+     opens on a refined solid placeholder and the photo swaps in a moment later. */
+  var THEME_BY_TYPE = { verse:'mountains', declaration:'light', reading:'forest', journey:'sky' };
+  function pickDefaultPhoto(type){
+    var key=THEME_BY_TYPE[type]||'mountains';
+    var t=THEMES.filter(function(x){return x.key===key;})[0]||THEMES[0];
+    return t&&t.photos&&t.photos[0];
+  }
   function defaults(p){
-    var moodByType = { verse:'dawn', declaration:'gold', reading:'deep', journey:'forest' };
-    var m = MOODS.filter(function(x){return x.key===(moodByType[p.type]||'dawn');})[0]||MOODS[0];
-    return {
+    var d={
       type:p.type, text:p.text||'', ref:p.ref||'', url:p.url||location.href,
-      format:'post', font:'cormorant', color:m.text, size:1,
-      bg:{ kind:'mood', value:m, seed:0 }, blur:0, dark:0.28, _tool:'image'
+      translation:p.translation||'',
+      format:'post', font:'cormorant', color:'light', size:1,
+      bg:{ kind:'solid', value:'#22382E' }, blur:0, dark:0.28, _tool:'image', _pendingPhoto:null
     };
+    if(p.bg && p.bg.kind==='solid' && p.bg.value){
+      d.bg={kind:'solid',value:p.bg.value}; d.color=isLight(p.bg.value)?'dark':'light';
+    } else if(p.bg && p.bg.kind==='photo' && p.bg.src){
+      // re-opening a saved card: show its photo + credit (no fresh download trigger on re-display)
+      d._pendingPhoto={ url:p.bg.src, meta:{ name:p.bg.by, link:p.bg.byLink, id:p.bg.id } };
+    } else {
+      var ph=pickDefaultPhoto(p.type);
+      if(ph) d._pendingPhoto={ url:ph.full, meta:{ name:ph.by, link:ph.link, id:ph.id } };
+    }
+    return d;
   }
 
   function ensure(){
@@ -266,8 +299,9 @@
     scrim.className='cst-scrim'+(root===document.body?' fixed':'');
     scrim.innerHTML=
       '<div class="cst">'+
-        '<div class="cst-top"><button class="cst-ib" data-x>'+I.x+'</button><div class="cst-title" id="cstTitle">Design your card</div><button class="cst-go" data-share>'+I.share+'Share</button></div>'+
+        '<div class="cst-top"><span class="cst-lead"><button class="cst-ib" data-x>'+I.x+'</button></span><div class="cst-title" id="cstTitle">Design your card</div><span class="cst-trail"><button class="cst-go" data-share>'+I.share+'Share</button></span></div>'+
         '<div class="cst-stage"><canvas class="cst-canvas" id="cstCanvas"></canvas></div>'+
+        '<div class="cst-credit" id="cstCredit"></div>'+
         '<div class="cst-dock">'+
           '<div class="cst-tool-panel" id="cstBody"></div>'+
           '<div class="cst-toolbar" id="cstToolbar"></div>'+
@@ -295,7 +329,15 @@
     cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
     paint();
   }
-  function paint(){ var cv=scrim.querySelector('#cstCanvas'); renderTo(cv, D); }
+  function paint(){ var cv=scrim.querySelector('#cstCanvas'); renderTo(cv, D); updateCredit(); }
+  function creditHTML(name, link){
+    return 'Photo by <a href="'+esc(link)+'?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">'+esc(name)+'</a> on <a href="https://unsplash.com/?utm_source=declare&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a>';
+  }
+  function updateCredit(){
+    var el=scrim&&scrim.querySelector('#cstCredit'); if(!el) return;
+    if(D&&D.bg&&D.bg.kind==='photo'&&US.attr&&US.attr.name){ el.innerHTML=creditHTML(US.attr.name, US.attr.link); el.style.display=''; }
+    else { el.innerHTML=''; el.style.display='none'; }
+  }
   function repaintSoft(){ var cv=scrim.querySelector('#cstCanvas'); cv.classList.add('swap'); requestAnimationFrame(function(){ paint(); requestAnimationFrame(function(){ cv.classList.remove('swap'); }); }); }
 
   /* ----- bottom toolbar: one focused tool at a time (YouVersion model) ----- */
@@ -342,13 +384,12 @@
     wireBody(body);
     if(D._tool==='image') paintUsArea(body);
     body.querySelectorAll('canvas[data-thumb]').forEach(function(c){
-      var kind=c.getAttribute('data-thumb'), idx=+c.getAttribute('data-i');
-      var bg = kind==='mood' ? {kind:'mood',value:MOODS[idx],seed:0} : {kind:'gradient',value:GRADS[idx]};
-      c.width=120; c.height=120; renderToThumb(c,bg);
+      var idx=+c.getAttribute('data-i');
+      c.width=120; c.height=120; renderToThumb(c,{kind:'gradient',value:GRADS[idx]});
     });
   }
 
-  /* IMAGE \u2014 one scrolling panel: upload \u00b7 cinematic \u00b7 photos \u00b7 gradients \u00b7 colors */
+  /* IMAGE \u2014 one scrolling panel: photo preview/upload \u00b7 photos \u00b7 gradients \u00b7 colors */
   function imageTool(){
     var html='', isPhoto=D.bg.kind==='photo';
     if(isPhoto && D.bg.img){
@@ -358,12 +399,7 @@
     } else {
       html+='<button class="cst-drop slim" data-upload>'+I.up+'<span class="dt">Upload your photo</span></button>';
     }
-    html+='<div class="cst-lbl" style="margin-top:14px">Cinematic <button class="cst-gen" data-gen>'+I.spark+'Generate</button></div>';
-    html+='<div class="cst-grid">'+MOODS.map(function(m,i){
-      var on=D.bg.kind==='mood'&&D.bg.value.key===m.key;
-      return '<button class="cst-thumb'+(on?' on':'')+'" data-mood="'+i+'"><canvas data-thumb="mood" data-i="'+i+'"></canvas><span class="tn">'+m.name+'</span></button>';
-    }).join('')+'</div>';
-    html+='<div class="cst-lbl" style="margin-top:14px">Photos <span class="cst-by">Unsplash</span></div>';
+    html+='<div class="cst-lbl">Photos <span class="cst-by">Unsplash</span></div>';
     html+='<div class="cst-ussearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><input data-ussearch placeholder="Search Unsplash\u2026" value="'+esc(US.q)+'"></div>';
     html+='<div class="cst-attr" id="usAttr"></div>';
     html+='<div class="cst-chiprow" id="usThemes"></div>';
@@ -424,8 +460,8 @@
   function loadPhoto(url, meta){
     var img=new Image(); img.crossOrigin='anonymous';
     img.onload=function(){
-      D.bg={kind:'photo',img:img,src:url}; D.color='light';
-      US.attr = meta ? { name:meta.name, link:meta.link } : null;
+      D.bg={kind:'photo',img:img,src:url,photoId:meta&&meta.id}; D.color='light';
+      US.attr = meta ? { name:meta.name, link:meta.link, id:meta.id } : null;
       if(meta && meta.track){ try{ fetch(WORKER+'/unsplash/track?d='+encodeURIComponent(meta.track)); }catch(e){} }
       renderControls(); repaintSoft();
     };
@@ -449,9 +485,9 @@
       }).join(''):'<div class="cst-usnote">Nothing found for \u201c'+esc(US.q)+'\u201d.</div>';
     } else {
       var t=THEMES.filter(function(x){return x.key===US.theme;})[0]||THEMES[0];
-      grid.innerHTML=t.ids.map(function(id){
-        var on=D.bg.kind==='photo' && D.bg.src && D.bg.src.indexOf(id)>-1;
-        return '<button class="cst-thumb'+(on?' on':'')+'" data-photo="'+photoURL(id,true)+'"><img src="'+photoURL(id,false)+'" loading="lazy" alt=""></button>';
+      grid.innerHTML=t.photos.map(function(p){
+        var on=D.bg.kind==='photo' && D.bg.src===p.full;
+        return '<button class="cst-thumb'+(on?' on':'')+'" data-photo="'+esc(p.full)+'" data-name="'+esc(p.by||'')+'" data-link="'+esc(p.link||'')+'" data-track="'+esc(p.track||'')+'"><img src="'+esc(p.thumb)+'" loading="lazy" alt=""></button>';
       }).join('');
     }
     if(attr){
@@ -487,14 +523,12 @@
 
   function wireBody(body){
     body.querySelectorAll('[data-fmt]').forEach(function(b){ b.addEventListener('click', function(){ D.format=b.getAttribute('data-fmt'); renderControls(); fitCanvas(); }); });
-    body.querySelectorAll('[data-mood]').forEach(function(b){ b.addEventListener('click', function(){ var m=MOODS[+b.getAttribute('data-mood')]; D.bg={kind:'mood',value:m,seed:0}; D.color=m.text; renderControls(); repaintSoft(); }); });
-    body.querySelectorAll('[data-grad]').forEach(function(b){ b.addEventListener('click', function(){ D.bg={kind:'gradient',value:GRADS[+b.getAttribute('data-grad')]}; D.color='light'; renderControls(); repaintSoft(); }); });
-    body.querySelectorAll('[data-solid]').forEach(function(b){ b.addEventListener('click', function(){ var c=b.getAttribute('data-solid'); D.bg={kind:'solid',value:c}; D.color = isLight(c)?'dark':'light'; renderControls(); repaintSoft(); }); });
-    var cc=body.querySelector('[data-customcolor]'); if(cc) cc.addEventListener('input', function(){ D.bg={kind:'solid',value:cc.value}; D.color=isLight(cc.value)?'dark':'light'; paint(); });
-    var gen=body.querySelector('[data-gen]'); if(gen) gen.addEventListener('click', function(){ var m=MOODS[Math.floor(Math.random()*7)]; D.bg={kind:'mood',value:m,seed:Math.floor(Math.random()*360)}; D.color=m.text; repaintSoft(); });
+    body.querySelectorAll('[data-grad]').forEach(function(b){ b.addEventListener('click', function(){ D.bg={kind:'gradient',value:GRADS[+b.getAttribute('data-grad')]}; D.color='light'; US.attr=null; renderControls(); repaintSoft(); }); });
+    body.querySelectorAll('[data-solid]').forEach(function(b){ b.addEventListener('click', function(){ var c=b.getAttribute('data-solid'); D.bg={kind:'solid',value:c}; D.color = isLight(c)?'dark':'light'; US.attr=null; renderControls(); repaintSoft(); }); });
+    var cc=body.querySelector('[data-customcolor]'); if(cc) cc.addEventListener('input', function(){ D.bg={kind:'solid',value:cc.value}; D.color=isLight(cc.value)?'dark':'light'; US.attr=null; paint(); });
     body.querySelectorAll('[data-upload]').forEach(function(b){ b.addEventListener('click', function(){ scrim.querySelector('#cstFile').click(); }); });
     body.querySelectorAll('[data-slider]').forEach(function(r){ r.addEventListener('input', function(){ var k=r.getAttribute('data-slider'); D[k]=parseFloat(r.value); var dv=body.querySelector('[data-sval="'+k+'"]'); if(dv) dv.textContent=sliderDisp(k,D[k]); paint(); }); });
-    var rm=body.querySelector('[data-rmphoto]'); if(rm) rm.addEventListener('click', function(){ D.bg={kind:'mood',value:MOODS[0],seed:0}; D.color='light'; US.attr=null; renderControls(); repaintSoft(); });
+    var rm=body.querySelector('[data-rmphoto]'); if(rm) rm.addEventListener('click', function(){ D.bg={kind:'solid',value:'#22382E'}; D.color='light'; US.attr=null; renderControls(); repaintSoft(); });
     var ta=body.querySelector('[data-text]'); if(ta) ta.addEventListener('input', function(){ D.text=ta.value; paint(); });
     var rf=body.querySelector('[data-ref]'); if(rf) rf.addEventListener('input', function(){ D.ref=rf.value; paint(); });
     body.querySelectorAll('[data-font]').forEach(function(b){ b.addEventListener('click', function(){ D.font=b.getAttribute('data-font'); ensureFonts().then(paint); renderControls(); paint(); }); });
@@ -509,16 +543,15 @@
     rd.readAsDataURL(file); e.target.value='';
   }
 
-  /* ----- surprise ----- */
+  /* ----- surprise: shuffle a random curated photo + a fresh font/size ----- */
   function surprise(){
-    var m=MOODS[Math.floor(Math.random()*7)];
+    var pool=THEMES.reduce(function(a,t){ return a.concat(t.photos||[]); },[]);
+    var p=pool[Math.floor(Math.random()*pool.length)];
     var fonts=FONTS.filter(function(f){return f.key!=='bebas'||D.type==='declaration';});
-    D.bg={kind:'mood',value:m,seed:Math.random()<0.5?0:Math.floor(Math.random()*360)};
-    D.color=m.text;
     D.font=fonts[Math.floor(Math.random()*fonts.length)].key;
     D.size=[0.85,1,1,1.18][Math.floor(Math.random()*4)];
-    ensureFonts().then(function(){ renderControls(); repaintSoft(); });
-    renderControls(); repaintSoft();
+    if(p){ loadPhoto(p.full, { name:p.by, link:p.link, track:p.track, id:p.id }); }
+    else { renderControls(); repaintSoft(); }
   }
 
   /* ----- export + share ----- */
@@ -598,13 +631,17 @@
       {k:'facebook',l:'Facebook',f:'post'},{k:'threads',l:'Threads',f:'portrait'},
       {k:'download',l:'Download'},{k:'more',l:'More'}
     ];
+    var credit = (D.bg&&D.bg.kind==='photo'&&US.attr&&US.attr.name) ? '<div class="cst-attr" style="text-align:center;margin:6px 0 2px">'+creditHTML(US.attr.name, US.attr.link)+'</div>' : '';
+    var canSave = typeof P.save==='function';
+    var saveBtn = canSave ? '<button class="cst-savevault" data-savevault>'+I.check+'<span>Save to your Vault</span></button>' : '';
     sub.innerHTML='<div class="sb-bd" data-subclose></div><div class="sb-sheet">'+
-      '<div class="cst-grab"></div><div class="cst-sh-h">Share your card</div><div class="cst-sh-s">We\u2019ll size it for where it\u2019s going</div>'+
+      '<div class="cst-grab"></div><div class="cst-sh-h">Share your card</div><div class="cst-sh-s">We\u2019ll size it for where it\u2019s going</div>'+credit+saveBtn+
       '<div class="cst-plats">'+plats.map(function(p,i){
         return '<button class="cst-plat" data-plat="'+p.k+'"'+(p.f?' data-pfmt="'+p.f+'"':'')+' style="animation-delay:'+(50+i*40)+'ms"><span class="pi" style="background:'+(PLAT_BG[p.k]||'#444')+'">'+PLAT[p.k]+'</span><span class="pl">'+p.l+(p.s?'<small>'+p.s+'</small>':'')+'</span></button>';
       }).join('')+'</div></div>';
     sub.classList.add('open'); void sub.offsetWidth; sub.classList.add('cst-on');
     sub.querySelector('[data-subclose]').addEventListener('click', closeShareSheet);
+    var sv=sub.querySelector('[data-savevault]'); if(sv) sv.addEventListener('click', saveToVault);
     sub.querySelectorAll('[data-plat]').forEach(function(b){ b.addEventListener('click', function(){
       var k=b.getAttribute('data-plat'), pf=b.getAttribute('data-pfmt');
       if(k==='download'){ exportShare('download'); return; }
@@ -614,6 +651,31 @@
     }); });
   }
   function closeShareSheet(){ var sub=scrim.querySelector('#cstSub'); sub.classList.remove('cst-on'); setTimeout(function(){ sub.classList.remove('open'); },360); }
+
+  /* Save the card to the Vault. We store the verse plus a lightweight background
+     reference (photo url + credit, or solid color) and reconstruct the card on render.
+     The opener supplies P.save (the app's saveItem); this script only builds the item. */
+  function buildVaultItem(){
+    var vtype = D.type==='declaration' ? 'declaration' : 'verse';
+    var item={ type:vtype, text:D.text||'', ref:D.ref||'', ts:Date.now() };
+    if(P.translation) item.translation=P.translation;
+    if(D.bg&&D.bg.kind==='photo'){
+      item.bgKind='photo'; item.bgSrc=D.bg.src||'';
+      if(D.bg.photoId) item.bgPhotoId=D.bg.photoId;
+      if(US.attr){ if(US.attr.name) item.bgBy=US.attr.name; if(US.attr.link) item.bgByLink=US.attr.link; }
+    } else if(D.bg&&D.bg.kind==='solid'){
+      item.bgKind='solid'; item.bgColor=D.bg.value;
+    }
+    // deterministic id so re-saving the same verse+background updates rather than duplicates
+    item.id='verse:'+(item.ref||item.text.slice(0,40))+':'+(item.bgSrc||item.bgColor||'plain');
+    return item;
+  }
+  function saveToVault(){
+    if(typeof P.save!=='function') return;
+    try{ P.save(buildVaultItem()); toast('Saved to your Vault'); }
+    catch(e){ toast('Couldn’t save that'); }
+    closeShareSheet();
+  }
 
   /* ----- toast ----- */
   var tT; function toast(msg){ var t=scrim.querySelector('#cstToast'); t.innerHTML='<span class="tk">'+I.check+'</span>'+esc(msg); t.classList.add('show'); clearTimeout(tT); tT=setTimeout(function(){ t.classList.remove('show'); },2200); }
@@ -629,6 +691,8 @@
     document.addEventListener('keydown', onKey);
     ensureFonts().then(function(){ fitCanvas(); });
     requestAnimationFrame(function(){ setTimeout(fitCanvas, 60); });
+    // swap in the curated (or saved) photo once the studio is up; the solid placeholder shows meanwhile
+    if(D._pendingPhoto){ var pp=D._pendingPhoto; D._pendingPhoto=null; loadPhoto(pp.url, pp.meta); }
   }
   function close(){ if(!scrim) return; scrim.classList.remove('cst-on'); document.removeEventListener('keydown', onKey); setTimeout(function(){ scrim.classList.remove('open'); },480); }
   function onKey(e){ if(e.key==='Escape'){ var sub=scrim.querySelector('#cstSub'); if(sub.classList.contains('open')) closeShareSheet(); else close(); } }
