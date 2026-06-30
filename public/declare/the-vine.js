@@ -25,14 +25,16 @@
     red:   ['rgba(255,224,214,.98)', 'rgba(222,98,82,.62)',   'rgba(196,64,52,0)']
   };
 
+  // asset version — bump on every art change so phones fetch fresh, never a cached old frame
+  var ASSET_V = '?v=3.12.1';
   // preload the three frames so crossfades are instant after first build
-  ['tree-dead', 'tree-budding', 'tree-alive'].forEach(function (n) { var i = new Image(); i.src = '/declare/' + n + '.jpg'; });
+  ['tree-dead', 'tree-budding', 'tree-alive'].forEach(function (n) { var i = new Image(); i.src = '/declare/' + n + '.jpg' + ASSET_V; });
 
   function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function frameImg(name, over) {
     var im = document.createElement('img');
-    im.src = '/declare/' + name + '.jpg'; im.alt = ''; im.setAttribute('aria-hidden', 'true'); im.decoding = 'async';
+    im.src = '/declare/' + name + '.jpg' + ASSET_V; im.alt = ''; im.setAttribute('aria-hidden', 'true'); im.decoding = 'async';
     if (over) { im.className = 'tl-over'; im.style.opacity = '0'; } else { im.style.opacity = '1'; }
     return im;
   }
