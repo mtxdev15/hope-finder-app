@@ -120,7 +120,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.11.4</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.11.5</div>
         </section>
       </div>
     </div>
@@ -698,6 +698,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.11.5', date: 'June 2026', items: [
+        ['Fixed', 'On the day-complete screen, the growing vine now shows in full — its branches and soft light are no longer cut off.'],
+      ] },
       { v: '3.11.4', date: 'June 2026', items: [
         ['Fixed', 'Stepping away from a Journey day, including to read the verse, and coming back now resumes right where you left off, with the same word and your progress intact, instead of starting the day over.'],
       ] },

@@ -1413,6 +1413,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .ov-in::-webkit-scrollbar { display: none; }
 
     .journey .dc-tree { position: relative; width: min(74%, 290px); flex: 0 0 auto; }
+    /* Let the vine breathe: the art's soft glow and full grown branches extend past the SVG's
+       280×380 viewBox; without this they're clipped to a hard rectangle (looked like "just the
+       branch"). Scoped to the day-complete tree so the home/viewer cards aren't affected. */
+    .journey .dc-tree svg { overflow: visible; }
     .journey .dc-aff { font-family: 'Cormorant Garamond', serif; font-size: 25px; line-height: 1.3; color: var(--text); margin-top: 20px; max-width: 22ch; }
     .journey .dc-sub { font-size: 13.5px; color: var(--muted); margin-top: 18px; max-width: 30ch; line-height: 1.55; }
     .journey .dc-actions { margin-top: 26px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 11px; flex: 0 0 auto; }
