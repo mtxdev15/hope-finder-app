@@ -16,7 +16,7 @@
 
   // fruit anchor points over the alive-tree canopy (% of the card)
   var FRUIT = [
-    { l: 36, t: 52 }, { l: 60, t: 46 }, { l: 27, t: 34 }, { l: 70, t: 31 }, { l: 50, t: 19 }
+    { l: 30, t: 52 }, { l: 62, t: 50 }, { l: 24, t: 40 }, { l: 74, t: 42 }, { l: 50, t: 28 }
   ];
   // glowing fruit colours (inner / mid / outer of a radial gradient)
   var COLORS = {
