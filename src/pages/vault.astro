@@ -37,7 +37,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       </div>
     </div>
 
-    <button class="fab" id="fab" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>New</button>
 
     {/* focus overlay (design) */}
     <div class="focus" id="focus"><div class="focus-glow"></div>
@@ -161,6 +160,28 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         + '<div class="bc-name">' + esc(c.name) + '</div><div class="bc-meta">' + count + (count === 1 ? ' truth' : ' truths') + (c.recent ? ' · ' + relTime(c.recent) : '') + '</div></button>';
     }
     const createCard = () => '<button class="createcard" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">New collection</span></button>';
+
+    /* Re-open a saved truth in the Card Studio (re-share), preserving its saved background. */
+    function reshareTruth(t) {
+      if (!t) return;
+      const stype = t.type === 'verse' ? 'verse' : t.type === 'declaration' ? 'declaration' : 'reading';
+      const bg = t.bgKind === 'photo' && t.bgSrc ? { kind: 'photo', src: t.bgSrc, by: t.bgBy, byLink: t.bgByLink, id: t.bgPhotoId }
+        : t.bgKind === 'solid' && t.bgColor ? { kind: 'solid', value: t.bgColor } : null;
+      loadShareStack().then(() => {
+        if (window.DeclareShare) window.DeclareShare.open({ type: stype, text: t.body, ref: t.vref ? t.vref + (t.trans ? ' · ' + t.trans : '') : (t.type === 'prayer' ? 'A prayer' : ''), subtitle: t.coll || 'From your Vault', url: location.href, bg });
+      });
+    }
+
+    /* Verse-image cards: saved cards that carry a photo background, shown as cover-image
+       tiles in their own "Verse images" rail. Tapping re-opens the card in the Studio. */
+    function imgCard(t, i) {
+      const q = (t.body || '').replace(/[“”"]/g, '');
+      return '<button class="bcard imgcard" data-vimg="' + i + '" style="animation-delay:' + (i * 60) + 'ms">'
+        + '<img class="ic-photo" src="' + esc(t.bgSrc) + '" loading="lazy" alt="" />'
+        + '<span class="ic-shade"></span>'
+        + '<div class="ic-body"><div class="ic-quote">“' + esc(q.slice(0, 90)) + (q.length > 90 ? '…' : '') + '”</div>'
+        + '<div class="ic-ref">' + esc(t.vref || '') + '</div></div></button>';
+    }
     function shelf(title, cardsHtml, delay) {
       if (!cardsHtml) return '';
       return '<section class="shelf" style="animation-delay:' + delay + 'ms"><div class="shelf-h"><span class="t">' + title + '</span></div><div class="rail">' + cardsHtml + '</div></section>';
@@ -170,23 +191,27 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       rebuild();
       const empty = !truths.length && !userColls.length;
       $('vempty').hidden = !empty;
-      $('fab').hidden = empty;
       $('vsearchWrap').style.display = empty ? 'none' : '';
       if (empty) { $('shelves').innerHTML = ''; return; }
 
       const groups = autoGroups();
+      const vimgs = truths.filter((t) => t.bgKind === 'photo' && t.bgSrc && matches(t)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
       const recentHtml = groups.slice(0, 6).map((c) => bcard(c, c.items.length, c.items[0])).join('');
       const yoursHtml = userColls.map((c) => {
         const its = collTruths(c);
         return bcard({ name: c.name, kind: c.kind, mine: true, recent: its.length ? its[0].ts : c.ts }, its.length, its[0] || null);
       }).join('') + createCard();
+      const vimgHtml = vimgs.map(imgCard).join('');
 
+      let d = 0;
       let html = '';
-      html += shelf('Recently saved', recentHtml, 0);
-      html += shelf('Your collections', yoursHtml, 90);
-      if (query && !groups.length) html = '<div class="empty-note">Nothing matches your search.</div>' + shelf('Your collections', yoursHtml, 0);
+      if (vimgHtml) { html += shelf('Verse images', vimgHtml, d); d += 90; }
+      html += shelf('Recently saved', recentHtml, d); d += 90;
+      html += shelf('Your collections', yoursHtml, d);
+      if (query && !groups.length && !vimgs.length) html = '<div class="empty-note">Nothing matches your search.</div>' + shelf('Your collections', yoursHtml, 0);
       $('shelves').innerHTML = html;
-      $('shelves').querySelectorAll('.bcard').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
+      $('shelves').querySelectorAll('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
+      $('shelves').querySelectorAll('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[+b.dataset.vimg]); });
       const cc = $('cc-create'); if (cc) cc.onclick = openCreate;
     }
 
@@ -251,16 +276,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const del = $('collDelete');
       if (del) del.onclick = () => { removeCollection(name); toast('Collection removed'); closeFocus(); render(); };
       $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
-        b.onclick = (e) => {
-          e.stopPropagation();
-          const t = focusList[+b.dataset.i];
-          const stype = t.type === 'verse' ? 'verse' : t.type === 'declaration' ? 'declaration' : 'reading';
-          const bg = t.bgKind === 'photo' && t.bgSrc ? { kind: 'photo', src: t.bgSrc, by: t.bgBy, byLink: t.bgByLink, id: t.bgPhotoId }
-            : t.bgKind === 'solid' && t.bgColor ? { kind: 'solid', value: t.bgColor } : null;
-          loadShareStack().then(() => {
-            if (window.DeclareShare) window.DeclareShare.open({ type: stype, text: t.body, ref: t.vref ? t.vref + (t.trans ? ' · ' + t.trans : '') : (t.type === 'prayer' ? 'A prayer' : ''), subtitle: t.coll || 'From your Vault', url: location.href, bg });
-          });
-        };
+        b.onclick = (e) => { e.stopPropagation(); reshareTruth(focusList[+b.dataset.i]); };
       });
       $('focusIn').querySelectorAll('.ft-del').forEach((b) => {
         b.onclick = (e) => {
@@ -304,7 +320,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     function closeSheet() { $('createSheet').classList.remove('open'); $('vscrim').classList.remove('open'); }
     $('vscrim').onclick = closeSheet;
-    $('fab').onclick = openCreate;
     document.querySelectorAll('.opt').forEach((o) => {
       o.onclick = () => {
         pendingMode = o.dataset.mode;
@@ -351,7 +366,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        namespaced under .vault. Tokens/base from declare.css.
        ────────────────────────────────────────────────────────────────── */
     .vault { position: relative; min-height: 100dvh; }
-    .vault .vscroll { position: relative; z-index: 1; padding-bottom: 130px; }
+    .vault .vscroll { position: relative; z-index: 1; padding-bottom: 64px; }
     .vault .vhero { text-align: center; padding: 26px 22px 2px; }
     .vault .vhero h1 { font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 600; color: var(--text); text-shadow: 0 0 50px rgba(222, 190, 100, .25); }
     .vault .vhero .sub { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; color: var(--soft); margin-top: 7px; }
@@ -495,12 +510,17 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .vault .sactions .btn { width: 100%; }
     .vault .hidden { display: none; }
 
-    /* fab + toast */
-    .vault .fab { position: fixed; right: 18px; bottom: 110px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; background: var(--gold); color: #13211A; border: 0; border-radius: 100px; font-family: inherit; font-size: 14px; font-weight: 700; padding: 14px 20px; cursor: pointer; box-shadow: 0 16px 38px -12px rgba(216, 184, 95, .7); transition: transform .15s ease; }
-    .vault .fab:hover { transform: translateY(-2px); }
-    .vault .fab svg { width: 18px; height: 18px; }
-    .vault .fab[hidden] { display: none; }
-    .vault .vtoast { position: fixed; left: 50%; bottom: 150px; transform: translate(-50%, 14px); z-index: 80; background: var(--surface); border: 1px solid var(--line2); color: var(--text); font-size: 13px; padding: 11px 18px; border-radius: 100px; box-shadow: var(--card-shadow); opacity: 0; visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility .3s; white-space: nowrap; }
+    /* Verse-image cards — cover-photo tiles in the "Verse images" rail */
+    .vault .imgcard { padding: 0; background: #0c130f; opacity: 0; transform: translateY(16px); animation: vrise .6s cubic-bezier(.22, 1, .36, 1) forwards; }
+    @media (prefers-reduced-motion: reduce) { .vault .imgcard { animation: none; opacity: 1; transform: none; } }
+    .vault .imgcard .ic-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .vault .imgcard .ic-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.05) 42%, rgba(0,0,0,.72) 100%); }
+    .vault .imgcard .ic-body { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 18px; text-align: left; }
+    .vault .imgcard .ic-quote { font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.34; color: #FCF8EE; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+    .vault .imgcard .ic-ref { margin-top: 8px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: rgba(252,248,238,.82); }
+
+    /* toast */
+    .vault .vtoast { position: fixed; left: 50%; bottom: 40px; transform: translate(-50%, 14px); z-index: 80; background: var(--surface); border: 1px solid var(--line2); color: var(--text); font-size: 13px; padding: 11px 18px; border-radius: 100px; box-shadow: var(--card-shadow); opacity: 0; visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility .3s; white-space: nowrap; }
     .vault .vtoast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
 
     /* light theme: parchment cinematic cards (design) */
@@ -525,7 +545,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     @media (min-width: 481px) {
       .vault .vhero { padding-top: 96px; }
       .vault .rail, .vault .shelf-h, .vault .vhero { max-width: 980px; margin-left: auto; margin-right: auto; }
-      .vault .fab { right: max(18px, calc(50% - 470px)); bottom: 40px; }
       .vault .vtoast { bottom: 60px; }
       .vault .focus-top, .vault .focus-in { max-width: 720px; margin-left: auto; margin-right: auto; }
       .vault .focus { top: 60px; z-index: 20; }

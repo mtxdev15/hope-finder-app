@@ -87,11 +87,11 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   <script>
     import { initAuth, isSignedIn, currentUser, onAuthChange } from '../app/declare/auth-store.js';
     function paintYouTab() {
-      const el = document.querySelector('[data-you-label]');
-      if (!el) return;
+      const els = document.querySelectorAll('[data-you-label]');
+      if (!els.length) return;
       let name = '';
       try { name = isSignedIn() ? (currentUser().firstName || '') : ''; } catch (e) {}
-      el.textContent = name ? name.slice(0, 14) : 'You';
+      els.forEach((el) => { el.textContent = name ? name.slice(0, 14) : 'You'; });
     }
     initAuth().then(paintYouTab).catch(() => {});
     onAuthChange(paintYouTab);
