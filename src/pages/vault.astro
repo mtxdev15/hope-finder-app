@@ -18,9 +18,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     <div class="vscroll" id="vscroll">
       <div class="vhero">
-        <h1>Vault</h1>
-        <div class="sub">Return to what God has spoken over you.</div>
-        <div class="vsearch" id="vsearchWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input id="search" type="search" placeholder="Search your Vault&hellip;" autocomplete="off" /></div>
+        <h1 class="vrv">Vault</h1>
+        <div class="sub vrv" style="--i:1">Return to what God has spoken over you.</div>
+        <div class="vsearch vrv" id="vsearchWrap" style="--i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input id="search" type="search" placeholder="Search your Vault&hellip;" autocomplete="off" /></div>
       </div>
       <div id="shelves"></div>
 
@@ -154,12 +154,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const body = top ? (top.body || '').replace(/[“”"]/g, '') : 'Nothing here yet — add truths as you save them.';
       let sparks = '';
       [[20, 26, 2], [78, 20, 1.5], [64, 46, 1.8]].forEach((s, k) => { sparks += '<span class="spark" style="left:' + s[0] + '%;top:' + s[1] + '%;width:' + s[2] + 'px;height:' + s[2] + 'px;animation-delay:' + (k * 0.8) + 's"></span>'; });
-      return '<button class="bcard" data-coll="' + encodeURIComponent(c.name) + '" data-kind="' + (c.kind || '') + '" style="--bctag:' + cfg.tagt + '"><span class="bg-glow"></span>' + sparks
+      return '<button class="bcard vrv" data-coll="' + encodeURIComponent(c.name) + '" data-kind="' + (c.kind || '') + '" style="--bctag:' + cfg.tagt + '"><span class="bg-glow"></span>' + sparks
         + '<div class="bc-top"><span class="bc-tag">' + (c.mine ? 'Yours' : esc(cfg.label)) + '</span><span class="bc-count">' + count + '</span></div>'
         + '<div class="bc-quote"><span>' + (top ? '“' + esc(body.slice(0, 110)) + (body.length > 110 ? '…' : '') + '”' : esc(body)) + '</span></div>'
         + '<div class="bc-name">' + esc(c.name) + '</div><div class="bc-meta">' + count + (count === 1 ? ' truth' : ' truths') + (c.recent ? ' · ' + relTime(c.recent) : '') + '</div></button>';
     }
-    const createCard = () => '<button class="createcard" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">New collection</span></button>';
+    const createCard = () => '<button class="createcard vrv" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">New collection</span></button>';
 
     /* Re-open a saved truth in the Card Studio (re-share), preserving its saved background. */
     function reshareTruth(t) {
@@ -176,7 +176,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        tiles in their own "Verse images" rail. Tapping re-opens the card in the Studio. */
     function imgCard(t, i) {
       const q = (t.body || '').replace(/[“”"]/g, '');
-      return '<button class="bcard imgcard" data-vimg="' + i + '" style="animation-delay:' + (i * 60) + 'ms">'
+      return '<button class="bcard imgcard vrv" data-vimg="' + i + '">'
         + '<img class="ic-photo" src="' + esc(t.bgSrc) + '" loading="lazy" alt="" />'
         + '<span class="ic-shade"></span>'
         + '<div class="ic-body"><div class="ic-quote">“' + esc(q.slice(0, 90)) + (q.length > 90 ? '…' : '') + '”</div>'
@@ -184,7 +184,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     function shelf(title, cardsHtml, delay) {
       if (!cardsHtml) return '';
-      return '<section class="shelf" style="animation-delay:' + delay + 'ms"><div class="shelf-h"><span class="t">' + title + '</span></div><div class="rail">' + cardsHtml + '</div></section>';
+      return '<section class="shelf"><div class="shelf-h vrv"><span class="t">' + title + '</span></div><div class="rail">' + cardsHtml + '</div></section>';
     }
 
     function render() {
@@ -213,7 +213,52 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       $('shelves').querySelectorAll('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
       $('shelves').querySelectorAll('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[+b.dataset.vimg]); });
       const cc = $('cc-create'); if (cc) cc.onclick = openCreate;
+      animateVault();
     }
+
+    /* ---- premium motion: scroll-reveal (staggered) + parallax on verse-image covers ---- */
+    const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    let vIO = null, pPhotos = [], pTick = false;
+    function animateVault() {
+      const scope = document.querySelector('.vault');
+      if (!scope) return;
+      // per-rail stagger: each card reveals a beat after the previous
+      scope.querySelectorAll('.rail').forEach((rail) => {
+        let n = 0;
+        Array.prototype.forEach.call(rail.children, (el) => { if (el.classList.contains('vrv')) el.style.setProperty('--i', n++); });
+      });
+      const els = scope.querySelectorAll('.vrv');
+      if (REDUCED || !('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('in')); refreshParallax(); return; }
+      if (vIO) vIO.disconnect();
+      vIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); vIO.unobserve(e.target); } });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0 });
+      const vh = window.innerHeight || 0;
+      els.forEach((el) => {
+        if (el.classList.contains('in')) return;
+        const r = el.getBoundingClientRect();
+        if (r.top < vh * 0.96 && r.bottom > 0) requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+        else vIO.observe(el);
+      });
+      refreshParallax();
+    }
+    function refreshParallax() {
+      pPhotos = Array.prototype.slice.call(document.querySelectorAll('.vault .imgcard .ic-photo'));
+      if (!REDUCED && pPhotos.length) onParallax();
+    }
+    function onParallax() {
+      const vh = window.innerHeight || 1;
+      for (let i = 0; i < pPhotos.length; i++) {
+        const img = pPhotos[i], card = img.parentElement, r = card.getBoundingClientRect();
+        if (r.bottom < -60 || r.top > vh + 60) continue;
+        const off = ((r.top + r.height / 2) - vh / 2) / vh; // -0.5 .. 0.5
+        img.style.transform = 'translateY(' + (off * 30).toFixed(1) + 'px)';
+      }
+    }
+    window.addEventListener('scroll', () => {
+      if (REDUCED || !pPhotos.length || pTick) return;
+      pTick = true; requestAnimationFrame(() => { onParallax(); pTick = false; });
+    }, { passive: true });
 
     /* ---- focus view ---- */
     const READ_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Revelations': 'Revelation' };
@@ -376,9 +421,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .vault .vsearch input::placeholder { color: var(--muted); }
 
     /* shelves + rails */
-    .vault .shelf { margin-top: 26px; opacity: 0; transform: translateY(18px); animation: vrise .6s cubic-bezier(.22, 1, .36, 1) forwards; }
+    .vault .shelf { margin-top: 32px; }
     @keyframes vrise { to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .vault .shelf { animation: none; opacity: 1; transform: none; } }
+    /* Premium scroll-reveal: elements rise + settle as they enter the viewport, with a
+       gentle per-item stagger (--i). Driven by an IntersectionObserver re-init each render. */
+    .vault .vrv { opacity: 0; transform: translateY(28px); will-change: transform, opacity;
+      transition: opacity .6s ease, transform .8s cubic-bezier(.16, 1, .3, 1); transition-delay: calc(var(--i, 0) * 65ms); }
+    .vault .vrv.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .vault .vrv { opacity: 1; transform: none; transition: none; } }
     .vault .shelf-h { display: flex; align-items: baseline; justify-content: space-between; padding: 0 22px; margin-bottom: 13px; }
     .vault .shelf-h .t { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text); }
     .vault .rail { display: flex; gap: 14px; overflow-x: auto; overflow-y: visible; scroll-snap-type: x mandatory; padding: 14px 22px 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin-top: -10px; margin-bottom: -12px; }
@@ -388,7 +438,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .vault .bcard { position: relative; flex: 0 0 auto; width: 248px; height: 300px; scroll-snap-align: start; border-radius: 22px; overflow: hidden; cursor: pointer;
       border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent); background: radial-gradient(130% 100% at 30% 0%, #21362a, #0b110d 80%);
       box-shadow: 0 26px 60px -28px rgba(0, 0, 0, .75); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; text-align: left; font-family: inherit;
-      transition: transform .45s cubic-bezier(.22, 1, .36, 1), box-shadow .45s ease, border-color .3s ease; }
+      transition: transform .5s cubic-bezier(.34, 1.32, .5, 1), box-shadow .45s ease, border-color .3s ease; }
     .vault .bcard .bg-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 50% at 50% 22%, rgba(222, 190, 100, .22), transparent 72%); opacity: .85; transition: opacity .45s ease; }
     .vault .bcard .spark { position: absolute; border-radius: 50%; background: rgba(246, 234, 194, .85); opacity: 0; animation: vtw 5s ease-in-out infinite; }
     @keyframes vtw { 0%, 100% { opacity: 0; transform: scale(.6); } 50% { opacity: .8; transform: scale(1); } }
@@ -397,7 +447,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       .vault .bcard:hover { transform: translateY(-7px) scale(1.012); border-color: color-mix(in srgb, var(--gold) 42%, transparent); box-shadow: 0 36px 70px -26px rgba(0, 0, 0, .8), 0 0 60px -16px rgba(216, 184, 95, .34); }
       .vault .bcard:hover .bg-glow { opacity: 1; }
     }
-    .vault .bcard:active { transform: translateY(-3px) scale(1.0); }
+    .vault .bcard:active { transform: scale(.97); transition: transform .12s ease; }
     .vault .bc-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; }
     .vault .bc-tag { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--bctag, #E8C97A); }
     .vault .bc-count { font-size: 11px; font-weight: 700; color: rgba(243, 239, 230, .5); }
@@ -511,9 +561,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .vault .hidden { display: none; }
 
     /* Verse-image cards — cover-photo tiles in the "Verse images" rail */
-    .vault .imgcard { padding: 0; background: #0c130f; opacity: 0; transform: translateY(16px); animation: vrise .6s cubic-bezier(.22, 1, .36, 1) forwards; }
-    @media (prefers-reduced-motion: reduce) { .vault .imgcard { animation: none; opacity: 1; transform: none; } }
-    .vault .imgcard .ic-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .vault .imgcard { padding: 0; background: #0c130f; }
+    .vault .imgcard .ic-photo { position: absolute; left: 0; right: 0; top: -12%; width: 100%; height: 124%; object-fit: cover; will-change: transform; }
     .vault .imgcard .ic-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.05) 42%, rgba(0,0,0,.72) 100%); }
     .vault .imgcard .ic-body { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 18px; text-align: left; }
     .vault .imgcard .ic-quote { font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.34; color: #FCF8EE; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
