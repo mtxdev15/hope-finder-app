@@ -520,8 +520,14 @@
     upd();
   })();
 
-  // "Give now" link in the why-section jumps back up to the form
-  $$('[data-give-jump]').forEach(function (b) { b.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }); });
+  // "Give now" link in the why-section jumps back up to the form. Lenis owns the scroll
+  // position, so native window.scrollTo is a no-op while it runs — use the Lenis instance.
+  $$('[data-give-jump]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (window.__declareLenis && window.__declareLenis.scrollTo) window.__declareLenis.scrollTo(0, { immediate: REDUCED });
+      else window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+    });
+  });
 
   /* ---- header share ---- */
   $('#pageShare') && $('#pageShare').addEventListener('click', function () {
