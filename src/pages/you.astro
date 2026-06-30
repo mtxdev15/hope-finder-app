@@ -120,7 +120,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.11.1</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.11.2</div>
         </section>
       </div>
     </div>
@@ -698,6 +698,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.11.2', date: 'June 2026', items: [
+        ['Improved', 'The 5-day Journey now unfolds as you scroll, each step of the ritual rising in gently as you reach it.'],
+        ['Fixed', 'On larger screens, the Journey now reads in a calm, centered column instead of stretching wide.'],
+      ] },
       { v: '3.11.1', date: 'June 2026', items: [
         ['Improved', 'The Vault now moves with life: every card rises in as you scroll, with a gentle parallax on your saved verse images.'],
       ] },

@@ -526,13 +526,23 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       $('dfScroll').scrollTop = 0;
       bindCast(); bindRepent(); bindSpeak(); bindAction();
       refreshGate();
-      // reverent unfolding — each step of the ritual veils in, in sequence
-      if (window.DeclareMotion) {
-        const seq = $('dfScroll').querySelectorAll(':scope > .df-h, :scope > .df-sh, :scope > .block, :scope > .day1note');
-        seq.forEach(function (el, i) { el.classList.add('m-veil'); el.style.setProperty('--i', i); });
-        $('dfScroll').style.setProperty('--m-stagger', '150ms');
-        $('dfScroll').style.setProperty('--m-premium', '780ms');
-        window.DeclareMotion.reveal($('dfScroll'), { stagger: 0 });
+      // reverent unfolding — each step veils in as it scrolls into view (premium scroll-reveal,
+      // not all-at-once on load), with a gentle cascade for the steps already on screen.
+      if (window.DeclareMotion && !window.DeclareMotion.reduced && ('IntersectionObserver' in window)) {
+        const root = $('dfScroll');
+        root.style.setProperty('--m-stagger', '0ms'); // we control timing; no per-index CSS delay
+        const seq = Array.prototype.slice.call(root.querySelectorAll(':scope > .df-h, :scope > .df-sh, :scope > .block, :scope > .day1note'));
+        seq.forEach(function (el) { el.classList.add('m-veil'); el.style.setProperty('--i', 0); });
+        const rb = root.getBoundingClientRect();
+        let k = 0;
+        const io = new IntersectionObserver(function (ents) {
+          ents.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('m-in'); io.unobserve(e.target); } });
+        }, { root: root, rootMargin: '0px 0px -8% 0px', threshold: 0 });
+        seq.forEach(function (el) {
+          const r = el.getBoundingClientRect();
+          if (r.top < rb.bottom * 0.95 && r.bottom > rb.top) { const i = k++; setTimeout(function () { el.classList.add('m-in'); }, 90 + i * 110); }
+          else io.observe(el);
+        });
       }
     }
 
@@ -1213,6 +1223,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 20px 20px 24px; scrollbar-width: none; }
     .journey .df-scroll::-webkit-scrollbar { display: none; }
+    /* Desktop: keep the ritual in a calm, readable centered column instead of full-width cards. */
+    @media (min-width: 481px) {
+      .journey .df-scroll { padding: 30px 24px 40px; }
+      .journey .df-scroll > .df-h,
+      .journey .df-scroll > .df-sh,
+      .journey .df-scroll > .block,
+      .journey .df-scroll > .day1note { max-width: 660px; margin-left: auto; margin-right: auto; }
+    }
     .journey .df-h { font-family: 'Cormorant Garamond', serif; font-size: 33px; line-height: 1.06; color: var(--text); font-weight: 600; }
     .journey .df-sh { font-size: 13px; color: var(--muted); margin-top: 6px; }
     .journey .df-sh .arr { color: var(--goldd); }
