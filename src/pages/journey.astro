@@ -334,7 +334,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const theme = (active._themes && active._themes[idx]) || '';
       const p = window.JourneyEngine.generateDay({ struggleId: active.id, dayIndex: idx, theme: theme,
         seed: (active._seed + idx * 101) >>> 0, fromLabel: active.from, toLabel: active.to })
-        .then(function (obj) { if (obj) { PLAN[idx] = obj; } active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; })
+        .then(function (obj) { if (obj) { PLAN[idx] = obj; } active._ai[idx] = true; active._inflight[idx] = null; saveInstance(); return PLAN[idx]; })
         .catch(function () { active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; });
       active._inflight[idx] = p; return p;
     }
@@ -346,7 +346,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function loadLock() { try { return JSON.parse(localStorage.getItem('db_journey_lock') || '{}'); } catch (e) { return {}; } }
     function saveLock(m) { try { localStorage.setItem('db_journey_lock', JSON.stringify(m)); } catch (e) {} mirror('db_journey_lock'); }
     function lockFor() { return loadLock()[active.id] || null; }
-    function setLock(time) { const m = loadLock(); const prev = m[active.id] || {}; m[active.id] = { date: todayStr(), time: (time !== undefined ? time : prev.time) || null, day: state.day, returned: state.returned }; saveLock(m); saveActive(); }
+    function setLock(time) { const m = loadLock(); const prev = m[active.id] || {}; m[active.id] = { date: todayStr(), time: (time !== undefined ? time : prev.time) || null, day: state.day, returned: state.returned }; saveLock(m); saveActive(); saveInstance(); }
     function clearLock() { const m = loadLock(); delete m[active.id]; saveLock(m); }
     function restoreProgress() { const l = lockFor(); if (l && l.day) { state.day = l.day; state.returned = l.returned || state.returned; } }
 
@@ -355,6 +355,28 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned })); } } catch (e) {} mirror(ACT_KEY); }
     function loadActiveSaved() { try { const r = localStorage.getItem(ACT_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
     function clearActiveSaved() { try { localStorage.setItem(ACT_KEY, 'null'); } catch (e) {} mirror(ACT_KEY); }
+    // Per-journey instance cache (device-local): the AI-generated content + in-day progress.
+    // Without this, leaving /journey (e.g. to read a verse) and returning re-clones the template
+    // and regenerates a fresh day — a NEW verse — losing the user's place. Restoring it on return
+    // resumes exactly: same verse, same step progress. Kept local (not mirrored) to avoid bloat.
+    function instKey() { return 'db_journey_inst:' + (active && active.id); }
+    function saveInstance() {
+      try {
+        if (!active || active.status !== 'active' || !PLAN) return;
+        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken }));
+      } catch (e) {}
+    }
+    function restoreInstance() {
+      try {
+        const raw = localStorage.getItem(instKey()); if (!raw) return false;
+        const o = JSON.parse(raw); if (!o || !o.plan) return false;
+        PLAN = o.plan; active._seed = o.seed; active._themes = o.themes;
+        active._ai = o.ai || {}; active._inflight = {};
+        dayState = o.dayState || {}; daySpoken = o.daySpoken || {};
+        return true;
+      } catch (e) { return false; }
+    }
+    function clearInstance() { try { localStorage.removeItem(instKey()); } catch (e) {} }
     function setReminderOnly(time) { const m = loadLock(); const prev = m[active.id] || { date: todayStr() }; prev.time = time; m[active.id] = prev; saveLock(m); }
     function previewTomorrow() { const m = loadLock(); if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); } }
     function isLocked() { const l = lockFor(); return !!(l && l.date === todayStr() && state.day <= TOTAL); }
@@ -622,6 +644,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         else if (!ds.repented) hint.querySelector('span').textContent = 'Take a moment to repent and breathe';
         else if (!ds.spoke) hint.querySelector('span').textContent = 'Declare the truth aloud to finish';
       }
+      saveInstance(); // persist in-day progress so leaving and returning resumes exactly
     }
 
     function setGate(spoken) { // declare block visual state
@@ -821,7 +844,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
       CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
       active = c; active.status = 'active'; startPlan();
-      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); saveActive();
+      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
       closeSheets(); showActiveUI();
       if (!silent) toast('A fresh vine is planted — ' + c.from + ' → ' + c.to);
       if (openDay) openAfterBegin();
@@ -1021,7 +1044,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         const c = CATALOG.find(function (x) { return x.id === mapStruggle(struggle); });
         if (c) { active = c; active.status = 'active'; }
         startPlan();
-        state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); saveActive();
+        state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
         showActiveUI();
         if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
         else { setTimeout(openDayFlow, 380); }
@@ -1031,7 +1054,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const saved = loadActiveSaved();
       if (saved) {
         const sc = CATALOG.find(function (x) { return x.id === saved.id; });
-        if (sc) { active = sc; active.status = 'active'; startPlan(); }
+        if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
         state.day = saved.day || state.day; state.returned = saved.returned || state.returned;
         restoreProgress();
         showActiveUI();
