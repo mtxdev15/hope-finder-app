@@ -82,6 +82,21 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   <script is:inline src="/declare/motion.js"></script>
   <script is:inline src="/declare/route-loader.js" defer></script>
 
+  <!-- Greet the signed-in user by name in the nav (the "You" tab → first name),
+       so the app confirms who you are, like the welcome header does. -->
+  <script>
+    import { initAuth, isSignedIn, currentUser, onAuthChange } from '../app/declare/auth-store.js';
+    function paintYouTab() {
+      const el = document.querySelector('[data-you-label]');
+      if (!el) return;
+      let name = '';
+      try { name = isSignedIn() ? (currentUser().firstName || '') : ''; } catch (e) {}
+      el.textContent = name ? name.slice(0, 14) : 'You';
+    }
+    initAuth().then(paintYouTab).catch(() => {});
+    onAuthChange(paintYouTab);
+  </script>
+
   <style is:global>
     /* cinematic smooth scrolling (design system; reduced-motion forces auto) */
     html { scroll-behavior: smooth; }

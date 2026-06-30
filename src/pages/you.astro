@@ -120,7 +120,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.10.2</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.10.3</div>
         </section>
       </div>
     </div>
@@ -698,6 +698,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.10.3', date: 'June 2026', items: [
+        ['Improved', 'When you are signed in, the navigation now greets you by name, so you always know your words are tied to your account.'],
+      ] },
       { v: '3.10.2', date: 'June 2026', items: [
         ['Fixed', 'The “Give now” button on the giving page now takes you straight back up to the form.'],
       ] },
