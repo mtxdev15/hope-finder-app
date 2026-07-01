@@ -19,41 +19,17 @@ Done items move to the bottom or get deleted.
       sections, recommended); 2) intro voice (reframe to Declare, drop Righteously Unrighteous,
       recommended); 3) delivery (instant download + email, recommended); 4) keep the list for the iOS
       launch (recommended). Generate the PDF via headless-Chrome print (no new deps).
-- [x] **Rotate two secrets — DONE (Jeff rotated `RESEND_API_KEY` + `BETTER_AUTH_SECRET`).**
 - [ ] **Finish Google OAuth branding (Google Auth Platform → Branding).** App published to production
       (auth fixed). Still: set App name = Declare, support email, home page, privacy `/privacy`, terms
       `/terms`; authorized domains cleaned (added declareandbelieve.com, removed stale Supabase domain).
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
-- [ ] **Give redesign + Stripe checkout (branch `feat/declare-checkout-dev`).** Replacing the old
-      stub `/give` with the cinematic "Sow into the river" design (Tree of Life / living water / world
-      globe / amount cards / recurring Wellspring / Apple Pay) and wiring real giving via Stripe.
-      Architecture: hosted Stripe Checkout created by the Worker (`POST /give/checkout`); secret in
-      `wrangler secret STRIPE_SECRET_KEY` (test sandbox "Declare checkout dev" now, live later).
-      - [x] Phase 1 — design ported into `public/give.html` + `public/declare/give.{css,js}` +
-            `give-globe.js` (exact, Tweaks panel stripped, absolute paths, back → `/welcome`). Builds clean.
-      - [x] Phase 0 — `STRIPE_SECRET_KEY` (test) loaded into the Worker.
-      - [x] Phase 2 — Worker `/give/checkout` route (one-time + subscription) deployed; `give.js`
-            `doGive()` redirects to Stripe; Thank-you on `?status=success`. Verified via curl (test
-            sessions return). REMAINING: Stripe Dashboard branding (logo + Forest/Gold) + browser test.
-      - [ ] Phase 3 — test card + Apple Pay, one-time + recurring, on a Cloudflare preview URL.
-      - [ ] Phase 4 (later) — go live (live keys, merge to main) + Convex `donations` webhook/backfill.
-      - [ ] Giving history — let signed-in users see what they have given (total + a list of past gifts).
-            Needs each gift linked to the account (pass the user's email/id to Stripe Checkout) + the
-            Convex `donations` table (webhook). Pair with Stripe's hosted Customer Portal for receipts +
-            self-serve cancel/manage of recurring gifts. UI on `/you` or a small `/giving` page. Builds
-            directly on Phases 2 and 4.
-      - [ ] Copy/ratio pass — "set free" wording, per-person ratio (design = $2.50/person), yearly
-            option, for-profit "gifts are not tax-deductible" disclosure (JC Kingdom Ventures, LLC).
 
 ## ✅ Verify on the live site (manual)
-- [x] **Confirm Google sign-in for the reporter — DONE.** They can sign in / create an account now.
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
       password-reset email (Resend).
 - [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
-- [x] **Submit sitemap** to Google Search Console — DONE (Status: Success in GSC). Re-submit after
-      big sitemap changes to force a re-read.
 
 ## 🚀 Next features
 - [ ] **Spanish translation (large, phased).** Big underserved market. Three layers: (1) Bible text —
@@ -71,20 +47,66 @@ Done items move to the bottom or get deleted.
 - [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
       because it links to 6 sibling pages that don't exist yet (control, depression, fear,
       overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
+- [ ] **Build out SEO struggle pages for the remaining chips — one new page per week.** 13 of 35
+      struggles have a `/public/<slug>.html` page; ~22 remain. The weekly cadence is deliberate: a
+      steady publishing rhythm signals to Google that the site keeps adding fresh content. Each new
+      page copies the `public/anxiety.html` template exactly (GTM analytics `GTM-T65GXR22`, fixed
+      header/nav + slide-out menu + footer, `.rv` scroll reveals, `data-atmos` atmosphere zones), with
+      researched pastoral content written **real and raw** for the 3am reader, and 12 FAQs targeting
+      what people actually ask across Google + the AI engines (ChatGPT, Perplexity, Copilot, Gemini,
+      Apple AI, Claude) with a matching `FAQPage` JSON-LD, plus a curated Related Articles block.
+      Verse citations deep-link into the in-app `/word` reader, and each verse has a "Break this down"
+      commentary popup (shared `public/declare/commentary.{js,css}`, breakdown text kept in the DOM for
+      SEO). Register each page in `public/struggles.html` + `public/sitemap.xml`, and backfill Related
+      Articles links on existing pages so internal linking stays complete. **Process each week:**
+      search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
+      sitemap. Check off each chip as it ships.
+      - **Batch 1 (high search / need):** [x] Overthinking (built + verified locally; awaiting Jeff
+        review + deploy) · [ ] Stress & Burnout · [ ] Rejection & Abandonment · [ ] Addiction ·
+        [ ] Waiting on God
+      - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
+        (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
+        existing 988 banner pattern. Confirm final copy with Jeff before shipping.
+      - **Remaining:** [ ] Comparison · [ ] Feeling Unworthy · [ ] Broken Identity ·
+        [ ] People Pleasing · [ ] Emotional & Verbal Abuse · [ ] Betrayal · [ ] Self-Sabotage ·
+        [ ] Family Conflict · [ ] Divorce / Separation · [ ] Control · [ ] Perfectionism ·
+        [ ] Spiritual Dryness · [ ] Sexual Temptation · [ ] Faith Crisis ·
+        [ ] Feeling Spiritually Attacked · [ ] Drifting from God
+      - **This week:** Overthinking (slug `overthinking`) — pairs with the live `anxiety` page for
+        immediate Related-Articles cross-linking. Full build process + verification in
+        `~/.claude/plans/please-check-on-whats-shimmering-moore.md`.
 
 ## 🎨 Polish / ongoing
 - [ ] **Homepage SEO watch.** `/` is the (thin) Begin page; the keyword-rich `<noscript>` block
       is preserved for crawlers. Monitor that the homepage keeps its indexing.
 - [ ] **Add a logo to the Google consent screen** once you're ready for Google's brand verification
       review (separate, multi-day). Makes the sign-in screen show your mark + "Sign in to Declare."
+- [ ] **Giving copy: confirm the yearly option.** The rest of the old give copy/ratio pass shipped
+      ("set free" wording, per-person impact counter, Giving terms FAQ, tax disclosure), but a yearly
+      giving option was never clearly confirmed as live. Verify it exists on `/give`, or add it.
+- [ ] **Real store IDs in `public/declare/rate.js`.** The Rate & Review flow still ships with
+      placeholder App Store / Play IDs (`TODO dev` at `rate.js:24`). Drop in the real IDs before the
+      iOS launch so the "rate us" links point somewhere.
+- [ ] **Re-submit the sitemap** to Google Search Console after any big sitemap change to force a
+      re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
+*App is on **v3.12.1**. Newest first.*
+- **13 SEO struggle pages live** — anxiety, anger, depression, doubt, failure, financial-pressure,
+  grief, loneliness, marriage, purpose, shame, unforgiveness, church-hurt (static `/public/*.html`,
+  registered in `struggles.html` + `sitemap.xml`). Each uses the cinematic template (motion +
+  atmosphere), a 12-Q&A FAQ with `FAQPage` schema, and a curated Related Articles block. Build-out of
+  the remaining ~22 is now tracked under "Next features."
+- **Tree of Life on the Journey** (v3.12.0–3.12.1) — the Journey centerpiece is now an image-based
+  death-to-life living tree that comes alive as each of the 5 days completes.
+- **Journey resume + persistence** (v3.11.4–3.11.5) — the Journey now resumes where you left off
+  (content + progress persist), and the day-complete vine no longer clips.
+- **Vault refinements** (v3.11.x) — saved words/verses/declarations continue to sync and follow the account.
 - **Giving system — fully live.** Cinematic `/give` + `/es/dar` with Stripe Checkout (one-time +
   recurring, Apple Pay); webhook → Convex public impact counter ("X people set free by the Word of
   God"); account-linked gift history + live next-charge line on `/you`; Stripe Customer Portal to
   manage/cancel; "Manage giving" on the give pages + the Giving terms FAQ; Spanish Giving terms page
-  (`/es/terminos-de-donacion`) + hreflang + sitemap. SemVer adopted (now v3.9.1). Supersedes the old
-  "Give redesign + Stripe checkout" block above.
+  (`/es/terminos-de-donacion`) + hreflang + sitemap. SemVer adopted at v3.9.1.
 - **Site-wide navigation unified** — every explore page's logo/back goes to `/welcome` (no longer
   dumps people into the app); give/help/faq/struggles now share the canonical header + slide-out menu
   + footer (shared `public/declare/chrome.css` + `menu.js`); the in-app mast brand links back to
