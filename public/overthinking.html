@@ -101,9 +101,10 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   .grid{ display:grid; grid-template-columns:repeat(12,1fr); column-gap:clamp(20px,3.4vw,46px); }
 
   /* margin label — the magazine rail */
-  .rail{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--goldd); font-weight:600; display:flex; align-items:baseline; gap:14px; }
-  .rail .no{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; letter-spacing:0; color:var(--accent); text-transform:none; }
-  .rail::before{ content:''; width:26px; height:1px; background:linear-gradient(90deg,var(--accent),transparent); margin-right:2px; align-self:center; }
+  /* quiet editorial label — numbers dropped, serif-italic dek (design pass: no numbered eyebrows) */
+  .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
+  .rail .no{ display:none; }
+  .rail::before{ content:''; width:22px; height:1px; background:linear-gradient(90deg,var(--accent),transparent); align-self:center; }
 
   main > section{ position:relative; z-index:1; }
 
@@ -219,10 +220,10 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   .verses{ grid-column:1 / 13; display:flex; flex-direction:column; gap:clamp(20px,2.4vw,30px); }
   .verse{ position:relative; display:grid; grid-template-columns:repeat(12,1fr); column-gap:clamp(20px,3.4vw,46px); align-items:start; }
   .verse .vidx{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(34px,4vw,52px); color:var(--accent); opacity:.42; line-height:1; }
-  .verse .vcard{ position:relative; padding:30px 32px; border-radius:20px;
-    background:linear-gradient(160deg, rgba(42,54,47,.6), rgba(20,30,24,.5)); border:1px solid rgba(216,184,95,.1); backdrop-filter:blur(6px);
-    box-shadow:0 26px 64px -26px rgba(0,0,0,.7), 0 0 56px -20px var(--accent-soft); transition:transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; }
-  html[data-theme="light"] .verse .vcard{ background:rgba(255,255,255,.85); border:1px solid rgba(34,56,46,.14); box-shadow:0 10px 26px -12px rgba(54,42,16,.28), inset 0 1px 0 rgba(255,255,255,.9); }
+  .verse .vcard{ position:relative; padding:clamp(30px,3vw,40px) clamp(30px,3.2vw,42px); border-radius:18px;
+    background:color-mix(in srgb, var(--accent) 8%, transparent); border:1px solid color-mix(in srgb, var(--accent) 15%, rgba(255,255,255,.04)); backdrop-filter:blur(3px);
+    box-shadow:0 14px 44px -30px rgba(0,0,0,.6); transition:transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; }
+  html[data-theme="light"] .verse .vcard{ background:rgba(255,255,255,.62); border:1px solid color-mix(in srgb, var(--accent) 14%, rgba(0,0,0,.05)); box-shadow:0 8px 24px -16px rgba(40,42,90,.22); }
   @media (hover:hover){ .verse .vcard:hover{ transform:translateY(-4px); box-shadow:0 30px 70px -24px rgba(0,0,0,.75), 0 0 60px -16px var(--accent-soft); } }
   .verse .vref{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
   .verse .vtext{ font-family:'Cormorant Garamond',serif; font-size:clamp(21px,2.5vw,29px); line-height:1.36; color:var(--text); margin-top:13px; }
@@ -495,9 +496,9 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 }
 @media (hover:hover) and (prefers-reduced-motion: no-preference){
   .verse .vcard{ transition:transform .5s cubic-bezier(.2,.7,.2,1), box-shadow .4s ease, border-color .4s ease; }
-  .verse .vcard:hover{ transform:translateY(-6px) scale(1.006);
-    border-color:color-mix(in srgb, var(--accent) 42%, transparent);
-    box-shadow:0 34px 82px -24px rgba(0,0,0,.78), 0 0 76px -12px var(--accent-soft); }
+  .verse .vcard:hover{ transform:translateY(-5px);
+    border-color:color-mix(in srgb, var(--accent) 32%, transparent);
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.6), 0 0 44px -18px var(--accent-soft); }
   /* declaration rows: the big numeral lifts and brightens on hover */
   .decl .dn{ transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .3s ease, color .3s ease; }
   .decl:hover .dn{ transform:translateX(5px) scale(1.06); color:var(--accent); opacity:.92; }
