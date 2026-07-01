@@ -61,9 +61,8 @@ Done items move to the bottom or get deleted.
       Articles links on existing pages so internal linking stays complete. **Process each week:**
       search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
       sitemap. Check off each chip as it ships.
-      - **Batch 1 (high search / need):** [x] Overthinking (built + verified locally; awaiting Jeff
-        review + deploy) · [ ] Stress & Burnout · [ ] Rejection & Abandonment · [ ] Addiction ·
-        [ ] Waiting on God
+      - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [ ] Stress & Burnout ·
+        [ ] Rejection & Abandonment · [ ] Addiction · [ ] Waiting on God
       - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
         (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
         existing 988 banner pattern. Confirm final copy with Jeff before shipping.
