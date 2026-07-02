@@ -47,9 +47,11 @@ Done items move to the bottom or get deleted.
         breakdowns + `data-read-label`, RVR1909 `&t=rvr1909` deep-links, translated JSON-LD FAQ,
         canonical + reciprocal hreflang + sitemap pair. RVR1909 is also live in the `/word` reader.
         Repro script pattern: `scratchpad/es_<slug>.py` (fetch verse text from the deployed worker,
-        never fabricate). **Still to do:** (a) Spanish struggles hub `/es/luchas`; (b) when new EN
-        struggle pages ship, translate them too; (c) as `/es` pages were built, related-link cross-links
-        were repointed to live `/es` slugs where they existed.
+        never fabricate). **Spanish hub `/es/luchas` DONE (v3.15.0)** — all 15 rows point to their
+        `/es` slugs, wired into every Spanish page's slide-out menu + footer + breadcrumb (giving pages
+        `dar`/`terminos-de-donacion` have no Luchas link, matching the English `/give`). **Still to do:**
+        translate any NEW English struggle pages as they ship (as `/es` pages were built, related-link
+        cross-links were repointed to live `/es` slugs).
 - [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
       If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
       links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
@@ -71,8 +73,9 @@ Done items move to the bottom or get deleted.
       Articles links on existing pages so internal linking stays complete. **Process each week:**
       search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
       sitemap. Check off each chip as it ships.
-      - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [ ] Stress & Burnout ·
-        [ ] Rejection & Abandonment · [ ] Addiction · [ ] Waiting on God
+      - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [x] Stress & Burnout
+        (shipped 2026-07-02, EN `/burnout` + ES `/es/estres-y-agotamiento`) · [ ] Rejection & Abandonment ·
+        [ ] Addiction · [ ] Waiting on God
       - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
         (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
         existing 988 banner pattern. Confirm final copy with Jeff before shipping.
