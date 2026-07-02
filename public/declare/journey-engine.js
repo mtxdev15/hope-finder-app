@@ -626,7 +626,7 @@
   function generateDay(o){
     return new Promise(function(resolve){
       var done=false;
-      var to=setTimeout(function(){ if(!done){ done=true; resolve(null); } }, o.timeout||13000);
+      var to=setTimeout(function(){ if(!done){ done=true; resolve(null); } }, o.timeout||20000);
       try{
         fetch(WORKER, {
           method:'POST',

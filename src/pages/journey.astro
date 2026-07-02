@@ -308,6 +308,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // what the eye sees is swapped. Day content itself comes from the AI in Spanish. ----
     var JES = window.__I18N_JOURNEY_ES || {};
     function esL() { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); }
+    function curLang() { try { return (window.I18N && window.I18N.lang && window.I18N.lang()) || 'en'; } catch (e) { return 'en'; } }
     function cFrom(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.from : c.from; }
     function cTo(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.to : c.to; }
     function cLine(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.line : c.line; }
@@ -373,7 +374,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function saveInstance() {
       try {
         if (!active || active.status !== 'active' || !PLAN) return;
-        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken }));
+        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken, lang: curLang() }));
       } catch (e) {}
     }
     function restoreInstance() {
@@ -381,7 +382,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         const raw = localStorage.getItem(instKey()); if (!raw) return false;
         const o = JSON.parse(raw); if (!o || !o.plan) return false;
         PLAN = o.plan; active._seed = o.seed; active._themes = o.themes;
-        active._ai = o.ai || {}; active._inflight = {};
+        active._ai = (o.lang && o.lang !== curLang()) ? {} : (o.ai || {}); active._inflight = {};
         dayState = o.dayState || {}; daySpoken = o.daySpoken || {};
         return true;
       } catch (e) { return false; }
@@ -687,6 +688,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         + '<div class="dl-t">' + (esL() ? 'Jesús está preparando el camino para hoy.' : 'Jesus is preparing the way for today.') + '</div>'
         + '<div class="dl-s" id="dlS">' + (esL() ? 'Aquiétate un momento…' : 'Be still a moment…') + '</div></div>';
       $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = true;
+      $('dfComplete').textContent = (esL() ? 'Completar Día ' : 'Complete Day ') + state.day;
       const lines = esL() ? ['Aquiétate un momento…', 'Él sabe exactamente lo que cargas.', 'Este paso se está escribiendo para ti.'] : ['Be still a moment…', 'He knows exactly what you carry.', 'This step is being written for you.'];
       let k = 0; clearInterval(renderDayLoading._t);
       renderDayLoading._t = setInterval(function () { k = (k + 1) % lines.length; const el = $('dlS'); if (el) el.textContent = lines[k]; }, 2300);

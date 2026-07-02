@@ -247,6 +247,12 @@ window.__I18N_STRINGS = {
     'crisis.note1': 'Si estás fuera de EE. UU., llama al número de emergencia local o visita ',
     'crisis.note2': ' para obtener ayuda en tu país.',
 
+    /* ---- /you church finder ---- */
+    'you.finderSub': 'Elige una sugerencia — o presiona Enter para buscar lo que sea',
+    'you.finderPh': 'Ciudad, estado o nombre de la iglesia…',
+    'you.useLocation': 'Usar mi ubicación',
+    'you.setChurch': 'Fijar como mi iglesia',
+
     /* ---- /word extras: reading-preferences sheet, chapter/verse pickers, jump-to-verse ---- */
     'word.defaultTranslation': 'Traducción predeterminada',
     'word.prefsSub': 'Cómo se ve la Escritura en toda la app.',

@@ -151,14 +151,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       <div class="yf-top">
         <button class="iconbtn" id="yfClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
         <div class="yf-h">
-          <div class="ti serif">Find a church</div>
-          <div class="su">Pick a suggestion — or press Enter to search anything</div>
+          <div class="ti serif" data-i18n="you.findChurch">Find a church</div>
+          <div class="su" data-i18n="you.finderSub">Pick a suggestion — or press Enter to search anything</div>
         </div>
         <span class="iconbtn" style="visibility:hidden"></span>
       </div>
       <div class="yf-body">
-        <div class="yf-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="yfInput" placeholder="City, state, or church name&hellip;" autocomplete="off" /></div>
-        <button class="yf-loc" id="yfLoc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>Use my location</button>
+        <div class="yf-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="yfInput" placeholder="City, state, or church name&hellip;" data-i18n-ph="you.finderPh" autocomplete="off" /></div>
+        <button class="yf-loc" id="yfLoc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg><span data-i18n="you.useLocation">Use my location</span></button>
         <div class="yf-map" id="yfMap"></div>
         <div class="yf-list" id="yfList"></div>
         <div class="yf-missing" id="yfMissing" hidden>
@@ -180,7 +180,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           <div class="yfd-meta" id="yfdMeta"></div>
           <div class="yfd-hours" id="yfdHours"></div>
           <div class="yfd-actions" id="yfdActions"></div>
-          <button class="btn btn-primary yfd-set" id="yfdSet">Set as my church</button>
+          <button class="btn btn-primary yfd-set" id="yfdSet" data-i18n="you.setChurch">Set as my church</button>
         </div>
       </div>
     </div>
@@ -864,6 +864,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       openModal();
     });
     function tY(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
+    function esY(){ try { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); } catch(e){ return false; } }
     initAuth().then(renderAuth);
     onAuthChange(renderAuth);
     // in-app language toggle (Español | English) — persists + reloads to re-render everywhere
@@ -935,16 +936,16 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         if (!navigator.geolocation) return;
         navigator.geolocation.getCurrentPosition(
           (pos) => searchNear(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude)),
-          () => toast('Location unavailable — search a city instead.')
+          () => toast(esY() ? 'Ubicación no disponible — busca una ciudad.' : 'Location unavailable — search a city instead.')
         );
       });
     }
     function searchNear(loc) {
       map.setCenter(loc); map.setZoom(12);
-      $('yfList').innerHTML = '<div class="yf-note">Looking for churches nearby…</div>';
+      $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? 'Buscando iglesias cerca…' : 'Looking for churches nearby…') + '</div>';
       places.nearbySearch({ location: loc, radius: 9000, type: 'church' }, (res, status) => {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !res || !res.length) {
-          $('yfList').innerHTML = '<div class="yf-note">No churches found here — try a wider search.</div>';
+          $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? 'No se encontraron iglesias aquí — amplía la búsqueda.' : 'No churches found here — try a wider search.') + '</div>';
           return;
         }
         renderChurches(res.slice(0, 10));
@@ -957,13 +958,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function searchText(q) {
       q = (q || '').trim();
       if (q.length < 2) return;
-      $('yfList').innerHTML = '<div class="yf-note">Searching churches…</div>';
+      $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? 'Buscando iglesias…' : 'Searching churches…') + '</div>';
       const churchy = /church|iglesia|chapel|capilla|temple|templo|ministr|fellowship|assembl|asamblea|tabernac|cathedral|catedral|parish|parroquia|congrega/i.test(q);
       const req = { query: churchy ? q : q + ' church' };
       if (map) { req.location = map.getCenter(); req.radius = 30000; }
       places.textSearch(req, (res, status) => {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !res || !res.length) {
-          $('yfList').innerHTML = '<div class="yf-note">Nothing found for “' + esc(q) + '” — try adding a city or zip.</div>';
+          $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? ('Nada encontrado para “' + esc(q) + '” — prueba con una ciudad o código postal.') : ('Nothing found for “' + esc(q) + '” — try adding a city or zip.')) + '</div>';
           return;
         }
         renderChurches(res.slice(0, 10));
@@ -979,7 +980,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       // is a kept thing — it needs an account. The card opens right here and
       // saves the moment they're in.
       if (isConfigured() && !isSignedIn()) {
-        openAuthModal({ mode: 'signup', message: 'Create a free account to set your home church.', onSuccess: () => doSetChurch(c) });
+        openAuthModal({ mode: 'signup', message: esY() ? 'Crea una cuenta gratis para fijar tu iglesia base.' : 'Create a free account to set your home church.', onSuccess: () => doSetChurch(c) });
         return;
       }
       doSetChurch(c);
@@ -987,7 +988,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function doSetChurch(c) {
       const loc = c.geometry ? { lat: c.geometry.location.lat(), lng: c.geometry.location.lng() } : null;
       P = setProfile({ church: { name: c.name, address: c.vicinity || c.formatted_address || '', placeId: c.place_id || '', loc } });
-      toast('“' + c.name + '” is your home church.');
+      toast('“' + c.name + '” ' + (esY() ? 'es tu iglesia base.' : 'is your home church.'));
       renderFacts(); renderChurchHub();
       closeDetail();
       $('yFinder').classList.remove('open');
@@ -1007,7 +1008,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         return '<div class="yf-row" style="animation-delay:' + (i * 40) + 'ms">'
           + '<button class="yf-m" data-d="' + i + '"><span class="yf-n">' + esc(c.name) + '</span><span class="yf-a">' + esc(c.vicinity || c.formatted_address || '') + '</span>'
           + (r ? '<span class="yf-r">' + r + '</span>' : '') + '</button>'
-          + '<button class="yf-set" data-i="' + i + '">Set as my church</button></div>';
+          + '<button class="yf-set" data-i="' + i + '">' + (esY() ? 'Fijar como mi iglesia' : 'Set as my church') + '</button></div>';
       }).join('');
       $('yfList').querySelectorAll('.yf-m').forEach((b) => b.addEventListener('click', () => openDetail(list[+b.dataset.d])));
       $('yfList').querySelectorAll('.yf-set').forEach((b) => b.addEventListener('click', () => setChurch(list[+b.dataset.i])));
