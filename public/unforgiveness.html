@@ -36,6 +36,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="/declare/declare.css?v=2" />
+<link rel="stylesheet" href="/declare/commentary.css?v=1" />
 
 
 
@@ -611,6 +612,8 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
               <a class="vref" href="/word?book=Ephesians&amp;chapter=4&amp;verse=31">Ephesians 4:31 to 32 &middot; NLT</a>
               <div class="vtext">&ldquo;Get rid of all bitterness, rage, anger, harsh words, and slander, as well as all types of evil behavior. Instead, be kind to each other, tenderhearted, forgiving one another, just as God through Christ has forgiven you.&rdquo;</div>
               <div class="vrefl">You are told to get rid of it, like setting down something too heavy to keep holding.</div>
+              <button class="vcomm-btn" type="button" data-comm="comm-0">Break this down</button>
+              <div class="vcomm-src" id="comm-0" hidden data-ref="Ephesians 4:31 to 32 &middot; NLT" data-title="You forgive out of what you were forgiven" data-read="/word?book=Ephesians&amp;chapter=4&amp;verse=31"><p>Paul is describing what it looks like to take off the old self and put on the new. And he is blunt about bitterness: get rid of it.</p><p>Get rid of all bitterness, rage, anger. He treats bitterness like something to actively take out, not a mood to wait out. It does not just evaporate on its own. You have to set it down on purpose.</p><p>Then the fuel he gives for it: forgiving one another, just as God through Christ has forgiven you. The power to forgive does not come from the other person deserving it. It comes from remembering how much you have already been forgiven.</p><p>So the question shifts. Not have they earned it, but have I forgotten what I was forgiven? Forgiveness flows down from the forgiveness you have already received. Start there, and the grip loosens.</p></div>
             </div>
           </article>
           <article class="verse v2 rv">
@@ -619,6 +622,8 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
               <a class="vref" href="/word?book=Hebrews&amp;chapter=12&amp;verse=15">Hebrews 12:15 &middot; NIV</a>
               <div class="vtext">&ldquo;See to it that no one falls short of the grace of God and that no bitter root grows up to cause trouble and defile many.&rdquo;</div>
               <div class="vrefl">Bitterness starts small and quietly spreads through everything. That is why it has to be pulled up at the root.</div>
+              <button class="vcomm-btn" type="button" data-comm="comm-1">Break this down</button>
+              <div class="vcomm-src" id="comm-1" hidden data-ref="Hebrews 12:15 &middot; NIV" data-title="The grudge costs more than you think" data-read="/word?book=Hebrews&amp;chapter=12&amp;verse=15"><p>The writer of Hebrews warns the church to watch for bitterness, and the picture he uses is worth sitting with: a bitter root.</p><p>See to it that no bitter root grows up. A root is small and hidden at first, underground, easy to ignore. But it does not stay small. It grows, and roots spread.</p><p>To cause trouble and defile many. That is the danger of the grudge you think only affects you. Bitterness does not stay contained. It seeps into your other relationships, your kids, your peace, your walk with God. It defiles many.</p><p>So dealing with unforgiveness is not only about the person who hurt you. It is about pulling up a root before it poisons everything growing near it, including you. The grudge costs more than you think it does.</p></div>
             </div>
           </article>
           <article class="verse v3 rv">
@@ -627,6 +632,8 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
               <a class="vref" href="/word?book=Mark&amp;chapter=11&amp;verse=25">Mark 11:25 &middot; NLT</a>
               <div class="vtext">&ldquo;But when you are praying, first forgive anyone you are holding a grudge against, so that your Father in heaven will forgive your sins.&rdquo;</div>
               <div class="vrefl">Notice where forgiveness lives. In your prayers, in private, between you and God, long before any conversation with them.</div>
+              <button class="vcomm-btn" type="button" data-comm="comm-2">Break this down</button>
+              <div class="vcomm-src" id="comm-2" hidden data-ref="Mark 11:25 &middot; NLT" data-title="Unclench the hand" data-read="/word?book=Mark&amp;chapter=11&amp;verse=25"><p>Jesus says this in the middle of teaching about prayer, and He connects two things we usually keep separate: praying and forgiving.</p><p>When you are praying, first forgive anyone you are holding a grudge against. First. Before the asking, before the requests, deal with the grudge. Jesus treats unforgiveness as something that gets in the way of your own prayer life.</p><p>It is not that God is petty. It is that you cannot hold someone in contempt and reach freely for God&rsquo;s grace at the same time. The clenched fist that will not forgive is the same hand that struggles to receive.</p><p>So next time you pray and feel the wall, check for the grudge. Forgiving them is not letting them win. It is unclenching your hand so you can actually take hold of God again.</p></div>
             </div>
           </article>
         </div>
@@ -804,5 +811,6 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
   if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
 })();
 </script>
+<script src="/declare/commentary.js?v=1" defer></script>
 </body>
 </html>
