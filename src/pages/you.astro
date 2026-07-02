@@ -708,16 +708,16 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
       { v: '3.15.0', date: 'July 2026', items: [
-        ['New', 'A new Stress & Burnout page joins the struggle library, in English and Spanish, with real Scripture on rest (Matthew 11:28, Isaiah 40, Psalm 23) and honest answers for the nights you are running on empty.'],
-        ['New', 'A Spanish struggles hub, Luchas, now gathers every Spanish page in one place, linked from the menu and footer.'],
+        ['New', 'A new Stress & Burnout page joins the struggle library, in English and Spanish, with real Scripture on rest (Matthew 11:28, Isaiah 40, Psalm 23) and honest answers for the nights you are running on empty.', 'Una nueva página de Estrés y agotamiento se suma a la biblioteca de luchas, en inglés y español, con Escritura real sobre el descanso (Mateo 11:28, Isaías 40, Salmo 23) y respuestas honestas para las noches en que estás sin fuerzas.'],
+        ['New', 'A Spanish struggles hub, Luchas, now gathers every Spanish page in one place, linked from the menu and footer.', 'Un centro de luchas en español, Luchas, ahora reúne todas las páginas en español en un solo lugar, enlazado desde el menú y el pie de página.'],
       ] },
       { v: '3.14.0', date: 'July 2026', items: [
-        ['New', 'Declare now speaks Spanish. All fourteen struggle pages are live in Spanish, from Ansiedad to Sobrepensar, each with Scripture in the Reina-Valera 1909, a prayer, and the Profundiza study on every verse.'],
-        ['New', 'The Word now includes the Reina-Valera 1909 (Español), so Spanish verse links open in the Spanish Bible.'],
+        ['New', 'Declare now speaks Spanish. All fourteen struggle pages are live in Spanish, from Ansiedad to Sobrepensar, each with Scripture in the Reina-Valera 1909, a prayer, and the Profundiza study on every verse.', 'Declare ahora habla español. Las catorce páginas de luchas están disponibles en español, de Ansiedad a Sobrepensar, cada una con Escritura en la Reina-Valera 1909, una oración y el estudio Profundiza en cada versículo.'],
+        ['New', 'The Word now includes the Reina-Valera 1909 (Español), so Spanish verse links open in the Spanish Bible.', 'La Palabra ahora incluye la Reina-Valera 1909 (Español), para que los enlaces de versículos en español abran en la Biblia en español.'],
       ] },
       { v: '3.13.0', date: 'July 2026', items: [
-        ['New', 'On the struggle pages, every verse now opens in the Word reader, and a new Break this down button gives a short, grounded study of what the verse actually means.'],
-        ['Improved', 'The struggle pages share a calmer, cohesive design, and Spanish has begun. Ansiedad and Heridas de la iglesia are live, with more on the way.'],
+        ['New', 'On the struggle pages, every verse now opens in the Word reader, and a new Break this down button gives a short, grounded study of what the verse actually means.', 'En las páginas de luchas, cada versículo ahora abre en el lector de La Palabra, y un nuevo botón Profundiza da un estudio breve y sólido de lo que el versículo realmente significa.'],
+        ['Improved', 'The struggle pages share a calmer, cohesive design, and Spanish has begun. Ansiedad and Heridas de la iglesia are live, with more on the way.', 'Las páginas de luchas comparten un diseño más calmado y cohesivo, y el español ha comenzado. Ansiedad y Heridas de la iglesia están disponibles, con más en camino.'],
       ] },
       { v: '3.12.1', date: 'June 2026', items: [
         ['Improved', 'The Tree of Life is now drawn in higher resolution, with a fuller, richer canopy and clearer glowing fruit.'],
@@ -804,13 +804,16 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         ['Fixed', 'Signing out now fully clears your info on a shared device.'],
       ] },
     ];
-    (function setVer(){ const el = $('yVer'); if (el && RELEASES[0]) el.textContent = 'DECLARE · VERSION ' + RELEASES[0].v; })();
+    (function setVer(){ const el = $('yVer'); if (el && RELEASES[0]) el.textContent = (esY() ? 'DECLARE · VERSIÓN ' : 'DECLARE · VERSION ') + RELEASES[0].v; })();
     function rlsTagClass(t){ return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
     function openWhatsNew() {
-      const sub = $('yRlsSub'); if (sub) sub.textContent = 'Everything we have shipped lately, in plain language.';
+      const sub = $('yRlsSub'); if (sub) sub.textContent = esY() ? 'Todo lo que hemos lanzado últimamente, en lenguaje sencillo.' : 'Everything we have shipped lately, in plain language.';
+      var _BADGE = { New:'Nuevo', Fixed:'Corregido', Improved:'Mejorado' };
+      var _MON = { January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre' };
+      function rlsDate(d){ return esY() ? String(d).replace(/([A-Za-z]+)\s+(\d{4})/, function(_,mo,y){ return (_MON[mo]||mo) + ' de ' + y; }) : d; }
       $('yRlsBody').innerHTML = RELEASES.map(function(r){
-        return '<div class="yrls-rel"><div class="yrls-vh"><span class="yrls-v">Version ' + r.v + '</span><span class="yrls-date">' + r.date + '</span></div>'
-          + r.items.map(function(it){ return '<div class="yrls-item"><span class="yrls-tagcol"><span class="' + rlsTagClass(it[0]) + '">' + it[0] + '</span></span><span class="yrls-txt">' + it[1] + '</span></div>'; }).join('')
+        return '<div class="yrls-rel"><div class="yrls-vh"><span class="yrls-v">' + (esY() ? 'Versión ' : 'Version ') + r.v + '</span><span class="yrls-date">' + rlsDate(r.date) + '</span></div>'
+          + r.items.map(function(it){ return '<div class="yrls-item"><span class="yrls-tagcol"><span class="' + rlsTagClass(it[0]) + '">' + ((esY() && _BADGE[it[0]]) ? _BADGE[it[0]] : it[0]) + '</span></span><span class="yrls-txt">' + (esY() && it[2] ? it[2] : it[1]) + '</span></div>'; }).join('')
           + '</div>';
       }).join('');
       $('yRlsModal').classList.add('open');
