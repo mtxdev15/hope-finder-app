@@ -4,8 +4,10 @@
    you, vault, signin). It swaps any element tagged data-i18n / data-i18n-ph /
    data-i18n-aria / data-i18n-title, and exposes window.I18N for JS-built strings.
 
-   Layer 5 (banner + navigator.language auto-detect) is NOT wired here. Until a user
-   sets Spanish via the menu toggle, everything stays English. Load order:
+   Layer 5 (navigator.language auto-detect) lives in lang-banner.js, which offers a
+   gentle banner to Spanish-browser users who have not yet chosen; it never switches
+   silently. Until a user chooses Spanish (banner or menu toggle), everything stays
+   English. Load order:
    <script src="/declare/i18n-strings.js"></script> then <script src="/declare/i18n.js"></script>. */
 (function () {
   var COOKIE = 'declare-lang';
@@ -16,6 +18,9 @@
   function writeCookie(v) {
     try { document.cookie = 'declare-lang=' + encodeURIComponent(v) + ';path=/;max-age=31536000;samesite=lax'; } catch (e) {}
     try { localStorage.setItem('declare-lang', v); } catch (e) {}
+    // Mark that the user has made an explicit language choice — the auto-detect
+    // banner (lang-banner.js) checks this so it never nags after a real choice.
+    try { localStorage.setItem('declare-lang-set', '1'); } catch (e) {}
   }
   function currentLang() {
     var c = readCookie(); if (c === 'es' || c === 'en') return c;
