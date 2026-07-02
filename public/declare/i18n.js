@@ -79,6 +79,12 @@
     toggle: function () { setLang(currentLang() === 'es' ? 'en' : 'es'); },
     apply: apply
   };
+  // ?lang=es|en in the URL wins and persists — lets the Spanish static pages (/es/*)
+  // hand a visitor into the app (/word, /today, /journey) already in Spanish.
+  try {
+    var qp = new URLSearchParams(location.search).get('lang');
+    if (qp === 'es' || qp === 'en') writeCookie(qp);
+  } catch (e) {}
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { apply(); });
   else apply();
 })();
