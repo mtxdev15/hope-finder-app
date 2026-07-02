@@ -62,15 +62,43 @@ const syncedPromise = new Promise((r) => { resolveSynced = r; });
    that render from synced state (e.g. /journey) should build inside this. */
 export function whenSynced() { return syncedPromise; }
 
+/* Language preference follows the account across devices. It lives in the same
+   'declare-lang' localStorage key the i18n engine reads, so registering it here
+   lifts a device's choice up on first sign-in and pulls the account's choice
+   down on every other device. When a pulled language differs from what this
+   device rendered, reload ONCE so the whole app (including JS-built strings)
+   re-renders in the account's language. i18n.js can't import this module (it's a
+   plain global script), so it just emits a 'declare-lang' event we bridge up. */
+function reconcileLang() {
+  let acct = null;
+  try { acct = localStorage.getItem('declare-lang'); } catch (e) {}
+  if (acct !== 'es' && acct !== 'en') return;
+  let rendered = 'en';
+  try { rendered = document.documentElement.getAttribute('data-lang') || 'en'; } catch (e) {}
+  if (acct === rendered) return; // already in sync
+  let already = false;
+  try { already = sessionStorage.getItem('declare-lang-synced') === '1'; } catch (e) {}
+  if (already) { // never loop: apply what we can live and stop
+    try { if (window.I18N && window.I18N.apply) window.I18N.apply(acct); } catch (e) {}
+    return;
+  }
+  try { sessionStorage.setItem('declare-lang-synced', '1'); } catch (e) {}
+  try { location.reload(); }
+  catch (e) { try { if (window.I18N && window.I18N.apply) window.I18N.apply(acct); } catch (_) {} }
+}
+
 let inited = false;
 function init() {
   if (inited) return;
   inited = true;
+  registerSyncKey('declare-lang'); // language rides the same account sync
+  // Push the language up whenever the user changes it (menu toggle or banner).
+  try { document.addEventListener('declare-lang', function () { mirror('declare-lang'); }); } catch (e) {}
   if (!dataConfigured()) { resolveSynced(); return; }
   initAuth()
     .then(() => { if (isSignedIn()) return syncDown(); })
     .catch(() => {})
-    .finally(() => resolveSynced());
-  onAuthChange(() => { if (isSignedIn()) syncDown(); });
+    .finally(() => { reconcileLang(); resolveSynced(); });
+  onAuthChange(() => { if (isSignedIn()) syncDown().then(reconcileLang); });
 }
 init();
