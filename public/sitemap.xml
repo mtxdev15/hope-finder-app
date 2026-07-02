@@ -62,7 +62,24 @@
   </url>
 
   <!-- Struggles hub — index of all struggle pages -->
-  <url><loc>https://declareandbelieve.com/struggles</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/struggles</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/struggles" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/luchas" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/struggles" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/luchas</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/struggles" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/luchas" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/struggles" />
+  </url>
 
   <!-- ============ Struggle landing pages (primary SEO targets) ============ -->
   <url>
