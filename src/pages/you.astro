@@ -25,84 +25,93 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         <aside class="yrail">
           <div class="ycard yprofile m-rise">
             <div class="yav-wrap">
-              <button class="yav" id="yAvatar" type="button" aria-label="Add or change your photo"><span id="yAvText" class="serif">✝</span></button>
+              <button class="yav" id="yAvatar" type="button" aria-label="Add or change your photo" data-i18n-aria="you.photoAria"><span id="yAvText" class="serif">✝</span></button>
               <span class="yav-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
             </div>
             <input type="file" id="yAvFile" accept="image/*" hidden />
             <button type="button" class="yav-remove" id="yAvRemove" hidden>Remove photo</button>
             <div class="yname serif" id="yName">Friend</div>
-            <div class="yrole" id="yRole">Guest &middot; not signed in</div>
+            <div class="yrole" id="yRole" data-i18n="you.roleGuest">Guest &middot; not signed in</div>
             <div class="ydivider"></div>
-            <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl">day with Declare</span></div>
+            <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl" data-i18n="you.dayWith">day with Declare</span></div>
           </div>
 
           <div class="ycard yconfirm m-rise">
-            <div class="yc-h">Saved on this device</div>
+            <div class="yc-h" data-i18n="you.onThisDevice">Saved on this device</div>
             <ul class="yc-list" id="yStats"></ul>
-            <div class="yc-note">Your words, verses and highlights live safely on this device. Signing in keeps them tied to you.</div>
+            <div class="yc-note" data-i18n="you.savedNote">Your words, verses and highlights live safely on this device. Signing in keeps them tied to you.</div>
           </div>
         </aside>
 
         {/* ───── right: About you (icon-fact grid + chips), then the hub ───── */}
         <section class="ymain">
           <div class="yhead m-rise">
-            <h1 class="serif">About you</h1>
-            <p>What you share here stays on this device — it simply makes Declare feel like yours.</p>
+            <h1 class="serif" data-i18n="you.aboutYou">About you</h1>
+            <p data-i18n="you.aboutYouSub">What you share here stays on this device — it simply makes Declare feel like yours.</p>
           </div>
 
           <div class="yfacts m-rise" id="yFacts"></div>
 
           <div class="ychips-wrap m-rise">
-            <div class="ylbl">Ask me about</div>
+            <div class="ylbl" data-i18n="you.askMeAbout">Ask me about</div>
             <div class="ychips" id="yChips"></div>
           </div>
 
-          <div class="yhead yhead2 m-rise"><h2 class="serif">Your app</h2></div>
+          <div class="yhead yhead2 m-rise"><h2 class="serif" data-i18n="you.yourApp">Your app</h2></div>
           <div class="yhub m-rise" id="yHub">
             <div class="yhubcard appearance">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path></svg></div>
-              <div class="yh-t">Appearance</div>
-              <div class="yh-d">Dark is home. Choose what fits the hour.</div>
+              <div class="yh-t" data-i18n="you.appearance">Appearance</div>
+              <div class="yh-d" data-i18n="you.appearanceD">Dark is home. Choose what fits the hour.</div>
               <nav class="themectl" aria-label="Theme">
-                <button data-mode="light">Light</button>
-                <button data-mode="dark">Dark</button>
-                <button data-mode="system">Auto</button>
+                <button data-mode="light" data-i18n="you.themeLight">Light</button>
+                <button data-mode="dark" data-i18n="you.themeDark">Dark</button>
+                <button data-mode="system" data-i18n="you.themeAuto">Auto</button>
+              </nav>
+            </div>
+            <div class="yhubcard appearance">
+              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div>
+              <div class="yh-t" data-i18n="you.language">Language</div>
+              <div class="yh-d" data-i18n="you.languageD">Read Declare in English or Spanish.</div>
+              <nav class="themectl" id="langCtl" aria-label="Language">
+                <button type="button" data-lang="en">English</button>
+                <button type="button" data-lang="es">Español</button>
               </nav>
             </div>
             <button class="yhubcard" id="hubChurch">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"></path></svg></div>
-              <div class="yh-t">Find a church</div>
-              <div class="yh-d" id="hubChurchD">Discover a fellowship near you</div>
+              <div class="yh-t" data-i18n="you.findChurch">Find a church</div>
+              <div class="yh-d" id="hubChurchD" data-i18n="you.findChurchD">Discover a fellowship near you</div>
             </button>
             <button class="yhubcard" data-soon>
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></div>
-              <div class="yh-t">Reminders &amp; notifications</div>
-              <div class="yh-d">A daily nudge back to the Word <span class="ybadge">Soon</span></div>
+              <div class="yh-t" data-i18n="you.reminders">Reminders &amp; notifications</div>
+              <div class="yh-d"><span data-i18n="you.remindersD">A daily nudge back to the Word</span> <span class="ybadge" data-i18n="you.soon">Soon</span></div>
             </button>
             <button class="yhubcard" id="hubAuth">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></div>
-              <div class="yh-t">Sign-in &amp; security</div>
-              <div class="yh-d" id="hubAuthD">Sign in to keep what God gives you</div>
+              <div class="yh-t" data-i18n="you.signSecurity">Sign-in &amp; security</div>
+              <div class="yh-d" id="hubAuthD" data-i18n="you.signInKeep">Sign in to keep what God gives you</div>
             </button>
             <a class="yhubcard" href="/help">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.3 9.3a2.8 2.8 0 0 1 5.3 1c0 1.8-2.6 2.1-2.6 4"></path><path d="M12 17.4h.01"></path></svg></div>
-              <div class="yh-t">Help &amp; support</div>
-              <div class="yh-d">Answers, contact, and help when you need it</div>
+              <div class="yh-t" data-i18n="you.help">Help &amp; support</div>
+              <div class="yh-d" data-i18n="you.helpD">Answers, contact, and help when you need it</div>
             </a>
             <a class="yhubcard" href="/give">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
-              <div class="yh-t">Support Declare</div>
-              <div class="yh-d">Help keep it free for all</div>
+              <div class="yh-t" data-i18n="you.support">Support Declare</div>
+              <div class="yh-d" data-i18n="you.supportD">Help keep it free for all</div>
             </a>
             <button class="yhubcard" id="yRateCard">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></div>
-              <div class="yh-t">Rate Declare</div>
-              <div class="yh-d">Tell us how it has met you</div>
+              <div class="yh-t" data-i18n="you.rate">Rate Declare</div>
+              <div class="yh-d" data-i18n="you.rateD">Tell us how it has met you</div>
             </button>
             <button class="yhubcard" id="yWhatsNew">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.3 4.3 1.9-4.3 1.9L12 15l-1.9-4.3L5.8 9l4.3-1.9L12 3z"></path><path d="M18.5 13.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg></div>
-              <div class="yh-t">What&rsquo;s new</div>
-              <div class="yh-d">Updates, improvements, and fixes</div>
+              <div class="yh-t" data-i18n="you.whatsNew">What&rsquo;s new</div>
+              <div class="yh-d" data-i18n="you.whatsNewD">Updates, improvements, and fixes</div>
             </button>
           </div>
 
@@ -110,14 +119,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <div class="yg-hd">
               <div class="yg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
               <div class="yg-head">
-                <div class="yg-ttl">Your giving</div>
+                <div class="yg-ttl" data-i18n="you.yourGiving">Your giving</div>
                 <div class="yg-tot" id="ygTotal"></div>
               </div>
             </div>
             <div class="yg-next" id="ygNext" hidden></div>
             <ul class="yg-list" id="ygList"></ul>
-            <a class="yg-again" href="/give">Give again</a>
-            <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden>Manage giving</a>
+            <a class="yg-again" href="/give" data-i18n="you.giveAgain">Give again</a>
+            <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
           <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.15.0</div>
@@ -183,7 +192,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       <div class="ym-back" id="yrvBack"></div>
       <div class="ym-panel">
         <button class="ym-x" id="yrvX" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
-        <h3 class="serif">Your review</h3>
+        <h3 class="serif" data-i18n="you.yourReview">Your review</h3>
         <p class="yrv-status" id="yrvStatus"></p>
         <div class="yrv-dims" id="yrvDims"></div>
         <blockquote class="yrv-quote" id="yrvQuote" hidden></blockquote>
@@ -199,7 +208,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       <div class="ym-back" id="yRlsBack"></div>
       <div class="ym-panel">
         <button class="ym-x" id="yRlsX" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
-        <h3 class="serif">What&rsquo;s new</h3>
+        <h3 class="serif" data-i18n="you.whatsNew">What&rsquo;s new</h3>
         <p class="yrls-sub" id="yRlsSub"></p>
         <div class="yrls-body" id="yRlsBody"></div>
       </div>
@@ -238,7 +247,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function renderRail() {
       const sIn = signedInNow();
       const name = sIn ? (P.name || '').trim() : '';
-      $('yName').textContent = name || 'Friend';
+      $('yName').textContent = name || tY('you.friend','Friend');
       $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
       // uploaded photo (if any) overlays the initial; remove-link shows only with one
       (function () {
@@ -252,17 +261,17 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       })();
       const d = daysWith(P);
       $('yDays').textContent = d;
-      $('yDaysLbl').textContent = d === 1 ? 'day with Declare' : 'days with Declare';
+      $('yDaysLbl').textContent = d === 1 ? tY('you.dayWith','day with Declare') : tY('you.daysWith','days with Declare');
       const items = sIn ? listItems() : [];
       const words = items.filter((i) => i.type === 'word').length;
       const verses = items.filter((i) => i.type === 'verse').length;
       let hls = 0; if (sIn) { try { hls = Object.keys(JSON.parse(localStorage.getItem('declare-highlights') || '{}')).length; } catch (e) {} }
       const colls = sIn ? listCollections().length : 0;
       const rows = [
-        [words, words === 1 ? 'word received & kept' : 'words received & kept'],
-        [verses, verses === 1 ? 'verse saved from the Word' : 'verses saved from the Word'],
-        [hls, hls === 1 ? 'verse highlighted' : 'verses highlighted'],
-        [colls, colls === 1 ? 'collection' : 'collections'],
+        [words, words === 1 ? tY('you.wordKept','word received & kept') : tY('you.wordsKept','words received & kept')],
+        [verses, verses === 1 ? tY('you.verseSaved','verse saved from the Word') : tY('you.versesSaved','verses saved from the Word')],
+        [hls, hls === 1 ? tY('you.verseHl','verse highlighted') : tY('you.versesHl','verses highlighted')],
+        [colls, colls === 1 ? tY('you.collection','collection') : tY('you.collections','collections')],
       ];
       $('yStats').innerHTML = rows.map(([n, l]) => (
         '<li' + (n ? ' class="has"' : '') + '><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><b>' + n + '</b> ' + l + '</li>'
@@ -467,10 +476,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>',
     };
     const FACTS = [
-      { key: 'name', label: 'My name', empty: 'How should we greet you?' },
-      { key: 'church', label: 'My church', empty: 'Find your church' },
-      { key: 'verse', label: 'My anchor verse', empty: 'The verse you stand on' },
-      { key: 'about', label: 'About me', empty: 'A line about your walk' },
+      { key: 'name', label: tY('you.factName','My name'), empty: tY('you.factNameE','How should we greet you?') },
+      { key: 'church', label: tY('you.factChurch','My church'), empty: tY('you.factChurchE','Find your church') },
+      { key: 'verse', label: tY('you.factVerse','My anchor verse'), empty: tY('you.factVerseE','The verse you stand on') },
+      { key: 'about', label: tY('you.factAbout','About me'), empty: tY('you.factAboutE','A line about your walk') },
     ];
     function factValue(k) {
       if (!signedInNow()) return '';     // guest = clean slate, no leftover identity
@@ -504,7 +513,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function renderChips() {
       const mine = signedInNow() ? (P.interests || []) : [];
       $('yChips').innerHTML = mine.map((i) => '<span class="ychip on">' + esc(i) + '</span>').join('')
-        + '<button class="ychip add" id="chipAdd">' + (mine.length ? 'Edit' : 'Choose what you love') + ' +</button>';
+        + '<button class="ychip add" id="chipAdd">' + (mine.length ? tY('you.edit','Edit') : tY('you.chooseLove','Choose what you love')) + ' +</button>';
       $('chipAdd').addEventListener('click', openInterests);
     }
 
@@ -559,7 +568,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         P = setProfile({ interests: [...$('ymBody').querySelectorAll('.ychip.on')].map((c) => c.dataset.int) });
       }
       closeModal();
-      toast('Saved on this device.');
+      toast(tY('you.savedToast','Saved on this device.'));
       renderRail(); renderFacts(); renderChips(); renderChurchHub();
     });
 
@@ -817,8 +826,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- church hub card reflects the saved church ---------- */
     function renderChurchHub() {
       $('hubChurchD').innerHTML = (signedInNow() && P.church)
-        ? esc(P.church.name) + ' <span class="ybadge home">Home</span>'
-        : 'Discover a fellowship near you';
+        ? esc(P.church.name) + ' <span class="ybadge home">' + tY('you.homeBadge','Home') + '</span>'
+        : tY('you.findChurchD','Discover a fellowship near you');
     }
     $('hubChurch').addEventListener('click', () => { (signedInNow() && P.church) ? openHomeChurch() : openFinder(); });
 
@@ -830,8 +839,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       // greets them right away. Only fills a blank name; never overwrites. On
       // sign-out the profile is cleared (see signOut), so the guest slate is blank.
       if (signedIn && u && u.firstName && !getProfile().name) P = setProfile({ name: u.firstName });
-      $('yRole').textContent = signedIn ? ((u && u.email) || 'Signed in') : 'Guest · not signed in';
-      $('hubAuthD').textContent = signedIn ? ('Signed in as ' + ((u && u.email) || 'you')) : 'Sign in to keep what God gives you';
+      $('yRole').textContent = signedIn ? ((u && u.email) || tY('you.roleSignedIn','Signed in')) : tY('you.roleGuest','Guest · not signed in');
+      $('hubAuthD').textContent = signedIn ? (tY('you.signedInAs','Signed in as ') + ((u && u.email) || tY('you.you','you'))) : tY('you.signInKeep','Sign in to keep what God gives you');
       // Re-read the profile and re-render every personal surface so name, facts,
       // interests and the church hub reflect the current account/guest state.
       P = getProfile(); renderRail(); renderFacts(); renderChips(); renderChurchHub();
@@ -839,22 +848,31 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     $('hubAuth').addEventListener('click', () => {
       if (!(isConfigured() && isSignedIn())) {
         // Julienne model: the account card opens right here
-        openAuthModal({ mode: 'signin', onSuccess: () => { renderAuth(); toast('Welcome back.'); } });
+        openAuthModal({ mode: 'signin', onSuccess: () => { renderAuth(); toast(tY('you.welcomeBack','Welcome back.')); } });
         return;
       }
       const u = currentUser() || {};
       modalKey = 'auth';
-      $('ymTitle').textContent = 'Your account';
-      $('ymSub').textContent = 'Signed in as ' + (u.email || 'you') + '. Your words and verses stay on this device for now.';
-      $('ymBody').innerHTML = '<button class="btn btn-ghost" id="ymSignout" style="width:100%;margin-top:16px">Sign out</button>';
+      $('ymTitle').textContent = tY('you.yourAccount','Your account');
+      $('ymSub').textContent = tY('you.signedInAs','Signed in as ') + (u.email || tY('you.you','you')) + tY('you.accountSub2','. Your words and verses stay on this device for now.');
+      $('ymBody').innerHTML = '<button class="btn btn-ghost" id="ymSignout" style="width:100%;margin-top:16px" data-i18n="you.signOut">Sign out</button>';
+      try { window.I18N && I18N.apply(); } catch (e) {}
       $('ymSave').style.display = 'none';
       document.getElementById('ymSignout').addEventListener('click', async () => {
-        await signOut(); closeModal(); renderAuth(); toast('Signed out on this device.');
+        await signOut(); closeModal(); renderAuth(); toast(tY('you.signedOut','Signed out on this device.'));
       });
       openModal();
     });
+    function tY(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
     initAuth().then(renderAuth);
     onAuthChange(renderAuth);
+    // in-app language toggle (Español | English) — persists + reloads to re-render everywhere
+    (function(){
+      var ctl = document.getElementById('langCtl'); if (!ctl) return;
+      function paint(){ var l = (window.I18N ? I18N.lang() : 'en'); ctl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
+      paint();
+      ctl.addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; try { window.I18N && I18N.setLang(b.dataset.lang); } catch(err){} location.reload(); });
+    })();
 
     /* ---------- church finder (Google Maps + Places, lazy) ---------- */
     let gmapsLoading = null, map = null, places = null, markers = [];
