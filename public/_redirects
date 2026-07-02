@@ -1,0 +1,7 @@
+# Cloudflare Pages redirects — pretty Spanish vanity paths -> the real /es/* pages.
+# Keeps declareandbelieve.com/bienvenido (shown in Ayuda y soporte) working while
+# the canonical pages stay under /es/.
+/bienvenido /es/bienvenido 301
+/ayuda /es/ayuda 301
+/luchas /es/luchas 301
+/dar /es/dar 301
