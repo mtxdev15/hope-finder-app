@@ -18,21 +18,21 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     <div class="vscroll" id="vscroll">
       <div class="vhero">
-        <h1 class="vrv">Vault</h1>
-        <div class="sub vrv" style="--i:1">Return to what God has spoken over you.</div>
-        <div class="vsearch vrv" id="vsearchWrap" style="--i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input id="search" type="search" placeholder="Search your Vault&hellip;" autocomplete="off" /></div>
+        <h1 class="vrv" data-i18n="vault.title">Vault</h1>
+        <div class="sub vrv" style="--i:1" data-i18n="vault.sub">Return to what God has spoken over you.</div>
+        <div class="vsearch vrv" id="vsearchWrap" style="--i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input id="search" type="search" placeholder="Search your Vault&hellip;" data-i18n-ph="vault.searchPh" autocomplete="off" /></div>
       </div>
       <div id="shelves"></div>
 
       {/* first-run empty state (shown only when the store is empty) */}
       <div class="vempty" id="vempty" hidden>
         <div class="ve-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><path d="M8 5V3.5M16 5V3.5M12 13.2v3"></path><circle cx="12" cy="12.4" r="1.3"></circle></svg></div>
-        <h2 class="serif">Your Vault awaits.</h2>
-        <p>Every word you receive, every verse you save, every prayer you keep &mdash; it all lives here, saved on this device.</p>
+        <h2 class="serif" data-i18n="vault.awaitsH">Your Vault awaits.</h2>
+        <p data-i18n="vault.awaitsP">Every word you receive, every verse you save, every prayer you keep &mdash; it all lives here, saved on this device.</p>
         <div class="ve-actions">
-          <a class="btn btn-primary" href="/today">Receive the Word
+          <a class="btn btn-primary" href="/today"><span data-i18n="vault.receiveWord">Receive the Word</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
-          <a class="btn btn-ghost" href="/word">Read the Word</a>
+          <a class="btn btn-ghost" href="/word" data-i18n="vault.readWord">Read the Word</a>
         </div>
       </div>
     </div>
@@ -51,23 +51,23 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     <div class="vsheet" id="createSheet">
       <div class="grabber"></div>
       <div id="createStep1">
-        <h3>New collection</h3>
-        <p>Gather truths into a space of your own. How would you like to begin?</p>
+        <h3 data-i18n="vault.newColl">New collection</h3>
+        <p data-i18n="vault.newCollP">Gather truths into a space of your own. How would you like to begin?</p>
         <div class="opts">
-          <button class="opt" data-mode="type"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span><span class="om"><span class="t">By kind</span><span class="s">Group your scriptures, declarations, or prayers</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
-          <button class="opt" data-mode="blank"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span><span class="om"><span class="t">Start empty</span><span class="s">Name it now, add truths as you go</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
+          <button class="opt" data-mode="type"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span><span class="om"><span class="t" data-i18n="vault.byKind">By kind</span><span class="s" data-i18n="vault.byKindS">Group your scriptures, declarations, or prayers</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
+          <button class="opt" data-mode="blank"><span class="oic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span><span class="om"><span class="t" data-i18n="vault.startEmpty">Start empty</span><span class="s" data-i18n="vault.startEmptyS">Name it now, add truths as you go</span></span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
         </div>
       </div>
       <div id="createStep2" class="hidden">
-        <h3 id="step2Title">Name your collection</h3>
-        <p id="step2Sub">Give it a name you&rsquo;ll recognize.</p>
+        <h3 id="step2Title" data-i18n="vault.nameColl">Name your collection</h3>
+        <p id="step2Sub" data-i18n="vault.nameCollSub">Give it a name you&rsquo;ll recognize.</p>
         <div class="kindrow hidden" id="kindRow">
-          <button class="kbtn on" data-kind="verse">Scriptures</button>
-          <button class="kbtn" data-kind="declaration">Declarations</button>
-          <button class="kbtn" data-kind="prayer">Prayers</button>
+          <button class="kbtn on" data-kind="verse" data-i18n="vault.kScriptures">Scriptures</button>
+          <button class="kbtn" data-kind="declaration" data-i18n="vault.kDeclarations">Declarations</button>
+          <button class="kbtn" data-kind="prayer" data-i18n="vault.kPrayers">Prayers</button>
         </div>
-        <div class="namewrap"><input id="collName" type="text" placeholder="e.g. Morning declarations" /></div>
-        <div class="sactions"><button class="btn btn-primary" id="createGo">Create collection</button><button class="btn btn-ghost" id="createBack">Back</button></div>
+        <div class="namewrap"><input id="collName" type="text" placeholder="e.g. Morning declarations" data-i18n-ph="vault.collPh" /></div>
+        <div class="sactions"><button class="btn btn-primary" id="createGo" data-i18n="vault.createColl">Create collection</button><button class="btn btn-ghost" id="createBack" data-i18n="vault.back">Back</button></div>
       </div>
     </div>
 
@@ -83,17 +83,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const tV = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
+    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones' }; if (b[name]) return b[name]; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
     const TYPES = {
-      verse: { label: 'Scripture', tagt: '#E8C97A' },
-      declaration: { label: 'Declaration', tagt: '#E0A45A' },
-      prayer: { label: 'Prayer', tagt: '#9BD0A8' },
+      verse: { get label(){ return tV('vault.tScripture','Scripture'); }, tagt: '#E8C97A' },
+      declaration: { get label(){ return tV('vault.tDeclaration','Declaration'); }, tagt: '#E0A45A' },
+      prayer: { get label(){ return tV('vault.tPrayer','Prayer'); }, tagt: '#9BD0A8' },
     };
     function relTime(ts) {
       const d = (Date.now() - ts) / 86400000;
-      if (d < 1) return Math.max(1, Math.round(d * 24)) + 'h ago';
-      if (d < 2) return 'Yesterday';
-      if (d < 7) return Math.round(d) + ' days ago';
-      return Math.round(d / 7) + 'w ago';
+      if (d < 1) return (window.I18N && I18N.lang() === 'es') ? ('hace ' + Math.max(1, Math.round(d * 24)) + 'h') : (Math.max(1, Math.round(d * 24)) + 'h ago');
+      if (d < 2) return tV('vault.yesterday','Yesterday');
+      if (d < 7) return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d) + ' días') : (Math.round(d) + ' days ago');
+      return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d/7) + ' sem') : (Math.round(d/7) + 'w ago');
     }
 
     /* a saved struggle can grow into a 5-day journey (design's bridge) */
@@ -151,15 +153,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     /* ---- shelf cards (design bcard) ---- */
     function bcard(c, count, top) {
       const cfg = TYPES[top ? top.type : 'verse'] || TYPES.verse;
-      const body = top ? (top.body || '').replace(/[“”"]/g, '') : 'Nothing here yet — add truths as you save them.';
+      const body = top ? (top.body || '').replace(/[“”"]/g, '') : tV('vault.nothingYet','Nothing here yet — add truths as you save them.');
       let sparks = '';
       [[20, 26, 2], [78, 20, 1.5], [64, 46, 1.8]].forEach((s, k) => { sparks += '<span class="spark" style="left:' + s[0] + '%;top:' + s[1] + '%;width:' + s[2] + 'px;height:' + s[2] + 'px;animation-delay:' + (k * 0.8) + 's"></span>'; });
       return '<button class="bcard vrv" data-coll="' + encodeURIComponent(c.name) + '" data-kind="' + (c.kind || '') + '" style="--bctag:' + cfg.tagt + '"><span class="bg-glow"></span>' + sparks
-        + '<div class="bc-top"><span class="bc-tag">' + (c.mine ? 'Yours' : esc(cfg.label)) + '</span><span class="bc-count">' + count + '</span></div>'
+        + '<div class="bc-top"><span class="bc-tag">' + (c.mine ? tV('vault.yours','Yours') : esc(cfg.label)) + '</span><span class="bc-count">' + count + '</span></div>'
         + '<div class="bc-quote"><span>' + (top ? '“' + esc(body.slice(0, 110)) + (body.length > 110 ? '…' : '') + '”' : esc(body)) + '</span></div>'
-        + '<div class="bc-name">' + esc(c.name) + '</div><div class="bc-meta">' + count + (count === 1 ? ' truth' : ' truths') + (c.recent ? ' · ' + relTime(c.recent) : '') + '</div></button>';
+        + '<div class="bc-name">' + esc(collLabel(c.name)) + '</div><div class="bc-meta">' + count + (count === 1 ? tV('vault.truth',' truth') : tV('vault.truths',' truths')) + (c.recent ? ' · ' + relTime(c.recent) : '') + '</div></button>';
     }
-    const createCard = () => '<button class="createcard vrv" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">New collection</span></button>';
+    const createCard = () => '<button class="createcard vrv" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">' + tV('vault.newColl','New collection') + '</span></button>';
 
     /* Re-open a saved truth in the Card Studio (re-share), preserving its saved background. */
     function reshareTruth(t) {
@@ -205,10 +207,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
       let d = 0;
       let html = '';
-      if (vimgHtml) { html += shelf('Verse images', vimgHtml, d); d += 90; }
-      html += shelf('Recently saved', recentHtml, d); d += 90;
-      html += shelf('Your collections', yoursHtml, d);
-      if (query && !groups.length && !vimgs.length) html = '<div class="empty-note">Nothing matches your search.</div>' + shelf('Your collections', yoursHtml, 0);
+      if (vimgHtml) { html += shelf(tV('vault.shVerseImages','Verse images'), vimgHtml, d); d += 90; }
+      html += shelf(tV('vault.shRecent','Recently saved'), recentHtml, d); d += 90;
+      html += shelf(tV('vault.shYourColl','Your collections'), yoursHtml, d);
+      if (query && !groups.length && !vimgs.length) html = '<div class="empty-note">' + tV('vault.noMatch','Nothing matches your search.') + '</div>' + shelf(tV('vault.shYourColl','Your collections'), yoursHtml, 0);
       $('shelves').innerHTML = html;
       $('shelves').querySelectorAll('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
       $('shelves').querySelectorAll('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[+b.dataset.vimg]); });
@@ -295,8 +297,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + (t.type === 'declaration' ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
       }).join('');
       if (!focusList.length) {
-        html = '<div class="empty-note">Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.</div>'
-          + '<div class="ve-actions" style="justify-content:center"><a class="btn btn-primary" href="/today">Receive the Word</a><a class="btn btn-ghost" href="/word">Read the Word</a></div>'
+        html = '<div class="empty-note">' + tV('vault.emptyNote','Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.') + '</div>'
+          + '<div class="ve-actions" style="justify-content:center"><a class="btn btn-primary" href="/today">' + tV('vault.receiveWord','Receive the Word') + '</a><a class="btn btn-ghost" href="/word">' + tV('vault.readWord','Read the Word') + '</a></div>'
           + (c.kind ? '' : (userColls.some((x) => x.name === name && !x.kind)
             ? '<div class="empty-note" style="padding-top:8px"><button class="vlink" id="collDelete">Delete this collection</button></div>' : ''));
       }
@@ -306,7 +308,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           + '<div class="vd-h">Don’t just keep it here</div>'
           + '<div class="vd-shift"><b>' + esc(jrn.struggle) + '</b><span class="arr">→</span><b>' + esc(jrn.to) + '</b></div>'
           + '<div class="vd-p">These are seeds. Give them five days to take root — one declaration a day — and watch the shift become real.</div>'
-          + '<a class="btn btn-primary" href="/journey">Start a 5-Day Journey'
+          + '<a class="btn btn-primary" href="/journey">' + tV('vault.startJourney','Start a 5-Day Journey')
           + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>';
       }
       $('focusIn').innerHTML = html;
@@ -319,7 +321,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         } catch (e) {}
       });
       const del = $('collDelete');
-      if (del) del.onclick = () => { removeCollection(name); toast('Collection removed'); closeFocus(); render(); };
+      if (del) del.onclick = () => { removeCollection(name); toast(tV('vault.collRemoved','Collection removed')); closeFocus(); render(); };
       $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
         b.onclick = (e) => { e.stopPropagation(); reshareTruth(focusList[+b.dataset.i]); };
       });
@@ -328,7 +330,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           e.stopPropagation();
           const t = focusList[+b.dataset.i];
           removeItem(t.parentId);
-          toast(t.parentKind === 'word' ? 'Word removed from Vault' : 'Removed from Vault');
+          toast(t.parentKind === 'word' ? tV('vault.wordRemoved','Word removed from Vault') : tV('vault.itemRemoved','Removed from Vault'));
           render();
           openFocus(name, kind);
           if (!collTruths(c).length && !kind && !userColls.some((x) => x.name === name)) closeFocus();
@@ -390,7 +392,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const nm = ($('collName').value || '').trim() || 'New collection';
       addCollection(nm, pendingMode === 'type' ? pendingKind : null);
       closeSheet(); $('collName').value = '';
-      toast('“' + nm + '” created');
+      toast('“' + nm + '” ' + tV('vault.created','created'));
       render();
     };
 

@@ -10,6 +10,17 @@
   var mount = document.querySelector('[data-testimonials]');
   if (!mount) return;
 
+  // Spanish label detection: the /es/* static twins carry <html lang="es"> (and the
+  // app exposes window.I18N). The testimonial TEXT is left exactly as each person
+  // wrote it — only this widget's own chrome is translated.
+  var ES = false;
+  try {
+    ES = (document.documentElement.getAttribute('lang') === 'es')
+      || /^\/es(\/|$)/.test(location.pathname)
+      || !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es');
+  } catch (e) {}
+  function L(en, es) { return ES ? es : en; }
+
   function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function overall(r) { return Math.round((r.score_met_you + r.score_the_word + r.score_coming_back) / 3); }
   function dimAvg(list, key) { var s = 0; for (var i = 0; i < list.length; i++) s += list[i][key]; return s / list.length; }
@@ -87,7 +98,7 @@
     // Marquee cards from testimonial-bearing reviews (oevra "words of affirmation").
     var cardArr = list.filter(function (r) { return r.testimonial && r.testimonial.trim(); });
     function oneCard(r) {
-      var name = (r.firstName || 'Friend').trim() || 'Friend';
+      var name = (r.firstName || L('Friend', 'Amigo')).trim() || L('Friend', 'Amigo');
       return '<figure class="tw-card">'
         + '<span class="tw-mark" aria-hidden="true"></span>'
         + '<blockquote class="tw-quote">' + esc(r.testimonial) + '</blockquote>'
@@ -109,16 +120,16 @@
 
     mount.innerHTML = '<div class="tw">'
       + '<div class="tw-head">'
-      + '<h2 class="tw-h serif">How the Word has met people</h2>'
+      + '<h2 class="tw-h serif">' + L('How the Word has met people', 'Cómo la Palabra ha encontrado a las personas') + '</h2>'
       + '<div class="tw-avg">'
-      + '<span class="tw-avgnum serif">' + avg.toFixed(1) + '</span><span class="tw-avgof">of 5</span>'
+      + '<span class="tw-avgnum serif">' + avg.toFixed(1) + '</span><span class="tw-avgof">' + L('of 5', 'de 5') + '</span>'
       + '<span class="tw-avgstars" aria-hidden="true">' + stars(Math.round(avg)) + '</span>'
-      + '<span class="tw-count">' + list.length + (list.length === 1 ? ' testimony' : ' testimonies') + '</span>'
+      + '<span class="tw-count">' + list.length + (list.length === 1 ? L(' testimony', ' testimonio') : L(' testimonies', ' testimonios')) + '</span>'
       + '</div>'
       + '<div class="tw-dims">'
-      + dimRow('Met you', dimAvg(list, 'score_met_you'))
-      + dimRow('The Word', dimAvg(list, 'score_the_word'))
-      + dimRow('Coming back', dimAvg(list, 'score_coming_back'))
+      + dimRow(L('Met you', 'Te encontró'), dimAvg(list, 'score_met_you'))
+      + dimRow(L('The Word', 'La Palabra'), dimAvg(list, 'score_the_word'))
+      + dimRow(L('Coming back', 'Volver'), dimAvg(list, 'score_coming_back'))
       + '</div>'
       + '</div>'
       + marquee

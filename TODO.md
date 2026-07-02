@@ -32,6 +32,12 @@ Done items move to the bottom or get deleted.
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
+- [ ] **Full Spanish app — see the dedicated tracked plan: [`SPANISH-APP-PLAN.md`](SPANISH-APP-PLAN.md).**
+      Jeff greenlit the WHOLE app in Spanish (banner + toggle, auto-detect flips on last; RVR1909-only
+      + default in the Spanish Word; Yesenia Then voice for Spanish Profundiza; chip-autofill invariant
+      preserved). Work lives on branch `feature/es-full-app`. Layers 1-2 done (Bible + SEO pages);
+      Layers 3-5 (app UI strings, AI-in-Spanish, detect/banner/toggle) remain. That plan supersedes the
+      rough three-layer note below.
 - [ ] **Spanish translation (large, phased).** Big underserved market. Three layers: (1) Bible text —
       add a Spanish translation to the `/word` reader via api.bible (RV1960 is copyrighted and may be
       gated; RVR1909 is the free fallback); (2) AI content — add a `language` param so the struggle

@@ -8,6 +8,10 @@
    uploaded photo, gradient presets, solid color. 6 fonts.
    ============================================================ */
 (function(){
+  function ES(){ try { return !!(window.I18N && window.I18N.lang && window.I18N.lang()==='es'); } catch(e){ return false; } }
+  function L(en, es){ return ES()?es:en; }
+  var _TL={Image:'Imagen',Font:'Fuente',Text:'Texto',Tone:'Tono',Format:'Formato'};
+  function CST(en){ return ES()?(_TL[en]||en):en; }
   /* ---------- formats ---------- */
   var FORMATS = {
     post:    { w:1080, h:1080, label:'Post',     plat:'IG · FB',  bw:18, bh:18 },
@@ -351,8 +355,8 @@
   function renderToolbar(){
     var el=scrim.querySelector('#cstToolbar');
     el.innerHTML = TOOLS.map(function(t){
-      return '<button class="cst-tbtn'+(D._tool===t.key?' on':'')+'" data-tool="'+t.key+'"><span class="ti">'+t.ic+'</span><span class="tl">'+t.label+'</span></button>';
-    }).join('') + '<button class="cst-tbtn cst-tsurprise" data-surprise><span class="ti">'+I.spark+'</span><span class="tl">Surprise</span></button>';
+      return '<button class="cst-tbtn'+(D._tool===t.key?' on':'')+'" data-tool="'+t.key+'"><span class="ti">'+t.ic+'</span><span class="tl">'+CST(t.label)+'</span></button>';
+    }).join('') + '<button class="cst-tbtn cst-tsurprise" data-surprise><span class="ti">'+I.spark+'</span><span class="tl">'+L('Surprise','Sorpresa')+'</span></button>';
     el.querySelectorAll('[data-tool]').forEach(function(b){
       b.addEventListener('click', function(){
         var k=b.getAttribute('data-tool');
@@ -393,23 +397,23 @@
   function imageTool(){
     var html='', isPhoto=D.bg.kind==='photo';
     if(isPhoto && D.bg.img){
-      html+='<div class="cst-photowrap" style="margin-bottom:14px"><img class="pth" src="'+D.bg.src+'" alt=""><div class="pbtns"><button class="cst-mini" data-upload>Replace</button><button class="cst-mini danger" data-rmphoto>Remove</button></div></div>';
-      html+=sliderHTML('blur','Blur',0,60,D.blur||0,1);
-      html+=sliderHTML('dark','Darken',0,0.65,(D.dark==null?0.28:D.dark),0.01);
+      html+='<div class="cst-photowrap" style="margin-bottom:14px"><img class="pth" src="'+D.bg.src+'" alt=""><div class="pbtns"><button class="cst-mini" data-upload>'+L('Replace','Reemplazar')+'</button><button class="cst-mini danger" data-rmphoto>'+L('Remove','Quitar')+'</button></div></div>';
+      html+=sliderHTML('blur',L('Blur','Desenfoque'),0,60,D.blur||0,1);
+      html+=sliderHTML('dark',L('Darken','Oscurecer'),0,0.65,(D.dark==null?0.28:D.dark),0.01);
     } else {
-      html+='<button class="cst-drop slim" data-upload>'+I.up+'<span class="dt">Upload your photo</span></button>';
+      html+='<button class="cst-drop slim" data-upload>'+I.up+'<span class="dt">'+L('Upload your photo','Sube tu foto')+'</span></button>';
     }
-    html+='<div class="cst-lbl">Photos <span class="cst-by">Unsplash</span></div>';
+    html+='<div class="cst-lbl">'+L('Photos','Fotos')+' <span class="cst-by">Unsplash</span></div>';
     html+='<div class="cst-ussearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><input data-ussearch placeholder="Search Unsplash\u2026" value="'+esc(US.q)+'"></div>';
     html+='<div class="cst-attr" id="usAttr"></div>';
     html+='<div class="cst-chiprow" id="usThemes"></div>';
     html+='<div class="cst-grid cst-gal" id="usGrid"></div>';
-    html+='<div class="cst-lbl" style="margin-top:14px">Gradients</div>';
+    html+='<div class="cst-lbl" style="margin-top:14px">'+L('Gradients','Degradados')+'</div>';
     html+='<div class="cst-grid">'+GRADS.map(function(g,i){
       var on=D.bg.kind==='gradient'&&D.bg.value[0]===g[0];
       return '<button class="cst-thumb'+(on?' on':'')+'" data-grad="'+i+'"><canvas data-thumb="gradient" data-i="'+i+'"></canvas></button>';
     }).join('')+'</div>';
-    html+='<div class="cst-lbl" style="margin-top:14px">Colors</div>';
+    html+='<div class="cst-lbl" style="margin-top:14px">'+L('Colors','Colores')+'</div>';
     html+='<div class="cst-colors">'+SOLIDS.map(function(c){
       var on=D.bg.kind==='solid'&&D.bg.value.toLowerCase()===c.toLowerCase();
       return '<button class="cst-sw'+(on?' on':'')+'" data-solid="'+c+'" style="background:'+c+'"></button>';
@@ -429,18 +433,18 @@
 
   /* TEXT \u2014 words, reference, live size slider */
   function textTool(){
-    var html='<textarea class="cst-field" rows="3" data-text placeholder="Your words\u2026">'+esc(D.text)+'</textarea>';
+    var html='<textarea class="cst-field" rows="3" data-text placeholder="'+L('Your words\u2026','Tus palabras\u2026')+'">'+esc(D.text)+'</textarea>';
     if(D.type==='verse'||D.type==='reading'||D.type==='declaration')
-      html+='<input class="cst-field" data-ref placeholder="Reference (optional)" value="'+esc(D.ref)+'">';
-    html+=sliderHTML('size','Text size',0.75,1.3,D.size||1,0.01);
+      html+='<input class="cst-field" data-ref placeholder="'+L('Reference (optional)','Referencia (opcional)')+'" value="'+esc(D.ref)+'">';
+    html+=sliderHTML('size',L('Text size','Tamaño del texto'),0.75,1.3,D.size||1,0.01);
     return html;
   }
 
   /* TONE \u2014 light / dark rows */
   function toneTool(){
     return '<div class="cst-frows">'
-      +'<button class="cst-frow'+(D.color==='light'?' on':'')+'" data-color="light"><span class="fname">Light text</span><span class="fck">'+I.check+'</span></button>'
-      +'<button class="cst-frow'+(D.color==='dark'?' on':'')+'" data-color="dark"><span class="fname" style="opacity:.75">Dark text</span><span class="fck">'+I.check+'</span></button></div>';
+      +'<button class="cst-frow'+(D.color==='light'?' on':'')+'" data-color="light"><span class="fname">'+L('Light text','Texto claro')+'</span><span class="fck">'+I.check+'</span></button>'
+      +'<button class="cst-frow'+(D.color==='dark'?' on':'')+'" data-color="dark"><span class="fname" style="opacity:.75">'+L('Dark text','Texto oscuro')+'</span><span class="fck">'+I.check+'</span></button></div>';
   }
 
   /* FORMAT \u2014 the four platform sizes */
@@ -465,7 +469,7 @@
       if(meta && meta.track){ try{ fetch(WORKER+'/unsplash/track?d='+encodeURIComponent(meta.track)); }catch(e){} }
       renderControls(); repaintSoft();
     };
-    img.onerror=function(){ toast('Couldn\u2019t load that image'); };
+    img.onerror=function(){ toast(L('Couldn\u2019t load that image','No se pudo cargar esa imagen')); };
     img.src=url;
   }
   /* ----- Unsplash area: theme chips · grid (curated or search results) · attribution ----- */
@@ -476,13 +480,13 @@
       return '<button class="cst-chip'+(!US.results&&US.theme===t.key?' on':'')+'" data-ustheme="'+t.key+'">'+t.name+'</button>';
     }).join('');
     if(US.results==='loading'){
-      grid.innerHTML='<div class="cst-usnote">Searching Unsplash\u2026</div>';
+      grid.innerHTML='<div class="cst-usnote">'+L('Searching Unsplash\u2026','Buscando en Unsplash\u2026')+'</div>';
     } else if(US.results==='error'){
-      grid.innerHTML='<div class="cst-usnote">Search is unavailable right now \u2014 the themed gallery still works.</div>';
+      grid.innerHTML='<div class="cst-usnote">'+L('Search is unavailable right now \u2014 the themed gallery still works.','La búsqueda no está disponible ahora \u2014 la galería temática sigue funcionando.')+'</div>';
     } else if(US.results){
       grid.innerHTML=US.results.length?US.results.map(function(r){
         return '<button class="cst-thumb" data-photo="'+esc(r.full)+'" data-name="'+esc(r.name||'')+'" data-link="'+esc(r.link||'')+'" data-track="'+esc(r.download_location||'')+'"><img src="'+esc(r.thumb)+'" loading="lazy" alt=""></button>';
-      }).join(''):'<div class="cst-usnote">Nothing found for \u201c'+esc(US.q)+'\u201d.</div>';
+      }).join(''):'<div class="cst-usnote">'+L('Nothing found for \u201c','Nada encontrado para \u201c')+esc(US.q)+'\u201d.</div>';
     } else {
       var t=THEMES.filter(function(x){return x.key===US.theme;})[0]||THEMES[0];
       grid.innerHTML=t.photos.map(function(p){
@@ -580,11 +584,11 @@
     setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
   }
   function exportShare(mode, platform){
-    toast('Rendering\u2026');
+    toast(L('Rendering\u2026','Generando\u2026'));
     exportBlob().then(function(blob){
       var fname='declare-'+(D.type||'card')+'.png';
       var file=new File([blob],fname,{type:'image/png'});
-      var txt = D.type==='verse' ? (D.ref?D.ref+' \u2014 ':'')+'shared from Declare' : 'Shared from Declare';
+      var txt = D.type==='verse' ? (D.ref?D.ref+' \u2014 ':'')+L('shared from Declare','compartido desde Declare') : L('Shared from Declare','Compartido desde Declare');
       // Mobile: the OS share sheet drops the card DIRECTLY into the chosen app's
       // composer \u2014 the truest one-tap path. Desktop platform tiles skip this
       // (desktop "share" sheets are weak) and use clipboard + create-surface below.
@@ -597,7 +601,7 @@
       }
       if(mode==='download' || !platform){
         downloadBlob(blob, fname);
-        toast('Card saved to your device');
+        toast(L('Card saved to your device','Tarjeta guardada en tu dispositivo'));
         return;
       }
       // Desktop platform path: copy the card to the clipboard, then open that
@@ -616,7 +620,7 @@
           threads:'https://www.threads.net/intent/post?text='+cap
         }[platform];
         if(dest) window.open(dest,'_blank','noopener');
-        toast(copied ? 'Card copied \u2014 paste it into your '+platCap(platform)+' post' : 'Card saved \u2014 attach it in '+platCap(platform));
+        toast(copied ? L('Card copied \u2014 paste it into your '+platCap(platform)+' post','Tarjeta copiada \u2014 pégala en tu publicación de '+platCap(platform)) : L('Card saved \u2014 attach it in '+platCap(platform),'Tarjeta guardada \u2014 adjúntala en '+platCap(platform)));
         closeShareSheet();
       });
     });
@@ -629,13 +633,13 @@
       {k:'instagram',l:'Instagram',f:'post'},{k:'story',l:'Story',s:'9:16',f:'story'},
       {k:'tiktok',l:'TikTok',f:'story'},{k:'x',l:'X',f:'wide'},
       {k:'facebook',l:'Facebook',f:'post'},{k:'threads',l:'Threads',f:'portrait'},
-      {k:'download',l:'Download'},{k:'more',l:'More'}
+      {k:'download',l:L('Download','Descargar')},{k:'more',l:L('More','Más')}
     ];
     var credit = (D.bg&&D.bg.kind==='photo'&&US.attr&&US.attr.name) ? '<div class="cst-attr" style="text-align:center;margin:6px 0 2px">'+creditHTML(US.attr.name, US.attr.link)+'</div>' : '';
     var canSave = typeof P.save==='function';
-    var saveBtn = canSave ? '<button class="cst-savevault" data-savevault>'+I.check+'<span>Save to your Vault</span></button>' : '';
+    var saveBtn = canSave ? '<button class="cst-savevault" data-savevault>'+I.check+'<span>'+L('Save to your Vault','Guardar en tu Bóveda')+'</span></button>' : '';
     sub.innerHTML='<div class="sb-bd" data-subclose></div><div class="sb-sheet">'+
-      '<div class="cst-grab"></div><div class="cst-sh-h">Share your card</div><div class="cst-sh-s">We\u2019ll size it for where it\u2019s going</div>'+credit+saveBtn+
+      '<div class="cst-grab"></div><div class="cst-sh-h">'+L('Share your card','Comparte tu tarjeta')+'</div><div class="cst-sh-s">'+L('We\u2019ll size it for where it\u2019s going','La ajustaremos para donde vaya')+'</div>'+credit+saveBtn+
       '<div class="cst-plats">'+plats.map(function(p,i){
         return '<button class="cst-plat" data-plat="'+p.k+'"'+(p.f?' data-pfmt="'+p.f+'"':'')+' style="animation-delay:'+(50+i*40)+'ms"><span class="pi" style="background:'+(PLAT_BG[p.k]||'#444')+'">'+PLAT[p.k]+'</span><span class="pl">'+p.l+(p.s?'<small>'+p.s+'</small>':'')+'</span></button>';
       }).join('')+'</div></div>';

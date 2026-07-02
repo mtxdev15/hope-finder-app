@@ -61,6 +61,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link rel="stylesheet" href="/declare/declare.css" />
 <link rel="stylesheet" href="/declare/motion.css" />
 <link rel="stylesheet" href="/declare/route-loader.css" />
+<link rel="stylesheet" href="/declare/i18n-guards.css" />
 </head>
 <body class="app-shell">
 {GTM_ID && (
@@ -68,8 +69,8 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 )}
   <!-- design mast: brand dot + avatar entry to /you (design-source product pages) -->
   <div class="mast">
-    <a class="masthome" href="/welcome" aria-label="Declare home"><span class="dot" aria-hidden="true"></span></a>
-    <a class="avatar" href="/you" aria-label="You">
+    <a class="masthome" href="/welcome" data-i18n-href="/es/bienvenido" aria-label="Declare home"><span class="dot" aria-hidden="true"></span></a>
+    <a class="avatar" href="/you" aria-label="You" data-i18n-aria="nav.you">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path></svg>
     </a>
   </div>
@@ -78,6 +79,9 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 
   <!-- shared vanilla runtime — plain external scripts, emitted verbatim so each
        module's currentScript.src (e.g. route-loader's asset BASE) resolves correctly -->
+  <script is:inline src="/declare/i18n-strings.js"></script>
+  <script is:inline src="/declare/i18n.js"></script>
+  <script is:inline src="/declare/lang-banner.js"></script>
   <script is:inline src="/declare/theme.js"></script>
   <script is:inline src="/declare/motion.js"></script>
   <script is:inline src="/declare/route-loader.js" defer></script>
@@ -91,10 +95,12 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
       if (!els.length) return;
       let name = '';
       try { name = isSignedIn() ? (currentUser().firstName || '') : ''; } catch (e) {}
-      els.forEach((el) => { el.textContent = name ? name.slice(0, 14) : 'You'; });
+      const you = (window.I18N ? window.I18N.t('nav.you', 'You') : 'You');
+      els.forEach((el) => { el.textContent = name ? name.slice(0, 14) : you; });
     }
     initAuth().then(paintYouTab).catch(() => {});
     onAuthChange(paintYouTab);
+    document.addEventListener('declare-lang', paintYouTab);
   </script>
 
   <style is:global>

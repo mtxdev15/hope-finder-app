@@ -15,6 +15,10 @@
 import { isConfigured, isSignedIn, signIn, signUp, signInWithProvider, resetPassword, updatePassword } from './auth-store.js';
 import { getProfile, setProfile } from './profile-store.js';
 
+// Spanish display layer (declare-lang cookie, via the global window.I18N engine).
+function amES() { return !!(typeof window !== 'undefined' && window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); }
+function amT(en, es) { return amES() ? es : en; }
+
 let root = null, state = null;
 
 /* Social logins appear ONLY for providers listed in PUBLIC_AUTH_PROVIDERS
@@ -22,11 +26,11 @@ let root = null, state = null;
    provider is both configured in Better Auth AND named here, its button never
    shows — no dead controls while setup is in progress. */
 const PROVIDERS = {
-  google: { label: 'Continue with Google',
+  google: { label: 'Continue with Google', labelEs: 'Continúa con Google',
     icon: '<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.6c-.2 1.3-1 2.4-2 3.1v2.6h3.3c1.9-1.8 3.1-4.4 3.1-7.6z"/><path fill="#34A853" d="M12 22c2.7 0 5-1 6.6-2.5l-3.3-2.6c-.9.6-2 1-3.3 1-2.6 0-4.7-1.7-5.5-4.1H3.1v2.6C4.7 19.7 8.1 22 12 22z"/><path fill="#FBBC05" d="M6.5 13.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.6H3.1C2.4 9 2 10.5 2 12s.4 3 1.1 4.4l3.4-2.6z"/><path fill="#EA4335" d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.9-2.9C16.9 3 14.7 2 12 2 8.1 2 4.7 4.3 3.1 7.6l3.4 2.6C7.3 7.8 9.4 6.1 12 6.1z"/></svg>' },
-  apple: { label: 'Continue with Apple',
+  apple: { label: 'Continue with Apple', labelEs: 'Continúa con Apple',
     icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.4 2.1 2.4 2 1-.1 1.3-.6 2.5-.6s1.5.6 2.6.6 1.7-1 2.4-2c.7-1.1 1-2.2 1-2.3-.1 0-1.9-.8-1.9-2.9zM14.6 6.3c.5-.7.9-1.6.8-2.6-.8 0-1.8.6-2.4 1.2-.5.6-1 1.5-.8 2.4.9.1 1.8-.4 2.4-1z"/></svg>' },
-  facebook: { label: 'Continue with Facebook',
+  facebook: { label: 'Continue with Facebook', labelEs: 'Continúa con Facebook',
     icon: '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.3v7A10 10 0 0 0 22 12z"/></svg>' },
 };
 const ENABLED = (import.meta.env.PUBLIC_AUTH_PROVIDERS || '')
@@ -175,30 +179,30 @@ function mount() {
   root.className = 'am-wrap';
   root.innerHTML =
     '<div class="am-back" data-am-close></div>'
-    + '<div class="am-card" role="dialog" aria-modal="true" aria-label="Your account">'
-    +   '<button class="am-x" data-am-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'
+    + '<div class="am-card" role="dialog" aria-modal="true" aria-label="' + amT('Your account', 'Tu cuenta') + '">'
+    +   '<button class="am-x" data-am-close aria-label="' + amT('Close', 'Cerrar') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'
     +   '<div class="am-art">'
     +     '<div class="am-brand"><img src="/declare/brand/mark.png" alt="" />'
-    +       '<div class="bw"><div class="bn">Declare</div><div class="bt">Scripture, for the weight you carry.</div></div>'
+    +       '<div class="bw"><div class="bn">Declare</div><div class="bt">' + amT('Scripture, for the weight you carry.', 'La Escritura, para el peso que cargas.') + '</div></div>'
     +     '</div></div>'
     +   '<div class="am-form">'
     +     '<div class="am-k" id="amK"></div>'
     +     '<h2 class="am-h" id="amH"></h2>'
     +     '<p class="am-sub" id="amSub"></p>'
     +     '<form class="am-fields" id="amForm" novalidate>'
-    +       '<div class="am-field" id="amNameF"><input type="text" id="amName" placeholder="First name" autocomplete="given-name" autocapitalize="words" aria-label="First name" /><span class="tag">Name</span></div>'
-    +       '<div class="am-field" id="amEmailF"><input type="email" id="amEmail" placeholder="e.g. you@gmail.com" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-label="Email address" /><span class="tag">Email</span></div>'
-    +       '<div class="am-field" id="amPwF"><input type="password" id="amPw" placeholder="Enter your password" aria-label="Password" /><button type="button" class="am-peek" id="amPeek" aria-label="Show password">' + PEEK_SVG + '</button></div>'
-    +       '<button type="button" class="am-forgot" id="amForgot">Forgot password?</button>'
+    +       '<div class="am-field" id="amNameF"><input type="text" id="amName" placeholder="' + amT('First name', 'Nombre') + '" autocomplete="given-name" autocapitalize="words" aria-label="' + amT('First name', 'Nombre') + '" /><span class="tag">' + amT('Name', 'Nombre') + '</span></div>'
+    +       '<div class="am-field" id="amEmailF"><input type="email" id="amEmail" placeholder="' + amT('e.g. you@gmail.com', 'ej. tu@gmail.com') + '" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-label="' + amT('Email address', 'Correo electrónico') + '" /><span class="tag">' + amT('Email', 'Correo') + '</span></div>'
+    +       '<div class="am-field" id="amPwF"><input type="password" id="amPw" placeholder="' + amT('Enter your password', 'Escribe tu contraseña') + '" aria-label="' + amT('Password', 'Contraseña') + '" /><button type="button" class="am-peek" id="amPeek" aria-label="' + amT('Show password', 'Mostrar contraseña') + '">' + PEEK_SVG + '</button></div>'
+    +       '<button type="button" class="am-forgot" id="amForgot">' + amT('Forgot password?', '¿Olvidaste tu contraseña?') + '</button>'
     +       '<div class="am-hint" id="amHint"></div>'
-    +       '<button class="am-go" id="amGo" type="submit">Continue</button>'
+    +       '<button class="am-go" id="amGo" type="submit">' + amT('Continue', 'Continuar') + '</button>'
     +       '<div class="am-inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg><span id="amInboxT"></span></div>'
     +     '</form>'
-    +     (ENABLED.length ? ('<div class="am-or">or continue with</div><div class="am-prov">'
-    +       ENABLED.map((p) => '<button type="button" class="am-pbtn" data-prov="' + p + '">' + PROVIDERS[p].icon + PROVIDERS[p].label + '</button>').join('')
+    +     (ENABLED.length ? ('<div class="am-or">' + amT('or continue with', 'o continúa con') + '</div><div class="am-prov">'
+    +       ENABLED.map((p) => '<button type="button" class="am-pbtn" data-prov="' + p + '">' + PROVIDERS[p].icon + amT(PROVIDERS[p].label, PROVIDERS[p].labelEs) + '</button>').join('')
     +       '</div>') : '')
     +     '<div class="am-swap" id="amSwap"></div>'
-    +     '<div class="am-fine">Free forever for what matters &mdash; your words, verses, and journeys.</div>'
+    +     '<div class="am-fine">' + amT('Free forever for what matters &mdash; your words, verses, and journeys.', 'Gratis para siempre en lo que importa: tus palabras, versículos y caminos.') + '</div>'
     +   '</div>'
     + '</div>';
   document.body.appendChild(root);
@@ -237,7 +241,7 @@ function mount() {
 
 function hint(msg, isErr) {
   const h = root.querySelector('#amHint');
-  h.textContent = msg || (state && (state.mode === 'signup' || state.mode === 'reset') ? 'At least 8 characters.' : '');
+  h.textContent = msg || (state && (state.mode === 'signup' || state.mode === 'reset') ? amT('At least 8 characters.', 'Al menos 8 caracteres.') : '');
   h.classList.toggle('err', !!isErr);
 }
 
@@ -245,30 +249,30 @@ function setMode(mode) {
   state.mode = mode;
   const signup = mode === 'signup', signin = mode === 'signin', forgot = mode === 'forgot', reset = mode === 'reset';
   root.querySelector('.am-card').classList.remove('sent');
-  root.querySelector('#amK').textContent = (forgot || reset) ? 'Account' : (signup ? 'Start free' : 'Welcome back');
-  root.querySelector('#amH').textContent = forgot ? 'Reset your password' : reset ? 'Set a new password'
-    : signup ? 'Create your account' : 'Sign in to Declare';
+  root.querySelector('#amK').textContent = (forgot || reset) ? amT('Account', 'Cuenta') : (signup ? amT('Start free', 'Comienza gratis') : amT('Welcome back', 'Bienvenido de nuevo'));
+  root.querySelector('#amH').textContent = forgot ? amT('Reset your password', 'Restablece tu contraseña') : reset ? amT('Set a new password', 'Crea una nueva contraseña')
+    : signup ? amT('Create your account', 'Crea tu cuenta') : amT('Sign in to Declare', 'Inicia sesión en Declare');
   root.querySelector('#amSub').textContent = (!forgot && !reset && state.message) ? state.message
-    : forgot ? 'Enter your email and we’ll send a link to set a new one.'
-    : reset ? 'Choose a new password for your account.'
-    : signup ? 'Keep what God gives you — words, verses, and journeys — wherever you sign in.'
-    : 'Pick up right where you left off.';
+    : forgot ? amT('Enter your email and we’ll send a link to set a new one.', 'Escribe tu correo y te enviaremos un enlace para crear una nueva.')
+    : reset ? amT('Choose a new password for your account.', 'Elige una nueva contraseña para tu cuenta.')
+    : signup ? amT('Keep what God gives you — words, verses, and journeys — wherever you sign in.', 'Guarda lo que Dios te da — palabras, versículos y caminos — dondequiera que inicies sesión.')
+    : amT('Pick up right where you left off.', 'Continúa justo donde lo dejaste.');
   // field visibility per mode
   root.querySelector('#amNameF').style.display = signup ? '' : 'none';
   root.querySelector('#amEmailF').style.display = reset ? 'none' : '';   // reset has the recovery session; no email needed
   root.querySelector('#amPwF').style.display = forgot ? 'none' : '';      // forgot only asks for the email
   root.querySelector('#amForgot').style.display = signin ? '' : 'none';
-  root.querySelector('#amPw').placeholder = reset ? 'New password' : signup ? 'Create a password' : 'Enter your password';
+  root.querySelector('#amPw').placeholder = reset ? amT('New password', 'Nueva contraseña') : signup ? amT('Create a password', 'Crea una contraseña') : amT('Enter your password', 'Escribe tu contraseña');
   root.querySelector('#amPw').setAttribute('autocomplete', (reset || signup) ? 'new-password' : 'current-password');
-  root.querySelector('#amGo').textContent = forgot ? 'Send reset link' : reset ? 'Update password' : 'Continue';
+  root.querySelector('#amGo').textContent = forgot ? amT('Send reset link', 'Enviar enlace') : reset ? amT('Update password', 'Actualizar contraseña') : amT('Continue', 'Continuar');
   // social providers only belong on the actual sign-in / sign-up
   const orEl = root.querySelector('.am-or'), provEl = root.querySelector('.am-prov');
   if (orEl) orEl.style.display = (signin || signup) ? '' : 'none';
   if (provEl) provEl.style.display = (signin || signup) ? '' : 'none';
   root.querySelector('#amSwap').innerHTML = (forgot || reset)
-    ? '<button type="button">&larr; Back to sign in</button>'
-    : signup ? 'Already have an account? <button type="button">Sign in</button>'
-    : 'New here? <button type="button">Create an account</button>';
+    ? '<button type="button">&larr; ' + amT('Back to sign in', 'Volver a iniciar sesión') + '</button>'
+    : signup ? amT('Already have an account? ', '¿Ya tienes una cuenta? ') + '<button type="button">' + amT('Sign in', 'Inicia sesión') + '</button>'
+    : amT('New here? ', '¿Nuevo aquí? ') + '<button type="button">' + amT('Create an account', 'Crea una cuenta') + '</button>';
   ['amNameF', 'amEmailF', 'amPwF'].forEach((id) => root.querySelector('#' + id).classList.remove('err'));
   hint('');
 }
@@ -287,12 +291,12 @@ async function submit(e) {
 
   // ── forgot: just the email, then send the reset link ──
   if (mode === 'forgot') {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('amEmailF', 'That doesn’t look like an email address.'); root.querySelector('#amEmail').focus(); return; }
-    go.disabled = true; go.textContent = 'Sending the link…';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('amEmailF', amT('That doesn’t look like an email address.', 'Eso no parece un correo electrónico.')); root.querySelector('#amEmail').focus(); return; }
+    go.disabled = true; go.textContent = amT('Sending the link…', 'Enviando el enlace…');
     const res = await resetPassword(email, location.origin + '/reset-password');
-    go.disabled = false; go.textContent = 'Send reset link';
+    go.disabled = false; go.textContent = amT('Send reset link', 'Enviar enlace');
     if (!res.ok) { fieldErr('amEmailF', res.error); return; }
-    root.querySelector('#amInboxT').innerHTML = 'Check your inbox — a reset link is on its way to <b></b>. Open it on this device to set a new password.';
+    root.querySelector('#amInboxT').innerHTML = amT('Check your inbox — a reset link is on its way to <b></b>. Open it on this device to set a new password.', 'Revisa tu correo — un enlace va en camino a <b></b>. Ábrelo en este dispositivo para crear una nueva contraseña.');
     root.querySelector('#amInboxT b').textContent = email;
     root.querySelector('.am-card').classList.add('sent');
     return;
@@ -300,10 +304,10 @@ async function submit(e) {
 
   // ── reset: set the new password (recovery session is already active) ──
   if (mode === 'reset') {
-    if (pwv.length < 8) { fieldErr('amPwF', 'Use at least 8 characters.'); root.querySelector('#amPw').focus(); return; }
-    go.disabled = true; go.textContent = 'Updating…';
+    if (pwv.length < 8) { fieldErr('amPwF', amT('Use at least 8 characters.', 'Usa al menos 8 caracteres.')); root.querySelector('#amPw').focus(); return; }
+    go.disabled = true; go.textContent = amT('Updating…', 'Actualizando…');
     const res = await updatePassword(pwv);
-    go.disabled = false; go.textContent = 'Update password';
+    go.disabled = false; go.textContent = amT('Update password', 'Actualizar contraseña');
     if (!res.ok) { fieldErr('amPwF', res.error); return; }
     const cb = state.onSuccess;
     closeAuthModal();
@@ -314,11 +318,11 @@ async function submit(e) {
   // ── signin / signup ──
   const signupMode = mode === 'signup';
   const name = root.querySelector('#amName').value.trim();
-  if (signupMode && !name) { fieldErr('amNameF', 'Tell us what to call you.'); root.querySelector('#amName').focus(); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('amEmailF', 'That doesn’t look like an email address.'); root.querySelector('#amEmail').focus(); return; }
-  if (signupMode ? pwv.length < 8 : !pwv) { fieldErr('amPwF', signupMode ? 'Use at least 8 characters.' : 'Enter your password.'); root.querySelector('#amPw').focus(); return; }
+  if (signupMode && !name) { fieldErr('amNameF', amT('Tell us what to call you.', 'Dinos cómo llamarte.')); root.querySelector('#amName').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('amEmailF', amT('That doesn’t look like an email address.', 'Eso no parece un correo electrónico.')); root.querySelector('#amEmail').focus(); return; }
+  if (signupMode ? pwv.length < 8 : !pwv) { fieldErr('amPwF', signupMode ? amT('Use at least 8 characters.', 'Usa al menos 8 caracteres.') : amT('Enter your password.', 'Escribe tu contraseña.')); root.querySelector('#amPw').focus(); return; }
 
-  go.disabled = true; go.textContent = signupMode ? 'Creating your account…' : 'Signing you in…';
+  go.disabled = true; go.textContent = signupMode ? amT('Creating your account…', 'Creando tu cuenta…') : amT('Signing you in…', 'Iniciando sesión…');
   let res;
   if (signupMode) {
     const first = name.split(' ')[0];
@@ -335,10 +339,10 @@ async function submit(e) {
       } catch (err) {}
     }
   }
-  go.disabled = false; go.textContent = 'Continue';
+  go.disabled = false; go.textContent = amT('Continue', 'Continuar');
   if (!res.ok) { fieldErr('amPwF', res.error); return; }
   if (res.needsConfirm) {
-    root.querySelector('#amInboxT').innerHTML = 'Check your inbox. We sent a confirmation link to <b></b>. Tap it to confirm, then sign in.';
+    root.querySelector('#amInboxT').innerHTML = amT('Check your inbox. We sent a confirmation link to <b></b>. Tap it to confirm, then sign in.', 'Revisa tu correo. Enviamos un enlace de confirmación a <b></b>. Tócalo para confirmar y luego inicia sesión.');
     root.querySelector('#amInboxT b').textContent = email;
     root.querySelector('.am-card').classList.add('sent');
     setMode('signin'); // their next visit to the form is a sign-in

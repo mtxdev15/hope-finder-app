@@ -12,9 +12,9 @@ const MODE = 'signin';
 
     <!-- accounts not configured yet (missing keys) -->
     <div class="ap-missing" id="apMissing" hidden>
-      <div class="serif">Almost ready.</div>
+      <div class="serif" data-i18n="signin.almost">Almost ready.</div>
       <p>Accounts need their Convex key. Add <code>PUBLIC_CONVEX_SITE_URL</code> to <code>.env.local</code> and restart the build &mdash; until then, everything works without signing in.</p>
-      <a class="btn btn-ghost" href="/today">Back to Declare</a>
+      <a class="btn btn-ghost" href="/today" data-i18n="signin.back">Back to Declare</a>
     </div>
   </main>
 
@@ -34,7 +34,7 @@ const MODE = 'signin';
     initAuth().then(() => {
       if (!isConfigured()) { document.getElementById('apMissing').hidden = false; return; }
       if (isSignedIn()) { location.replace(dest); return; }
-      openAuthModal({ mode, message: justVerified ? 'Your email is confirmed. Sign in to continue.' : '', returnTo: dest, onSuccess: () => { location.href = dest; } });
+      openAuthModal({ mode, message: justVerified ? ((window.I18N && I18N.t('signin.verified')) || 'Your email is confirmed. Sign in to continue.') : '', returnTo: dest, onSuccess: () => { location.href = dest; } });
       // closing the modal on this shell means "never mind" — go back
       const watch = setInterval(() => {
         const w = document.querySelector('.am-wrap');

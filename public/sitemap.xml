@@ -18,9 +18,21 @@
   <!-- How it works — marketing landing / story -->
   <url>
     <loc>https://declareandbelieve.com/welcome</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/welcome" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/bienvenido" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/welcome" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/bienvenido</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/welcome" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/bienvenido" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/welcome" />
   </url>
 
   <!-- About / story -->
@@ -48,6 +60,15 @@
     <priority>0.6</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/ayuda</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/ayuda" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
   </url>
   <url><loc>https://declareandbelieve.com/help</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
