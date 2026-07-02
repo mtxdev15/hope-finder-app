@@ -1,0 +1,79 @@
+/* Declare i18n engine — runtime, cookie-driven, default English.
+   The static SEO pages (welcome, struggles, struggle pages, give) have their own
+   /es/* twins; THIS powers the interactive Astro app (/, today, journey, word,
+   you, vault, signin). It swaps any element tagged data-i18n / data-i18n-ph /
+   data-i18n-aria / data-i18n-title, and exposes window.I18N for JS-built strings.
+
+   Layer 5 (banner + navigator.language auto-detect) is NOT wired here. Until a user
+   sets Spanish via the menu toggle, everything stays English. Load order:
+   <script src="/declare/i18n-strings.js"></script> then <script src="/declare/i18n.js"></script>. */
+(function () {
+  var COOKIE = 'declare-lang';
+  function readCookie() {
+    try { var m = document.cookie.match(/(?:^|;\s*)declare-lang=([^;]+)/); return m ? decodeURIComponent(m[1]) : ''; }
+    catch (e) { return ''; }
+  }
+  function writeCookie(v) {
+    try { document.cookie = 'declare-lang=' + encodeURIComponent(v) + ';path=/;max-age=31536000;samesite=lax'; } catch (e) {}
+    try { localStorage.setItem('declare-lang', v); } catch (e) {}
+  }
+  function currentLang() {
+    var c = readCookie(); if (c === 'es' || c === 'en') return c;
+    try { var l = localStorage.getItem('declare-lang'); if (l === 'es' || l === 'en') return l; } catch (e) {}
+    return 'en';
+  }
+  function dict() { return (window.__I18N_STRINGS || {}); }
+  function tr(key, lang) {
+    lang = lang || currentLang();
+    var d = dict();
+    if (lang === 'es' && d.es && d.es[key] != null) return d.es[key];
+    return null; // null => use the original English in the DOM
+  }
+  function swapText(el, lang) {
+    var key = el.getAttribute('data-i18n');
+    if (el.__en == null) el.__en = el.textContent;
+    var s = tr(key, lang);
+    el.textContent = (s != null) ? s : el.__en;
+  }
+  function swapAttr(el, dataAttr, targetAttr, lang) {
+    var key = el.getAttribute(dataAttr);
+    var stash = '__i18n_' + targetAttr;
+    if (el[stash] == null) el[stash] = el.getAttribute(targetAttr) || '';
+    var s = tr(key, lang);
+    el.setAttribute(targetAttr, (s != null) ? s : el[stash]);
+  }
+  function apply(lang) {
+    lang = lang || currentLang();
+    document.documentElement.setAttribute('data-lang', lang);
+    try { document.documentElement.setAttribute('lang', lang === 'es' ? 'es' : 'en'); } catch (e) {}
+    try {
+      var i, nodes = document.querySelectorAll('[data-i18n]');
+      for (i = 0; i < nodes.length; i++) swapText(nodes[i], lang);
+      var ph = document.querySelectorAll('[data-i18n-ph]'); for (i = 0; i < ph.length; i++) swapAttr(ph[i], 'data-i18n-ph', 'placeholder', lang);
+      var ar = document.querySelectorAll('[data-i18n-aria]'); for (i = 0; i < ar.length; i++) swapAttr(ar[i], 'data-i18n-aria', 'aria-label', lang);
+      var ti = document.querySelectorAll('[data-i18n-title]'); for (i = 0; i < ti.length; i++) swapAttr(ti[i], 'data-i18n-title', 'title', lang);
+      // href swap: data-i18n-href holds the SPANISH href; English href stays in the attr.
+      var hr = document.querySelectorAll('[data-i18n-href]');
+      for (i = 0; i < hr.length; i++) {
+        var el = hr[i];
+        if (el.__enHref == null) el.__enHref = el.getAttribute('href') || '';
+        el.setAttribute('href', (lang === 'es') ? el.getAttribute('data-i18n-href') : el.__enHref);
+      }
+    } catch (e) {}
+  }
+  function setLang(l) {
+    l = (l === 'es') ? 'es' : 'en';
+    writeCookie(l);
+    apply(l);
+    try { document.dispatchEvent(new CustomEvent('declare-lang', { detail: { lang: l } })); } catch (e) {}
+  }
+  window.I18N = {
+    lang: currentLang,
+    t: function (k) { var s = tr(k); return s != null ? s : k; },
+    setLang: setLang,
+    toggle: function () { setLang(currentLang() === 'es' ? 'en' : 'es'); },
+    apply: apply
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { apply(); });
+  else apply();
+})();

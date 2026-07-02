@@ -123,23 +123,23 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 
       <div class="mast">
         <span class="dot" aria-hidden="true"></span>
-        <button class="menu" id="menuBtn" aria-label="Open menu" aria-expanded="false">Menu
+        <button class="menu" id="menuBtn" aria-label="Open menu" data-i18n-aria="nav.menuOpen" aria-expanded="false"><span data-i18n="nav.menu">Menu</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
       </div>
 
       <div class="hero">
         <div class="markwrap rise d1"><img class="mk-dark" src="/declare/brand/logo-dark-tight.png" alt="Declare &amp; Believe" /><img class="mk-light" src="/declare/brand/logo-light-tight.png" alt="" aria-hidden="true" /></div>
-        <div class="lbl kicker rise d2" id="heroKicker">Scripture, for the weight you carry</div>
+        <div class="lbl kicker rise d2" id="heroKicker" data-i18n="home.kicker">Scripture, for the weight you carry</div>
         <div class="serif word rise d3">Declare</div>
-        <div class="serif sub rise d4" id="heroSub">Name what&rsquo;s heavy. Receive His Word for this moment.</div>
+        <div class="serif sub rise d4" id="heroSub" data-i18n="home.sub">Name what&rsquo;s heavy. Receive His Word for this moment.</div>
       </div>
 
       <div class="herofoot rise d5">
-        <a class="begin m-breath m-press" id="beginLink" href="/today">Begin
+        <a class="begin m-breath m-press" id="beginLink" href="/today"><span data-i18n="home.begin">Begin</span>
           <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
         </a>
-        <button class="signin" id="signinLink" type="button">Sign in
+        <button class="signin" id="signinLink" type="button"><span data-i18n="nav.signin">Sign in</span>
           <svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg>
         </button>
       </div>
@@ -150,17 +150,18 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 
 <!-- full-screen menu overlay (Unseen-style threshold) -->
 <nav class="m-menu hero-menu" id="heroMenu" data-m-stagger aria-hidden="true">
-  <button class="hm-close" id="menuClose" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <button class="hm-close" id="menuClose" aria-label="Close menu" data-i18n-aria="nav.menuClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="hm-inner">
     <div class="hm-k m-menu-item">Declare &amp; Believe</div>
-    <a class="hm-item m-menu-item" href="/today"><span class="hm-t">Declare</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/welcome"><span class="hm-t">How it works</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/struggles"><span class="hm-t">Struggles</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/word"><span class="hm-t">Word</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/journey"><span class="hm-t">Journey</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/vault"><span class="hm-t">Vault</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <a class="hm-item m-menu-item" href="/you"><span class="hm-t">You</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
-    <div class="hm-foot m-menu-item"><a href="/crisis">Find help now</a><span>&middot;</span><a href="/today">Receive the Word</a></div>
+    <a class="hm-item m-menu-item" href="/today"><span class="hm-t" data-i18n="nav.declare">Declare</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/welcome" data-i18n-href="/es/bienvenido"><span class="hm-t" data-i18n="nav.how">How it works</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/struggles" data-i18n-href="/es/luchas"><span class="hm-t" data-i18n="nav.struggles">Struggles</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/word"><span class="hm-t" data-i18n="nav.word">Word</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/journey"><span class="hm-t" data-i18n="nav.journey">Journey</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/vault"><span class="hm-t" data-i18n="nav.vault">Vault</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <a class="hm-item m-menu-item" href="/you"><span class="hm-t" data-i18n="nav.you">You</span><svg class="uarrow" viewBox="0 0 40 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M0 6h37"/><path d="M31 1l6 5-6 5"/></svg></a>
+    <div class="hm-foot m-menu-item"><a href="/crisis" data-i18n="nav.crisis">Find help now</a><span>&middot;</span><a href="/today" data-i18n="nav.receiveWord">Receive the Word</a></div>
+    <button class="hm-lang m-menu-item" id="langToggle" type="button" aria-label="Cambiar idioma" style="margin-top:20px;align-self:flex-start;background:none;border:1px solid var(--line2,rgba(255,255,255,.2));color:var(--text2,#c9c2b4);border-radius:999px;padding:8px 18px;font:inherit;font-size:14px;letter-spacing:.02em;cursor:pointer;"><span data-i18n="nav.langToggle">Español</span></button>
   </div>
 </nav>
 
@@ -207,6 +208,9 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 </div>
 </noscript>
 
+<script is:inline src="/declare/i18n-strings.js"></script>
+<script is:inline src="/declare/i18n.js"></script>
+<script is:inline>(function(){var b=document.getElementById('langToggle');if(b)b.addEventListener('click',function(){try{window.I18N&&I18N.toggle();}catch(e){}});})();</script>
 <script is:inline src="/declare/theme.js"></script>
 <script is:inline src="/declare/motion.js"></script>
 <script>
