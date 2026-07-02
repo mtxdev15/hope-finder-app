@@ -37,9 +37,15 @@ Done items move to the bottom or get deleted.
       gated; RVR1909 is the free fallback); (2) AI content — add a `language` param so the struggle
       response (`src/app/declare/declare-api.js`) and the 5-day Journey (`public/declare/journey-engine.js`)
       generate in Spanish, plus Spanish fallback banks + `DB_CONTENT_ES`; (3) static UI — ~190-240
-      hardcoded strings + 33 struggle chips + ~20 SEO pages, and a language toggle / `/es` routing
-      (only proof so far: `public/es/heridas-de-la-iglesia.html`). Recommend phasing: core flow +
-      results + Journey first, then full UI. Voice: Latin American (es-LA), informal "tú".
+      hardcoded strings + 33 struggle chips + ~20 SEO pages, and a language toggle / `/es` routing.
+      Recommend phasing: core flow + results + Journey first, then full UI. Voice: Latin American
+      (es-LA), informal "tú".
+      - **SEO struggle pages → /es (in progress).** Live: `/es/heridas-de-la-iglesia` (church-hurt) and
+        `/es/ansiedad` (anxiety, full translation with RVR1960 Scripture, Spanish breakdowns, hreflang).
+        Remaining ~12: translate each English struggle page to `/es/<slug>` (copy the page, swap all
+        text, RVR1960 verses, Spanish menu/footer, `Profundiza` breakdown buttons + `data-read-label`,
+        canonical + reciprocal hreflang + sitemap pair). Build a Spanish struggles hub too. Repro
+        script pattern: `scratchpad/es_ansiedad.py`.
 - [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
       If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
       links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
@@ -90,7 +96,13 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.12.1**. Newest first.*
+*App is on **v3.13.0**. Newest first.*
+- **Struggle pages leveled up (v3.13.0).** Twilight/editorial template rolled out to every struggle
+  page (each in its own hue), SEO titles + metas rewritten to kill the repeated "What God Says"
+  formula, verse citations now deep-link into the `/word` reader, and a "Break this down" commentary
+  popup (short, Scripture-grounded study) added to every verse on every page. Bilingual: the Spanish
+  church-hurt page got the same, and the first fully-translated Spanish page is live (`/es/ansiedad`,
+  RVR1960). Overthinking is the source-of-truth page (also has the immersive coda + editorial 2am).
 - **13 SEO struggle pages live** — anxiety, anger, depression, doubt, failure, financial-pressure,
   grief, loneliness, marriage, purpose, shame, unforgiveness, church-hurt (static `/public/*.html`,
   registered in `struggles.html` + `sitemap.xml`). Each uses the cinematic template (motion +
