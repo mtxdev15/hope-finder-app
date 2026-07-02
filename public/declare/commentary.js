@@ -53,13 +53,18 @@
     var ref = src.getAttribute('data-ref') || '';
     var title = src.getAttribute('data-title') || '';
     var read = src.getAttribute('data-read') || '';
+    var readLabel = src.getAttribute('data-read-label') || 'Read it in the Word';
+
+    // bilingual: the sheet kicker mirrors the trigger button's label (e.g. Spanish "Profundiza")
+    var kickerEl = sheet.querySelector('.cmt-kicker');
+    if (kickerEl) kickerEl.textContent = (btn && btn.textContent && btn.textContent.trim()) || 'Break this down';
 
     refEl.textContent = ref;
     refEl.style.display = ref ? '' : 'none';
     titleEl.textContent = title;
     titleEl.style.display = title ? '' : 'none';
     bodyEl.innerHTML = src.innerHTML;
-    if (read) { readEl.href = read; readEl.style.display = ''; }
+    if (read) { readEl.innerHTML = readLabel + ' ' + ARROW_SVG; readEl.href = read; readEl.style.display = ''; }
     else { readEl.style.display = 'none'; }
 
     lastFocus = btn || document.activeElement;

@@ -811,6 +811,6 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
   if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
 })();
 </script>
-<script src="/declare/commentary.js?v=1" defer></script>
+<script src="/declare/commentary.js?v=2" defer></script>
 </body>
 </html>
