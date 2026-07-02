@@ -75,7 +75,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/anxiety" />
   </url>
   <url><loc>https://declareandbelieve.com/anger</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://declareandbelieve.com/depression</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/depression</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/depression" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/depresion" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/depression" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/depresion</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/depression" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/depresion" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/depression" />
+  </url>
   <url><loc>https://declareandbelieve.com/doubt</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://declareandbelieve.com/failure</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://declareandbelieve.com/financial-pressure</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
