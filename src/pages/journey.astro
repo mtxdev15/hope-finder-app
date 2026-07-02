@@ -16,8 +16,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     <div class="jin">
       <div class="jhead rise d1">
-        <h1>Your Journey</h1>
-        <div class="sub">Who are you becoming?</div>
+        <h1 data-i18n="journey.hTitle">Your Journey</h1>
+        <div class="sub" data-i18n="journey.becoming">Who are you becoming?</div>
       </div>
 
       <div class="scroll" id="homeScroll">
@@ -25,18 +25,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         <section class="zerostate rise d2" id="zeroState" style="display:none">
           <div class="zs-rooted" id="zsRooted" style="display:none">
             <span class="zs-rooted-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg></span>
-            <span>You&rsquo;ve rooted <b id="zsRootedN">2 journeys</b>. Faithfulness is the win.</span>
+            <span><span data-i18n="journey.rootedPre">You&rsquo;ve rooted </span><b id="zsRootedN">2 journeys</b><span data-i18n="journey.rootedPost">. Faithfulness is the win.</span></span>
           </div>
           <p class="zs-lead" id="zsLead"></p>
-          <div class="zs-h">Choose your transformation</div>
+          <div class="zs-h" data-i18n="journey.chooseTransformation">Choose your transformation</div>
           <div class="zs-list" id="zsList"></div>
-          <button class="seeall zs-seeall" id="zsSeeAll">See all journeys <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button class="seeall zs-seeall" id="zsSeeAll"><span data-i18n="journey.seeAllJourneys">See all journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         </section>
 
         <section class="jcard rise d2" id="activeCard" aria-label="Active journey">
           <div class="jc-top">
             <div>
-              <div class="ey">Active Journey</div>
+              <div class="ey" data-i18n="journey.activeJourney">Active Journey</div>
               <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="to-row"><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></span></div>
               <div class="jc-habit" id="habitW"></div>
             </div>
@@ -56,12 +56,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
             <div class="tt" id="todayTitle"></div>
             <div class="tref" id="todayRef"></div>
             <div class="focus" id="focusLine"></div>
-            <div class="gen-tag"><span class="gd"></span>Personalizing your path</div>
+            <div class="gen-tag"><span class="gd"></span><span data-i18n="journey.personalizing">Personalizing your path</span></div>
           </div>
 
           <div class="jc-actions">
             <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
-            <button class="btn btn-ghost btn-view" id="viewTreeBtn">View Vine</button>
+            <button class="btn btn-ghost btn-view" id="viewTreeBtn" data-i18n="journey.viewVine">View Vine</button>
           </div>
 
           <div class="lock-note" id="lockNote">
@@ -78,27 +78,27 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
             </div>
             <div class="dc-time-custom" id="lnEditBox" style="display:none; margin-top:13px;">
               <input type="time" id="lnTimeInput" value="07:00" />
-              <button class="btn btn-primary" id="lnTimeSave" style="flex:1; padding:9px;">Save reminder</button>
+              <button class="btn btn-primary" id="lnTimeSave" style="flex:1; padding:9px;" data-i18n="journey.saveReminder">Save reminder</button>
             </div>
-            <button class="ln-preview" id="lnPreview">Preview tomorrow &rarr;</button>
+            <button class="ln-preview" id="lnPreview"><span data-i18n="journey.previewTomorrow">Preview tomorrow</span> &rarr;</button>
           </div>
         </section>
 
         <!-- Fruit log — a quiet record of grace -->
         <section class="fruitlog rise d3" id="fruitLog" style="display:none">
-          <div class="fl-h">Fruit so far</div>
+          <div class="fl-h" data-i18n="journey.fruitSoFar">Fruit so far</div>
           <div class="fl-list" id="fruitList"></div>
         </section>
 
         <div class="returnline rise d3">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
-          <span>You&rsquo;ve returned <b id="returnDays">1 day</b>. Faithfulness is the win.</span>
+          <span><span data-i18n="journey.returnedPre">You&rsquo;ve returned </span><b id="returnDays">1 day</b><span data-i18n="journey.returnedPost">. Faithfulness is the win.</span></span>
         </div>
 
-        <button class="seeall" id="seeAll">Past journeys <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="seeall" id="seeAll"><span class="lbl" data-i18n="journey.pastJourneys">Past journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
 
         <section class="allj rise d4" id="alljSection" style="display:none">
-          <div class="h"><span class="t">Past journeys</span><span class="c"><span id="doneCount">0</span> rooted</span></div>
+          <div class="h"><span class="t" data-i18n="journey.pastJourneys">Past journeys</span><span class="c"><span id="doneCount">0</span> rooted</span></div>
           <div class="jgrid" id="jgrid"></div>
         </section>
       </div>
@@ -115,7 +115,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         </div>
         <div class="df-scroll" id="dfScroll"><!-- blocks injected --></div>
         <div class="df-foot" id="dfFoot">
-          <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Declare it aloud to finish the day</span></div>
+          <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="journey.declareAloudFinish">Declare it aloud to finish the day</span></div>
           <button class="btn btn-primary" id="dfComplete" disabled>Complete Day 1</button>
         </div>
       </div>
@@ -125,7 +125,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         <div class="ov-glow"></div>
         <button class="close" id="viewerClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <div class="ov-in">
-          <div class="vlabels"><span class="vl">The Vine &middot; John 15:5</span></div>
+          <div class="vlabels"><span class="vl" data-i18n="journey.vineJohn">The Vine &middot; John 15:5</span></div>
           <div class="viewer-tree" id="viewerTree"></div>
           <p class="alt" id="viewerAlt"></p>
         </div>
@@ -139,27 +139,27 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           <h2 class="dc-aff" id="dcAff"></h2>
           <p class="dc-sub" id="dcSub"></p>
           <div class="dc-next" id="dcNext">
-            <div class="dc-next-t">Day <span id="dcNextDay">2</span> opens tomorrow</div>
-            <div class="dc-next-s">Let today&rsquo;s truth take root overnight. Freedom grows one day at a time, not all at once.</div>
+            <div class="dc-next-t"><span data-i18n="journey.dayWord">Day </span><span id="dcNextDay">2</span><span data-i18n="journey.opensTomorrowSuffix"> opens tomorrow</span></div>
+            <div class="dc-next-s" data-i18n="journey.takeRootOvernight">Let today&rsquo;s truth take root overnight. Freedom grows one day at a time, not all at once.</div>
           </div>
           <div class="dc-remind" id="dcRemind">
             <button class="dc-remind-toggle" id="dcRemindToggle">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-              <span class="lbl">Remind me tomorrow</span>
+              <span class="lbl" data-i18n="journey.remindTomorrow">Remind me tomorrow</span>
               <span class="dc-remind-state" id="dcRemindState"></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div class="dc-remind-body" id="dcRemindBody">
               <div class="dc-times" id="dcTimes">
-                <button data-t="07:00" class="on">7:00 AM</button>
-                <button data-t="12:00">12:00 PM</button>
-                <button data-t="20:00">8:00 PM</button>
+                <button data-t="07:00" class="on" data-i18n="journey.time7">7:00 AM</button>
+                <button data-t="12:00" data-i18n="journey.time12">12:00 PM</button>
+                <button data-t="20:00" data-i18n="journey.time20">8:00 PM</button>
               </div>
               <div class="dc-time-custom">
-                <label for="dcTimeInput">Or pick a time</label>
+                <label for="dcTimeInput" data-i18n="journey.orPickTime">Or pick a time</label>
                 <input type="time" id="dcTimeInput" value="07:00" />
               </div>
-              <button class="btn btn-primary dc-remind-set" id="dcRemindSet">Set reminder</button>
+              <button class="btn btn-primary dc-remind-set" id="dcRemindSet" data-i18n="journey.setReminderBtn">Set reminder</button>
             </div>
           </div>
           <div class="dc-actions">
@@ -191,14 +191,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           </div>
 
           <div class="jc-actions2">
-            <button class="btn btn-share" id="jcShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7 8l5-5 5 5"/></svg>Share this declaration</button>
-            <button class="btn btn-primary" id="jcNew">Begin a new journey</button>
+            <button class="btn btn-share" id="jcShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7 8l5-5 5 5"/></svg><span data-i18n="journey.shareDeclaration">Share this declaration</span></button>
+            <button class="btn btn-primary" id="jcNew" data-i18n="journey.beginNewJourney">Begin a new journey</button>
             <button class="btn btn-ghost" id="jcSave">Save to Vault</button>
           </div>
 
           <div class="dr-jprompt" data-dr-prompt data-dr-source="journey-complete">
-            <div class="jp-h">How has Declare met you?</div>
-            <div class="jp-s">Your testimony helps someone else begin.</div>
+            <div class="jp-h" data-i18n="journey.testimonyQ">How has Declare met you?</div>
+            <div class="jp-s" data-i18n="journey.testimonyS">Your testimony helps someone else begin.</div>
             <div data-dr-stars></div>
           </div>
         </div>
@@ -210,36 +210,36 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       <div class="sheet" id="menuSheet" aria-hidden="true">
         <div class="grabber"></div>
         <div class="menu-list">
-          <button id="mSaved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg>Save this journey&rsquo;s verses to Vault</button>
-          <button id="mSwitch" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 19v-5h5"/></svg>Choose a different struggle</button>
+          <button id="mSaved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"/></svg><span data-i18n="journey.saveVersesToVault">Save this journey&rsquo;s verses to Vault</span></button>
+          <button id="mSwitch" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 19v-5h5"/></svg><span data-i18n="journey.chooseDifferentStruggle">Choose a different struggle</span></button>
         </div>
       </div>
       <div class="sheet" id="resetSheet" aria-hidden="true">
         <div class="grabber"></div>
-        <h3>Begin a different journey?</h3>
-        <p>You&rsquo;re partway through <b id="resetShift"></b> Only one journey grows at a time. Starting a new one sets this vine aside &mdash; your progress is kept, and you can return to it whenever you&rsquo;re ready.</p>
+        <h3 data-i18n="journey.beginDifferentQ">Begin a different journey?</h3>
+        <p><span data-i18n="journey.partwayPre">You&rsquo;re partway through </span><b id="resetShift"></b><span data-i18n="journey.partwayPost"> Only one journey grows at a time. Starting a new one sets this vine aside &mdash; your progress is kept, and you can return to it whenever you&rsquo;re ready.</span></p>
         <div class="sactions">
-          <button class="btn btn-primary" id="resetGo">Choose a new struggle</button>
-          <button class="btn btn-ghost" id="resetKeep">Stay with this one</button>
+          <button class="btn btn-primary" id="resetGo" data-i18n="journey.chooseNewStruggle">Choose a new struggle</button>
+          <button class="btn btn-ghost" id="resetKeep" data-i18n="journey.stayWithThis">Stay with this one</button>
         </div>
       </div>
       <!-- choose-struggle sheet -->
       <div class="sheet" id="chooseSheet" aria-hidden="true">
         <div class="grabber"></div>
-        <h3>What are you ready to lay down?</h3>
-        <p>Name the false identity &mdash; the weight you&rsquo;ve been holding on to. We&rsquo;ll plant a fresh vine and walk it out with you for five days.</p>
+        <h3 data-i18n="journey.whatLayDown">What are you ready to lay down?</h3>
+        <p data-i18n="journey.nameFalseIdentity">Name the false identity &mdash; the weight you&rsquo;ve been holding on to. We&rsquo;ll plant a fresh vine and walk it out with you for five days.</p>
         <div class="menu-list" id="chooseList"></div>
       </div>
 
       <!-- share fallback sheet -->
       <div class="sheet" id="shareSheet" aria-hidden="true">
         <div class="grabber"></div>
-        <h3>Share your declaration</h3>
-        <p>Send it to someone who needs it, or keep it where you&rsquo;ll see it.</p>
+        <h3 data-i18n="journey.shareYourDeclaration">Share your declaration</h3>
+        <p data-i18n="journey.shareSendKeep">Send it to someone who needs it, or keep it where you&rsquo;ll see it.</p>
         <textarea id="shareText" class="share-text" readonly></textarea>
         <div class="sactions">
-          <button class="btn btn-primary" id="shareCopy">Copy declaration</button>
-          <button class="btn btn-ghost" id="shareClose">Done</button>
+          <button class="btn btn-primary" id="shareCopy" data-i18n="journey.copyDeclaration">Copy declaration</button>
+          <button class="btn btn-ghost" id="shareClose" data-i18n="journey.done">Done</button>
         </div>
       </div>
 
@@ -247,11 +247,11 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       <div class="sheet care-sheet" id="careSheet" aria-hidden="true">
         <div class="grabber"></div>
         <div class="care-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg></div>
-        <h3 id="careTitle">Before we begin</h3>
+        <h3 id="careTitle" data-i18n="journey.beforeWeBegin">Before we begin</h3>
         <p id="careBody"></p>
         <div class="sactions">
-          <a class="btn btn-ghost care-talk" id="careTalk" href="/crisis">Talk to someone now</a>
-          <button class="btn btn-primary" id="careBegin">I&rsquo;m ready &mdash; begin gently</button>
+          <a class="btn btn-ghost care-talk" id="careTalk" href="/crisis" data-i18n="journey.talkToSomeone">Talk to someone now</a>
+          <button class="btn btn-primary" id="careBegin" data-i18n="journey.readyBeginGently">I&rsquo;m ready &mdash; begin gently</button>
         </div>
       </div>
 
@@ -263,6 +263,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   <script is:inline src="/declare/the-vine.js?v=3.12.1"></script>
   <script is:inline src="/declare/journey-data.js"></script>
   <script is:inline src="/declare/journey-engine.js"></script>
+  <script is:inline src="/declare/i18n-journey-es.js"></script>
   <script is:inline src="/declare/breath-ring.js"></script>
   <script is:inline src="/declare/rate.js"></script>
 
@@ -303,6 +304,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     // ---- runtime state ----
     let active = CATALOG[0];
+    // ---- Spanish display layer (declare-lang cookie). Ids/keys stay English; only
+    // what the eye sees is swapped. Day content itself comes from the AI in Spanish. ----
+    var JES = window.__I18N_JOURNEY_ES || {};
+    function esL() { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); }
+    function cFrom(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.from : c.from; }
+    function cTo(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.to : c.to; }
+    function cLine(c) { c = c || active; var e = esL() && JES[c.id]; return e ? e.line : c.line; }
+    function tj(k, fb) { return (window.I18N && window.I18N.t) ? window.I18N.t(k, fb) : fb; }
     let PLAN;
     const state = { day: 1, returned: 1 };
     // Curated first-run shortlist — broad, resonant, none crisis-gated.
@@ -333,7 +342,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (!window.JourneyEngine) { return Promise.resolve(PLAN[idx]); }
       const theme = (active._themes && active._themes[idx]) || '';
       const p = window.JourneyEngine.generateDay({ struggleId: active.id, dayIndex: idx, theme: theme,
-        seed: (active._seed + idx * 101) >>> 0, fromLabel: active.from, toLabel: active.to,
+        seed: (active._seed + idx * 101) >>> 0, fromLabel: cFrom(), toLabel: cTo(),
         language: (window.I18N && window.I18N.lang && window.I18N.lang()) || 'en' })
         .then(function (obj) { if (obj) { PLAN[idx] = obj; } active._ai[idx] = true; active._inflight[idx] = null; saveInstance(); return PLAN[idx]; })
         .catch(function () { active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; });
@@ -381,7 +390,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function setReminderOnly(time) { const m = loadLock(); const prev = m[active.id] || { date: todayStr() }; prev.time = time; m[active.id] = prev; saveLock(m); }
     function previewTomorrow() { const m = loadLock(); if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); } }
     function isLocked() { const l = lockFor(); return !!(l && l.date === todayStr() && state.day <= TOTAL); }
-    function fmtTime(t) { if (!t) return ''; const p = t.split(':'); let h = parseInt(p[0], 10); const m = p[1] || '00'; const ap = h < 12 ? 'AM' : 'PM'; let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + m + ' ' + ap; }
+    function fmtTime(t) { if (!t) return ''; const p = t.split(':'); let h = parseInt(p[0], 10); const m = p[1] || '00'; const ap = h < 12 ? (esL() ? 'a. m.' : 'AM') : (esL() ? 'p. m.' : 'PM'); let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + m + ' ' + ap; }
     function untilTomorrow() { const now = new Date(); const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0); const ms = mid - now; const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000); return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'); }
 
     // ---- rooted (completed) journeys, persisted — keeps the grid honest ----
@@ -392,7 +401,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // ---- the Vine ----
     function fruitNames() { return PLAN.map(function (d) { return d.fruit; }); }
     function fruitTruths() { return PLAN.map(function (d) { return d.fruitTruth; }); }
-    function vineCfg(extra) { const c = { total: TOTAL, falseLabel: active.from, trueLabel: active.to, fruitNames: fruitNames(), fruitTruths: fruitTruths() }; if (extra) { for (const k in extra) c[k] = extra[k]; } return c; }
+    function vineCfg(extra) { const c = { total: TOTAL, falseLabel: cFrom(), trueLabel: cTo(), fruitNames: fruitNames(), fruitTruths: fruitTruths() }; if (extra) { for (const k in extra) c[k] = extra[k]; } return c; }
     let vine;
     function buildVine() {
       vine = window.TheVine.build($('vineMount'), vineCfg());
@@ -401,10 +410,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     // ---- render home ----
     function renderHome() {
-      $('fromW').textContent = active.from; $('toW').textContent = active.to;
-      $('habitW').textContent = active.line;
-      $('dayPill').textContent = 'Day ' + state.day + ' / ' + TOTAL;
-      const n = completed(); $('remainTxt').textContent = n > 0 ? (n + ' fruit so far') : 'Just planted';
+      $('fromW').textContent = cFrom(); $('toW').textContent = cTo();
+      $('habitW').textContent = cLine();
+      $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + ' / ' + TOTAL;
+      const n = completed(); $('remainTxt').textContent = n > 0 ? (n + (esL() ? (n === 1 ? ' fruto hasta ahora' : ' frutos hasta ahora') : ' fruit so far')) : (esL() ? 'Recién plantado' : 'Just planted');
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { const cl = (i < state.day ? 'done' : (i === state.day ? 'cur' : '')); dots += '<i class="' + cl + (i < state.day ? ' tap' : '') + '" data-day="' + i + '"' + (i < state.day ? ' role="button" tabindex="0" aria-label="Revisit day ' + i + '"' : '') + '></i>'; } $('dayDots').innerHTML = dots;
       const d = PLAN[state.day - 1];
       $('todayTitle').textContent = d.title;
@@ -414,15 +423,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const cb = $('continueBtn');
       if (locked) {
         cb.disabled = true; cb.classList.add('locked');
-        cb.textContent = 'Day ' + state.day + ' opens tomorrow';
+        cb.textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' abre mañana' : ' opens tomorrow');
         renderLockNote();
       } else {
         cb.disabled = false; cb.classList.remove('locked');
-        cb.textContent = (daySpoken[state.day] ? 'Resume Day ' : 'Continue Day ') + state.day;
+        cb.textContent = (daySpoken[state.day] ? (esL() ? 'Retomar Día ' : 'Resume Day ') : (esL() ? 'Continuar Día ' : 'Continue Day ')) + state.day;
         $('lockNote').style.display = 'none';
       }
-      $('returnDays').textContent = state.returned + ' day' + (state.returned === 1 ? '' : 's');
-      $('resetShift').innerHTML = '&ldquo;' + active.from + ' &rarr; ' + active.to + '.&rdquo;';
+      $('returnDays').textContent = state.returned + (esL() ? (state.returned === 1 ? ' día' : ' días') : (' day' + (state.returned === 1 ? '' : 's')));
+      $('resetShift').innerHTML = '&ldquo;' + cFrom() + ' &rarr; ' + cTo() + '.&rdquo;';
       $('doneCount').textContent = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
       buildVine();
       renderFruitLog();
@@ -440,42 +449,42 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       sec.style.display = 'block';
       let html = '';
       for (let i = 1; i <= n; i++) { const d = PLAN[i - 1];
-        html += '<button class="fl-item" data-day="' + i + '" aria-label="Revisit day ' + i + ', ' + d.fruit + '"><span class="fl-bud" aria-hidden="true"></span><div class="fl-meta"><div class="nm">' + d.fruit + '</div><div class="dy">Day ' + i + ' &middot; ' + d.fruitTruth + '</div></div><span class="fl-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-bud" aria-hidden="true"></span><div class="fl-meta"><div class="nm">' + d.fruit + '</div><div class="dy">' + (esL() ? 'Día ' : 'Day ') + i + ' &middot; ' + d.fruitTruth + '</div></div><span class="fl-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
       }
       box.innerHTML = html;
     }
 
     function renderLockNote() {
       const note = $('lockNote'); note.style.display = 'block';
-      $('lnTitle').textContent = 'Day ' + state.day + ' opens tomorrow';
-      $('lnSub').textContent = 'Opens in ' + untilTomorrow();
+      $('lnTitle').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' abre mañana' : ' opens tomorrow');
+      $('lnSub').textContent = (esL() ? 'Abre en ' : 'Opens in ') + untilTomorrow();
       const l = lockFor();
-      if (l && l.time) { $('lnRemTxt').textContent = 'Reminder set for ' + fmtTime(l.time); $('lnEdit').textContent = 'Change'; $('lnTimeInput').value = l.time; }
-      else { $('lnRemTxt').textContent = 'No reminder set'; $('lnEdit').textContent = 'Set a reminder'; }
+      if (l && l.time) { $('lnRemTxt').textContent = (esL() ? 'Recordatorio a las ' : 'Reminder set for ') + fmtTime(l.time); $('lnEdit').textContent = esL() ? 'Cambiar' : 'Change'; $('lnTimeInput').value = l.time; }
+      else { $('lnRemTxt').textContent = esL() ? 'Sin recordatorio' : 'No reminder set'; $('lnEdit').textContent = esL() ? 'Poner un recordatorio' : 'Set a reminder'; }
       $('lnEditBox').style.display = 'none';
     }
     $('lnEdit').addEventListener('click', function () { const b = $('lnEditBox'); b.style.display = b.style.display === 'none' ? 'flex' : 'none'; });
-    $('lnTimeSave').addEventListener('click', function () { const t = $('lnTimeInput').value || '07:00'; setReminderOnly(t); renderLockNote(); toast('Reminder set for ' + fmtTime(t)); });
-    $('lnPreview').addEventListener('click', function () { previewTomorrow(); renderHome(); toast('Tomorrow has come — Day ' + state.day + ' is open'); });
+    $('lnTimeSave').addEventListener('click', function () { const t = $('lnTimeInput').value || '07:00'; setReminderOnly(t); renderLockNote(); toast((esL() ? 'Recordatorio a las ' : 'Reminder set for ') + fmtTime(t)); });
+    $('lnPreview').addEventListener('click', function () { previewTomorrow(); renderHome(); toast(esL() ? ('Mañana ha llegado — el Día ' + state.day + ' está abierto') : ('Tomorrow has come — Day ' + state.day + ' is open')); });
 
     function renderGrid() {
       const box = $('jgrid');
       const done = CATALOG.filter(function (c) { return c.status === 'done'; });
       if (!done.length) {
-        box.innerHTML = '<div class="jgrid-empty">No rooted journeys yet. Finish this one and it will be kept here.</div>';
+        box.innerHTML = '<div class="jgrid-empty">' + (esL() ? 'Aún no hay caminos arraigados. Termina este y quedará guardado aquí.' : 'No rooted journeys yet. Finish this one and it will be kept here.') + '</div>';
         return;
       }
       box.innerHTML = done.map(function (c) {
         return '<div class="cell done" data-id="' + c.id + '">'
           + '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
-          + '<span class="st done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>Rooted</span>'
-          + '<div class="nm">' + c.from + ' <span class="a2">&rarr; ' + c.to + '</span></div>'
+          + '<span class="st done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>' + (esL() ? 'Arraigado' : 'Rooted') + '</span>'
+          + '<div class="nm">' + cFrom(c) + ' <span class="a2">&rarr; ' + cTo(c) + '</span></div>'
           + '</div>';
       }).join('');
       box.querySelectorAll('.cell').forEach(function (cell) {
         cell.addEventListener('click', function () {
           const id = cell.dataset.id, c = CATALOG.find(function (x) { return x.id === id; });
-          if (c) { toast(c.from + ' → ' + c.to + ' — rooted'); }
+          if (c) { toast(cFrom(c) + ' → ' + cTo(c) + (esL() ? ' — arraigado' : ' — rooted')); }
         });
       });
     }
@@ -502,15 +511,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const d = PLAN[fd - 1], ds = dstate();
       if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; }
       $('dayflow').classList.toggle('reviewing', reviewing);
-      $('dfEy').innerHTML = (reviewing ? 'Reviewing &middot; ' : '') + 'Day ' + fd + ' of ' + TOTAL + ' &middot; ' + active.from + ' &rarr; ' + active.to;
+      $('dfEy').innerHTML = (reviewing ? (esL() ? 'Repasando &middot; ' : 'Reviewing &middot; ') : '') + (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL + ' &middot; ' + cFrom() + ' &rarr; ' + cTo();
       $('dfNm').textContent = d.title;
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dots;
-      $('dfComplete').textContent = reviewing ? 'Back to today' : 'Complete Day ' + fd;
+      $('dfComplete').textContent = reviewing ? (esL() ? 'Volver a hoy' : 'Back to today') : ((esL() ? 'Completar Día ' : 'Complete Day ') + fd);
 
       const welcome = (fd === 1 && !reviewing) ? (
         '<div class="day1note">'
         + '<span class="d1ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D8B85F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-7"/><path d="M12 13c-3.3 0-5.5-2-5.5-5C9.8 8 12 10 12 13z"/><path d="M12 11c0-2.6 2.1-4.5 5-4.5C17 9.2 14.7 11 12 11z"/><path d="M6 20h12"/></svg></span>'
-        + '<div class="d1t"><b>Day 1 of 5.</b> Each day God gives a fresh way to be set free. You’ll receive His Word, cast off the lie out loud, breathe out the old, then declare the truth over your life. Today: <b>' + d.title.replace(/[.…]+$/, '') + '</b>.</div>'
+        + '<div class="d1t">' + (esL() ? '<b>Día 1 de 5.</b> Cada día Dios da una manera nueva de ser libre. Recibirás su Palabra, echarás fuera la mentira en voz alta, exhalarás lo viejo y luego declararás la verdad sobre tu vida. Hoy: <b>' : '<b>Day 1 of 5.</b> Each day God gives a fresh way to be set free. You’ll receive His Word, cast off the lie out loud, breathe out the old, then declare the truth over your life. Today: <b>') + d.title.replace(/[.…]+$/, '') + '</b>.</div>'
         + '</div>'
       ) : '';
 
@@ -518,41 +527,41 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
       $('dfScroll').innerHTML =
         '<h2 class="df-h">' + d.title + '</h2>'
-        + '<div class="df-sh">' + active.from + ' <span class="arr">&rarr;</span> ' + active.to + '</div>'
+        + '<div class="df-sh">' + cFrom() + ' <span class="arr">&rarr;</span> ' + cTo() + '</div>'
         + welcome
         // 1 — RECEIVE
-        + '<div class="block scripture"><div class="lab"><span class="step">1</span>Receive &middot; <a class="vref-link" href="' + dayVerseLink(d.ref) + '">' + d.ref + ' ' + d.ver + '<svg class="vref-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
+        + '<div class="block scripture"><div class="lab"><span class="step">1</span>' + (esL() ? 'Recibe' : 'Receive') + ' &middot; <a class="vref-link" href="' + dayVerseLink(d.ref) + '">' + d.ref + ' ' + d.ver + '<svg class="vref-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
           + '<div class="verse">“' + d.verse + '”</div><div class="insight">' + d.insight + '</div></div>'
         // 2 — PRAY
-        + '<div class="block pray"><div class="lab"><span class="step">2</span>Pray</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
+        + '<div class="block pray"><div class="lab"><span class="step">2</span>' + (esL() ? 'Ora' : 'Pray') + '</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
         // 3 — CAST OFF
-        + '<div class="block castoff' + (ds.cast ? ' done' : '') + '" id="castBlock"><div class="lab"><span class="step">3</span>Cast off the lie</div>'
-          + '<div class="intro">Read it once, out loud, and name it for what it is. Then cast it off.</div>'
-          + '<div class="lie-card' + (ds.cast ? ' cast' : '') + '" id="lieCard"><div class="lie-q">The lie I’ve believed</div><div class="lie-t">“' + d.castOff + '”</div></div>'
-          + '<button class="cast-btn" id="castBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Cast it off</button>'
-          + '<div class="cast-done">' + ck + 'Cast off. It has no hold on you.</div></div>'
+        + '<div class="block castoff' + (ds.cast ? ' done' : '') + '" id="castBlock"><div class="lab"><span class="step">3</span>' + (esL() ? 'Echa fuera la mentira' : 'Cast off the lie') + '</div>'
+          + '<div class="intro">' + (esL() ? 'Léela una vez, en voz alta, y nómbrala por lo que es. Luego échala fuera.' : 'Read it once, out loud, and name it for what it is. Then cast it off.') + '</div>'
+          + '<div class="lie-card' + (ds.cast ? ' cast' : '') + '" id="lieCard"><div class="lie-q">' + (esL() ? 'La mentira que he creído' : 'The lie I’ve believed') + '</div><div class="lie-t">“' + d.castOff + '”</div></div>'
+          + '<button class="cast-btn" id="castBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>' + (esL() ? 'Échala fuera' : 'Cast it off') + '</button>'
+          + '<div class="cast-done">' + ck + (esL() ? 'Echada fuera. No tiene poder sobre ti.' : 'Cast off. It has no hold on you.') + '</div></div>'
         // 4 — REPENT & BREATHE
-        + '<div class="block repent" id="repentBlock"><div class="lab"><span class="step">4</span>Repent &amp; breathe</div>'
+        + '<div class="block repent" id="repentBlock"><div class="lab"><span class="step">4</span>' + (esL() ? 'Arrepiéntete y respira' : 'Repent &amp; breathe') + '</div>'
           + '<div class="repent-t">“' + d.repent + '”</div>'
           + '<div class="repent-stage" id="repentStage">'
             + '<div class="repent-idle" id="repentIdle">'
-              + '<button class="breath-start" id="breathStart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4c0 3 4 3.5 4 7a4 4 0 0 1-8 0 4 4 0 0 1-8 0c0-3.5 4-4 4-7a4 4 0 0 1 4-4z"/></svg>Begin breath prayer</button>'
-              + '<button class="breath-skip-link" id="breathSkip">I can’t breathe deeply right now &mdash; skip</button>'
+              + '<button class="breath-start" id="breathStart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4c0 3 4 3.5 4 7a4 4 0 0 1-8 0 4 4 0 0 1-8 0c0-3.5 4-4 4-7a4 4 0 0 1 4-4z"/></svg>' + (esL() ? 'Comienza la oración de respiración' : 'Begin breath prayer') + '</button>'
+              + '<button class="breath-skip-link" id="breathSkip">' + (esL() ? 'No puedo respirar hondo ahora &mdash; omitir' : 'I can’t breathe deeply right now &mdash; skip') + '</button>'
             + '</div>'
             + '<div class="breath-active" id="breathActive" style="display:none"><div class="breath-round" id="breathRound"></div><div class="breath-inline" id="repentBreath"></div></div>'
-            + '<div class="repent-done" id="repentDone" style="display:none"><span class="rd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><div class="rd-t" id="repentDoneT">Amen. You breathed out the old.</div><button class="rd-again" id="breathAgain">Breathe again</button></div>'
+            + '<div class="repent-done" id="repentDone" style="display:none"><span class="rd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><div class="rd-t" id="repentDoneT">' + (esL() ? 'Amén. Exhalaste lo viejo.' : 'Amen. You breathed out the old.') + '</div><button class="rd-again" id="breathAgain">' + (esL() ? 'Respira otra vez' : 'Breathe again') + '</button></div>'
           + '</div></div>'
         // 5 — DECLARE THE TRUTH ALOUD (no mic, no recording — just say it, then mark it)
-        + '<div class="block declare' + (ds.spoke ? ' spoken' : '') + '" id="declareBlock"><div class="lab"><span class="step">5</span>Declare the truth aloud</div>'
+        + '<div class="block declare' + (ds.spoke ? ' spoken' : '') + '" id="declareBlock"><div class="lab"><span class="step">5</span>' + (esL() ? 'Declara la verdad en voz alta' : 'Declare the truth aloud') + '</div>'
           + '<div class="dc">“' + d.declare + '”</div>'
-          + '<div class="mic-hint" id="micHint">' + (ds.spoke ? 'Amen. You declared it. &#10003;' : 'Say it out loud — then mark it here.') + '</div>'
-          + '<button class="act-check' + (ds.spoke ? ' on' : '') + '" id="declCheck"><span class="bx">' + ck + '</span><span id="declLbl">' + (ds.spoke ? 'Declared aloud' : 'Mark as declared') + '</span></button></div>'
+          + '<div class="mic-hint" id="micHint">' + (ds.spoke ? (esL() ? 'Amén. Lo declaraste. &#10003;' : 'Amen. You declared it. &#10003;') : (esL() ? 'Dilo en voz alta, luego márcalo aquí.' : 'Say it out loud — then mark it here.')) + '</div>'
+          + '<button class="act-check' + (ds.spoke ? ' on' : '') + '" id="declCheck"><span class="bx">' + ck + '</span><span id="declLbl">' + (ds.spoke ? (esL() ? 'Declarado en voz alta' : 'Declared aloud') : (esL() ? 'Marcar como declarado' : 'Mark as declared')) + '</span></button></div>'
         // 6 — REFLECT
-        + '<div class="block reflect"><div class="lab"><span class="step">6</span>Reflect</div><p>' + d.reflect + '</p><textarea placeholder="Write freely. This is between you and God."></textarea></div>'
+        + '<div class="block reflect"><div class="lab"><span class="step">6</span>' + (esL() ? 'Reflexiona' : 'Reflect') + '</div><p>' + d.reflect + '</p><textarea placeholder="' + (esL() ? 'Escribe con libertad. Esto es entre tú y Dios.' : 'Write freely. This is between you and God.') + '"></textarea></div>'
         // 7 — ACT
-        + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock"><div class="lab"><span class="step">7</span>Take it into your day</div>'
+        + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock"><div class="lab"><span class="step">7</span>' + (esL() ? 'Llévalo a tu día' : 'Take it into your day') + '</div>'
           + '<div class="act-t">' + d.actionTitle + '</div><div class="act-d">' + d.action + '</div>'
-          + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? 'I did this' : 'I’ll carry this today') + '</span></button></div>';
+          + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? (esL() ? 'Lo hice' : 'I did this') : (esL() ? 'Lo llevaré hoy' : 'I’ll carry this today')) + '</span></button></div>';
 
       $('dfScroll').scrollTop = 0;
       bindCast(); bindRepent(); bindSpeak(); bindAction();
@@ -593,7 +602,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       dstate().repented = skipped ? 'skipped' : true;
       const idle = $('repentIdle'), act = $('breathActive'), done = $('repentDone');
       if (idle) idle.style.display = 'none'; if (act) act.style.display = 'none'; if (done) done.style.display = 'flex';
-      const t = $('repentDoneT'); if (t) t.textContent = skipped ? 'Held for today. The Spirit meets you here.' : 'Amen. You breathed out the old.';
+      const t = $('repentDoneT'); if (t) t.textContent = skipped ? (esL() ? 'Guardado por hoy. El Espíritu te encuentra aquí.' : 'Held for today. The Spirit meets you here.') : (esL() ? 'Amén. Exhalaste lo viejo.' : 'Amen. You breathed out the old.');
       refreshGate();
     }
     function bindRepent() {
@@ -608,14 +617,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (!window.BreathRing) { repentMarkDone(false); return; }
       $('repentIdle').style.display = 'none'; $('repentDone').style.display = 'none';
       $('breathActive').style.display = 'block';
-      const round = [{ label: 'Breathe in mercy', secs: 4, scale: 1, glow: .95 }, { label: 'Hold', secs: 2, scale: 1, glow: .95 }, { label: 'Release the old', secs: 6, scale: .55, glow: .34 }];
+      const round = [{ label: esL() ? 'Respira misericordia' : 'Breathe in mercy', secs: 4, scale: 1, glow: .95 }, { label: esL() ? 'Sostén' : 'Hold', secs: 2, scale: 1, glow: .95 }, { label: esL() ? 'Suelta lo viejo' : 'Release the old', secs: 6, scale: .55, glow: .34 }];
       let seq = []; for (let r = 0; r < BREATH_ROUNDS; r++) { seq = seq.concat(round); }
       const perRound = round.length;
       if (breathInst) { try { breathInst.destroy(); } catch (_) {} }
       breathInst = window.BreathRing.mount($('repentBreath'), {
-        seq: seq, loop: false, skipLabel: 'Skip the rest',
-        caption: 'Breathe out the old. Breathe in His mercy.',
-        onPhase: function (idx) { const rd = Math.floor(idx / perRound) + 1; const el = $('breathRound'); if (el) el.textContent = 'Breath ' + rd + ' of ' + BREATH_ROUNDS; },
+        seq: seq, loop: false, skipLabel: esL() ? 'Omitir el resto' : 'Skip the rest',
+        caption: esL() ? 'Exhala lo viejo. Inhala su misericordia.' : 'Breathe out the old. Breathe in His mercy.',
+        onPhase: function (idx) { const rd = Math.floor(idx / perRound) + 1; const el = $('breathRound'); if (el) el.textContent = (esL() ? 'Respiración ' : 'Breath ') + rd + (esL() ? ' de ' : ' of ') + BREATH_ROUNDS; },
         onDone: function () { if (navigator.vibrate) { try { navigator.vibrate(16); } catch (_) {} } repentMarkDone(false); },
         onSkip: function () { repentMarkDone(true); }
       });
@@ -625,7 +634,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const c = $('actCheck'); if (!c) return;
       c.addEventListener('click', function () {
         const on = !c.classList.contains('on'); c.classList.toggle('on', on);
-        $('actLbl').textContent = on ? 'I did this' : 'I’ll carry this today';
+        $('actLbl').textContent = on ? (esL() ? 'Lo hice' : 'I did this') : (esL() ? 'Lo llevaré hoy' : 'I’ll carry this today');
         dstate().acted = on; refreshGate();
       });
     }
@@ -635,15 +644,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function refreshGate() {
       const ds = dstate();
       if (reviewDay) { $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = false;
-        const lh = $('dfLock'); if (lh) { lh.style.display = 'flex'; lh.querySelector('span').textContent = 'You’ve already walked this day — revisit it anytime'; } return; }
+        const lh = $('dfLock'); if (lh) { lh.style.display = 'flex'; lh.querySelector('span').textContent = esL() ? 'Ya caminaste este día — vuelve a él cuando quieras' : 'You’ve already walked this day — revisit it anytime'; } return; }
       const ready = ds.cast && ds.repented && ds.spoke;
       $('dfFoot').classList.toggle('ready', ready);
       $('dfComplete').disabled = !ready;
       const hint = $('dfLock'); if (hint) {
         hint.style.display = '';
-        if (!ds.cast) hint.querySelector('span').textContent = 'Cast off the lie to continue';
-        else if (!ds.repented) hint.querySelector('span').textContent = 'Take a moment to repent and breathe';
-        else if (!ds.spoke) hint.querySelector('span').textContent = 'Declare the truth aloud to finish';
+        if (!ds.cast) hint.querySelector('span').textContent = esL() ? 'Echa fuera la mentira para continuar' : 'Cast off the lie to continue';
+        else if (!ds.repented) hint.querySelector('span').textContent = esL() ? 'Tómate un momento para arrepentirte y respirar' : 'Take a moment to repent and breathe';
+        else if (!ds.spoke) hint.querySelector('span').textContent = esL() ? 'Declara la verdad en voz alta para terminar' : 'Declare the truth aloud to finish';
       }
       saveInstance(); // persist in-day progress so leaving and returning resumes exactly
     }
@@ -651,8 +660,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function setGate(spoken) { // declare block visual state
       const blk = $('declareBlock'), check = $('declCheck'), hint = $('micHint');
       if (spoken) { if (blk) blk.classList.add('spoken');
-        if (check) { check.classList.add('on'); const l = $('declLbl'); if (l) l.textContent = 'Declared aloud'; }
-        if (hint) hint.innerHTML = 'Amen. You declared it. &#10003;'; }
+        if (check) { check.classList.add('on'); const l = $('declLbl'); if (l) l.textContent = esL() ? 'Declarado en voz alta' : 'Declared aloud'; }
+        if (hint) hint.innerHTML = esL() ? 'Amén. Lo declaraste. &#10003;' : 'Amen. You declared it. &#10003;'; }
       dstate().spoke = spoken || dstate().spoke;
       refreshGate();
     }
@@ -671,22 +680,22 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     function renderDayLoading() {
       if (breathInst) { try { breathInst.stop(); } catch (_) {} }
-      $('dfEy').innerHTML = 'Day ' + state.day + ' of ' + TOTAL + ' &middot; ' + active.from + ' &rarr; ' + active.to;
-      $('dfNm').textContent = 'Preparing today';
+      $('dfEy').innerHTML = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL + ' &middot; ' + cFrom() + ' &rarr; ' + cTo();
+      $('dfNm').textContent = esL() ? 'Preparando hoy' : 'Preparing today';
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; } $('dfDots').innerHTML = dots;
       $('dfScroll').innerHTML = '<div class="dayloading"><div class="dl-orb"><i></i></div>'
-        + '<div class="dl-t">Jesus is preparing the way for today.</div>'
-        + '<div class="dl-s" id="dlS">Be still a moment…</div></div>';
+        + '<div class="dl-t">' + (esL() ? 'Jesús está preparando el camino para hoy.' : 'Jesus is preparing the way for today.') + '</div>'
+        + '<div class="dl-s" id="dlS">' + (esL() ? 'Aquiétate un momento…' : 'Be still a moment…') + '</div></div>';
       $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = true;
-      const lines = ['Be still a moment…', 'He knows exactly what you carry.', 'This step is being written for you.'];
+      const lines = esL() ? ['Aquiétate un momento…', 'Él sabe exactamente lo que cargas.', 'Este paso se está escribiendo para ti.'] : ['Be still a moment…', 'He knows exactly what you carry.', 'This step is being written for you.'];
       let k = 0; clearInterval(renderDayLoading._t);
       renderDayLoading._t = setInterval(function () { k = (k + 1) % lines.length; const el = $('dlS'); if (el) el.textContent = lines[k]; }, 2300);
     }
 
     function openDayFlow() {
       // Day 1 is the free taste; walking on requires an account
-      if (state.day >= 2 && !ensureSignedIn('Create a free account to keep your journey growing.')) return;
-      if (isLocked()) { renderHome(); toast('Day ' + state.day + ' opens tomorrow'); return; }
+      if (state.day >= 2 && !ensureSignedIn(esL() ? 'Crea una cuenta gratis para mantener tu camino creciendo.' : 'Create a free account to keep your journey growing.')) return;
+      if (isLocked()) { renderHome(); toast((esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' abre mañana' : ' opens tomorrow')); return; }
       $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
       if (active._ai[state.day - 1] || !window.JourneyEngine) { renderDayFlow(); return; }
       renderDayLoading();
@@ -718,8 +727,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const m = document.createElement('div'); m.className = 'tree-mount'; $('dcTree').innerHTML = ''; $('dcTree').appendChild(m);
       const v = window.TheVine.build(m, vineCfg());
       v.setProgress(completing - 1, TOTAL);
-      $('dcAff').textContent = 'You cast off the lie and declared the truth. ' + d.fruit + ' is taking root.';
-      $('dcSub').innerHTML = 'Day ' + completing + ' fruit &middot; <b>' + d.fruit + '</b>';
+      $('dcAff').textContent = esL() ? ('Echaste fuera la mentira y declaraste la verdad. ' + d.fruit + ' está echando raíz.') : ('You cast off the lie and declared the truth. ' + d.fruit + ' is taking root.');
+      $('dcSub').innerHTML = (esL() ? 'Fruto del día ' : 'Day ') + completing + (esL() ? ' &middot; <b>' : ' fruit &middot; <b>') + d.fruit + '</b>';
       const last = completing >= TOTAL;
       // reset + configure the come-back-tomorrow + reminder UI
       pendingReminder = null;
@@ -729,7 +738,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       $('dcRemindState').textContent = '';
       $('dcRemindBody').style.display = '';
       $('dcNextDay').textContent = (completing + 1);
-      $('dcDone').textContent = last ? 'See how far you’ve come' : 'Done for today';
+      $('dcDone').textContent = last ? (esL() ? 'Mira cuánto has avanzado' : 'See how far you’ve come') : (esL() ? 'Listo por hoy' : 'Done for today');
       $('dayComplete').classList.add('show'); $('dayComplete').setAttribute('aria-hidden', 'false');
       setTimeout(function () { v.setProgress(completing, TOTAL); }, 560);
       $('dcDone')._completing = completing;
@@ -743,9 +752,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     $('dcTimeInput').addEventListener('input', function () { $('dcTimes').querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); }); });
     $('dcRemindSet').addEventListener('click', function () {
       pendingReminder = $('dcTimeInput').value || '07:00';
-      $('dcRemindState').textContent = 'Set for ' + fmtTime(pendingReminder);
+      $('dcRemindState').textContent = (esL() ? 'A las ' : 'Set for ') + fmtTime(pendingReminder);
       $('dcRemind').classList.remove('open');
-      toast('We’ll remind you tomorrow at ' + fmtTime(pendingReminder));
+      toast((esL() ? 'Te recordaremos mañana a las ' : 'We’ll remind you tomorrow at ') + fmtTime(pendingReminder));
     });
 
     $('dcDone').addEventListener('click', function () {
@@ -767,11 +776,11 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const st = window.TheVine.build(sm, vineCfg({ falseLabel: '', trueLabel: '' })); st.setProgress(TOTAL, TOTAL);
       $('jcFrom').textContent = '“' + PLAN[0].castOff + '”';
       $('jcTo').textContent = '“' + d7.declare + '”';
-      $('jcBene').textContent = 'You came in carrying ' + active.from.toLowerCase() + '. You’re leaving rooted in Christ — ' + active.to + '. This is who you are now.';
-      $('scShift').innerHTML = active.from + ' &rarr; ' + active.to;
+      $('jcBene').textContent = esL() ? ('Llegaste cargando ' + cFrom().toLowerCase() + '. Te vas arraigado en Cristo — ' + cTo() + '. Esto es quien eres ahora.') : ('You came in carrying ' + cFrom().toLowerCase() + '. You’re leaving rooted in Christ — ' + cTo() + '. This is who you are now.');
+      $('scShift').innerHTML = cFrom() + ' &rarr; ' + cTo();
       $('scDec').textContent = '“' + d7.declare + '”';
-      $('scRef').innerHTML = 'Rooted in ' + TOTAL + ' days &middot; ' + d7.ref;
-      const sv = $('jcSave'); sv.textContent = 'Save to Vault'; sv.disabled = false; sv.style.opacity = '';
+      $('scRef').innerHTML = (esL() ? 'Arraigado en ' : 'Rooted in ') + TOTAL + (esL() ? ' días &middot; ' : ' days &middot; ') + d7.ref;
+      const sv = $('jcSave'); sv.textContent = esL() ? 'Guardar en la Bóveda' : 'Save to Vault'; sv.disabled = false; sv.style.opacity = '';
       // the vine has rooted: record it for real (grid + zero-state nod), and
       // release the active slot so a fresh visit lands on the chooser honestly
       active.status = 'done'; markDone(active.id); clearActiveSaved(); clearLock();
@@ -783,7 +792,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const m = document.createElement('div'); m.className = 'tree-mount';
       $('viewerTree').innerHTML = ''; $('viewerTree').appendChild(m);
       const v = window.TheVine.build(m, vineCfg()); v.setProgress(completed(), TOTAL);
-      $('viewerAlt').textContent = 'Day ' + state.day + ' of ' + TOTAL + '. Jesus is the vine. The old branch of ' + active.from.toLowerCase() + ' is dimming as the branch of truth grows and bears ' + completed() + ' fruit, reaching toward the light as ' + active.to.toLowerCase() + '.';
+      $('viewerAlt').textContent = esL() ? ('Día ' + state.day + ' de ' + TOTAL + '. Jesús es la vid. La rama vieja de ' + cFrom().toLowerCase() + ' se va apagando mientras la rama de la verdad crece y da ' + completed() + ' fruto, alzándose hacia la luz como ' + cTo().toLowerCase() + '.') : ('Day ' + state.day + ' of ' + TOTAL + '. Jesus is the vine. The old branch of ' + cFrom().toLowerCase() + ' is dimming as the branch of truth grows and bears ' + completed() + ' fruit, reaching toward the light as ' + cTo().toLowerCase() + '.');
       $('viewer').classList.add('show'); $('viewer').setAttribute('aria-hidden', 'false');
     });
     $('viewerClose').addEventListener('click', function () { $('viewer').classList.remove('show'); $('viewer').setAttribute('aria-hidden', 'true'); });
@@ -794,7 +803,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       seenAll = !seenAll;
       $('alljSection').style.display = seenAll ? 'block' : 'none';
       this.classList.toggle('open', seenAll);
-      this.childNodes[0].nodeValue = seenAll ? 'Hide past journeys ' : 'Past journeys ';
+      this.querySelector('.lbl').textContent = seenAll ? (esL() ? 'Ocultar caminos anteriores' : 'Hide past journeys') : (esL() ? 'Caminos anteriores' : 'Past journeys');
       if (seenAll) { renderGrid(); setTimeout(function () { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 60); }
     });
 
@@ -808,7 +817,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     /* ---- Vault (machinery): the device-local store every other page uses ---- */
     function vaultSaveVerses() {
       PLAN.forEach(function (d, i) {
-        saveItem({ id: 'jv:' + active.id + ':' + i + ':' + d.ref, type: 'verse', ref: d.ref, text: d.verse, translation: d.ver || 'ESV', ts: Date.now() - i * 1000 });
+        saveItem({ id: 'jv:' + active.id + ':' + i + ':' + d.ref, type: 'verse', ref: d.ref, text: d.verse, translation: d.ver || (esL() ? 'RVR1909' : 'ESV'), ts: Date.now() - i * 1000 });
       });
     }
     function vaultSaveAll() {
@@ -816,7 +825,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       // + prayer under a collection named for the struggle
       saveItem({
         id: 'journey:' + active.id + ':' + (active._seed || 0), type: 'word',
-        struggle: active.from, translation: 'ESV',
+        struggle: cFrom(), translation: esL() ? 'RVR1909' : 'ESV',
         verses: PLAN.map(function (d) { return { ref: d.ref, text: d.verse }; }),
         declarations: PLAN.map(function (d) { return d.declare; }),
         prayer: PLAN[TOTAL - 1].pray, ts: Date.now(),
@@ -824,8 +833,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     $('mSaved').addEventListener('click', function () {
       closeSheets();
-      if (!ensureSignedIn('Create a free account to save these verses to your Vault.')) return;
-      vaultSaveVerses(); toast('Verses saved to Vault');
+      if (!ensureSignedIn(esL() ? 'Crea una cuenta gratis para guardar estos versículos en tu Bóveda.' : 'Create a free account to save these verses to your Vault.')) return;
+      vaultSaveVerses(); toast(esL() ? 'Versículos guardados en la Bóveda' : 'Verses saved to Vault');
     });
     $('mSwitch').addEventListener('click', function () { closeSheets(); setTimeout(function () { openSheet('resetSheet'); }, 140); });
     $('resetKeep').addEventListener('click', closeSheets);
@@ -834,7 +843,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function openChooseList(openDay) {
       const list = $('chooseList');
       list.innerHTML = CATALOG.filter(function (c) { return c.status === 'open'; }).map(function (c) {
-        return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + c.from + ' &rarr; ' + c.to + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + c.line + '</span></span></button>';
+        return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + cFrom(c) + ' &rarr; ' + cTo(c) + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + cLine(c) + '</span></span></button>';
       }).join('');
       list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginJourney(b.dataset.id, !!openDay); }); });
       openSheet('chooseSheet');
@@ -847,7 +856,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       active = c; active.status = 'active'; startPlan();
       state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
       closeSheets(); showActiveUI();
-      if (!silent) toast('A fresh vine is planted — ' + c.from + ' → ' + c.to);
+      if (!silent) toast((esL() ? 'Una vid nueva ha sido plantada — ' : 'A fresh vine is planted — ') + cFrom(c) + ' → ' + cTo(c));
       if (openDay) openAfterBegin();
     }
     function openAfterBegin() {
@@ -909,14 +918,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const nod = $('zsRooted');
       if (withNod && done > 0) {
         nod.style.display = 'flex';
-        $('zsRootedN').textContent = done + ' journey' + (done === 1 ? '' : 's');
-        $('zsLead').textContent = 'You’ve walked this before. When you’re ready, name the next thing to lay down — we’ll plant a fresh vine and walk it with you for five days.';
+        $('zsRootedN').textContent = done + (esL() ? (done === 1 ? ' camino' : ' caminos') : (' journey' + (done === 1 ? '' : 's')));
+        $('zsLead').textContent = esL() ? 'Ya caminaste esto antes. Cuando estés listo, nombra lo próximo que quieras soltar; plantaremos una vid nueva y la caminaremos contigo por cinco días.' : 'You’ve walked this before. When you’re ready, name the next thing to lay down — we’ll plant a fresh vine and walk it with you for five days.';
       } else {
         nod.style.display = 'none';
-        $('zsLead').textContent = 'A journey is five days in one truth. Name what you’re ready to lay down, and we’ll plant a vine and walk it with you — one declaration a day — until it takes root.';
+        $('zsLead').textContent = esL() ? 'Un camino son cinco días en una sola verdad. Nombra lo que estás listo para soltar, y plantaremos una vid y la caminaremos contigo — una declaración al día — hasta que eche raíz.' : 'A journey is five days in one truth. Name what you’re ready to lay down, and we’ll plant a vine and walk it with you — one declaration a day — until it takes root.';
       }
       $('zsList').innerHTML = CURATED.map(function (id) { const c = CATALOG.find(function (x) { return x.id === id; }); if (!c || c.status !== 'open') return '';
-        return '<button class="zs-card" data-id="' + c.id + '"><span class="zs-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span><span class="zs-txt"><span class="zs-shift"><span class="zs-from">' + c.from + '</span><span class="zs-toline"><span class="zs-arr" aria-hidden="true">→</span><span class="zs-to">' + c.to + '</span></span></span><span class="zs-line">' + c.line + '</span></span><span class="zs-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+        return '<button class="zs-card" data-id="' + c.id + '"><span class="zs-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span><span class="zs-txt"><span class="zs-shift"><span class="zs-from">' + cFrom(c) + '</span><span class="zs-toline"><span class="zs-arr" aria-hidden="true">→</span><span class="zs-to">' + cTo(c) + '</span></span></span><span class="zs-line">' + cLine(c) + '</span></span><span class="zs-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
       }).join('');
       $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { plantAndBegin(b); }); });
     }
@@ -924,7 +933,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     // ---- journey complete actions ----
     function jcShareText() { const d7 = PLAN[TOTAL - 1];
-      return '“' + d7.declare + '”\n— ' + d7.ref + '  (' + active.from + ' → ' + active.to + ')\n\nMy 5-day journey with Declare & Believe.'; }
+      return '“' + d7.declare + '”\n— ' + d7.ref + '  (' + cFrom() + ' → ' + cTo() + ')\n\n' + (esL() ? 'Mi camino de 5 días con Declare & Believe.' : 'My 5-day journey with Declare & Believe.'); }
 
     /* design share system — share.js + card-studio.js lazy-loaded on first tap */
     let shareStack = null;
@@ -947,7 +956,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const d7 = PLAN[TOTAL - 1];
       loadShareStack().then(function () {
         if (window.DeclareShare) {
-          window.DeclareShare.open({ type: 'journey', text: d7.declare, ref: (d7.ref || '') + (d7.ver ? ' · ' + d7.ver : ''), subtitle: active.from + ' → ' + active.to, url: location.href, save: saveItem });
+          window.DeclareShare.open({ type: 'journey', text: d7.declare, ref: (d7.ref || '') + (d7.ver ? ' · ' + d7.ver : ''), subtitle: cFrom() + ' → ' + cTo(), url: location.href, save: saveItem });
         } else { openShareSheet(jcShareText()); }
       });
     });
@@ -956,14 +965,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     $('shareCopy').addEventListener('click', function () {
       const ta = $('shareText'); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
       let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      if (ok) { toast('Copied — paste anywhere'); }
-      else if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function () { toast('Copied — paste anywhere'); }).catch(function () { toast('Select the text and copy'); }); }
-      else { toast('Select the text and copy'); }
+      if (ok) { toast(esL() ? 'Copiado — pégalo donde quieras' : 'Copied — paste anywhere'); }
+      else if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function () { toast(esL() ? 'Copiado — pégalo donde quieras' : 'Copied — paste anywhere'); }).catch(function () { toast(esL() ? 'Selecciona el texto y cópialo' : 'Select the text and copy'); }); }
+      else { toast(esL() ? 'Selecciona el texto y cópialo' : 'Select the text and copy'); }
     });
     $('jcSave').addEventListener('click', function () { const b = this; if (b.disabled) return;
-      if (!ensureSignedIn('Create a free account to keep this journey in your Vault.')) return;
-      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:7px;vertical-align:-3px"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Saved to Vault';
-      vaultSaveAll(); b.disabled = true; b.style.opacity = '.72'; toast('Saved to your Vault'); });
+      if (!ensureSignedIn(esL() ? 'Crea una cuenta gratis para guardar este camino en tu Bóveda.' : 'Create a free account to keep this journey in your Vault.')) return;
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:7px;vertical-align:-3px"><path d="M5 12.5l4.5 4.5L19 7"/></svg>' + (esL() ? 'Guardado en la Bóveda' : 'Saved to Vault');
+      vaultSaveAll(); b.disabled = true; b.style.opacity = '.72'; toast(esL() ? 'Guardado en tu Bóveda' : 'Saved to your Vault'); });
     $('jcNew').addEventListener('click', function () { $('journeyComplete').classList.remove('show'); $('journeyComplete').setAttribute('aria-hidden', 'true'); showZeroUI(); renderZero(true); openChooseList(); });
 
     let _tt;
@@ -978,9 +987,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       grief: 'There’s no right way to grieve and no clock on it. Come as you are, tears and all. We’ll move slowly and gently through these days. If you need someone to talk to along the way, that help is always here.',
       divorce: 'What you’re walking through is a real loss, and grief is the honest response to it. There’s no blame here and no pressure — only space to bring the breaking to God. We’ll go gently, one day at a time. If you ever need to talk to someone, that door is always open.',
     };
+    // Spanish care-gate copy (declare-lang = es). Same pastoral, non-triggering intent.
+    const CARE_ES = {
+      abuse: 'Lo que te hicieron fue real, y no fue tu culpa. No tienes que cargarlo solo. Si estás en peligro ahora mismo, por favor busca ayuda primero — eso es lo fuerte y lo que honra a Dios. Cuando estés listo, caminaremos estos cinco días con calma, y dejaremos que Dios hable tu verdadero nombre sobre las palabras que hirieron.',
+      sexual: 'Aquí no hay vergüenza, ni condenación — solo gracia. Puedes ser totalmente honesto en este espacio; queda entre tú y Dios. Lo tomaremos un día suave a la vez. Si alguna vez necesitas hablar con una persona real, esa puerta siempre está abierta.',
+      addiction: 'No estás demasiado lejos, y no tienes que hacer esto solo. Este camino te acompaña un día a la vez. Si estás en crisis o necesitas apoyo real, por favor busca ayuda — pedir ayuda es valentía, no fracaso.',
+      depression: 'Gracias por estar aquí. Eso costó algo hoy. Si la oscuridad alguna vez se siente demasiado, o tienes pensamientos de hacerte daño, por favor busca a alguien ahora mismo — tú importas, y hay ayuda aquí. Cuando estés listo, lo tomaremos con calma, un día a la vez.',
+      grief: 'No hay una forma correcta de hacer duelo ni un reloj para él. Ven tal como estás, con lágrimas y todo. Iremos despacio y con suavidad por estos días. Si necesitas alguien con quien hablar en el camino, esa ayuda siempre está aquí.',
+      divorce: 'Lo que estás atravesando es una pérdida real, y el duelo es la respuesta honesta a ella. Aquí no hay culpa ni presión — solo espacio para traerle a Dios lo que se rompe. Iremos con suavidad, un día a la vez. Si alguna vez necesitas hablar con alguien, esa puerta siempre está abierta.',
+    };
     function isSensitive(id) { return !!CARE[id]; }
     function openCareGate(id, onBegin) {
-      $('careBody').textContent = CARE[id] || '';
+      $('careBody').textContent = (esL() && CARE_ES[id]) ? CARE_ES[id] : (CARE[id] || '');
       $('careBegin').onclick = function () { closeSheets(); setTimeout(onBegin, 220); };
       openSheet('careSheet');
     }
