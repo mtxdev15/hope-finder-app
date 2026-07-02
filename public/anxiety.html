@@ -459,6 +459,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -625,7 +630,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">1 Peter 5:7 &middot; NLT</div>
+              <a class="vref" href="/word?book=1%20Peter&amp;chapter=5&amp;verse=7">1 Peter 5:7 &middot; NLT</a>
               <div class="vtext">&ldquo;Give all your worries and cares to God, for he cares about you.&rdquo;</div>
               <div class="vrefl">You are not bothering Him with this. The caring is His idea.</div>
             </div>
@@ -633,7 +638,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Psalm 94:19 &middot; NKJV</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=94&amp;verse=19">Psalm 94:19 &middot; NKJV</a>
               <div class="vtext">&ldquo;In the multitude of my anxieties within me, Your comforts delight my soul.&rdquo;</div>
               <div class="vrefl">He doesn&rsquo;t wait for the anxieties to clear before He comes close. He meets you in the middle of the pile.</div>
             </div>
@@ -641,7 +646,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Isaiah 41:10 &middot; NIV</div>
+              <a class="vref" href="/word?book=Isaiah&amp;chapter=41&amp;verse=10">Isaiah 41:10 &middot; NIV</a>
               <div class="vtext">&ldquo;So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.&rdquo;</div>
               <div class="vrefl">The promise isn&rsquo;t a calm life. The promise is a present God.</div>
             </div>

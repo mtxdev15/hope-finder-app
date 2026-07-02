@@ -465,6 +465,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -627,7 +632,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Romans 8:1 · NIV</div>
+              <a class="vref" href="/word?book=Romans&amp;chapter=8&amp;verse=1">Romans 8:1 · NIV</a>
               <div class="vtext">“Therefore, there is now no condemnation for those who are in Christ Jesus.”</div>
               <div class="vrefl">Read it slowly. No condemnation. None.</div>
             </div>
@@ -635,7 +640,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Psalm 34:5 · NIV</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=34&amp;verse=5">Psalm 34:5 · NIV</a>
               <div class="vtext">“Those who look to him are radiant; their faces are never covered with shame.”</div>
               <div class="vrefl">You were not made to live with your face down.</div>
             </div>
@@ -643,7 +648,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">1 John 1:9 · NLT</div>
+              <a class="vref" href="/word?book=1%20John&amp;chapter=1&amp;verse=9">1 John 1:9 · NLT</a>
               <div class="vtext">“But if we confess our sins to him, he is faithful and just to forgive us our sins and to cleanse us from all wickedness.”</div>
               <div class="vrefl">Bringing it into the light is how it stops owning you.</div>
             </div>

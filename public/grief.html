@@ -439,6 +439,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -600,7 +605,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Matthew 5:4 &middot; NIV</div>
+              <a class="vref" href="/word?book=Matthew&amp;chapter=5&amp;verse=4">Matthew 5:4 &middot; NIV</a>
               <div class="vtext">&ldquo;Blessed are those who mourn, for they will be comforted.&rdquo;</div>
               <div class="vrefl">He doesn&rsquo;t shame the mourning. He calls them blessed and promises comfort is coming.</div>
             </div>
@@ -608,7 +613,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Psalm 147:3 &middot; NLT</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=147&amp;verse=3">Psalm 147:3 &middot; NLT</a>
               <div class="vtext">&ldquo;He heals the brokenhearted and bandages their wounds.&rdquo;</div>
               <div class="vrefl">He treats your grief like a real wound, not a weakness to hide.</div>
             </div>
@@ -616,7 +621,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Revelation 21:4 &middot; NLT</div>
+              <a class="vref" href="/word?book=Revelation&amp;chapter=21&amp;verse=4">Revelation 21:4 &middot; NLT</a>
               <div class="vtext">&ldquo;He will wipe every tear from their eyes, and there will be no more death or sorrow or crying or pain. All these things are gone forever.&rdquo;</div>
               <div class="vrefl">This grief is real, and it is not the end of the story.</div>
             </div>

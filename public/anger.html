@@ -439,6 +439,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -600,7 +605,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">James 1:19 to 20 &middot; NIV</div>
+              <a class="vref" href="/word?book=James&amp;chapter=1&amp;verse=19">James 1:19 to 20 &middot; NIV</a>
               <div class="vtext">&ldquo;Everyone should be quick to listen, slow to speak and slow to become angry, for human anger does not produce the righteousness that God desires.&rdquo;</div>
               <div class="vrefl">Slowing down is not weakness. It&rsquo;s where wisdom gets a chance to speak.</div>
             </div>
@@ -608,7 +613,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Ephesians 4:26 to 27 &middot; NIV</div>
+              <a class="vref" href="/word?book=Ephesians&amp;chapter=4&amp;verse=26">Ephesians 4:26 to 27 &middot; NIV</a>
               <div class="vtext">&ldquo;In your anger do not sin: Do not let the sun go down while you are still angry, and do not give the devil a foothold.&rdquo;</div>
               <div class="vrefl">The feeling isn&rsquo;t the danger. Letting it sit and fester is.</div>
             </div>
@@ -616,7 +621,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Proverbs 15:1 &middot; NLT</div>
+              <a class="vref" href="/word?book=Proverbs&amp;chapter=15&amp;verse=1">Proverbs 15:1 &middot; NLT</a>
               <div class="vtext">&ldquo;A gentle answer deflects anger, but harsh words make tempers flare.&rdquo;</div>
               <div class="vrefl">You can&rsquo;t always cool the room, but you can choose what you add to it.</div>
             </div>

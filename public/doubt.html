@@ -439,6 +439,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -599,7 +604,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Mark 9:24 &middot; NIV</div>
+              <a class="vref" href="/word?book=Mark&amp;chapter=9&amp;verse=24">Mark 9:24 &middot; NIV</a>
               <div class="vtext">&ldquo;Immediately the boy&rsquo;s father exclaimed, &lsquo;I do believe; help me overcome my unbelief!&rsquo;&rdquo;</div>
               <div class="vrefl">You don&rsquo;t need perfect faith to come to God. You just need to come with the faith you have.</div>
             </div>
@@ -607,7 +612,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">John 20:27 &middot; NIV</div>
+              <a class="vref" href="/word?book=John&amp;chapter=20&amp;verse=27">John 20:27 &middot; NIV</a>
               <div class="vtext">&ldquo;Then he said to Thomas, &lsquo;Put your finger here; see my hands. Reach out your hand and put it into my side. Stop doubting and believe.&rsquo;&rdquo;</div>
               <div class="vrefl">He didn&rsquo;t shame Thomas&rsquo;s doubt. He met it with evidence and an invitation.</div>
             </div>
@@ -615,7 +620,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Jude 1:22 &middot; NIV</div>
+              <a class="vref" href="/word?book=Jude&amp;chapter=1&amp;verse=22">Jude 1:22 &middot; NIV</a>
               <div class="vtext">&ldquo;Be merciful to those who doubt.&rdquo;</div>
               <div class="vrefl">If God tells us to be gentle with doubters, He has not given up on you for doubting.</div>
             </div>

@@ -441,6 +441,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -603,7 +608,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Ephesians 4:31 to 32 &middot; NLT</div>
+              <a class="vref" href="/word?book=Ephesians&amp;chapter=4&amp;verse=31">Ephesians 4:31 to 32 &middot; NLT</a>
               <div class="vtext">&ldquo;Get rid of all bitterness, rage, anger, harsh words, and slander, as well as all types of evil behavior. Instead, be kind to each other, tenderhearted, forgiving one another, just as God through Christ has forgiven you.&rdquo;</div>
               <div class="vrefl">You are told to get rid of it, like setting down something too heavy to keep holding.</div>
             </div>
@@ -611,7 +616,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Hebrews 12:15 &middot; NIV</div>
+              <a class="vref" href="/word?book=Hebrews&amp;chapter=12&amp;verse=15">Hebrews 12:15 &middot; NIV</a>
               <div class="vtext">&ldquo;See to it that no one falls short of the grace of God and that no bitter root grows up to cause trouble and defile many.&rdquo;</div>
               <div class="vrefl">Bitterness starts small and quietly spreads through everything. That is why it has to be pulled up at the root.</div>
             </div>
@@ -619,7 +624,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Mark 11:25 &middot; NLT</div>
+              <a class="vref" href="/word?book=Mark&amp;chapter=11&amp;verse=25">Mark 11:25 &middot; NLT</a>
               <div class="vtext">&ldquo;But when you are praying, first forgive anyone you are holding a grudge against, so that your Father in heaven will forgive your sins.&rdquo;</div>
               <div class="vrefl">Notice where forgiveness lives. In your prayers, in private, between you and God, long before any conversation with them.</div>
             </div>

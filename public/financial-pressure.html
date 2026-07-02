@@ -440,6 +440,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -602,7 +607,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Matthew 6:33 &middot; NLT</div>
+              <a class="vref" href="/word?book=Matthew&amp;chapter=6&amp;verse=33">Matthew 6:33 &middot; NLT</a>
               <div class="vtext">&ldquo;Seek the Kingdom of God above all else, and live righteously, and he will give you everything you need.&rdquo;</div>
               <div class="vrefl">Put God first, and let Him carry the part you can&rsquo;t.</div>
             </div>
@@ -610,7 +615,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Philippians 4:19 &middot; NIV</div>
+              <a class="vref" href="/word?book=Philippians&amp;chapter=4&amp;verse=19">Philippians 4:19 &middot; NIV</a>
               <div class="vtext">&ldquo;And my God will meet all your needs according to the riches of his glory in Christ Jesus.&rdquo;</div>
               <div class="vrefl">His supply is not measured by your shortage.</div>
             </div>
@@ -618,7 +623,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Psalm 37:25 &middot; NKJV</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=37&amp;verse=25">Psalm 37:25 &middot; NKJV</a>
               <div class="vtext">&ldquo;I have been young, and now am old; Yet I have not seen the righteous forsaken, Nor his descendants begging bread.&rdquo;</div>
               <div class="vrefl">Generations have walked this road and been carried. So will you.</div>
             </div>

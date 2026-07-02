@@ -440,6 +440,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -602,7 +607,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Psalm 32:8 &middot; NLT</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=32&amp;verse=8">Psalm 32:8 &middot; NLT</a>
               <div class="vtext">&ldquo;The Lord says, &lsquo;I will guide you along the best pathway for your life. I will advise you and watch over you.&rsquo;&rdquo;</div>
               <div class="vrefl">You are not expected to figure it all out alone.</div>
             </div>
@@ -610,7 +615,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Ephesians 2:10 &middot; NIV</div>
+              <a class="vref" href="/word?book=Ephesians&amp;chapter=2&amp;verse=10">Ephesians 2:10 &middot; NIV</a>
               <div class="vtext">&ldquo;For we are God&rsquo;s handiwork, created in Christ Jesus to do good works, which God prepared in advance for us to do.&rdquo;</div>
               <div class="vrefl">You were made on purpose, for a purpose, before you ever went looking for one.</div>
             </div>
@@ -618,7 +623,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Proverbs 3:5 to 6 &middot; NLT</div>
+              <a class="vref" href="/word?book=Proverbs&amp;chapter=3&amp;verse=5">Proverbs 3:5 to 6 &middot; NLT</a>
               <div class="vtext">&ldquo;Trust in the Lord with all your heart; do not depend on your own understanding. Seek his will in all you do, and he will show you which path to take.&rdquo;</div>
               <div class="vrefl">The path gets shown to those walking with Him, one step at a time.</div>
             </div>

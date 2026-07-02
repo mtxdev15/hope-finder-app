@@ -465,6 +465,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -627,7 +632,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Deuteronomy 31:6 · NIV</div>
+              <a class="vref" href="/word?book=Deuteronomy&amp;chapter=31&amp;verse=6">Deuteronomy 31:6 · NIV</a>
               <div class="vtext">“Be strong and courageous. Do not be afraid or terrified because of them, for the Lord your God goes with you; he will never leave you nor forsake you.”</div>
               <div class="vrefl">The one presence you cannot lose is already in the room.</div>
             </div>
@@ -635,7 +640,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Psalm 68:6 · NLT</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=68&amp;verse=6">Psalm 68:6 · NLT</a>
               <div class="vtext">“God places the lonely in families; he sets the prisoners free and gives them joy.”</div>
               <div class="vrefl">He does not just comfort the lonely. He moves to end the isolation.</div>
             </div>
@@ -643,7 +648,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Isaiah 43:1 · NLT</div>
+              <a class="vref" href="/word?book=Isaiah&amp;chapter=43&amp;verse=1">Isaiah 43:1 · NLT</a>
               <div class="vtext">“Do not be afraid, for I have ransomed you. I have called you by name; you are mine.”</div>
               <div class="vrefl">You are not a face in the crowd to Him. He knows your name.</div>
             </div>

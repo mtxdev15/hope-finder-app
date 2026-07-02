@@ -465,6 +465,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -627,7 +632,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Micah 7:8 · NLT</div>
+              <a class="vref" href="/word?book=Micah&amp;chapter=7&amp;verse=8">Micah 7:8 · NLT</a>
               <div class="vtext">“Do not gloat over me, my enemies! For though I fall, I will rise again. Though I sit in darkness, the Lord will be my light.”</div>
               <div class="vrefl">Falling is not the same as staying down.</div>
             </div>
@@ -635,7 +640,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Psalm 37:23 to 24 · NLT</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=37&amp;verse=23">Psalm 37:23 to 24 · NLT</a>
               <div class="vtext">“The Lord directs the steps of the godly. He delights in every detail of their lives. Though they stumble, they will never fall, for the Lord holds them by the hand.”</div>
               <div class="vrefl">He is holding your hand through the stumble, not waiting at the bottom to judge it.</div>
             </div>
@@ -643,7 +648,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">2 Corinthians 12:9 · NIV</div>
+              <a class="vref" href="/word?book=2%20Corinthians&amp;chapter=12&amp;verse=9">2 Corinthians 12:9 · NIV</a>
               <div class="vtext">“But he said to me, ‘My grace is sufficient for you, for my power is made perfect in weakness.’”</div>
               <div class="vrefl">The cracked places are exactly where His strength gets in.</div>
             </div>

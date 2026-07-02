@@ -444,6 +444,11 @@ body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, r
 html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
 html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
 .hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
 .rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
 .rail .no{ display:none; }
 .rail::before{ width:22px; margin-right:0; }
@@ -606,7 +611,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v1 rv">
             <div class="vidx" aria-hidden="true">i</div>
             <div class="vcard">
-              <div class="vref">Matthew 11:28 to 30 &middot; NLT</div>
+              <a class="vref" href="/word?book=Matthew&amp;chapter=11&amp;verse=28">Matthew 11:28 to 30 &middot; NLT</a>
               <div class="vtext">&ldquo;Come to me, all of you who are weary and carry heavy burdens, and I will give you rest. Take my yoke upon you. Let me teach you, because I am humble and gentle at heart, and you will find rest for your souls. For my yoke is easy to bear, and the burden I give you is light.&rdquo;</div>
               <div class="vrefl">If the load they put on you was crushing, hear this. That weight was never from Jesus. His yoke is light.</div>
             </div>
@@ -614,7 +619,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v2 rv">
             <div class="vidx" aria-hidden="true">ii</div>
             <div class="vcard">
-              <div class="vref">Ezekiel 34:4 &middot; NIV</div>
+              <a class="vref" href="/word?book=Ezekiel&amp;chapter=34&amp;verse=4">Ezekiel 34:4 &middot; NIV</a>
               <div class="vtext">&ldquo;You have not strengthened the weak or healed the sick or bound up the injured. You have not brought back the strays or searched for the lost. You have ruled them harshly and brutally.&rdquo;</div>
               <div class="vrefl">This is God&rsquo;s own indictment of leaders who wound the flock. He saw what they did to you, and He named it.</div>
             </div>
@@ -622,7 +627,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
           <article class="verse v3 rv">
             <div class="vidx" aria-hidden="true">iii</div>
             <div class="vcard">
-              <div class="vref">Psalm 147:3 &middot; NLT</div>
+              <a class="vref" href="/word?book=Psalms&amp;chapter=147&amp;verse=3">Psalm 147:3 &middot; NLT</a>
               <div class="vtext">&ldquo;He heals the brokenhearted and bandages their wounds.&rdquo;</div>
               <div class="vrefl">The same God who is against the ones who hurt you is gently for you, and He heals.</div>
             </div>

@@ -398,6 +398,66 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   .begin svg path, .cta svg path, .coda-btn svg path{ transform:none !important; opacity:1 !important; }
 }
 </style>
+<style>
+/* __struggle_v2__ — Twilight/Editorial template treatment, keyed on this page's --accent.
+   Additive CSS-only overrides on the base struggle template. Reduced-motion safe.
+   Source of truth: public/overthinking.html. Keep this block identical across pages. */
+html[data-theme="dark"]{ --topglow:color-mix(in srgb, var(--accent) 34%, transparent); --glow1:color-mix(in srgb, var(--accent) 26%, transparent); }
+html[data-theme="light"]{ --topglow:color-mix(in srgb, var(--accent) 20%, transparent); --glow1:color-mix(in srgb, var(--accent) 15%, transparent); }
+html{ background-color:#0a0b12 !important; }
+html[data-theme="light"]{ background-color:#F7F7FB !important; }
+body::before{ background:radial-gradient(120% 74% at 50% -8%, color-mix(in srgb, var(--accent) 16%, #101018), #0a0b12 56%, #06070c 100%); }
+html[data-theme="light"] body::before{ background:radial-gradient(120% 80% at 50% -8%, #FFFFFF, #F6F6FB 54%, #ECECF4 100%), radial-gradient(64% 44% at 50% -4%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%); }
+body::after{ background:radial-gradient(150% 100% at 68% 26%, transparent 52%, rgba(5,5,12,.6) 100%); }
+html[data-theme="light"] body::after{ background:radial-gradient(150% 100% at 68% 38%, transparent 58%, color-mix(in srgb, var(--accent) 12%, transparent) 100%); }
+html[data-atmos="night"]{ --atmos-tint:color-mix(in srgb, #07080f 46%, transparent); }
+.hero .glow{ background:radial-gradient(circle at 42% 42%, color-mix(in srgb, var(--accent) 46%, transparent), transparent 54%); opacity:.5; }
+a.vref{ text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease; }
+a.vref::after{ content:'\2197'; font-size:.9em; opacity:.55; }
+a.vref:hover{ color:var(--accent); }
+a.vref:hover::after{ opacity:1; }
+a.vref:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
+.rail{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(15px,1.4vw,18px); letter-spacing:0; text-transform:none; color:var(--goldd); font-weight:500; display:flex; align-items:center; gap:12px; }
+.rail .no{ display:none; }
+.rail::before{ width:22px; margin-right:0; }
+.verse .vcard{ background:color-mix(in srgb, var(--accent) 8%, transparent); border:1px solid color-mix(in srgb, var(--accent) 15%, rgba(255,255,255,.04)); box-shadow:0 14px 44px -30px rgba(0,0,0,.6); }
+html[data-theme="light"] .verse .vcard{ background:rgba(255,255,255,.62); border:1px solid color-mix(in srgb, var(--accent) 14%, rgba(0,0,0,.05)); box-shadow:0 8px 24px -16px rgba(40,42,90,.22); }
+.twoam{ text-align:center; padding:clamp(84px,12vw,168px) 0; }
+.twoam .grid{ display:block; }
+.twoam .railtop{ margin:0 0 22px; }
+.twoam .railtop .rail{ justify-content:center; }
+.twoam .lead{ max-width:960px; margin:0 auto; }
+.twoam .lead h2{ font-size:clamp(32px,5vw,60px); line-height:1.06; max-width:18ch; margin:0 auto; }
+.twoam .lead .body{ margin:30px auto 0; max-width:58ch; }
+.twoam .pq{ max-width:640px; margin:36px auto 0; }
+.twoam .pq .mark{ border-left:0; padding-left:0; text-align:center; font-style:italic; font-size:clamp(21px,2.5vw,29px); }
+.coda-cta{ background:transparent; text-align:center; padding:clamp(100px,13vw,184px) 0; }
+.coda-cta::before{ inset:auto; left:50%; top:-8%; width:min(1140px,126%); height:158%; transform:translateX(-50%); background:radial-gradient(closest-side, color-mix(in srgb, var(--gold) 24%, transparent), transparent 70%); opacity:.85; }
+html[data-theme="light"] .coda-cta::before{ background:radial-gradient(closest-side, color-mix(in srgb, var(--gold) 20%, transparent), transparent 72%); opacity:.7; }
+.coda-cta .in{ grid-column:2 / 12; }
+.coda-cta h2{ color:var(--text); font-size:clamp(36px,5.4vw,66px); max-width:15ch; margin:0 auto; }
+.coda-cta p{ color:var(--text2); margin:22px auto 0; max-width:46ch; }
+@media (max-width:860px){ .coda-cta{ padding:clamp(72px,16vw,104px) 0; } .coda-cta .in{ grid-column:1 / 13; } }
+/* recolour the remaining glass panels off the green: hero anchor + footer signup track the accent;
+   the prayer card stays warm (the "light breaking through" payoff) */
+.heroanchor{ background:color-mix(in srgb, var(--accent) 10%, #101018); border:1px solid color-mix(in srgb, var(--accent) 18%, rgba(255,255,255,.05)); box-shadow:0 26px 64px -30px rgba(0,0,0,.6); }
+html[data-theme="light"] .heroanchor{ background:rgba(255,255,255,.74); border:1px solid color-mix(in srgb, var(--accent) 14%, rgba(0,0,0,.05)); box-shadow:0 12px 30px -16px rgba(40,42,90,.2); }
+.fsignup{ background:color-mix(in srgb, var(--accent) 9%, #101018); border:1px solid color-mix(in srgb, var(--accent) 16%, rgba(255,255,255,.05)); }
+html[data-theme="light"] .fsignup{ background:rgba(255,255,255,.7); border:1px solid color-mix(in srgb, var(--accent) 14%, rgba(0,0,0,.05)); }
+.prayer{ background:color-mix(in srgb, var(--gold) 10%, #15140d); }
+html[data-theme="light"] .prayer{ background:#FBF7EC; }
+@media (prefers-reduced-motion: no-preference){
+  .verse .vcard{ overflow:hidden; }
+  .verse .vcard::before{ content:''; position:absolute; inset:0; z-index:2; pointer-events:none; background:linear-gradient(100deg, transparent 24%, color-mix(in srgb, var(--accent) 16%, transparent) 50%, transparent 76%); transform:translateX(-130%); opacity:0; }
+  .verse.rv.m-in .vcard::before{ animation:sv2Sheen 1.25s cubic-bezier(.16,1,.3,1) .14s both; }
+  @keyframes sv2Sheen{ 0%{transform:translateX(-130%);opacity:0} 24%{opacity:.5} 100%{transform:translateX(130%);opacity:0} }
+  .verse .vidx{ animation:sv2Idx 6.5s ease-in-out infinite; }
+  @keyframes sv2Idx{ 0%,100%{opacity:.4} 50%{opacity:.64} }
+}
+@media (hover:hover) and (prefers-reduced-motion: no-preference){
+  .verse .vcard:hover{ transform:translateY(-5px); border-color:color-mix(in srgb, var(--accent) 32%, transparent); box-shadow:0 24px 60px -30px rgba(0,0,0,.6), 0 0 44px -18px var(--accent-soft); }
+}
+</style>
 </head>
 <body>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T65GXR22" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -436,6 +496,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     <a class="ms-link" href="/welcome#seq"><span class="msw">Cómo funciona</span></a>
     <a class="ms-link" href="/welcome#why"><span class="msw">Por qué Declare</span></a>
     <a class="ms-link" href="/word"><span class="msw">La Palabra</span></a>
+    <a class="ms-link" href="/struggles"><span class="msw">Luchas</span></a>
     <a class="ms-link" href="/about"><span class="msw">Acerca de</span></a>
   </div>
   <div class="menucols">
@@ -445,11 +506,13 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
       <a href="/help">Ayuda y soporte</a>
       <a href="/es/dar">Da tu diezmo</a>
       <a href="/crisis">Encuentra ayuda</a>
+      <a href="/you?rate=menu">Califica Declare</a>
     </div>
     <div>
       <h5>Legal</h5>
       <a href="/privacy">Privacidad</a>
       <a href="/terms">Términos</a>
+      <a href="/es/terminos-de-donacion">Términos de donación</a>
     </div>
   </div>
   <div class="menubene">
