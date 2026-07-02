@@ -17,6 +17,8 @@
    Adapts every label/preview/snippet to `type`.
    ============================================================ */
 (function(){
+  function ES(){ try { return !!(window.I18N && window.I18N.lang && window.I18N.lang()==='es'); } catch(e){ return false; } }
+  function L(en, es){ return ES()?es:en; }
   var CROSS = '<svg class="dc-cross" viewBox="0 0 120 220" fill="none" stroke="#FFF7E6" stroke-linecap="round"><path d="M60 12V208" stroke-width="3"/><path d="M28 72H92" stroke-width="3"/></svg>';
   var GRAD_FALLBACK = 'linear-gradient(155deg,#2c4b3b,#13251c)';
 
@@ -39,20 +41,21 @@
   function slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 
   /* per-type copy */
-  function noun(t){ return t==='church'?'church':t==='verse'?'verse':t==='reading'?'reading':'page'; }
-  function shareTitle(t){ return t==='church'?'Share this church':t==='verse'?'Share this verse':t==='reading'?'Share this reading':'Share'; }
-  function shareSub(t){ return t==='church'?'Invite someone to come and see':t==='verse'?'Pass along a word of life':t==='reading'?'Share today\u2019s reading':'Send this to a friend'; }
+  function noun(t){ return t==='church'?L('church','iglesia'):t==='verse'?L('verse','versículo'):t==='reading'?L('reading','lectura'):L('page','página'); }
+  function shareTitle(t){ return t==='church'?L('Share this church','Comparte esta iglesia'):t==='verse'?L('Share this verse','Comparte este versículo'):t==='reading'?L('Share this reading','Comparte esta lectura'):L('Share','Compartir'); }
+  function shareSub(t){ return t==='church'?L('Invite someone to come and see','Invita a alguien a venir y ver'):t==='verse'?L('Pass along a word of life','Comparte una palabra de vida'):t==='reading'?L('Share today\u2019s reading','Comparte la lectura de hoy'):L('Send this to a friend','Envía esto a un amigo'); }
   function shareText(p){
     if(p.text) return p.text;            // caller-supplied full message (already branded; no append)
-    if(p.type==='church') return 'Come worship with me at '+p.title+' \u2014 on Declare.';
-    if(p.type==='verse')  return '\u201C'+p.title+'\u201D \u2014 shared from Declare.';
-    if(p.type==='reading')return p.title+' \u2014 today\u2019s reading on Declare.';
-    return p.title+' \u2014 on Declare.';
+    if(p.type==='church') return L('Come worship with me at '+p.title+' \u2014 on Declare.','Ven a adorar conmigo en '+p.title+' \u2014 en Declare.');
+    if(p.type==='verse')  return '\u201C'+p.title+'\u201D \u2014 '+L('shared from Declare.','compartido desde Declare.');
+    if(p.type==='reading')return p.title+' \u2014 '+L('today\u2019s reading on Declare.','la lectura de hoy en Declare.');
+    return p.title+' \u2014 '+L('on Declare.','en Declare.');
   }
   function embedToggles(t){
-    if(t==='church') return [['times','Hide service times'],['nofollow','Create \u201Cno follow\u201D links']];
-    if(t==='verse')  return [['ref','Reference only (hide text)'],['nofollow','Create \u201Cno follow\u201D links']];
-    return [['compact','Compact card'],['nofollow','Create \u201Cno follow\u201D links']];
+    var nf=['nofollow',L('Create \u201Cno follow\u201D links','Crear enlaces \u201Cno follow\u201D')];
+    if(t==='church') return [['times',L('Hide service times','Ocultar horarios')],nf];
+    if(t==='verse')  return [['ref',L('Reference only (hide text)','Solo la referencia (ocultar texto)')],nf];
+    return [['compact',L('Compact card','Tarjeta compacta')],nf];
   }
 
   var root, scrim, state={};
@@ -117,15 +120,15 @@
   function renderShare(p){
     var sh=document.getElementById('dshShare');
     var opts=[
-      {k:'copy',  l:'Copy link'},
-      {k:'mail',  l:'Email'},
-      {k:'sms',   l:'Messages'},
+      {k:'copy',  l:L('Copy link','Copiar enlace')},
+      {k:'mail',  l:L('Email','Correo')},
+      {k:'sms',   l:L('Messages','Mensajes')},
       {k:'whatsapp', l:'WhatsApp'},
       {k:'messenger', l:'Messenger'},
       {k:'facebook', l:'Facebook'},
       {k:'twitter', l:'X'}
     ];
-    if(p.embed!==false) opts.push({k:'embed', l:'Embed'});
+    if(p.embed!==false) opts.push({k:'embed', l:L('Embed','Insertar')});
     var url=p.url, txt=shareText(p);
     function chHref(k){
       if(k==='mail') return 'mailto:?subject='+encodeURIComponent(p.title)+'&body='+encodeURIComponent(txt+'\n\n'+url);
@@ -144,7 +147,7 @@
       var ext=(o.k==='mail'||o.k==='sms')?'':' target="_blank" rel="noopener"';
       return '<a class="dsh-opt" data-link="'+o.k+'" href="'+chHref(o.k)+'"'+ext+st+'>'+ic+'</a>';
     }).join('');
-    grid += '<button class="dsh-opt full" data-ch="more" style="animation-delay:'+(60+opts.length*42)+'ms"><span class="oi">'+ICON.more+'</span><span class="ol">More options</span></button>';
+    grid += '<button class="dsh-opt full" data-ch="more" style="animation-delay:'+(60+opts.length*42)+'ms"><span class="oi">'+ICON.more+'</span><span class="ol">' + L('More options','Más opciones') + '</span></button>';
 
     sh.innerHTML =
       '<h3 class="dsh-h">'+esc(shareTitle(p.type))+'</h3>'+
@@ -154,7 +157,7 @@
       '<div class="dsh-grid">'+grid+'</div>';
 
     sh.querySelectorAll('[data-ch]').forEach(function(b){ b.addEventListener('click', function(e){ channel(b.getAttribute('data-ch'), p, e); }); });
-    sh.querySelectorAll('[data-link]').forEach(function(a){ a.addEventListener('click', function(){ var k=a.getAttribute('data-link'); toast('Opening '+(k==='twitter'?'X':k==='sms'?'Messages':k==='mail'?'Email':k.charAt(0).toUpperCase()+k.slice(1))+'\u2026'); }); });
+    sh.querySelectorAll('[data-link]').forEach(function(a){ a.addEventListener('click', function(){ var k=a.getAttribute('data-link'); toast(L('Opening ','Abriendo ')+(k==='twitter'?'X':k==='sms'?L('Messages','Mensajes'):k==='mail'?L('Email','Correo'):k.charAt(0).toUpperCase()+k.slice(1))+'\u2026'); }); });
   }
 
   function buildEmbedCode(p){
@@ -162,7 +165,7 @@
     if(state.tg.times || state.tg.ref || state.tg.compact) attrs+=' data-compact="true"';
     var rel = state.tg.nofollow ? ' rel="nofollow noopener"' : ' rel="noopener"';
     return '<div class="declare-embed"'+attrs+' style="width:340px;height:auto;margin:auto"></div>\n'+
-      '<a href="'+esc(p.url)+'"'+rel+'>View on Declare</a>\n'+
+      '<a href="'+esc(p.url)+'"'+rel+'>'+L('View on Declare','Ver en Declare')+'</a>\n'+
       '<script async src="https://declareandbelieve.com/embed.js"><\/script>';
   }
   function renderEmbed(p){
@@ -173,37 +176,37 @@
     }).join('');
     var hideMeta = (p.type==='church' && state.tg.times);
     em.innerHTML =
-      '<button class="dsh-back" data-back>'+ICON.back+' Back to share</button>'+
-      '<h3 class="dsh-h" style="margin-top:4px">Embed this '+esc(noun(p.type))+'</h3>'+
-      '<div class="dsh-lbl">Customize your code</div>'+ toggles +
+      '<button class="dsh-back" data-back>'+ICON.back+' '+L('Back to share','Volver a compartir')+'</button>'+
+      '<h3 class="dsh-h" style="margin-top:4px">'+L('Embed this ','Insertar esta ')+esc(noun(p.type))+'</h3>'+
+      '<div class="dsh-lbl">'+L('Customize your code','Personaliza tu código')+'</div>'+ toggles +
       '<div class="dsh-embedprev">'+crestHTML(p,true).replace('dsh-crest','dsh-ep-crest')+
-        ((p.flag)?'<span class="dsh-ep-flag">'+esc(p.flag)+'</span>':'<span class="dsh-ep-flag">Preview</span>')+
+        ((p.flag)?'<span class="dsh-ep-flag">'+esc(p.flag)+'</span>':'<span class="dsh-ep-flag">'+L('Preview','Vista previa')+'</span>')+
         '<div class="dsh-ep-body"><div class="dsh-ep-name">'+esc(p.title)+'</div>'+
           (hideMeta?'':'<div class="dsh-ep-meta">'+esc(p.subtitle||p.meta||'')+'</div>')+'</div>'+
-        '<div class="dsh-ep-foot"><span class="vl">View on Declare</span><span class="dot"></span></div></div>'+
-      '<div class="dsh-lbl">Paste this into your site</div>'+
+        '<div class="dsh-ep-foot"><span class="vl">'+L('View on Declare','Ver en Declare')+'</span><span class="dot"></span></div></div>'+
+      '<div class="dsh-lbl">'+L('Paste this into your site','Pega esto en tu sitio')+'</div>'+
       '<div class="dsh-code"><code id="dshCode"></code></div>'+
-      '<button class="dsh-copy" data-copyhtml>'+ICON.copy+' Copy HTML</button>';
+      '<button class="dsh-copy" data-copyhtml>'+ICON.copy+' '+L('Copy HTML','Copiar HTML')+'</button>';
     document.getElementById('dshCode').textContent = buildEmbedCode(p);
     em.querySelector('[data-back]').addEventListener('click', function(){ document.getElementById('dshTrack').classList.remove('embed'); });
     em.querySelectorAll('[data-tg]').forEach(function(b){ b.addEventListener('click', function(){ var k=b.getAttribute('data-tg'); state.tg[k]=!state.tg[k]; renderEmbed(p); }); });
-    em.querySelector('[data-copyhtml]').addEventListener('click', function(){ copyText(buildEmbedCode(p), 'Embed code copied'); });
+    em.querySelector('[data-copyhtml]').addEventListener('click', function(){ copyText(buildEmbedCode(p), L('Embed code copied','Código insertado copiado')); });
   }
 
   function channel(k, p, e){
     var url=p.url, txt=shareText(p);
-    if(k==='copy'){ copyText(url, 'Link copied'); return; }
+    if(k==='copy'){ copyText(url, L('Link copied','Enlace copiado')); return; }
     if(k==='embed'){ renderEmbed(p); document.getElementById('dshTrack').classList.add('embed'); document.getElementById('dshEmbed').scrollTop=0; return; }
     if(k==='more'){
       // hand to the device's native share sheet when available
       if(navigator.share){ navigator.share({title:p.title, text:txt, url:url}).catch(function(){}); }
-      else { copyText(url, 'Link copied — paste it anywhere'); }
+      else { copyText(url, L('Link copied — paste it anywhere','Enlace copiado — pégalo donde quieras')); }
       return;
     }
   }
 
   function copyText(t, msg){
-    var done=function(){ toast(msg||'Copied'); };
+    var done=function(){ toast(msg||L('Copied','Copiado')); };
     try{
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, fallback); }
       else fallback();

@@ -185,25 +185,25 @@ import RateReview from '../components/RateReview.astro';
         </form>
 
         <div class="scat">
-          <div class="catlbl">Identity &amp; worth</div>
+          <div class="catlbl" data-i18n="today.catIdentity">Identity &amp; worth</div>
           <div class="chips" data-cat>
             <button class="chip" data-struggle="Shame &amp; Guilt" data-i18n="chip.shameGuilt">Shame &amp; Guilt</button><button class="chip" data-struggle="Feeling Like a Failure">Feeling Like a Failure</button><button class="chip" data-struggle="Comparison">Comparison</button><button class="chip" data-struggle="Feeling Unworthy">Feeling Unworthy</button><button class="chip" data-struggle="Broken Identity">Broken Identity</button><button class="chip" data-struggle="Feeling Lost">Feeling Lost</button><button class="chip" data-struggle="People Pleasing">People Pleasing</button>
           </div>
         </div>
         <div class="scat">
-          <div class="catlbl">Wounds &amp; relationships</div>
+          <div class="catlbl" data-i18n="today.catWounds">Wounds &amp; relationships</div>
           <div class="chips" data-cat>
             <button class="chip" data-struggle="Emotional &amp; Verbal Abuse">Emotional &amp; Verbal Abuse</button><button class="chip" data-struggle="Rejection &amp; Abandonment">Rejection &amp; Abandonment</button><button class="chip" data-struggle="Betrayal">Betrayal</button><button class="chip" data-struggle="Self-Sabotage">Self-Sabotage</button><button class="chip" data-struggle="Unforgiveness">Unforgiveness</button><button class="chip" data-struggle="Family Conflict">Family Conflict</button><button class="chip" data-struggle="Marriage Struggles">Marriage Struggles</button><button class="chip" data-struggle="Divorce / Separation">Divorce / Separation</button><button class="chip" data-struggle="Grief &amp; Loss" data-i18n="chip.griefLoss">Grief &amp; Loss</button><button class="chip" data-struggle="Loneliness" data-i18n="chip.loneliness">Loneliness</button>
           </div>
         </div>
         <div class="scat">
-          <div class="catlbl">Mind &amp; emotion</div>
+          <div class="catlbl" data-i18n="today.catMind">Mind &amp; emotion</div>
           <div class="chips" data-cat>
             <button class="chip on" data-struggle="Fear &amp; Anxiety" data-i18n="chip.fearAnxiety">Fear &amp; Anxiety</button><button class="chip" data-struggle="Overthinking">Overthinking</button><button class="chip" data-struggle="Depression">Depression</button><button class="chip" data-struggle="Anger &amp; Bitterness" data-i18n="chip.angerBitterness">Anger &amp; Bitterness</button><button class="chip" data-struggle="Doubt" data-i18n="chip.doubt">Doubt</button><button class="chip" data-struggle="Control">Control</button><button class="chip" data-struggle="Perfectionism">Perfectionism</button><button class="chip" data-struggle="Stress &amp; Burnout">Stress &amp; Burnout</button>
           </div>
         </div>
         <div class="scat">
-          <div class="catlbl">Trials &amp; Seasons</div>
+          <div class="catlbl" data-i18n="today.catTrials">Trials &amp; Seasons</div>
           <div class="chips" data-cat>
             <button class="chip" data-struggle="Spiritual Dryness">Spiritual Dryness</button><button class="chip" data-struggle="Waiting on God">Waiting on God</button><button class="chip" data-struggle="Financial Stress">Financial Stress</button><button class="chip" data-struggle="Sexual Temptation">Sexual Temptation</button><button class="chip" data-struggle="Addiction">Addiction</button><button class="chip" data-struggle="Faith Crisis">Faith Crisis</button><button class="chip" data-struggle="Feeling Spiritually Attacked">Feeling Spiritually Attacked</button><button class="chip" data-struggle="Drifting from God">Drifting from God</button>
           </div>
@@ -650,6 +650,28 @@ import RateReview from '../components/RateReview.astro';
       } catch (e) {}
       location.href = '/journey';
     });
+  </script>
+
+  <script is:inline>
+    /* Localize every struggle chip by its canonical English data-struggle key.
+       data-struggle stays English (SEO autofill + AI depend on it); only the visible
+       label swaps. Stashes the original so switching back to English restores it. */
+    (function () {
+      function localizeChips() {
+        var es = !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es');
+        var map = window.__I18N_CHIP_ES || {};
+        var chips = document.querySelectorAll('.chip[data-struggle]');
+        for (var i = 0; i < chips.length; i++) {
+          var c = chips[i];
+          if (c.__enLabel == null) c.__enLabel = c.textContent;
+          var key = c.dataset.struggle;               // dataset decodes &amp; -> &
+          c.textContent = (es && map[key]) ? map[key] : c.__enLabel;
+        }
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', localizeChips);
+      else localizeChips();
+      document.addEventListener('declare-lang', localizeChips);
+    })();
   </script>
 
   <style is:global>

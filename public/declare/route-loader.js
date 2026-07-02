@@ -21,8 +21,10 @@
   // <100ms feels instant, <1s keeps flow; <150ms a flashed loader hurts, >300ms feels laggy.
   var SHOW_DELAY = 200;    // ms to wait before showing the loader during a navigation
   var SAFETY = 12000;      // ms hard cap so a stalled nav never traps the loader up
-  var REFS = ['Psalm 34:18','Isaiah 41:10','Matthew 11:28','Philippians 4:6–7',
-              'Psalm 46:1','2 Corinthians 12:9','Lamentations 3:22–23','John 14:27'];
+  function rlES(){ try { return !!((window.I18N && window.I18N.lang && window.I18N.lang()==='es') || document.documentElement.getAttribute('data-lang')==='es'); } catch(e){ return false; } }
+  var REFS = rlES()
+    ? ['Salmo 34:18','Isaías 41:10','Mateo 11:28','Filipenses 4:6–7','Salmo 46:1','2 Corintios 12:9','Lamentaciones 3:22–23','Juan 14:27']
+    : ['Psalm 34:18','Isaiah 41:10','Matthew 11:28','Philippians 4:6–7','Psalm 46:1','2 Corinthians 12:9','Lamentations 3:22–23','John 14:27'];
 
   function lightTheme(){ return document.documentElement.getAttribute('data-theme') === 'light'; }
   function logoSrc(){ return BASE + (lightTheme() ? 'brand/logo-light-tight.png' : 'brand/logo-dark-tight.png'); }
@@ -34,7 +36,7 @@
   overlay.className = 'rl-overlay';
   overlay.setAttribute('role', 'status');
   overlay.setAttribute('aria-live', 'polite');
-  overlay.setAttribute('aria-label', 'Searching the Word');
+  overlay.setAttribute('aria-label', rlES() ? 'Buscando en la Palabra' : 'Searching the Word');
   overlay.innerHTML =
     '<div class="rl-mark"><img alt="" src="' + logoSrc() + '" /></div>' +
     '<div class="rl-book" aria-hidden="true"><div class="rl-shadow"></div>' +
@@ -43,7 +45,7 @@
         '<div class="rl-stack r"><span class="rl-lines"></span></div>' +
         '<div class="rl-spine"></div>' + leaves +
       '</div></div>' +
-    '<div class="rl-copy"><h1>Searching the Word<i>.</i><i>.</i><i>.</i></h1>' +
+    '<div class="rl-copy"><h1>' + (rlES() ? 'Buscando en la Palabra' : 'Searching the Word') + '<i>.</i><i>.</i><i>.</i></h1>' +
       '<div class="rl-verse"></div></div>' +
     '<div class="rl-seek" aria-hidden="true"></div>';
 

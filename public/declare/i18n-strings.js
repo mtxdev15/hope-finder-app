@@ -247,6 +247,12 @@ window.__I18N_STRINGS = {
     'crisis.note1': 'Si estás fuera de EE. UU., llama al número de emergencia local o visita ',
     'crisis.note2': ' para obtener ayuda en tu país.',
 
+    /* ---- /today 'más' section headers ---- */
+    'today.catIdentity': 'Identidad y valor',
+    'today.catWounds': 'Heridas y relaciones',
+    'today.catMind': 'Mente y emoción',
+    'today.catTrials': 'Pruebas y temporadas',
+
     /* ---- /you church finder ---- */
     'you.finderSub': 'Elige una sugerencia — o presiona Enter para buscar lo que sea',
     'you.finderPh': 'Ciudad, estado o nombre de la iglesia…',
@@ -351,3 +357,41 @@ window.__I18N_STRUGGLES_ES = {
   'Church Hurt': 'heridas de la iglesia'
 };
 
+/* Full struggle -> Spanish chip label (Title Case). Keyed by the canonical English
+   data-struggle value (with real '&', as dataset decodes entities). Display only —
+   data-struggle stays English so the SEO autofill + AI keep working. */
+window.__I18N_CHIP_ES = {
+  'Fear & Anxiety': 'Miedo y ansiedad',
+  'Shame & Guilt': 'Vergüenza y culpa',
+  'Loneliness': 'Soledad',
+  'Anger & Bitterness': 'Ira y amargura',
+  'Doubt': 'Duda',
+  'Grief & Loss': 'Duelo y pérdida',
+  'Feeling Like a Failure': 'Sentirse un fracaso',
+  'Comparison': 'Comparación',
+  'Feeling Unworthy': 'Sentirse indigno',
+  'Broken Identity': 'Identidad quebrantada',
+  'Feeling Lost': 'Sentirse perdido',
+  'People Pleasing': 'Agradar a la gente',
+  'Emotional & Verbal Abuse': 'Abuso emocional y verbal',
+  'Rejection & Abandonment': 'Rechazo y abandono',
+  'Betrayal': 'Traición',
+  'Self-Sabotage': 'Autosabotaje',
+  'Unforgiveness': 'Falta de perdón',
+  'Family Conflict': 'Conflicto familiar',
+  'Marriage Struggles': 'Luchas en el matrimonio',
+  'Divorce / Separation': 'Divorcio / Separación',
+  'Overthinking': 'Pensar demasiado',
+  'Depression': 'Depresión',
+  'Control': 'Control',
+  'Perfectionism': 'Perfeccionismo',
+  'Stress & Burnout': 'Estrés y agotamiento',
+  'Spiritual Dryness': 'Sequía espiritual',
+  'Waiting on God': 'Esperar en Dios',
+  'Financial Stress': 'Estrés financiero',
+  'Sexual Temptation': 'Tentación sexual',
+  'Addiction': 'Adicción',
+  'Faith Crisis': 'Crisis de fe',
+  'Feeling Spiritually Attacked': 'Sentirse bajo ataque espiritual',
+  'Drifting from God': 'Alejarse de Dios'
+};
