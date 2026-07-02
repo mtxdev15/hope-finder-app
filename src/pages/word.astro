@@ -40,7 +40,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <input id="searchInput" placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" data-i18n-ph="word.searchPh" aria-label="Search Scripture" data-i18n-aria="word.searchAria" />
       </form>
 
-      <div class="wlbl tlanslbl">Default translation</div>
+      <div class="wlbl tlanslbl" data-i18n="word.defaultTranslation">Default translation</div>
       <div class="trow" id="pills">
         <button class="pill" data-t="kjv">KJV</button>
         <button class="pill" data-t="web">WEB</button>
@@ -93,29 +93,29 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
             reader's Aa button. Responsive: bottom sheet on mobile, centered modal on desktop. ===== */}
     <div class="lsheet" id="lsheet" hidden>
       <div class="lsback" data-lsclose></div>
-      <div class="lspanel" role="dialog" aria-label="Reading preferences">
+      <div class="lspanel" role="dialog" aria-label="Reading preferences" data-i18n-aria="word.readingPrefs">
         <div class="lsgrab"></div>
         <div class="lstitle" data-i18n="word.readingPrefs">Reading preferences</div>
-        <div class="lssub">How Scripture looks across the app.</div>
-        <div class="lspreview" id="lsPreview">For God so loved the world that he gave his only Son.</div>
+        <div class="lssub" data-i18n="word.prefsSub">How Scripture looks across the app.</div>
+        <div class="lspreview" id="lsPreview" data-i18n="word.prefsPreview">For God so loved the world that he gave his only Son.</div>
         <div class="lssec">
-          <div class="lslbl">Theme</div>
+          <div class="lslbl" data-i18n="word.theme">Theme</div>
           <div class="lsseg" id="libThemeSeg">
-            <button type="button" data-mode="light">Light</button>
-            <button type="button" data-mode="dark">Dark</button>
-            <button type="button" data-mode="auto">Auto</button>
+            <button type="button" data-mode="light" data-i18n="word.themeLight">Light</button>
+            <button type="button" data-mode="dark" data-i18n="word.themeDark">Dark</button>
+            <button type="button" data-mode="auto" data-i18n="word.themeAuto">Auto</button>
           </div>
         </div>
         <div class="lssec">
-          <div class="lslbl">Brightness</div>
+          <div class="lslbl" data-i18n="word.brightness">Brightness</div>
           <div class="lsbright">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 6.5V6M6.5 12H6M12 17.5v.5M17.5 12h.5"></path></svg>
-            <input type="range" id="libBright" min="40" max="100" value="100" aria-label="Brightness" />
+            <input type="range" id="libBright" min="40" max="100" value="100" aria-label="Brightness" data-i18n-aria="word.brightness" />
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"></path></svg>
           </div>
         </div>
         <div class="lssec">
-          <div class="lslbl">Font style</div>
+          <div class="lslbl" data-i18n="word.fontStyle">Font style</div>
           <div class="lsseg" id="libFontSeg">
             <button type="button" class="ff-cormorant" data-f="cormorant">Cormorant</button>
             <button type="button" class="ff-lora" data-f="lora">Lora</button>
@@ -123,14 +123,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           </div>
         </div>
         <div class="lssec">
-          <div class="lslbl">Text size</div>
+          <div class="lslbl" data-i18n="word.textSize">Text size</div>
           <div class="lsseg" id="libSizeSeg">
             <button type="button" class="sz1" data-s="Small">A</button>
             <button type="button" class="sz2" data-s="Medium">A</button>
             <button type="button" class="sz3" data-s="Large">A</button>
           </div>
         </div>
-        <button type="button" class="lsdone" data-lsclose>Done</button>
+        <button type="button" class="lsdone" data-lsclose data-i18n="word.done">Done</button>
       </div>
     </div>
 
@@ -139,29 +139,29 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       <div class="topglow" aria-hidden="true"></div>
       <div class="rtop">
         <div class="rhead">
-          <span class="rh-lead"><button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button></span>
+          <span class="rh-lead"><button class="iconbtn" id="readerBack" aria-label="Back" data-i18n-aria="word.back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button></span>
           <button class="rbook" id="rbook" aria-label="Back to the library" data-i18n-aria="word.backLibrary">John</button>
           <span class="rh-actions">
-            <button class="iconbtn rsglass" id="readerSearch" aria-label="Search the Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
-            <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
+            <button class="iconbtn rsglass" id="readerSearch" aria-label="Search the Word" data-i18n-aria="word.searchWord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
+            <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" data-i18n-aria="word.jumpVerse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
           </span>
         </div>
         <div class="rsub" id="rsub">21 chapters</div>
         <div class="readctl" id="readctl" hidden>
-          <button class="navchap" id="prevChap" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+          <button class="navchap" id="prevChap" aria-label="Previous chapter" data-i18n-aria="word.prevChapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
           <button class="chaplabel" id="chapLabel"><span id="chapLabelText">Chapter 1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
-          <button class="navchap" id="nextChap" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
+          <button class="navchap" id="nextChap" aria-label="Next chapter" data-i18n-aria="word.nextChapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
         </div>
         <div class="rtrans" id="rtrans" hidden></div>
       </div>
       <div class="rscroll" id="rscroll">
         <div class="chappick" id="chapPick">
-          <div class="picklbl">Choose a chapter</div>
+          <div class="picklbl" data-i18n="word.chooseChapter">Choose a chapter</div>
           <div class="chapgrid" id="chapgrid"></div>
         </div>
         <div class="versepick" id="versePick" hidden>
-          <button class="vp-all" id="readAll">Read the whole chapter <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
-          <div class="picklbl">Or jump to a verse</div>
+          <button class="vp-all" id="readAll"><span data-i18n="word.readWholeChapter">Read the whole chapter</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+          <div class="picklbl" data-i18n="word.orJumpVerse">Or jump to a verse</div>
           <div class="chapgrid" id="versegrid"></div>
         </div>
         <div class="rbody" id="rbody" hidden></div>
@@ -175,7 +175,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="vjback" id="vjback"></div>
         <div class="vjsheet">
           <div class="grabber"></div>
-          <div class="vjtitle">Jump to a verse</div>
+          <div class="vjtitle" data-i18n="word.jumpVerse">Jump to a verse</div>
           <div class="vjgrid" id="vjgrid"></div>
         </div>
       </div>
@@ -185,12 +185,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="grabber"></div>
         <div class="vbref" id="vbref">Verse</div>
         <div class="hlpalette" id="hlPalette" hidden>
-          <button class="hlsw c-gold" data-c="gold" aria-label="Gold highlight"></button>
-          <button class="hlsw c-rose" data-c="rose" aria-label="Rose highlight"></button>
-          <button class="hlsw c-sky" data-c="sky" aria-label="Sky highlight"></button>
-          <button class="hlsw c-mint" data-c="mint" aria-label="Mint highlight"></button>
-          <button class="hlsw c-lilac" data-c="lilac" aria-label="Lilac highlight"></button>
-          <button class="hlsw hlsw-none" data-c="none" aria-label="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14"></path><circle cx="12" cy="12" r="9"></circle></svg></button>
+          <button class="hlsw c-gold" data-c="gold" aria-label="Gold highlight" data-i18n-aria="word.hlGold"></button>
+          <button class="hlsw c-rose" data-c="rose" aria-label="Rose highlight" data-i18n-aria="word.hlRose"></button>
+          <button class="hlsw c-sky" data-c="sky" aria-label="Sky highlight" data-i18n-aria="word.hlSky"></button>
+          <button class="hlsw c-mint" data-c="mint" aria-label="Mint highlight" data-i18n-aria="word.hlMint"></button>
+          <button class="hlsw c-lilac" data-c="lilac" aria-label="Lilac highlight" data-i18n-aria="word.hlLilac"></button>
+          <button class="hlsw hlsw-none" data-c="none" aria-label="Remove highlight" data-i18n-aria="word.hlRemove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14"></path><circle cx="12" cy="12" r="9"></circle></svg></button>
         </div>
         <div class="vbacts">
           <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"></path><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"></path></svg><span data-i18n="word.highlight">Highlight</span></button>
@@ -206,7 +206,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="rsback"></div>
         <div class="rspanel rs-search">
           <div class="grabber"></div>
-          <div class="rstitle">Search the Word</div>
+          <div class="rstitle" data-i18n="word.searchWord">Search the Word</div>
           <form class="search rs-field" id="rsForm" autocomplete="off">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
             <input id="rsInput" placeholder="A verse, a reference, or a story&hellip;" data-i18n-ph="word.rsPh" aria-label="Search Scripture" data-i18n-aria="word.searchAria" />
@@ -415,16 +415,16 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     function searchInto(q, hintEl, noteEl, reqRef) {
       const myReq = ++reqRef.n;
       const local = localResultsHTML(q);
-      hintEl.innerHTML = local + '<div class="sh-api"><div class="vp-loading">Searching the Word&hellip;</div></div>';
+      hintEl.innerHTML = local + '<div class="sh-api"><div class="vp-loading">' + (esLock() ? 'Buscando en la Palabra…' : 'Searching the Word&hellip;') + '</div></div>';
       if (noteEl) { noteEl.style.display = 'none'; }
       fetch(WORKER + '/bible/search?translation=' + readT + '&q=' + encodeURIComponent(q))
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
           if (myReq !== reqRef.n) return;
           const api = hintEl.querySelector('.sh-api'); if (!api) return;
-          if (!j || !j.results) { api.innerHTML = local ? '' : '<div class="vp-loading">Search is unavailable right now.</div>'; return; }
+          if (!j || !j.results) { api.innerHTML = local ? '' : '<div class="vp-loading">' + (esLock() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>'; return; }
           if (!j.results.length) {
-            api.innerHTML = local ? '' : '<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '. Try a reference like &ldquo;Psalms 21&rdquo; or a phrase like &ldquo;water into wine&rdquo;.</div>';
+            api.innerHTML = local ? '' : (esLock() ? ('<div class="vp-loading">Nada encontrado para &ldquo;' + esc(q) + '&rdquo; en ' + esc(j.translation) + '. Prueba una referencia como &ldquo;Salmos 21&rdquo; o una frase como &ldquo;agua en vino&rdquo;.</div>') : ('<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '. Try a reference like &ldquo;Psalms 21&rdquo; or a phrase like &ldquo;water into wine&rdquo;.</div>'));
             return;
           }
           const base = hintEl.querySelectorAll('.shitem').length;
@@ -438,7 +438,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         .catch(() => {
           if (myReq !== reqRef.n) return;
           const api = hintEl.querySelector('.sh-api');
-          if (api) api.innerHTML = local ? '' : '<div class="vp-loading">Search is unavailable right now.</div>';
+          if (api) api.innerHTML = local ? '' : '<div class="vp-loading">' + (esLock() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>';
         });
     }
 
@@ -468,14 +468,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     let rsTimer = null; const rsReq = { n: 0 };
     $('readerSearch').addEventListener('click', () => {
       rsearch.classList.add('open');
-      rsResults.innerHTML = '<div class="vp-loading">Search the whole Bible — a verse, a reference, or a story.</div>';
+      rsResults.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Busca en toda la Biblia — un versículo, una referencia o una historia.' : 'Search the whole Bible — a verse, a reference, or a story.') + '</div>';
       rsInput.value = '';
       setTimeout(() => rsInput.focus(), 60);
     });
     rsInput.addEventListener('input', function () {
       const q = this.value.trim();
       clearTimeout(rsTimer);
-      if (q.length < 3) { rsResults.innerHTML = '<div class="vp-loading">Keep typing&hellip;</div>'; return; }
+      if (q.length < 3) { rsResults.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Sigue escribiendo…' : 'Keep typing&hellip;') + '</div>'; return; }
       rsTimer = setTimeout(() => searchInto(q, rsResults, null, rsReq), 320);
     });
     $('rsForm').addEventListener('submit', (e) => {
@@ -549,7 +549,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         h += '<button class="chaptile' + (has ? ' has' : '') + '" data-c="' + i + '">' + i + '</button>';
       }
       chapgrid.innerHTML = h;
-      rsub.textContent = curChaps + (curChaps === 1 ? ' chapter' : ' chapters');
+      rsub.textContent = curChaps + (esLock() ? (curChaps === 1 ? ' capítulo' : ' capítulos') : (curChaps === 1 ? ' chapter' : ' chapters'));
       chapPick.hidden = false; versePick.hidden = true; rbody.hidden = true; rcopyright.hidden = true;
       readctl.hidden = true; rtrans.hidden = true; verseJump.style.visibility = 'hidden';
       closeVbar(); rscroll.scrollTop = 0;
@@ -565,13 +565,13 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       verseJump.style.visibility = 'hidden';
       closeVbar(); rscroll.scrollTop = 0;
       enter(versePick);
-      versegrid.innerHTML = '<div class="vp-loading">Loading verses&hellip;</div>';
+      versegrid.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Cargando versículos…' : 'Loading verses&hellip;') + '</div>';
       fetchChapter(curUsfm, ch, readT).then((j) => {
         if (curChap !== ch || versePick.hidden) return;
         if (j && j.verses.length) {
           versegrid.innerHTML = j.verses.map((v) => '<button class="chaptile" data-v="' + v.n + '">' + v.n + '</button>').join('');
         } else {
-          versegrid.innerHTML = '<div class="vp-loading">Tap &ldquo;Read the whole chapter&rdquo; to begin.</div>';
+          versegrid.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Toca &ldquo;Leer todo el capítulo&rdquo; para comenzar.' : 'Tap &ldquo;Read the whole chapter&rdquo; to begin.') + '</div>';
         }
       });
     }
@@ -617,10 +617,10 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     /* ---------- translation row: pill · Aa · Compare (design renderTrans) ---------- */
     function renderTrans() {
       const cmpIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h13M8 7l3-3M8 7l3 3M16 17H3M16 17l-3-3M16 17l-3 3"/></svg>';
-      const aa = '<button class="aabtn" id="aaBtn" aria-label="Display options">Aa</button>';
+      const aa = '<button class="aabtn" id="aaBtn" aria-label="' + (esLock() ? 'Opciones de visualización' : 'Display options') + '">Aa</button>';
       if (compare) {
         rtrans.innerHTML = TRANSLATIONS.map((t) => '<button class="rt' + (cmpSet.indexOf(t.label) >= 0 ? ' on' : '') + '" data-t="' + t.label + '">' + t.label + '</button>').join('')
-          + aa + '<button class="compare on" id="cmp">Done ' + cmpIcon + '</button>';
+          + aa + '<button class="compare on" id="cmp">' + (esLock() ? 'Listo ' : 'Done ') + cmpIcon + '</button>';
       } else {
         rtrans.innerHTML = '<button class="transsel" id="transsel">' + byId(readT).label + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
           + aa + (esLock() ? '' : '<button class="compare" id="cmp">Compare ' + cmpIcon + '</button>');
@@ -689,7 +689,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       if (!compare) {
         fetchChapter(curUsfm, curChap, readT).then((j) => {
           if (myReq !== reqId) return;
-          if (!j) { rbody.innerHTML = panel(curBook + ' ' + curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility = 'hidden'; return; }
+          if (!j) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esLock() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
           rbody.innerHTML = j.verses.map((v) => '<div class="vrse m-veil" data-n="' + v.n + '"><span class="vn">' + v.n + '</span><span class="vt">' + esc(v.t) + '</span></div>').join('');
           if (window.DeclareMotion) { rbody.style.setProperty('--m-stagger', '34ms'); rbody.style.setProperty('--m-premium', '640ms'); window.DeclareMotion.reveal(rbody, { stagger: 30 }); }
           setCopyright([j.copyright]);
@@ -703,11 +703,11 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           if (myReq !== reqId) return;
           let base = null;
           for (const r of res) if (r.j && r.j.verses.length) { base = r.j.verses; break; }
-          if (!base) { rbody.innerHTML = panel(curBook + ' ' + curChap, 'Couldn’t load this chapter. Check your connection and try again.'); verseJump.style.visibility = 'hidden'; return; }
+          if (!base) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esLock() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
           const maps = {};
           res.forEach((r) => { const m = {}; (r.j ? r.j.verses : []).forEach((v) => { m[v.n] = v.t; }); maps[r.t] = m; });
           rbody.innerHTML = '<div class="pcols">' + base.map((v) => (
-            '<div class="pverse" data-n="' + v.n + '"><div class="pn">Verse ' + v.n + '</div><div class="pgrid" style="grid-template-columns:repeat(' + cmpSet.length + ',1fr)">'
+            '<div class="pverse" data-n="' + v.n + '"><div class="pn">' + (esLock() ? 'Versículo ' : 'Verse ') + v.n + '</div><div class="pgrid" style="grid-template-columns:repeat(' + cmpSet.length + ',1fr)">'
             + cmpSet.map((t) => '<div class="pcell"><div class="pcl">' + t + '</div><div class="pcx">' + esc((maps[t] && maps[t][v.n]) || '—') + '</div></div>').join('')
             + '</div></div>'
           )).join('') + '</div>';
@@ -854,8 +854,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       hlPalette.querySelectorAll('.hlsw').forEach((b) => b.classList.toggle('on', b.dataset.c === sc));
       const saved = isSaved(saveId());
       vbSave.classList.toggle('on', saved);
-      vbSave.querySelector('span').textContent = saved ? 'Saved' : 'Save';
-      vbref.textContent = curRef() + (n > 1 ? '  ·  ' + n + ' verses' : '') + '  ·  ' + byId(readT).label;
+      vbSave.querySelector('span').textContent = saved ? (esLock() ? 'Guardado' : 'Saved') : (esLock() ? 'Guardar' : 'Save');
+      vbref.textContent = curRef() + (n > 1 ? '  ·  ' + n + (esLock() ? ' versículos' : ' verses') : '') + '  ·  ' + byId(readT).label;
     }
     rbody.addEventListener('click', (e) => {
       if (e.target.closest('a,button')) return;
@@ -874,26 +874,26 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     hlPalette.addEventListener('click', (e) => { const b = e.target.closest('.hlsw'); if (b) applyColor(b.dataset.c); });
     function applyColor(c) {
       if (!sel.size) return;
-      if (!ensureSignedIn('Create a free account to keep your highlights.')) return;
+      if (!ensureSignedIn(esLock() ? 'Crea una cuenta gratis para guardar tus resaltados.' : 'Create a free account to keep your highlights.')) return;
       const o = getHL(), nums = selNums();
       nums.forEach((n) => { const k = hlKey(n); if (c === 'none') delete o[k]; else o[k] = c; });
       try { localStorage.setItem('declare-highlights', JSON.stringify(o)); } catch (e) {}
-      toast(c === 'none' ? 'Highlight removed' : (nums.length > 1 ? 'Verses highlighted' : 'Verse highlighted'));
+      toast(c === 'none' ? (esLock() ? 'Resaltado quitado' : 'Highlight removed') : (nums.length > 1 ? (esLock() ? 'Versículos resaltados' : 'Verses highlighted') : (esLock() ? 'Versículo resaltado' : 'Verse highlighted')));
       hlPalette.hidden = true; paintVbar(); applyHighlights();
     }
     vbSave.addEventListener('click', () => {
       if (!sel.size) return;
-      if (!ensureSignedIn('Create a free account to save this to your Vault.')) return;
+      if (!ensureSignedIn(esLock() ? 'Crea una cuenta gratis para guardar esto en tu Bóveda.' : 'Create a free account to save this to your Vault.')) return;
       const id = saveId();
-      if (isSaved(id)) { removeItem(id); toast('Removed from Vault.'); }
-      else { saveItem({ id, type: 'verse', ref: curRef(), text: passageBody(), translation: byId(readT).label }); toast(sel.size > 1 ? 'Passage saved to Vault.' : 'Saved to Vault.'); }
+      if (isSaved(id)) { removeItem(id); toast(esLock() ? 'Quitado de tu Bóveda.' : 'Removed from Vault.'); }
+      else { saveItem({ id, type: 'verse', ref: curRef(), text: passageBody(), translation: byId(readT).label }); toast(sel.size > 1 ? (esLock() ? 'Pasaje guardado en la Bóveda.' : 'Passage saved to Vault.') : (esLock() ? 'Guardado en tu Bóveda.' : 'Saved to Vault.')); }
       paintVbar();
     });
     $('vbCopy').addEventListener('click', () => {
       if (!sel.size) return;
       const s = passageQuote();
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(() => toast('Copied'), () => toast('Copied'));
-      else toast('Copied');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(() => toast(esLock() ? 'Copiado' : 'Copied'), () => toast(esLock() ? 'Copiado' : 'Copied'));
+      else toast(esLock() ? 'Copiado' : 'Copied');
     });
 
     /* share: design system — Card Studio when the stack loads, design fallback sheet otherwise */
@@ -929,7 +929,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       });
     });
     $('shSystem').addEventListener('click', () => { if (navigator.share) navigator.share({ title: 'Declare', text: shareFull() }).then(() => {}, () => {}); sharesheet.classList.remove('open'); });
-    $('shCopy').addEventListener('click', () => { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(shareFull()); toast('Verse copied'); sharesheet.classList.remove('open'); });
+    $('shCopy').addEventListener('click', () => { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(shareFull()); toast(esLock() ? 'Versículo copiado' : 'Verse copied'); sharesheet.classList.remove('open'); });
 
     /* ---------- init ---------- */
     applyDisplay();
