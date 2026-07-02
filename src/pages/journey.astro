@@ -333,7 +333,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (!window.JourneyEngine) { return Promise.resolve(PLAN[idx]); }
       const theme = (active._themes && active._themes[idx]) || '';
       const p = window.JourneyEngine.generateDay({ struggleId: active.id, dayIndex: idx, theme: theme,
-        seed: (active._seed + idx * 101) >>> 0, fromLabel: active.from, toLabel: active.to })
+        seed: (active._seed + idx * 101) >>> 0, fromLabel: active.from, toLabel: active.to,
+        language: (window.I18N && window.I18N.lang && window.I18N.lang()) || 'en' })
         .then(function (obj) { if (obj) { PLAN[idx] = obj; } active._ai[idx] = true; active._inflight[idx] = null; saveInstance(); return PLAN[idx]; })
         .catch(function () { active._ai[idx] = true; active._inflight[idx] = null; return PLAN[idx]; });
       active._inflight[idx] = p; return p;

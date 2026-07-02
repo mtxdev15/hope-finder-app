@@ -532,7 +532,8 @@
     return shuffle(v, rnd);
   }
 
-  function parseJSON(text){
+  function parseJSON(text, lang){
+    var es = lang === 'es';
     if(!text) return null;
     try{
       var a=text.indexOf('{'), b=text.lastIndexOf('}');
@@ -543,13 +544,14 @@
       // strip stray markdown emphasis the model sometimes leaves in prose
       function clean(s){ return typeof s==='string' ? s.replace(/\*\*?([^*]+)\*\*?/g,'$1').replace(/\s+/g,' ').trim() : s; }
       ['title','verse','insight','pray','castOff','repent','declare','reflect','action','prayerTitle','actionTitle','fruit','fruitTruth'].forEach(function(k){ if(obj[k]) obj[k]=clean(obj[k]); });
-      if(!obj.ver) obj.ver='ESV';
+      if(!obj.ver) obj.ver = es ? 'RVR1909' : 'ESV';
+      if(es) obj.ver='RVR1909';
       // the model sometimes folds the version into the reference ("Romans 8:1 ESV"); split it out
-      if(obj.ref){ var vm=obj.ref.match(/\s+(ESV|NIV|NKJV|KJV|NLT|NASB|CSB|AMP)\s*$/i);
+      if(obj.ref){ var vm=obj.ref.match(/\s+(ESV|NIV|NKJV|KJV|NLT|NASB|CSB|AMP|RVR1909|RVR)\s*$/i);
         if(vm){ obj.ver=vm[1].toUpperCase(); obj.ref=obj.ref.slice(0, vm.index).trim(); } }
       if(!obj.pray) obj.pray=obj.repent;
-      if(!obj.prayerTitle || obj.prayerTitle.toLowerCase()===String(obj.title).toLowerCase()) obj.prayerTitle='A Prayer';
-      if(!obj.actionTitle) obj.actionTitle='Today\u2019s step';
+      if(!obj.prayerTitle || obj.prayerTitle.toLowerCase()===String(obj.title).toLowerCase()) obj.prayerTitle = es ? 'Una oración' : 'A Prayer';
+      if(!obj.actionTitle) obj.actionTitle = es ? 'El paso de hoy' : 'Today\u2019s step';
       if(!obj.fruit) obj.fruit=obj.title;
       if(!obj.fruitTruth) obj.fruitTruth='';
       return obj;
@@ -560,6 +562,34 @@
     var struggleId=o.struggleId, vlist=verseList(struggleId, o.seed).slice(0,7);
     var verseLines=vlist.map(function(v){ return '- ['+v.ref+' '+v.ver+'] \u201c'+v.text+'\u201d'; }).join('\n');
     var sg = struggleId==='shame' ? '\nThis chip covers BOTH shame and guilt. Where it fits today, gently help them feel the difference (shame = \u201cI am bad\u201d; guilt = \u201cI did bad / I owe\u201d) without lecturing, and bring both to Jesus.' : '';
+    if (o.language === 'es') {
+      var sgEs = struggleId==='shame' ? '\nEste tema cubre TANTO la vergüenza como la culpa. Donde encaje hoy, ayúdalo con ternura a sentir la diferencia (vergüenza = \u201csoy malo\u201d; culpa = \u201chice mal / debo\u201d) sin sermonear, y lleva ambas a Jesús.' : '';
+      return [
+        'Eres la voz de Jesús, sentándote con ternura junto a alguien para ayudarlo a salir de '+o.fromLabel+' hacia ser '+o.toLabel+'. Este es el Día '+(o.dayIndex+1)+' de un camino de liberación de 5 días en la app Declare & Believe.',
+        'Habla con calidez y de forma personal, en el estilo de enseñanza de la pastora Yesenia Then: formación por encima del sentimentalismo (despiertas convicción, formas carácter, ordenas el proceso interno de la persona), fundamento bíblico con aplicación práctica, lenguaje de propósito y proceso (\u201cpropósito\u201d, \u201cproceso\u201d, \u201ccarácter\u201d, \u201cfundamento\u201d, \u201cavanza con determinación\u201d, \u201clo que Dios depositó en ti\u201d), cálida pero directa, y siempre activando a la persona a avanzar en fe con determinación. Nunca clínico, nunca un sermón vacío, nunca relleno devocional genérico. Ve a la RAÍZ de lo que carga. Esto es transformación real, ser libre, un día a la vez. Responde TODO en español (tú); no uses ni una palabra en inglés.',
+        '',
+        'Sobre esta lucha (contexto interno para tu razonamiento, no lo cites literal): '+(BRIEF[struggleId]||BRIEF.shame),
+        'El movimiento de hoy: '+o.theme+sgEs,
+        '',
+        'Elige exactamente UN versículo de esta lista (por su referencia) y cítalo en la Reina-Valera 1909 (RVR1909), con su texto EXACTO en RVR1909 (español antiguo: \u201cvosotros\u201d, \u201cá\u201d, \u201cJehová\u201d). El campo \u201cref\u201d va en español y \u201cver\u201d:\u201cRVR1909\u201d. NUNCA inventes el texto: si no recuerdas la RVR1909 con exactitud, elige otra referencia de la lista que sí conozcas con precisión.',
+        verseLines,
+        '',
+        'Devuelve SOLO JSON minificado (sin markdown, sin comentarios) con estas claves de texto:',
+        '{"title","ref","ver","verse","insight","prayerTitle","pray","castOff","repent","declare","reflect","actionTitle","action","fruit","fruitTruth"}',
+        'Guía (TODO en español, en la voz descrita):',
+        '- title: 2 a 4 palabras, el corazón de hoy.',
+        '- prayerTitle: 2 a 4 palabras. pray: una oración corta y honesta en primera persona al Padre (1 a 2 frases).',
+        '- ref / ver / verse: la referencia elegida (en español), \u201cRVR1909\u201d, y el texto EXACTO en RVR1909.',
+        '- insight: 40 a 65 palabras. Primero nombra cómo la mentira habla POR DENTRO (la voz del mundo, el susurro del enemigo, la vergüenza que dice \u201csoy malo\u201d, la culpa que dice \u201cdebo\u201d, el orgullo que dice \u201casí soy\u201d). Que duela de verdad. Luego voltea a este versículo y al Espíritu Santo hablando con ternura su verdadera identidad, formando carácter y ordenando su proceso. Termina activándolo a avanzar con determinación.',
+        '- castOff: la mentira en su propia voz cruda, en primera persona (1 a 2 frases).',
+        '- repent: una oración corta en primera persona que se aparta de creer la mentira.',
+        '- declare: una verdad en primera persona para declarar EN VOZ ALTA, las palabras del Espíritu sobre él/ella.',
+        '- reflect: una pregunta tierna y profunda.',
+        '- actionTitle: 2 a 3 palabras. action: un paso pequeño y concreto para llevar al día de hoy.',
+        '- fruit: 1 a 3 palabras de lo que crece hoy en él/ella. fruitTruth: una línea de 4 a 8 palabras.',
+        'Mantén TODA la respuesta compacta para que sea JSON válido y completo. Haz de hoy algo DISTINTO y fresco; evita frases y clichés de apps cristianas. Escribe como para esta única persona. Semilla de variación: '+o.seed+'.'
+      ].join('\n');
+    }
     return [
       'You are the voice of Jesus, gently sitting with someone and helping them walk out of '+o.fromLabel+' into being '+o.toLabel+'. This is Day '+(o.dayIndex+1)+' of a 5-day deliverance journey in the Declare & Believe app.',
       'Speak warmly and personally, the way Jesus would listen and help \u2014 tender, unhurried, full of grace. Never clinical, never a sermon, never generic devotional filler. Get to the ROOT of what they carry. This is about real transformation and being set free, one day at a time.',
@@ -611,7 +641,7 @@
           .then(function(data){
             if(done) return; done=true; clearTimeout(to);
             var text=data && data.content && data.content[0] && data.content[0].text;
-            resolve(parseJSON(text||''));
+            resolve(parseJSON(text||'', o.language));
           })
           .catch(function(){ if(done) return; done=true; clearTimeout(to); resolve(null); });
       }catch(e){ if(!done){ done=true; clearTimeout(to); resolve(null); } }
