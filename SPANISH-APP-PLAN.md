@@ -87,7 +87,15 @@ inline. Original notes below.
 - **Acceptance:** with `declare-lang=es`, no English text renders on any app page; the chip
   autofill test still passes; reduced-motion + mobile (640/860px) both clean.
 
-### Layer 4 — The AI's own words (instant response + Journey)  [ ] TO DO
+### Layer 4 — The AI's own words (instant response + Journey)  [x] DONE (live-verified)
+`declare-api.js` (/today, Option A) and `journey-engine.js` (Journey, Option B) each take a
+`language` option; in Spanish they append a Spanish system-prompt block (respond in español tú,
+quote ONLY RVR1909 exactly / never fabricate, the voice split A vs B). `today.astro` +
+`journey.astro` pass the cookie language. Verified live against the worker: both return valid
+Spanish JSON with accurate RVR1909 and the correct voice. No Worker change. REMAINING: the
+Journey's OFFLINE authored fallback bank (`fallbackPlan`) is still English (rare path).
+
+### (superseded original Layer 4 note)  [x]
 **Goal:** when language is Spanish, the pastoral response, declarations, prayer, and verse
 "breakdown" come back in Spanish, quoting RVR1909. **Voice split (per decision 2):** the
 `/today` instant response uses Option A (warm-friend message + declarations + prayer; Yesenia
