@@ -69,7 +69,7 @@
   }
   window.I18N = {
     lang: currentLang,
-    t: function (k) { var s = tr(k); return s != null ? s : k; },
+    t: function (k, fb) { var s = tr(k); return s != null ? s : (fb != null ? fb : k); },
     setLang: setLang,
     toggle: function () { setLang(currentLang() === 'es' ? 'en' : 'es'); },
     apply: apply
