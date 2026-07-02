@@ -120,7 +120,8 @@ throughout). So the two callers get DIFFERENT Spanish system-prompt blocks.
   Spanish with RVR1909 citations; declarations/prayer read naturally; breakdown matches the
   voice guide; English mode is byte-for-byte unchanged.
 
-### Layer 5 — Detect + banner + toggle + persistence  [ ] TO DO (flip on LAST)
+### Layer 5 [x] DONE (lang-banner.js; navigator.languages; verified EN=no / ES-fresh=yes / chosen=no)
+(orig) ### Layer 5 — Detect + banner + toggle + persistence  [ ] TO DO (flip on LAST)
 **Goal:** detect the device language, offer Spanish gently, remember the choice, and route.
 
 - **Detection (client-side):** read `navigator.language` / `navigator.languages`. If it
