@@ -212,15 +212,22 @@ cookie + localStorage, so no schema change is needed to ship this.
 
 ---
 
-## Open decisions (need Jeff's direction)
+## Decisions log
 
-1. **Yesenia Then voice — rewrite existing?** The 15 already-shipped Spanish pages' Profundiza
-   were written as faithful translations of the English (McClure-informed) commentary. Do we
-   (a) apply the Yesenia Then voice ONLY to new Spanish commentary (Layer 4 AI + future
-   pages), or (b) also REWRITE the existing 15 pages' Profundiza in her voice? (b) is
-   meaningful extra work but gives one consistent Spanish voice everywhere.
-2. **Does her voice extend to the whole Spanish AI response** (the main pastoral message +
-   declarations + prayer), or only the verse "breakdown" while the rest stays the current
-   warm-friend voice, translated?
-3. **Convex language persistence:** ship MVP with cookie-only, or add the per-user
-   `language` field now so it follows logged-in users across devices?
+1. **Yesenia Then voice — RESOLVED: new commentary only.** Apply her voice to Layer-4 AI
+   Spanish breakdowns and any NEW Spanish pages. Leave the 15 already-shipped pages' Profundiza
+   as-is (accurate, live). Revisit later if we want one uniform voice.
+2. **Voice reach across the AI response — PENDING Jeff's pick** after comparing two written
+   samples (breakdown-only vs. whole-response). Samples delivered 2026-07-02.
+3. **Language persistence — RESOLVED (senior-dev recommendation): hybrid.** Cookie
+   (`declare-lang`) + localStorage mirror is the primary source of truth for EVERYONE, so it
+   works for the anonymous 3am visitor with zero account and is available on the first request
+   (usable by edge/SSR routing and shared across the static `/es/*` pages and the app). A
+   cookie, not just localStorage, because it survives private-mode quirks and is sent before
+   JS runs. FOR LOGGED-IN USERS, also mirror the choice to a `language` field on the Convex
+   user record so it follows them to a new device and becomes the default there; on login,
+   reconcile (account value wins if set, else save the current device choice up). Convex change
+   is small (one field in `schema.ts` + `userdata.ts`) and lands in Layer 5; Jeff runs
+   `npx convex deploy` once at that point.
+   **Mobile:** banner is a bottom sheet (thumb reach, respects safe-area insets), dismissible,
+   no layout shift; toggle is a large tap target in the menu.
