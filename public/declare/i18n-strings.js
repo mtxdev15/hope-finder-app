@@ -216,7 +216,36 @@ window.__I18N_STRINGS = {
     'vault.collRemoved': 'Colección eliminada',
     'vault.wordRemoved': 'Palabra quitada de la Bóveda',
     'vault.itemRemoved': 'Quitado de la Bóveda',
-    'vault.created': 'creada'
+    'vault.created': 'creada',
+
+    /* ---- /signin (thin shell; the form lives in auth-modal.js) ---- */
+    'signin.almost': 'Casi listo.',
+    'signin.back': 'Volver a Declara',
+    'signin.verified': 'Tu correo está confirmado. Inicia sesión para continuar.',
+
+    /* ---- /crisis (US numbers/orgs kept; verse in RVR1909) ---- */
+    'crisis.back': 'Atrás',
+    'crisis.ttl': 'Encuentra ayuda ahora',
+    'crisis.h1': 'No estás solo',
+    'crisis.csub': 'Si estás pensando en hacerte daño, por favor busca ayuda ahora mismo. Hay personas capacitadas y compasivas listas para hablar, a cualquier hora, de día o de noche.',
+    'crisis.verse': '“Cercano está Jehová á los quebrantados de corazón; y salva á los contritos de espíritu.”',
+    'crisis.vref': 'Salmo 34:18',
+    'crisis.reachNow': 'Comunícate con alguien ahora',
+    'crisis.call988': 'Llama al 988',
+    'crisis.call988D': 'Línea de Prevención del Suicidio y Crisis · 24/7, gratis',
+    'crisis.text988': 'Envía un texto al 988',
+    'crisis.text988D': '¿Prefieres escribir? Conéctate por mensaje',
+    'crisis.call911': 'Llama al 911',
+    'crisis.call911D': 'Para una emergencia inmediata que amenace la vida',
+    'crisis.moreWays': 'Más formas de hablar',
+    'crisis.ctlD': 'Envía HOME al 741741 · 24/7',
+    'crisis.lifelineD': 'Chat en línea · recursos y apoyo',
+    'crisis.emailTeam': 'Escribe a nuestro equipo de cuidado',
+    'crisis.rline1': 'Tu vida importa.',
+    'crisis.rline2': 'Este momento no es el fin de tu historia.',
+    'crisis.rsmall': 'Él está cerca. Resiste.',
+    'crisis.note1': 'Si estás fuera de EE. UU., llama al número de emergencia local o visita ',
+    'crisis.note2': ' para obtener ayuda en tu país.'
   }
 };
 
