@@ -24,6 +24,9 @@ const ASV_BIBLE_ID = '06125adad2d5898a-01';
 const NLT_BIBLE_ID = 'd6e14a625393b4da-01';
 const NKJV_BIBLE_ID = '63097d2a0a2f7db3-01';
 const NIV_BIBLE_ID = '78a9f6124f344018-01';
+// Reina-Valera 1909 — Spanish, public domain (free on api.bible, no FUMS/copyright line).
+// CONFIRM this id against `GET /v1/bibles?language=spa` with your key before deploying.
+const RVR1909_BIBLE_ID = '592420522e16049f-01';
 
 // Public-domain translations: cached in KV (14-day TTL), no FUMS, no copyright line.
 // Keyed by request param; cache key uses the label so they never collide (verse:KJV:v2:…).
@@ -31,6 +34,7 @@ const PUBLIC_DOMAIN = {
   web: { id: WEB_BIBLE_ID, label: 'WEB' },
   kjv: { id: KJV_BIBLE_ID, label: 'KJV' },
   asv: { id: ASV_BIBLE_ID, label: 'ASV' },
+  rvr1909: { id: RVR1909_BIBLE_ID, label: 'RVR1909' },
 };
 
 // Required publisher credit lines, shown wherever each copyrighted translation appears.
@@ -105,7 +109,7 @@ async function handleBible(request, env) {
   const chapter = parseInt(url.searchParams.get('chapter') || '', 10);
 
   if (!PUBLIC_DOMAIN[translation] && !COPYRIGHTED[translation]) {
-    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, and NIV translations are available right now.' }, 400);
+    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, NIV, and RVR1909 translations are available right now.' }, 400);
   }
   if (!/^[0-9A-Z]{3}$/.test(book)) {
     return jsonResponse({ error: 'Invalid book code.' }, 400);
@@ -226,7 +230,7 @@ async function handleBibleSearch(request, env) {
   const q = (url.searchParams.get('q') || '').trim();
   const cfg = PUBLIC_DOMAIN[translation] || COPYRIGHTED[translation];
   if (!cfg) {
-    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, and NIV translations are available right now.' }, 400);
+    return jsonResponse({ error: 'Only the WEB, KJV, ASV, NLT, NKJV, NIV, and RVR1909 translations are available right now.' }, 400);
   }
   if (q.length < 2 || q.length > 80) {
     return jsonResponse({ error: 'Search needs between 2 and 80 characters.' }, 400);

@@ -48,6 +48,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <button class="pill" data-t="nkjv">NKJV</button>
         <button class="pill" data-t="niv">NIV</button>
         <button class="pill" data-t="nlt">NLT</button>
+        <button class="pill" data-t="rvr1909">RVR1909</button>
       </div>
 
       <div class="seg" id="testament">
@@ -259,6 +260,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       { id: 'nkjv', label: 'NKJV', name: 'New King James Version' },
       { id: 'niv', label: 'NIV', name: 'New International Version (2011)' },
       { id: 'nlt', label: 'NLT', name: 'New Living Translation' },
+      { id: 'rvr1909', label: 'RVR1909', name: 'Reina-Valera 1909 (Español)' },
     ];
     const byId = (id) => TRANSLATIONS.find((t) => t.id === id);
     const byLabel = (l) => TRANSLATIONS.find((t) => t.label === l);
@@ -922,6 +924,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         const wantBook = (q.get('book') || '').trim();
         const wantChap = parseInt(q.get('chapter') || '', 10);
         const wantVerse = parseInt(q.get('verse') || '', 10);
+        const wantT = (q.get('t') || '').trim().toLowerCase();  // e.g. Spanish pages pass &t=rvr1909
+        if (wantT && byId(wantT)) setReadT(wantT);
         if (!wantBook) return;
         const btn = bookByName(wantBook); if (!btn) return;
         const chaps = parseInt(btn.dataset.chaps, 10);
