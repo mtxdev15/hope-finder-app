@@ -40,12 +40,16 @@ Done items move to the bottom or get deleted.
       hardcoded strings + 33 struggle chips + ~20 SEO pages, and a language toggle / `/es` routing.
       Recommend phasing: core flow + results + Journey first, then full UI. Voice: Latin American
       (es-LA), informal "tú".
-      - **SEO struggle pages → /es (in progress).** Live: `/es/heridas-de-la-iglesia` (church-hurt) and
-        `/es/ansiedad` (anxiety, full translation with RVR1960 Scripture, Spanish breakdowns, hreflang).
-        Remaining ~12: translate each English struggle page to `/es/<slug>` (copy the page, swap all
-        text, RVR1960 verses, Spanish menu/footer, `Profundiza` breakdown buttons + `data-read-label`,
-        canonical + reciprocal hreflang + sitemap pair). Build a Spanish struggles hub too. Repro
-        script pattern: `scratchpad/es_ansiedad.py`.
+      - **SEO struggle pages → /es (DONE, v3.14.0).** All 14 existing struggle pages are live in
+        Spanish with RVR1909 Scripture: `heridas-de-la-iglesia`, `ansiedad`, `depresion`, `soledad`,
+        `duelo`, `ira`, `duda`, `fracaso`, `presion-financiera`, `matrimonio`, `proposito`,
+        `verguenza`, `falta-de-perdon`, `sobrepensar`. Each has Spanish menu/footer, `Profundiza`
+        breakdowns + `data-read-label`, RVR1909 `&t=rvr1909` deep-links, translated JSON-LD FAQ,
+        canonical + reciprocal hreflang + sitemap pair. RVR1909 is also live in the `/word` reader.
+        Repro script pattern: `scratchpad/es_<slug>.py` (fetch verse text from the deployed worker,
+        never fabricate). **Still to do:** (a) Spanish struggles hub `/es/luchas`; (b) when new EN
+        struggle pages ship, translate them too; (c) as `/es` pages were built, related-link cross-links
+        were repointed to live `/es` slugs where they existed.
 - [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
       If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
       links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
@@ -97,12 +101,16 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.13.0**. Newest first.*
+- **All 14 struggle pages translated to Spanish (v3.14.0).** Every English struggle page now has a
+  full `/es/<slug>` twin with RVR1909 Scripture (verse text pulled from the deployed worker, never
+  fabricated), Spanish menu/footer/JSON-LD FAQ, `Profundiza` breakdowns, RVR1909 `/word` deep-links,
+  and canonical + hreflang + sitemap pairs. RVR1909 is live in the `/word` reader too. Remaining
+  Spanish work: a `/es/luchas` hub. Repro scripts: `scratchpad/es_<slug>.py`.
 - **Struggle pages leveled up (v3.13.0).** Twilight/editorial template rolled out to every struggle
   page (each in its own hue), SEO titles + metas rewritten to kill the repeated "What God Says"
   formula, verse citations now deep-link into the `/word` reader, and a "Break this down" commentary
-  popup (short, Scripture-grounded study) added to every verse on every page. Bilingual: the Spanish
-  church-hurt page got the same, and the first fully-translated Spanish page is live (`/es/ansiedad`,
-  RVR1960). Overthinking is the source-of-truth page (also has the immersive coda + editorial 2am).
+  popup (short, Scripture-grounded study) added to every verse on every page.
+  Overthinking is the source-of-truth page (also has the immersive coda + editorial 2am).
 - **13 SEO struggle pages live** — anxiety, anger, depression, doubt, failure, financial-pressure,
   grief, loneliness, marriage, purpose, shame, unforgiveness, church-hurt (static `/public/*.html`,
   registered in `struggles.html` + `sitemap.xml`). Each uses the cinematic template (motion +
