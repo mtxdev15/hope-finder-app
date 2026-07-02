@@ -246,6 +246,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/overthinking" />
   </url>
   <url>
+    <loc>https://declareandbelieve.com/burnout</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/burnout" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/estres-y-agotamiento" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/burnout" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/estres-y-agotamiento</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/burnout" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/estres-y-agotamiento" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/burnout" />
+  </url>
+  <url>
     <loc>https://declareandbelieve.com/purpose</loc>
     <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
