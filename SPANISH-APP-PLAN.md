@@ -58,7 +58,17 @@ All 15 struggle pages + `/es/luchas` hub + giving pages are in `/es`, with RVR19
 Profundiza, deep-links, hreflang, sitemap. (Profundiza voice revisit is an open question,
 see bottom.)
 
-### Layer 3 — App interface strings  [ ] TO DO
+### Layer 3 — App interface strings  [~] IN PROGRESS
+DONE + verified (branch `feature/es-full-app`): the runtime engine (`public/declare/i18n.js`
++ `i18n-strings.js`), overflow guards (`i18n-guards.css`), and these surfaces in Spanish —
+home `/`, shared chrome (`DeclareLayout`+`TabBar`), `/today` (chip-autofill invariant proven),
+`/word` (RVR1909-only lock + Spanish book list via `i18n-bible-es.js`), `/you` (+ the in-app
+EN|ES language toggle), `/vault`, `/signin`, `/crisis`, and the `/es/bienvenido` static twin.
+REMAINING in Layer 3: `journey.astro` UI (big; overlaps Layer 4), and the shared
+`auth-modal.js` sign-in/sign-up form (a component; flagged). Bible book-name data was done
+inline. Original notes below.
+
+
 **Goal:** every visible word in the app has a Spanish version, driven by the active language.
 
 - **Files (Astro app pages):** `src/pages/index.astro` (the instant struggle response),
