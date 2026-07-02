@@ -53,6 +53,7 @@ window.__I18N_STRINGS = {
     'today.writeAria': 'Escribe lo que hay en tu corazón',
     'today.sheetTitle': '¿Qué hay en tu corazón?',
     'today.ownWordsPh': 'O escríbelo con tus propias palabras…',
+    'today.ctaDefault': '· Miedo y ansiedad',
     'today.receiveAria': 'Recibe la Palabra',
     'today.orChoose': 'o elige lo que encaja',
     'today.more': 'Más +',
