@@ -30,14 +30,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     {/* ================= LIBRARY (design: browse view) ================= */}
     <div class="w-col" id="browse">
       <div class="whead">
-        <span class="wlbl">The library</span>
-        <button class="gear" id="libPrefs" type="button" aria-label="Reading preferences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2.4"></circle><circle cx="15" cy="17" r="2.4"></circle></svg></button>
+        <span class="wlbl" data-i18n="word.library">The library</span>
+        <button class="gear" id="libPrefs" type="button" aria-label="Reading preferences" data-i18n-aria="word.readingPrefs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2.4"></circle><circle cx="15" cy="17" r="2.4"></circle></svg></button>
       </div>
-      <div class="wtitle">The Word</div>
+      <div class="wtitle" data-i18n="word.title">The Word</div>
 
       <form class="search" id="searchForm" autocomplete="off">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-        <input id="searchInput" placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" aria-label="Search Scripture" />
+        <input id="searchInput" placeholder="Search Scripture — try &ldquo;water into wine&rdquo;" data-i18n-ph="word.searchPh" aria-label="Search Scripture" data-i18n-aria="word.searchAria" />
       </form>
 
       <div class="wlbl tlanslbl">Default translation</div>
@@ -52,8 +52,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       </div>
 
       <div class="seg" id="testament">
-        <button data-t="OT">Old Testament</button>
-        <button class="on" data-t="NT">New Testament</button>
+        <button data-t="OT" data-i18n="word.ot">Old Testament</button>
+        <button class="on" data-t="NT" data-i18n="word.nt">New Testament</button>
       </div>
 
       <div class="wscroll" id="browseScroll">
@@ -95,7 +95,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       <div class="lsback" data-lsclose></div>
       <div class="lspanel" role="dialog" aria-label="Reading preferences">
         <div class="lsgrab"></div>
-        <div class="lstitle">Reading preferences</div>
+        <div class="lstitle" data-i18n="word.readingPrefs">Reading preferences</div>
         <div class="lssub">How Scripture looks across the app.</div>
         <div class="lspreview" id="lsPreview">For God so loved the world that he gave his only Son.</div>
         <div class="lssec">
@@ -140,7 +140,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       <div class="rtop">
         <div class="rhead">
           <span class="rh-lead"><button class="iconbtn" id="readerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button></span>
-          <button class="rbook" id="rbook" aria-label="Back to the library">John</button>
+          <button class="rbook" id="rbook" aria-label="Back to the library" data-i18n-aria="word.backLibrary">John</button>
           <span class="rh-actions">
             <button class="iconbtn rsglass" id="readerSearch" aria-label="Search the Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
             <button class="iconbtn" id="verseJump" aria-label="Jump to a verse" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></button>
@@ -193,10 +193,10 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           <button class="hlsw hlsw-none" data-c="none" aria-label="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14"></path><circle cx="12" cy="12" r="9"></circle></svg></button>
         </div>
         <div class="vbacts">
-          <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"></path><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"></path></svg><span>Highlight</span></button>
-          <button class="vbtn" id="vbSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg><span>Save</span></button>
-          <button class="vbtn" id="vbCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span>Copy</span></button>
-          <button class="vbtn" id="vbShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg><span>Share</span></button>
+          <button class="vbtn" id="vbHl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M6.5 16.5L14 9l3 3-7.5 7.5H6.5z"></path><path d="M14 9l2.5-2.5a1.6 1.6 0 0 1 2.3 0l.7.7a1.6 1.6 0 0 1 0 2.3L17 12"></path></svg><span data-i18n="word.highlight">Highlight</span></button>
+          <button class="vbtn" id="vbSave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12v15l-6-4-6 4z"></path></svg><span data-i18n="word.save">Save</span></button>
+          <button class="vbtn" id="vbCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span data-i18n="word.copy">Copy</span></button>
+          <button class="vbtn" id="vbShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg><span data-i18n="word.share">Share</span></button>
           <button class="vbtn" id="vbClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg><span>Close</span></button>
         </div>
       </div>
@@ -209,7 +209,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           <div class="rstitle">Search the Word</div>
           <form class="search rs-field" id="rsForm" autocomplete="off">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-            <input id="rsInput" placeholder="A verse, a reference, or a story&hellip;" aria-label="Search Scripture" />
+            <input id="rsInput" placeholder="A verse, a reference, or a story&hellip;" data-i18n-ph="word.rsPh" aria-label="Search Scripture" data-i18n-aria="word.searchAria" />
           </form>
           <div class="rs-results" id="rsResults"></div>
         </div>
@@ -218,7 +218,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       {/* translation menu */}
       <div class="rsheet" id="tmenu">
         <div class="rsback"></div>
-        <div class="rspanel"><div class="grabber"></div><div class="rstitle">Translation</div><div id="tmlist"></div></div>
+        <div class="rspanel"><div class="grabber"></div><div class="rstitle" data-i18n="word.translation">Translation</div><div id="tmlist"></div></div>
       </div>
 
       {/* display sheet */}
@@ -230,10 +230,10 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         <div class="rsback"></div>
         <div class="rspanel">
           <div class="grabber"></div>
-          <div class="rstitle">Share this verse</div>
+          <div class="rstitle" data-i18n="word.shareVerse">Share this verse</div>
           <div class="sharprev" id="sharePrev"></div>
-          <button class="sopt" id="shSystem"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg></span><span class="sl">Share via&hellip;</span><span class="sc" set:html={chev} /></button>
-          <button class="sopt" id="shCopy"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></span><span class="sl">Copy verse</span><span class="sc" set:html={chev} /></button>
+          <button class="sopt" id="shSystem"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg></span><span class="sl" data-i18n="word.shareVia">Share via&hellip;</span><span class="sc" set:html={chev} /></button>
+          <button class="sopt" id="shCopy"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></span><span class="sl" data-i18n="word.copyVerse">Copy verse</span><span class="sc" set:html={chev} /></button>
         </div>
       </div>
 
@@ -264,7 +264,9 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     ];
     const byId = (id) => TRANSLATIONS.find((t) => t.id === id);
     const byLabel = (l) => TRANSLATIONS.find((t) => t.label === l);
-    let readT = (() => { try { const t = localStorage.getItem('declare-reader-translation'); return byId(t) ? t : 'web'; } catch (e) { return 'web'; } })();
+    function esLock(){ try { return !!(window.I18N && window.I18N.lang() === 'es'); } catch(e){ return false; } }
+    function tW(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
+    let readT = (() => { try { if (esLock()) return 'rvr1909'; const t = localStorage.getItem('declare-reader-translation'); return byId(t) ? t : 'web'; } catch (e) { return 'web'; } })();
     function setReadT(id) { readT = id; try { localStorage.setItem('declare-reader-translation', id); } catch (e) {} paintPills(); }
 
     /* ---------- library: pills · testament · groups ---------- */
@@ -274,6 +276,13 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       const p = e.target.closest('.pill'); if (!p) return;
       setReadT(p.dataset.t);
     });
+    // Spanish: RVR1909 is the ONLY and default translation — hide the chooser entirely.
+    if (esLock()) {
+      readT = 'rvr1909'; try { localStorage.setItem('declare-reader-translation', 'rvr1909'); } catch (e) {}
+      document.querySelectorAll('.tlanslbl').forEach((el) => { el.style.display = 'none'; });
+      if (pills) pills.style.display = 'none';
+      paintPills();
+    }
 
     const seg = $('testament');
     seg.addEventListener('click', (e) => {
@@ -537,7 +546,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       curChap = ch;
       chapPick.hidden = true; rbody.hidden = true; rcopyright.hidden = true; versePick.hidden = false;
       readctl.hidden = false; rtrans.hidden = true;
-      chapLabelText.textContent = 'Chapter ' + ch;
+      chapLabelText.textContent = tW('word.chapter', 'Chapter ') + ch;
       prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
       verseJump.style.visibility = 'hidden';
       closeVbar(); rscroll.scrollTop = 0;
@@ -557,7 +566,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       curChap = ch;
       chapPick.hidden = true; versePick.hidden = true; rbody.hidden = false;
       readctl.hidden = false; rtrans.hidden = false;
-      chapLabelText.textContent = 'Chapter ' + ch;
+      chapLabelText.textContent = tW('word.chapter', 'Chapter ') + ch;
       prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
       closeVbar();
       renderTrans(); renderBody(); rscroll.scrollTop = 0;
@@ -600,7 +609,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           + aa + '<button class="compare on" id="cmp">Done ' + cmpIcon + '</button>';
       } else {
         rtrans.innerHTML = '<button class="transsel" id="transsel">' + byId(readT).label + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
-          + aa + '<button class="compare" id="cmp">Compare ' + cmpIcon + '</button>';
+          + aa + (esLock() ? '' : '<button class="compare" id="cmp">Compare ' + cmpIcon + '</button>');
       }
     }
     rtrans.addEventListener('click', (e) => {
@@ -721,7 +730,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     document.querySelectorAll('.rsheet .rsback').forEach((b) => b.addEventListener('click', () => b.closest('.rsheet').classList.remove('open')));
 
     function openTmenu() {
-      tmlist.innerHTML = TRANSLATIONS.map((t) => (
+      tmlist.innerHTML = TRANSLATIONS.filter((t) => !esLock() || t.id === 'rvr1909').map((t) => (
         '<div class="tmrow' + (t.id === readT ? ' on' : '') + '" data-t="' + t.id + '"><div><div class="tmn">' + t.label + '</div><div class="tmd">' + t.name + '</div></div><span class="tmck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>'
       )).join('');
       tmenu.classList.add('open');

@@ -88,7 +88,27 @@ window.__I18N_STRINGS = {
     'today.savedShort': 'Guardado',
     'today.savedVault': 'Guardado en tu Bóveda.',
     'today.removedVault': 'Quitado de tu Bóveda.',
-    'today.saveSignin': 'Crea una cuenta gratis para guardar esta palabra en tu Bóveda.'
+    'today.saveSignin': 'Crea una cuenta gratis para guardar esta palabra en tu Bóveda.',
+
+    /* ---- /word (The Word). Spanish locks the reader to RVR1909 (only + default). ---- */
+    'word.library': 'La biblioteca',
+    'word.readingPrefs': 'Preferencias de lectura',
+    'word.title': 'La Palabra',
+    'word.searchPh': 'Busca en la Escritura, prueba “Salmo 23”',
+    'word.searchAria': 'Buscar en la Escritura',
+    'word.ot': 'Antiguo Testamento',
+    'word.nt': 'Nuevo Testamento',
+    'word.backLibrary': 'Volver a la biblioteca',
+    'word.highlight': 'Resaltar',
+    'word.save': 'Guardar',
+    'word.copy': 'Copiar',
+    'word.share': 'Compartir',
+    'word.shareVerse': 'Comparte este versículo',
+    'word.shareVia': 'Compartir por…',
+    'word.copyVerse': 'Copiar versículo',
+    'word.translation': 'Traducción',
+    'word.rsPh': 'Un versículo, una referencia, o una historia…',
+    'word.chapter': 'Capítulo '
   }
 };
 
