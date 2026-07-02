@@ -146,7 +146,24 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/fracaso" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/failure" />
   </url>
-  <url><loc>https://declareandbelieve.com/financial-pressure</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/financial-pressure</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/financial-pressure" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/presion-financiera" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/financial-pressure" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/presion-financiera</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/financial-pressure" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/presion-financiera" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/financial-pressure" />
+  </url>
   <url>
     <loc>https://declareandbelieve.com/grief</loc>
     <lastmod>2026-07-02</lastmod>
