@@ -242,6 +242,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     </div>
   </main>
 
+  <script is:inline src="/declare/i18n-bible-es.js"></script>
   <script>
     import { saveItem, removeItem, isSaved } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
@@ -266,6 +267,18 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     const byLabel = (l) => TRANSLATIONS.find((t) => t.label === l);
     function esLock(){ try { return !!(window.I18N && window.I18N.lang() === 'es'); } catch(e){ return false; } }
     function tW(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
+    function bookNameES(en){ try { if (esLock() && window.__I18N_BIBLE_ES) return window.__I18N_BIBLE_ES.books[en] || en; } catch(e){} return en; }
+    function localizeLibraryES(){
+      if (!esLock()) return; var M = window.__I18N_BIBLE_ES; if (!M) return;
+      document.querySelectorAll('#groups .grptitle').forEach(function(el){ var t = M.groups[el.textContent.trim()]; if (t) el.textContent = t; });
+      document.querySelectorAll('#groups .grpsub').forEach(function(el){ el.textContent = el.textContent.replace('BOOKS','LIBROS').replace(/BOOK$/,'LIBRO'); });
+      document.querySelectorAll('#groups .book').forEach(function(b){
+        var en = b.getAttribute('data-name');
+        var bn = b.querySelector('.bname'); if (bn && M.books[en]) bn.textContent = M.books[en];
+        var bd = b.querySelector('.bdesc'); if (bd && M.tags[bd.textContent.trim()]) bd.textContent = M.tags[bd.textContent.trim()];
+        var bc = b.querySelector('.bchap'); if (bc) bc.textContent = bc.textContent.replace('chapters','capítulos').replace(/chapter$/,'capítulo');
+      });
+    }
     let readT = (() => { try { if (esLock()) return 'rvr1909'; const t = localStorage.getItem('declare-reader-translation'); return byId(t) ? t : 'web'; } catch (e) { return 'web'; } })();
     function setReadT(id) { readT = id; try { localStorage.setItem('declare-reader-translation', id); } catch (e) {} paintPills(); }
 
@@ -282,6 +295,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       document.querySelectorAll('.tlanslbl').forEach((el) => { el.style.display = 'none'; });
       if (pills) pills.style.display = 'none';
       paintPills();
+      localizeLibraryES();
     }
 
     const seg = $('testament');
@@ -394,7 +408,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       const v = parseInt(it.dataset.verse, 10) || null;
       if (inReader) { rsearch.classList.remove('open'); }
       curBook = btn.dataset.name; curUsfm = btn.dataset.usfm; curChaps = parseInt(btn.dataset.chaps, 10); compare = false;
-      reader.classList.add('open'); rbook.textContent = curBook;
+      reader.classList.add('open'); rbook.textContent = bookNameES(curBook);
       readChapter(ch, v);
     }
     // shared search engine: paints local layers instantly, streams API results in below
@@ -517,7 +531,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     function openReader(book, usfm, chaps, chap) {
       curBook = book; curUsfm = usfm; curChaps = chaps || 1; compare = false;
       reader.classList.add('open');
-      rbook.textContent = book;
+      rbook.textContent = bookNameES(book);
       showPicker();
       if (chap) readChapter(chap);
     }
