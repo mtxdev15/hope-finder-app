@@ -78,9 +78,11 @@ see bottom.)
   autofill test still passes; reduced-motion + mobile (640/860px) both clean.
 
 ### Layer 4 — The AI's own words (instant response + Journey)  [ ] TO DO
-**Goal:** when language is Spanish, the pastoral response, declarations, prayer, and any
-verse "breakdown" come back in Spanish, quoting RVR1909, in the Yesenia Then voice for the
-breakdown.
+**Goal:** when language is Spanish, the pastoral response, declarations, prayer, and verse
+"breakdown" come back in Spanish, quoting RVR1909. **Voice split (per decision 2):** the
+`/today` instant response uses Option A (warm-friend message + declarations + prayer; Yesenia
+Then voice only in the breakdown); the 5-day Journey uses Option B (Yesenia Then voice
+throughout). So the two callers get DIFFERENT Spanish system-prompt blocks.
 
 - **Files:** `src/app/declare/declare-api.js` (instant response, Haiku 4.5, builds
   `systemPrompt`), `public/declare/journey-engine.js` (5-day Journey, Sonnet 4.6), and the
@@ -217,8 +219,15 @@ cookie + localStorage, so no schema change is needed to ship this.
 1. **Yesenia Then voice — RESOLVED: new commentary only.** Apply her voice to Layer-4 AI
    Spanish breakdowns and any NEW Spanish pages. Leave the 15 already-shipped pages' Profundiza
    as-is (accurate, live). Revisit later if we want one uniform voice.
-2. **Voice reach across the AI response — PENDING Jeff's pick** after comparing two written
-   samples (breakdown-only vs. whole-response). Samples delivered 2026-07-02.
+2. **Voice reach across the AI response — RESOLVED: split by surface.**
+   - **`/today` instant response** (Haiku, `src/app/declare/declare-api.js`) = **Option A**:
+     the pastoral message, declarations, and prayer are the warm-friend voice (translated to
+     Spanish); the Yesenia Then voice is used ONLY in the verse breakdown. Rationale: meet the
+     raw 2am person gently, then teach.
+   - **5-day Journey** (Sonnet, `public/declare/journey-engine.js`) = **Option B**: the Yesenia
+     Then formation voice carries the WHOLE Spanish response (message, declarations, prayer,
+     breakdown). Rationale: the Journey is a committed formation arc, her voice fits throughout.
+   English versions of both flows are unchanged.
 3. **Language persistence — RESOLVED (senior-dev recommendation): hybrid.** Cookie
    (`declare-lang`) + localStorage mirror is the primary source of truth for EVERYONE, so it
    works for the anonymous 3am visitor with zero account and is available on the first request
