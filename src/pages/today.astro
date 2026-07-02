@@ -171,14 +171,14 @@ import RateReview from '../components/RateReview.astro';
       <div class="sheetglow" aria-hidden="true"></div>
       <div class="grabber" aria-hidden="true"></div>
       <div class="shead">
-        <span class="t serif">What&rsquo;s on your heart?</span>
+        <span class="t serif" data-i18n="today.sheetTitle">What&rsquo;s on your heart?</span>
         <button class="x" id="sheetClose" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
         </button>
       </div>
       <div class="ssscroll" data-lenis-prevent>
         <form class="input" id="sheetForm" autocomplete="off" style="margin-top:16px">
-          <input type="text" placeholder="Or write it in your own words&hellip;" aria-label="Write it in your own words" />
+          <input type="text" placeholder="Or write it in your own words&hellip;" data-i18n-ph="today.ownWordsPh" aria-label="Write it in your own words" data-i18n-aria="today.writeAria" />
           <button class="send" type="submit" aria-label="Receive the Word" data-i18n-aria="today.receiveAria">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
           </button>
@@ -216,7 +216,7 @@ import RateReview from '../components/RateReview.astro';
         </a>
       </div>
       <div class="ctawrap">
-        <button class="btn btn-primary btn-full" id="sheetCta">Receive the Word <span class="cta-n">&middot; Fear &amp; Anxiety</span></button>
+        <button class="btn btn-primary btn-full" id="sheetCta"><span data-i18n="today.receiveBtn">Receive the Word</span> <span class="cta-n">&middot; Fear &amp; Anxiety</span></button>
       </div>
     </section>
 

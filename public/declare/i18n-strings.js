@@ -51,6 +51,8 @@ window.__I18N_STRINGS = {
     'today.sub': 'Nómbralo, y recibe Su Palabra para este momento.',
     'today.placeholder': 'O escribe lo que hay en tu corazón…',
     'today.writeAria': 'Escribe lo que hay en tu corazón',
+    'today.sheetTitle': '¿Qué hay en tu corazón?',
+    'today.ownWordsPh': 'O escríbelo con tus propias palabras…',
     'today.receiveAria': 'Recibe la Palabra',
     'today.orChoose': 'o elige lo que encaja',
     'today.more': 'Más +',
