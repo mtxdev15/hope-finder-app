@@ -1,0 +1,31 @@
+/* Overflow guards — so longer Spanish (or any) text can never break tight
+   components on mobile or desktop. Harmless for English (short labels never hit
+   the ellipsis; break-word only triggers on genuinely too-long words). Loaded on
+   the interactive app pages (DeclareLayout) and the home page. */
+
+/* bottom/top tab labels: shrink + ellipsis instead of pushing the bar wider */
+.tabbar .tab { min-width: 0; }
+.tabbar .tlbl { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* segmented controls (theme + language toggles): equal columns, no overflow */
+.themectl { min-width: 0; }
+.themectl button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* headings + prose: break a too-long word rather than overflow the viewport */
+h1, h2, h3, .heading, .sub, .wtitle, .serif, .yh-t, .yh-d, .nst, .nsd,
+.dec, .qt, .qtext, .rel-name, .rel-line { overflow-wrap: break-word; word-break: normal; }
+
+/* balance the big display headings so Spanish wraps evenly */
+.heading, .wtitle, .entryhero .heading, .twoam-statement { text-wrap: balance; }
+
+/* struggle chips: always wrap, never force horizontal scroll */
+.chips { flex-wrap: wrap; }
+.chip { max-width: 100%; overflow-wrap: break-word; }
+
+/* full-width action buttons keep their text inside */
+.btn, .begin, .signin, .cta, .coda-btn, .send { overflow-wrap: break-word; }
+
+/* nothing should introduce a horizontal scrollbar on small screens */
+@media (max-width: 480px) {
+  html, body { overflow-x: hidden; }
+}
