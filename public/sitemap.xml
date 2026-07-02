@@ -97,7 +97,24 @@
   <url><loc>https://declareandbelieve.com/failure</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://declareandbelieve.com/financial-pressure</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://declareandbelieve.com/grief</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://declareandbelieve.com/loneliness</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/loneliness</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/loneliness" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/soledad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/loneliness" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/soledad</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/loneliness" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/soledad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/loneliness" />
+  </url>
   <url><loc>https://declareandbelieve.com/marriage</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url>
     <loc>https://declareandbelieve.com/es/ansiedad</loc>
