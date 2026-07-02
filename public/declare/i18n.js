@@ -79,11 +79,20 @@
     toggle: function () { setLang(currentLang() === 'es' ? 'en' : 'es'); },
     apply: apply
   };
-  // ?lang=es|en in the URL wins and persists — lets the Spanish static pages (/es/*)
-  // hand a visitor into the app (/word, /today, /journey) already in Spanish.
+  // ?lang=es|en in the URL wins ONCE and persists — lets the Spanish static pages
+  // (/es/*) hand a visitor into the app (/word, /today, /journey) already in Spanish.
+  // The param is then STRIPPED from the URL: if it stayed, the in-app toggle could
+  // never switch back (every reload would re-apply ?lang=es over the new choice).
   try {
     var qp = new URLSearchParams(location.search).get('lang');
-    if (qp === 'es' || qp === 'en') writeCookie(qp);
+    if (qp === 'es' || qp === 'en') {
+      writeCookie(qp);
+      try {
+        var u = new URL(location.href);
+        u.searchParams.delete('lang');
+        history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+      } catch (e2) {}
+    }
   } catch (e) {}
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { apply(); });
   else apply();

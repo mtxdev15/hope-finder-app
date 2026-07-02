@@ -24,6 +24,15 @@ function fire() { subs.forEach((cb) => { try { cb(); } catch (e) {} }); }
 function readLocal(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 function writeLocal(key, v) { try { localStorage.setItem(key, v); } catch (e) {} }
 
+/* A language change reloads the page immediately, which can cancel the Convex push
+   mid-flight — then the next syncDown would pull the OLD server language back and
+   the user is stuck. So the change sets this flag first; while it's set, the local
+   value is authoritative for that key (pushed up, never pulled down). Cleared only
+   once a push actually completes. */
+const LANG_PUSH_FLAG = 'declare-lang-push';
+function langPushPending() { try { return localStorage.getItem(LANG_PUSH_FLAG) === '1'; } catch (e) { return false; } }
+function clearLangPush() { try { localStorage.removeItem(LANG_PUSH_FLAG); } catch (e) {} }
+
 let syncing = false;
 async function syncDown() {
   if (!dataConfigured() || !isSignedIn() || syncing) return;
@@ -34,6 +43,12 @@ async function syncDown() {
     let changed = false;
     for (const key of keys) {
       const server = all[key];
+      if (key === 'declare-lang' && langPushPending()) {
+        // The user just chose a language on this device: local wins over the account.
+        const local = readLocal(key);
+        if (local != null) { try { await udSet(key, local); clearLangPush(); } catch (e) {} }
+        continue;
+      }
       if (server != null) {
         // Account is authoritative: bring the server blob down to this device.
         if (readLocal(key) !== server) { writeLocal(key, server); changed = true; }
@@ -93,7 +108,17 @@ function init() {
   inited = true;
   registerSyncKey('declare-lang'); // language rides the same account sync
   // Push the language up whenever the user changes it (menu toggle or banner).
-  try { document.addEventListener('declare-lang', function () { mirror('declare-lang'); }); } catch (e) {}
+  // Flag first: the page usually reloads right after, cancelling the push — the
+  // flag makes the local choice authoritative until a push actually lands.
+  try {
+    document.addEventListener('declare-lang', function () {
+      try { localStorage.setItem(LANG_PUSH_FLAG, '1'); } catch (e) {}
+      const v = readLocal('declare-lang');
+      if (dataConfigured() && isSignedIn() && v != null) {
+        Promise.resolve().then(() => udSet('declare-lang', v)).then(clearLangPush).catch(() => {});
+      }
+    });
+  } catch (e) {}
   if (!dataConfigured()) { resolveSynced(); return; }
   initAuth()
     .then(() => { if (isSignedIn()) return syncDown(); })
