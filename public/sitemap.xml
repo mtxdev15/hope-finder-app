@@ -89,6 +89,42 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/cookies" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
   </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/acerca</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/acerca" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/faq</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/privacidad</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/privacidad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/terminos</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+  </url>
   <url><loc>https://declareandbelieve.com/help</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://declareandbelieve.com/faq</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
