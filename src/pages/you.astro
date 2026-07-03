@@ -134,7 +134,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.18.0</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.18.1</div>
         </section>
       </div>
     </div>
@@ -712,6 +712,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.18.1', date: 'July 2026', items: [
+        ['Fixed', 'The language toggle now highlights the language you actually chose, and one tap is enough — no more double-tapping or a highlight stuck on English.', 'El selector de idioma ahora resalta el idioma que realmente elegiste, y un solo toque basta — se acabó el doble toque o el resaltado atascado en inglés.'],
+      ] },
       { v: '3.18.0', date: 'July 2026', items: [
         ['New', 'About, FAQ, Privacy, and Terms now speak Spanish too — Acerca de, Preguntas frecuentes, Privacidad, and Términos — so every link in the Spanish menus lands in Spanish. The last English-only corners are gone.', 'Acerca de, Preguntas frecuentes, Privacidad y Términos ahora también hablan español — así cada enlace en los menús en español llega en español. Los últimos rincones solo en inglés desaparecieron.'],
         ['New', 'A Struggles card in You: browse what God says about anxiety, shame, grief, and more — in your language.', 'Una tarjeta de Luchas en Tú: explora lo que Dios dice sobre la ansiedad, la vergüenza, el duelo y más — en tu idioma.'],
@@ -896,7 +899,26 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       var ctl = document.getElementById('langCtl'); if (!ctl) return;
       function paint(){ var l = (window.I18N ? I18N.lang() : 'en'); ctl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
       paint();
-      ctl.addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b || !b.dataset.lang || !window.I18N) return; if (b.dataset.lang === I18N.lang()) { paint(); return; } try { I18N.setLang(b.dataset.lang); } catch(err){} location.reload(); });
+      // Repaint once everything has loaded and on any language change — the active
+      // highlight must never show a stale language (module boot order is not a
+      // guarantee that I18N was ready at first paint).
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else setTimeout(paint, 0);
+      document.addEventListener('declare-lang', paint);
+      ctl.addEventListener('click', function(e){
+        var b = e.target.closest('button'); if (!b || !b.dataset.lang) return;
+        var want = b.dataset.lang;
+        if (window.I18N && I18N.lang() === want) { paint(); return; }
+        try {
+          if (window.I18N) { I18N.setLang(want); }
+          else { // engine not ready yet: never a dead click — write the choice directly
+            document.cookie = 'declare-lang=' + want + ';path=/;max-age=31536000;samesite=lax';
+            localStorage.setItem('declare-lang', want);
+            localStorage.setItem('declare-lang-set', '1');
+            localStorage.setItem('declare-lang-push', '1');
+          }
+        } catch(err){}
+        location.reload();
+      });
     })();
 
     /* ---------- church finder (Google Maps + Places, lazy) ---------- */
