@@ -134,7 +134,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.17.0</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.18.0</div>
         </section>
       </div>
     </div>
@@ -712,6 +712,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.18.0', date: 'July 2026', items: [
+        ['New', 'About, FAQ, Privacy, and Terms now speak Spanish too — Acerca de, Preguntas frecuentes, Privacidad, and Términos — so every link in the Spanish menus lands in Spanish. The last English-only corners are gone.', 'Acerca de, Preguntas frecuentes, Privacidad y Términos ahora también hablan español — así cada enlace en los menús en español llega en español. Los últimos rincones solo en inglés desaparecieron.'],
+        ['New', 'A Struggles card in You: browse what God says about anxiety, shame, grief, and more — in your language.', 'Una tarjeta de Luchas en Tú: explora lo que Dios dice sobre la ansiedad, la vergüenza, el duelo y más — en tu idioma.'],
+      ] },
       { v: '3.17.0', date: 'July 2026', items: [
         ['New', 'A cookie policy, in plain language and in both languages, explains exactly what Declare stores on your device. A small notice asks for your OK once, and a Cookies link now lives in every footer.', 'Una política de cookies, en lenguaje sencillo y en ambos idiomas, explica exactamente qué guarda Declare en tu dispositivo. Un pequeño aviso pide tu aprobación una sola vez, y un enlace de Cookies ahora vive en cada pie de página.'],
         ['New', 'Choosing the Reina-Valera 1909 in The Word now presents the whole Word in Spanish — book names, chapters, and verse pickers — even when the rest of the app is in English. Switching back restores English instantly.', 'Al elegir la Reina-Valera 1909 en La Palabra, toda La Palabra se presenta en español — nombres de libros, capítulos y selectores de versículos — aun cuando el resto de la app está en inglés. Al volver, el inglés se restaura al instante.'],
