@@ -535,7 +535,7 @@
   });
 
   // re-read globe colors when the theme flips
-  document.addEventListener('click', function (e) { if (e.target.closest('.themectl button')) setTimeout(function () { globe && globe.refresh(); }, 60); });
+  document.addEventListener('click', function (e) { if ((function(b){return b && b.dataset.mode;})(e.target.closest('.themectl button'))) setTimeout(function () { globe && globe.refresh(); }, 60); });
 
   /* ============================================================
      LIVE GIVING COUNTER — public, unauthenticated read of the running total.

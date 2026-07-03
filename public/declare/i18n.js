@@ -87,6 +87,10 @@
     var qp = new URLSearchParams(location.search).get('lang');
     if (qp === 'es' || qp === 'en') {
       writeCookie(qp);
+      // Mark the choice as pending-push (account-sync's flag): without this, a
+      // signed-in visitor arriving via ?lang=es gets the URL choice silently
+      // pulled back over by the account's stored language on the next sync.
+      try { localStorage.setItem('declare-lang-push', '1'); } catch (eF) {}
       try {
         var u = new URL(location.href);
         u.searchParams.delete('lang');
