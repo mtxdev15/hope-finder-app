@@ -129,7 +129,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.16.0</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.17.0</div>
         </section>
       </div>
     </div>
@@ -707,6 +707,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.17.0', date: 'July 2026', items: [
+        ['New', 'A cookie policy, in plain language and in both languages, explains exactly what Declare stores on your device. A small notice asks for your OK once, and a Cookies link now lives in every footer.', 'Una política de cookies, en lenguaje sencillo y en ambos idiomas, explica exactamente qué guarda Declare en tu dispositivo. Un pequeño aviso pide tu aprobación una sola vez, y un enlace de Cookies ahora vive en cada pie de página.'],
+        ['New', 'Choosing the Reina-Valera 1909 in The Word now presents the whole Word in Spanish — book names, chapters, and verse pickers — even when the rest of the app is in English. Switching back restores English instantly.', 'Al elegir la Reina-Valera 1909 en La Palabra, toda La Palabra se presenta en español — nombres de libros, capítulos y selectores de versículos — aun cuando el resto de la app está en inglés. Al volver, el inglés se restaura al instante.'],
+        ['Fixed', 'Switching languages while signed in works cleanly now: your choice sticks, the theme stays put, and the toggle shows which language is active.', 'Cambiar de idioma con la sesión iniciada ahora funciona sin fallas: tu elección se mantiene, el tema no se altera y el selector muestra qué idioma está activo.'],
+        ['Improved', 'Moving between Word, Journey, Declare, Vault, and You is faster and smoother — a gentle crossfade instead of a bounce, pages prepared before you tap, and the Journey loads much lighter.', 'Moverse entre Palabra, Camino, Declara, Bóveda y Tú es más rápido y fluido — un suave fundido en lugar de un rebote, páginas preparadas antes de tocar, y el Camino carga mucho más ligero.'],
+      ] },
       { v: '3.16.0', date: 'July 2026', items: [
         ['New', 'Declare now speaks Spanish, end to end. Every screen — Declare, The Word, the Journey, your Vault, and your account — can be switched to Spanish with the language toggle under You, and Spanish-language phones are gently invited with a “¿Ver en español?” banner.', 'Declare ahora habla español, de principio a fin. Cada pantalla — Declara, La Palabra, el Camino, tu Bóveda y tu cuenta — puede cambiarse a español con el selector de idioma en Tú, y a los teléfonos en español se les invita con un aviso de “¿Ver en español?”.'],
         ['New', 'In Spanish, the words you receive and your 5-day Journey come in Spanish too, with every verse quoted from the Reina-Valera 1909.', 'En español, las palabras que recibes y tu Camino de 5 días también llegan en español, con cada versículo citado de la Reina-Valera 1909.'],

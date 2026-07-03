@@ -32,32 +32,29 @@ Done items move to the bottom or get deleted.
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
-- [ ] **Full Spanish app — see the dedicated tracked plan: [`SPANISH-APP-PLAN.md`](SPANISH-APP-PLAN.md).**
-      Jeff greenlit the WHOLE app in Spanish (banner + toggle, auto-detect flips on last; RVR1909-only
-      + default in the Spanish Word; Yesenia Then voice for Spanish Profundiza; chip-autofill invariant
-      preserved). Work lives on branch `feature/es-full-app`. Layers 1-2 done (Bible + SEO pages);
-      Layers 3-5 (app UI strings, AI-in-Spanish, detect/banner/toggle) remain. That plan supersedes the
-      rough three-layer note below.
-- [ ] **Spanish translation (large, phased).** Big underserved market. Three layers: (1) Bible text —
-      add a Spanish translation to the `/word` reader via api.bible (RV1960 is copyrighted and may be
-      gated; RVR1909 is the free fallback); (2) AI content — add a `language` param so the struggle
-      response (`src/app/declare/declare-api.js`) and the 5-day Journey (`public/declare/journey-engine.js`)
-      generate in Spanish, plus Spanish fallback banks + `DB_CONTENT_ES`; (3) static UI — ~190-240
-      hardcoded strings + 33 struggle chips + ~20 SEO pages, and a language toggle / `/es` routing.
-      Recommend phasing: core flow + results + Journey first, then full UI. Voice: Latin American
-      (es-LA), informal "tú".
-      - **SEO struggle pages → /es (DONE, v3.14.0).** All 14 existing struggle pages are live in
-        Spanish with RVR1909 Scripture: `heridas-de-la-iglesia`, `ansiedad`, `depresion`, `soledad`,
-        `duelo`, `ira`, `duda`, `fracaso`, `presion-financiera`, `matrimonio`, `proposito`,
-        `verguenza`, `falta-de-perdon`, `sobrepensar`. Each has Spanish menu/footer, `Profundiza`
-        breakdowns + `data-read-label`, RVR1909 `&t=rvr1909` deep-links, translated JSON-LD FAQ,
-        canonical + reciprocal hreflang + sitemap pair. RVR1909 is also live in the `/word` reader.
-        Repro script pattern: `scratchpad/es_<slug>.py` (fetch verse text from the deployed worker,
-        never fabricate). **Spanish hub `/es/luchas` DONE (v3.15.0)** — all 15 rows point to their
-        `/es` slugs, wired into every Spanish page's slide-out menu + footer + breadcrumb (giving pages
-        `dar`/`terminos-de-donacion` have no Luchas link, matching the English `/give`). **Still to do:**
-        translate any NEW English struggle pages as they ship (as `/es` pages were built, related-link
-        cross-links were repointed to live `/es` slugs).
+- [ ] **iOS app (Capacitor, same repo).** Decided 2026-07-02: wrap the existing web app with
+      Capacitor rather than rewriting native — `npx cap add ios` creates an `ios/` folder Xcode opens
+      directly; web changes flow with `npm run build && npx cap sync`. Prereq: Apple Developer Program
+      ($99/yr, JC Kingdom Ventures). Bundle assets locally + add native touches (push notifications
+      for Journey reminders, haptics, splash, Sign in with Apple) so App Review doesn't see a bare
+      wrapper. Also drop the real store IDs into `rate.js` at launch (see Polish).
+- [ ] **Performance round 2 (from the 2026-07-02 infra audit; round 1 shipped in v3.17.0).**
+      Ranked leftovers: (a) **long-term asset caching** — version the remaining unversioned
+      `/declare/*` references (declare.css, motion.css, route-loader.css, brand images, tree JPEGs),
+      set `_headers` to `max-age=31536000, immutable` for `/_astro/*` + versioned `/declare/*`, then
+      flip the Cloudflare zone Browser Cache TTL to "Respect Existing Headers" (never before versioning
+      — an unversioned ref under immutable = sticky stale); (b) **GTM delay** to window.load + idle
+      (~122 KB br off first paint; Jeff to accept slight undercount of instant bounces); (c) **fonts**
+      — self-host latin-subset woff2, preload the 2 critical faces, metric-override fallback (kills the
+      FOUT reflow); (d) **tree JPEGs → WebP** (~1 MB → ~300 KB); (e) `modulepreload` for the shared
+      auth/module chain; (f) split `journey-data.js` (294 KB) per struggle, fetch on demand; (g) drop
+      the unused `react()` Astro integration (193 KB dead build output); (h) compress `brand/og.png`
+      (582 KB, unfurls only).
+- [ ] **Spanish for NEW content (the launch itself is DONE, v3.16.0).** Standing rules as the site
+      grows: every new English struggle page ships with its `/es` twin (hreflang + sitemap + luchas
+      hub row); every new app string gets a `data-i18n` key or an `esLock()`/`esW()` ternary; every
+      What's-new entry is bilingual (`['New', en, es]`); any changed `/declare/*.js` bumps its `?v=`
+      at every load site (4h browser cache otherwise serves stale).
 - [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
       If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
       links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
@@ -109,7 +106,25 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.13.0**. Newest first.*
+*App is on **v3.17.0**. Newest first.*
+- **Speed + stability pass (v3.17.0, 2026-07-02).** Killed the per-tap 308 redirect (tab links +
+  prefetch now hit `/word/`-style URLs directly), pure-crossfade view transitions (no more bounce),
+  all render-blocking scripts removed from every app page (/journey's ~400 KB classic stack + the
+  1 MB eager Tree-of-Life image preload now defer/lazy), sibling-tab prefetch, route-loader threshold
+  320 ms. Cookie policy live (`/cookies` + `/es/cookies`) with an accept notice on all 46 pages +
+  footer/menu links. RVR1909-from-English: picking RVR1909 in The Word presents the whole Word in
+  Spanish (reversible). Fixed the signed-in language toggle saga: theme-engine class collision
+  (corrupted `declare-theme`), account-sync push/pull races (udSetOk + pending flag), `?lang=` param
+  consumption, reconcile-via-setLang; toggle readable + shows active language. Two senior audits
+  (integration + infra/perf) ran and their confirmed findings are fixed or tracked above.
+- **Declare habla español — the FULL app (v3.16.0, 2026-07-02).** Live on declareandbelieve.com:
+  19 Spanish static pages (15 struggle + luchas hub + bienvenido + dar + ayuda) interlinked with
+  `lang=es` app handoffs; runtime cookie i18n across every app screen (home, today, word, journey,
+  you, vault, signin, crisis, auth modal, share sheets, Card Studio, church finder, what's-new);
+  RVR1909-only lock in the Spanish Word; the AI answers in Spanish (/today Option A warm-friend +
+  Yesenia-voice breakdown; 5-day Journey Option B Yesenia throughout, strictly RVR1909); gentle
+  "¿Ver en español?" auto-detect banner; language follows the account (Convex userData); chip-autofill
+  invariant preserved. Sitemap 48 URLs, full hreflang pairs, GSC resubmitted.
 - **All 14 struggle pages translated to Spanish (v3.14.0).** Every English struggle page now has a
   full `/es/<slug>` twin with RVR1909 Scripture (verse text pulled from the deployed worker, never
   fabricated), Spanish menu/footer/JSON-LD FAQ, `Profundiza` breakdowns, RVR1909 `/word` deep-links,
