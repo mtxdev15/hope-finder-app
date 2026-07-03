@@ -26,9 +26,15 @@
   };
 
   // asset version — bump on every art change so phones fetch fresh, never a cached old frame
-  var ASSET_V = '?v=3.12.1';
+  var ASSET_V = '?v=3.12.1';  // the JPEG assets themselves are unchanged — keep their cache key stable
   // preload the three frames so crossfades are instant after first build
-  ['tree-dead', 'tree-budding', 'tree-alive'].forEach(function (n) { var i = new Image(); i.src = '/declare/' + n + '.jpg' + ASSET_V; });
+  // Lazy warm-up: ~1MB of JPEG. Only fetch when a tree is actually about to
+  // mount (first build() call) — zero-state visitors with no journey never pay it.
+  var framesWarmed = false;
+  function warmFrames() {
+    if (framesWarmed) return; framesWarmed = true;
+    ['tree-dead', 'tree-budding', 'tree-alive'].forEach(function (n) { var i = new Image(); i.src = '/declare/' + n + '.jpg' + ASSET_V; });
+  }
 
   function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -40,6 +46,7 @@
   }
 
   function build(mount, cfg) {
+    warmFrames();
     cfg = cfg || {};
     var total = cfg.total || 5;
 
