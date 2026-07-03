@@ -134,7 +134,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.18.1</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.19.0</div>
         </section>
       </div>
     </div>
@@ -712,6 +712,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.19.0', date: 'July 2026', items: [
+        ['New', 'When a new update ships, the What\u2019s new card now gives a gentle nudge — a soft bounce and a small gold dot — until you open it. Once you have read it, it rests until the next release.', 'Cuando llega una actualización, la tarjeta de Novedades ahora da un aviso suave — un pequeño rebote y un punto dorado — hasta que la abres. Una vez que la lees, descansa hasta el próximo lanzamiento.'],
+      ] },
       { v: '3.18.1', date: 'July 2026', items: [
         ['Fixed', 'The language toggle now highlights the language you actually chose, and one tap is enough — no more double-tapping or a highlight stuck on English.', 'El selector de idioma ahora resalta el idioma que realmente elegiste, y un solo toque basta — se acabó el doble toque o el resaltado atascado en inglés.'],
       ] },
@@ -830,7 +833,18 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     ];
     (function setVer(){ const el = $('yVer'); if (el && RELEASES[0]) el.textContent = (esY() ? 'DECLARE · VERSIÓN ' : 'DECLARE · VERSION ') + RELEASES[0].v; })();
     function rlsTagClass(t){ return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
+    // Gentle "something new here" cue: the What's-new card nudges only while the
+    // newest release hasn't been opened on this device. Opening it rests the cue
+    // until the next version ships.
+    const NEWS_SEEN = 'declare-whatsnew-seen';
+    (function () {
+      try {
+        const card = $('yWhatsNew');
+        if (card && localStorage.getItem(NEWS_SEEN) !== RELEASES[0].v) card.classList.add('has-news');
+      } catch (e) {}
+    })();
     function openWhatsNew() {
+      try { localStorage.setItem(NEWS_SEEN, RELEASES[0].v); const c = $('yWhatsNew'); if (c) c.classList.remove('has-news'); } catch (e) {}
       const sub = $('yRlsSub'); if (sub) sub.textContent = esY() ? 'Todo lo que hemos lanzado últimamente, en lenguaje sencillo.' : 'Everything we have shipped lately, in plain language.';
       var _BADGE = { New:'Nuevo', Fixed:'Corregido', Improved:'Mejorado' };
       var _MON = { January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre' };
@@ -1286,7 +1300,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yhubcard { display: block; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--card-shadow);
       padding: 18px; cursor: pointer; font-family: inherit; text-decoration: none; transition: transform .3s cubic-bezier(.22, 1, .36, 1), border-color .25s ease, box-shadow .3s ease; }
     @media (hover: hover) { .you .yhubcard:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--gold) 32%, var(--line)); box-shadow: 0 24px 50px -22px rgba(0, 0, 0, .6); } }
-    .you .yh-ic { width: 38px; height: 38px; border-radius: 12px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); margin-bottom: 12px; }
+    .you .yh-ic { position: relative; width: 38px; height: 38px; border-radius: 12px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); margin-bottom: 12px; }
+    /* unseen release: two soft bounces, then a long rest — an invitation, not a nag */
+    .you #yWhatsNew.has-news .yh-ic { animation: newsNudge 7s cubic-bezier(.34, 1.56, .64, 1) 1.4s infinite; }
+    .you #yWhatsNew.has-news .yh-ic::after { content: ''; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px rgba(216, 184, 95, .75); animation: newsGlow 3s ease-in-out infinite; }
+    @keyframes newsNudge { 0%, 14%, 100% { transform: none; } 4% { transform: translateY(-4px) scale(1.06); } 8% { transform: translateY(0) scale(1); } 11% { transform: translateY(-2px) scale(1.03); } }
+    @keyframes newsGlow { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .you #yWhatsNew.has-news .yh-ic { animation: none; } .you #yWhatsNew.has-news .yh-ic::after { animation: none; } }
     .you .yh-ic svg { width: 19px; height: 19px; }
     .you .yh-t { font-size: 15px; font-weight: 600; color: var(--text); }
     .you .yh-d { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
