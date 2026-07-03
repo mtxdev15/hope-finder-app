@@ -257,6 +257,8 @@ window.__I18N_STRINGS = {
     'today.catTrials': 'Pruebas y temporadas',
 
     /* ---- /you church finder ---- */
+    'you.strugglesCard': 'Luchas',
+    'you.strugglesCardD': 'Lee lo que Dios dice sobre lo que llevas',
     'you.finderSub': 'Elige una sugerencia — o presiona Enter para buscar lo que sea',
     'you.finderPh': 'Ciudad, estado o nombre de la iglesia…',
     'you.useLocation': 'Usar mi ubicación',
