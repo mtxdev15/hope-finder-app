@@ -19,7 +19,7 @@
   // requests cross the threshold and get the flipping-Bible overlay.
   // 200ms is the UX sweet spot (Nielsen response-time limits / Google RAIL):
   // <100ms feels instant, <1s keeps flow; <150ms a flashed loader hurts, >300ms feels laggy.
-  var SHOW_DELAY = 200;    // ms to wait before showing the loader during a navigation
+  var SHOW_DELAY = 320;    // ms before showing the loader — fast same-site tab hops (typically <300ms) never flash it; genuinely slow loads still get it well inside the 1s flow budget
   var SAFETY = 12000;      // ms hard cap so a stalled nav never traps the loader up
   function rlES(){ try { return !!((window.I18N && window.I18N.lang && window.I18N.lang()==='es') || document.documentElement.getAttribute('data-lang')==='es'); } catch(e){ return false; } }
   var REFS = rlES()
