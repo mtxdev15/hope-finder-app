@@ -20,20 +20,26 @@
     var meta = document.querySelector('meta[name=theme-color]');
     if (meta) meta.setAttribute('content', t === 'dark' ? '#0c130f' : '#FAF7F2');
     document.querySelectorAll('.themectl button').forEach(function (b) {
-      b.classList.toggle('on', b.dataset.mode === mode);
+      if (b.dataset.mode) b.classList.toggle('on', b.dataset.mode === mode);
     });
   }
+  var VALID = ['light', 'dark', 'auto', 'system'];
   var mode = localStorage.getItem(STORE) || 'dark';
+  // Self-heal: anything invalid (e.g. a stray "undefined" written by a bug) is
+  // reset to dark and rewritten, so a corrupted device recovers on next load.
+  if (VALID.indexOf(mode) < 0) { mode = 'dark'; try { localStorage.setItem(STORE, mode); } catch (e) {} }
   apply(mode);
 
   window.DeclareTheme = {
     get: function () { return mode; },
-    set: function (m) { mode = m; localStorage.setItem(STORE, m); apply(m); }
+    set: function (m) { if (VALID.indexOf(m) < 0) return; mode = m; localStorage.setItem(STORE, m); apply(m); }
   };
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('.themectl button');
-    if (b) window.DeclareTheme.set(b.dataset.mode);
+    // Only buttons that actually carry a theme mode belong to this engine —
+    // other segmented controls sharing the look must never reach it.
+    if (b && b.dataset.mode) window.DeclareTheme.set(b.dataset.mode);
   });
   if (window.matchMedia) {
     try {

@@ -73,7 +73,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div>
               <div class="yh-t" data-i18n="you.language">Language</div>
               <div class="yh-d" data-i18n="you.languageD">Read Declare in English or Spanish.</div>
-              <nav class="themectl" id="langCtl" aria-label="Language">
+              <nav class="langctl" id="langCtl" aria-label="Language">
                 <button type="button" data-lang="en">English</button>
                 <button type="button" data-lang="es">Español</button>
               </nav>
@@ -1256,10 +1256,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .ybadge { display: inline-block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--goldd);
       border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: 1px; }
     .you .ybadge.home { background: rgba(216, 184, 95, .14); }
-    .you .appearance .themectl { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; margin-top: 14px;
+    .you .appearance .themectl, .you .appearance .langctl { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; margin-top: 14px;
       padding: 5px; border-radius: 14px; background: var(--field); border: 1px solid var(--line2); backdrop-filter: none; -webkit-backdrop-filter: none; }
-    .you .appearance .themectl button { font-size: 12.5px; padding: 10px 6px; border-radius: 10px; color: var(--text2); }
-    .you .appearance .themectl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+    .you .appearance .langctl { grid-template-columns: repeat(2, 1fr); }
+    .you .appearance .themectl button, .you .appearance .langctl button { font-size: 12.5px; padding: 10px 6px; border-radius: 10px; color: var(--text2); }
+    .you .appearance .themectl button.on, .you .appearance .langctl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
 
     .you .yver { text-align: center; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 40px; }
 
