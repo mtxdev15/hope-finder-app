@@ -1261,6 +1261,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .appearance .langctl { grid-template-columns: repeat(2, 1fr); }
     .you .appearance .themectl button, .you .appearance .langctl button { font-size: 12.5px; padding: 10px 6px; border-radius: 10px; color: var(--text2); }
     .you .appearance .themectl button.on, .you .appearance .langctl button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+    /* .langctl is NOT .themectl (the theme engine owns that class), so it must be
+       fully self-styled — the base button reset below is what .themectl inherits
+       from declare.css and .langctl otherwise loses (native white UA buttons). */
+    .you .appearance .langctl button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    .you .appearance .langctl button.on { background: var(--surface); }
 
     .you .yver { text-align: center; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 40px; }
 

@@ -12,7 +12,7 @@
      whenSynced().then(buildUI);                 // build after the initial pull */
 
 import { initAuth, isSignedIn, onAuthChange } from './auth-store.js';
-import { dataConfigured, udGetAll, udSet } from './convex-data.js';
+import { dataConfigured, udGetAll, udSet, udSetOk } from './convex-data.js';
 
 const keys = new Set();
 const subs = [];
@@ -45,8 +45,10 @@ async function syncDown() {
       const server = all[key];
       if (key === 'declare-lang' && langPushPending()) {
         // The user just chose a language on this device: local wins over the account.
+        // Clear the flag ONLY on confirmed success — a failed push must keep local
+        // authority, or the next sync would pull the stale server language back.
         const local = readLocal(key);
-        if (local != null) { try { await udSet(key, local); clearLangPush(); } catch (e) {} }
+        if (local != null) { const ok = await udSetOk(key, local); if (ok) clearLangPush(); }
         continue;
       }
       if (server != null) {
@@ -85,21 +87,25 @@ export function whenSynced() { return syncedPromise; }
    re-renders in the account's language. i18n.js can't import this module (it's a
    plain global script), so it just emits a 'declare-lang' event we bridge up. */
 function reconcileLang() {
+  // The user's fresh, not-yet-pushed choice always wins — do not touch anything.
+  if (langPushPending()) return;
   let acct = null;
   try { acct = localStorage.getItem('declare-lang'); } catch (e) {}
   if (acct !== 'es' && acct !== 'en') return;
-  let rendered = 'en';
-  try { rendered = document.documentElement.getAttribute('data-lang') || 'en'; } catch (e) {}
-  if (acct === rendered) return; // already in sync
+  let cur = 'en';
+  try { cur = (window.I18N && window.I18N.lang && window.I18N.lang()) || 'en'; } catch (e) {}
+  if (acct === cur) return; // already in sync
+  // Align the WHOLE stack (cookie + DOM + event) through setLang — the old code
+  // reloaded without moving the cookie, so the mismatch survived the reload and
+  // the app thrashed between languages.
+  try { if (window.I18N && window.I18N.setLang) window.I18N.setLang(acct); } catch (e) {}
+  // One guarded reload so JS-rendered strings rebuild in the account's language.
   let already = false;
   try { already = sessionStorage.getItem('declare-lang-synced') === '1'; } catch (e) {}
-  if (already) { // never loop: apply what we can live and stop
-    try { if (window.I18N && window.I18N.apply) window.I18N.apply(acct); } catch (e) {}
-    return;
+  if (!already) {
+    try { sessionStorage.setItem('declare-lang-synced', '1'); } catch (e) {}
+    try { location.reload(); } catch (e) {}
   }
-  try { sessionStorage.setItem('declare-lang-synced', '1'); } catch (e) {}
-  try { location.reload(); }
-  catch (e) { try { if (window.I18N && window.I18N.apply) window.I18N.apply(acct); } catch (_) {} }
 }
 
 let inited = false;
@@ -115,7 +121,8 @@ function init() {
       try { localStorage.setItem(LANG_PUSH_FLAG, '1'); } catch (e) {}
       const v = readLocal('declare-lang');
       if (dataConfigured() && isSignedIn() && v != null) {
-        Promise.resolve().then(() => udSet('declare-lang', v)).then(clearLangPush).catch(() => {});
+        Promise.resolve().then(() => udSetOk('declare-lang', v))
+          .then((ok) => { if (ok) clearLangPush(); }).catch(() => {});
       }
     });
   } catch (e) {}

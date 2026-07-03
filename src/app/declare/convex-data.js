@@ -76,6 +76,17 @@ export async function collRemove(name) { return (await ensure()) ? runMutation(a
 /* ── generic per-user key/value blobs (profile, journey, …) ── */
 export async function udGetAll() { return (await ensure()) ? runQuery(apiRef.userdata.getAll, {}) : null; }
 export async function udSet(key, value) { return (await ensure()) ? runMutation(apiRef.userdata.set, { key, value }) : null; }
+/* Like udSet but returns a REAL success boolean. The server mutation returns null
+   on success, so udSet's fail-soft null is indistinguishable from failure — callers
+   that must know (e.g. the language push flag) use this instead. */
+export async function udSetOk(key, value) {
+  if (!(await ensure())) return false;
+  try {
+    const c = await authed(); if (!c) return false;
+    await c.mutation(apiRef.userdata.set, { key, value });
+    return true;
+  } catch (e) { return false; }
+}
 
 /* ── reviews (rate & review) — submit requires sign-in; the approved/public
    read is for a future testimonial wall (currently authed-only, same as the
