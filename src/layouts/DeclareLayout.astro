@@ -58,6 +58,11 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Lora:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Lora:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet" /></noscript>
 
+<link rel="prefetch" href="/word" as="document" />
+<link rel="prefetch" href="/journey" as="document" />
+<link rel="prefetch" href="/today" as="document" />
+<link rel="prefetch" href="/vault" as="document" />
+<link rel="prefetch" href="/you" as="document" />
 <link rel="stylesheet" href="/declare/declare.css" />
 <link rel="stylesheet" href="/declare/motion.css" />
 <link rel="stylesheet" href="/declare/route-loader.css" />
@@ -116,10 +121,15 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     @media (prefers-reduced-motion: no-preference) {
       body > .tabbar { view-transition-name: declare-tabbar; }
       body > .mast { view-transition-name: declare-mast; }
-      ::view-transition-old(root) { animation: vtLeave .34s cubic-bezier(.4, 0, 1, 1) both; }
-      ::view-transition-new(root) { animation: vtArrive .62s cubic-bezier(.16, 1, .3, 1) both; }
-      @keyframes vtLeave { to { opacity: 0; transform: translateY(-10px) scale(.996); } }
-      @keyframes vtArrive { from { opacity: 0; transform: translateY(14px) scale(.998); } }
+      /* Tab-to-tab must read as an instant, calm cut: a fast PURE crossfade.
+         The previous rise (translateY 14px over .62s) + motion.css's own
+         m-threshold VT both animated root — two fighting animations and a
+         visible vertical bounce on every switch. !important wins the cascade
+         over motion.css regardless of stylesheet order. */
+      ::view-transition-old(root) { animation: vtLeave .12s ease-out both !important; }
+      ::view-transition-new(root) { animation: vtArrive .18s ease-in both !important; }
+      @keyframes vtLeave { to { opacity: 0; } }
+      @keyframes vtArrive { from { opacity: 0; } }
       /* keep the pinned chrome steady — a quick plain crossfade, no movement */
       ::view-transition-old(declare-tabbar), ::view-transition-new(declare-tabbar),
       ::view-transition-old(declare-mast), ::view-transition-new(declare-mast) { animation-duration: .25s; }
