@@ -266,21 +266,59 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     const byId = (id) => TRANSLATIONS.find((t) => t.id === id);
     const byLabel = (l) => TRANSLATIONS.find((t) => t.label === l);
     function esLock(){ try { return !!(window.I18N && window.I18N.lang() === 'es'); } catch(e){ return false; } }
+    // Spanish PRESENTATION of the Word content: on when the app is Spanish OR the
+    // reader translation is RVR1909 — an English user picking RVR1909 gets Spanish
+    // book names, chapter labels, and pickers, not just Spanish verse text.
+    function esW(){ return esLock() || readT === 'rvr1909'; }
+    function wes(k, fb){ try { var d = window.__I18N_STRINGS; if (d && d.es && d.es[k] != null) return d.es[k]; } catch(e){} return fb; }
     function tW(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
-    function bookNameES(en){ try { if (esLock() && window.__I18N_BIBLE_ES) return window.__I18N_BIBLE_ES.books[en] || en; } catch(e){} return en; }
-    function localizeLibraryES(){
-      if (!esLock()) return; var M = window.__I18N_BIBLE_ES; if (!M) return;
-      document.querySelectorAll('#groups .grptitle').forEach(function(el){ var t = M.groups[el.textContent.trim()]; if (t) el.textContent = t; });
-      document.querySelectorAll('#groups .grpsub').forEach(function(el){ el.textContent = el.textContent.replace('BOOKS','LIBROS').replace(/BOOK$/,'LIBRO'); });
+    function bookNameES(en){ try { if (esW() && window.__I18N_BIBLE_ES) return window.__I18N_BIBLE_ES.books[en] || en; } catch(e){} return en; }
+    function localizeLibraryES(){ localizeLibrary(esW()); }
+    // Reversible: stash the English once, then swap either way — so switching the
+    // reader between RVR1909 and an English translation re-renders the library live.
+    function localizeLibrary(es){
+      var M = window.__I18N_BIBLE_ES; if (!M) return;
+      function stash(el){ if (el && el.__en == null) el.__en = el.textContent; }
+      document.querySelectorAll('#groups .grptitle').forEach(function(el){
+        stash(el); el.textContent = es ? (M.groups[el.__en.trim()] || el.__en) : el.__en;
+      });
+      document.querySelectorAll('#groups .grpsub').forEach(function(el){
+        stash(el); el.textContent = es ? el.__en.replace('BOOKS','LIBROS').replace(/BOOK$/,'LIBRO') : el.__en;
+      });
       document.querySelectorAll('#groups .book').forEach(function(b){
         var en = b.getAttribute('data-name');
-        var bn = b.querySelector('.bname'); if (bn && M.books[en]) bn.textContent = M.books[en];
-        var bd = b.querySelector('.bdesc'); if (bd && M.tags[bd.textContent.trim()]) bd.textContent = M.tags[bd.textContent.trim()];
-        var bc = b.querySelector('.bchap'); if (bc) bc.textContent = bc.textContent.replace('chapters','capítulos').replace(/chapter$/,'capítulo');
+        var bn = b.querySelector('.bname'); if (bn) { stash(bn); bn.textContent = es ? (M.books[en] || bn.__en) : bn.__en; }
+        var bd = b.querySelector('.bdesc'); if (bd) { stash(bd); bd.textContent = es ? (M.tags[bd.__en.trim()] || bd.__en) : bd.__en; }
+        var bc = b.querySelector('.bchap'); if (bc) { stash(bc); bc.textContent = es ? bc.__en.replace('chapters','capítulos').replace(/chapter$/,'capítulo') : bc.__en; }
       });
     }
+    /* Re-present the whole Word section in the reader translation's language.
+       Static picker labels only need the manual swap when the APP is English
+       (when the app is Spanish, I18N handles them); .__en mirrors i18n's stash. */
+    function updateWordLangUI(){
+      var es = esW();
+      localizeLibrary(es);
+      if (!esLock()) {
+        [['#reader .chappick .picklbl', 'word.chooseChapter', 'Choose a chapter'],
+         ['#versePick .picklbl', 'word.orJumpVerse', 'Or jump to a verse'],
+         ['#readAll [data-i18n]', 'word.readWholeChapter', 'Read the whole chapter'],
+         ['.vjtitle', 'word.jumpVerse', 'Jump to a verse']].forEach(function(row){
+          var el = document.querySelector(row[0]); if (!el) return;
+          if (el.__en == null) el.__en = el.textContent;
+          el.textContent = es ? wes(row[1], el.__en) : el.__en;
+        });
+      }
+      try {
+        if (reader && reader.classList.contains('open') && curBook) {
+          rbook.textContent = bookNameES(curBook);
+          rsub.textContent = curChaps + (es ? (curChaps === 1 ? ' capítulo' : ' capítulos') : (curChaps === 1 ? ' chapter' : ' chapters'));
+          if (typeof curChap === 'number' && curChap >= 1 && chapLabelText)
+            chapLabelText.textContent = (es ? 'Capítulo ' : tW('word.chapter', 'Chapter ')) + curChap;
+        }
+      } catch (e) {}
+    }
     let readT = (() => { try { if (esLock()) return 'rvr1909'; const t = localStorage.getItem('declare-reader-translation'); return byId(t) ? t : 'web'; } catch (e) { return 'web'; } })();
-    function setReadT(id) { readT = id; try { localStorage.setItem('declare-reader-translation', id); } catch (e) {} paintPills(); }
+    function setReadT(id) { readT = id; try { localStorage.setItem('declare-reader-translation', id); } catch (e) {} paintPills(); try { updateWordLangUI(); } catch (e) {} }
 
     /* ---------- library: pills · testament · groups ---------- */
     const pills = $('pills');
@@ -415,16 +453,16 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     function searchInto(q, hintEl, noteEl, reqRef) {
       const myReq = ++reqRef.n;
       const local = localResultsHTML(q);
-      hintEl.innerHTML = local + '<div class="sh-api"><div class="vp-loading">' + (esLock() ? 'Buscando en la Palabra…' : 'Searching the Word&hellip;') + '</div></div>';
+      hintEl.innerHTML = local + '<div class="sh-api"><div class="vp-loading">' + (esW() ? 'Buscando en la Palabra…' : 'Searching the Word&hellip;') + '</div></div>';
       if (noteEl) { noteEl.style.display = 'none'; }
       fetch(WORKER + '/bible/search?translation=' + readT + '&q=' + encodeURIComponent(q))
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
           if (myReq !== reqRef.n) return;
           const api = hintEl.querySelector('.sh-api'); if (!api) return;
-          if (!j || !j.results) { api.innerHTML = local ? '' : '<div class="vp-loading">' + (esLock() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>'; return; }
+          if (!j || !j.results) { api.innerHTML = local ? '' : '<div class="vp-loading">' + (esW() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>'; return; }
           if (!j.results.length) {
-            api.innerHTML = local ? '' : (esLock() ? ('<div class="vp-loading">Nada encontrado para &ldquo;' + esc(q) + '&rdquo; en ' + esc(j.translation) + '. Prueba una referencia como &ldquo;Salmos 21&rdquo; o una frase como &ldquo;agua en vino&rdquo;.</div>') : ('<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '. Try a reference like &ldquo;Psalms 21&rdquo; or a phrase like &ldquo;water into wine&rdquo;.</div>'));
+            api.innerHTML = local ? '' : (esW() ? ('<div class="vp-loading">Nada encontrado para &ldquo;' + esc(q) + '&rdquo; en ' + esc(j.translation) + '. Prueba una referencia como &ldquo;Salmos 21&rdquo; o una frase como &ldquo;agua en vino&rdquo;.</div>') : ('<div class="vp-loading">Nothing found for &ldquo;' + esc(q) + '&rdquo; in ' + esc(j.translation) + '. Try a reference like &ldquo;Psalms 21&rdquo; or a phrase like &ldquo;water into wine&rdquo;.</div>'));
             return;
           }
           const base = hintEl.querySelectorAll('.shitem').length;
@@ -438,7 +476,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         .catch(() => {
           if (myReq !== reqRef.n) return;
           const api = hintEl.querySelector('.sh-api');
-          if (api) api.innerHTML = local ? '' : '<div class="vp-loading">' + (esLock() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>';
+          if (api) api.innerHTML = local ? '' : '<div class="vp-loading">' + (esW() ? 'La búsqueda no está disponible ahora.' : 'Search is unavailable right now.') + '</div>';
         });
     }
 
@@ -468,14 +506,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     let rsTimer = null; const rsReq = { n: 0 };
     $('readerSearch').addEventListener('click', () => {
       rsearch.classList.add('open');
-      rsResults.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Busca en toda la Biblia — un versículo, una referencia o una historia.' : 'Search the whole Bible — a verse, a reference, or a story.') + '</div>';
+      rsResults.innerHTML = '<div class="vp-loading">' + (esW() ? 'Busca en toda la Biblia — un versículo, una referencia o una historia.' : 'Search the whole Bible — a verse, a reference, or a story.') + '</div>';
       rsInput.value = '';
       setTimeout(() => rsInput.focus(), 60);
     });
     rsInput.addEventListener('input', function () {
       const q = this.value.trim();
       clearTimeout(rsTimer);
-      if (q.length < 3) { rsResults.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Sigue escribiendo…' : 'Keep typing&hellip;') + '</div>'; return; }
+      if (q.length < 3) { rsResults.innerHTML = '<div class="vp-loading">' + (esW() ? 'Sigue escribiendo…' : 'Keep typing&hellip;') + '</div>'; return; }
       rsTimer = setTimeout(() => searchInto(q, rsResults, null, rsReq), 320);
     });
     $('rsForm').addEventListener('submit', (e) => {
@@ -549,7 +587,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
         h += '<button class="chaptile' + (has ? ' has' : '') + '" data-c="' + i + '">' + i + '</button>';
       }
       chapgrid.innerHTML = h;
-      rsub.textContent = curChaps + (esLock() ? (curChaps === 1 ? ' capítulo' : ' capítulos') : (curChaps === 1 ? ' chapter' : ' chapters'));
+      rsub.textContent = curChaps + (esW() ? (curChaps === 1 ? ' capítulo' : ' capítulos') : (curChaps === 1 ? ' chapter' : ' chapters'));
       chapPick.hidden = false; versePick.hidden = true; rbody.hidden = true; rcopyright.hidden = true;
       readctl.hidden = true; rtrans.hidden = true; verseJump.style.visibility = 'hidden';
       closeVbar(); rscroll.scrollTop = 0;
@@ -560,18 +598,18 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       curChap = ch;
       chapPick.hidden = true; rbody.hidden = true; rcopyright.hidden = true; versePick.hidden = false;
       readctl.hidden = false; rtrans.hidden = true;
-      chapLabelText.textContent = tW('word.chapter', 'Chapter ') + ch;
+      chapLabelText.textContent = (esW() ? 'Capítulo ' : tW('word.chapter', 'Chapter ')) + ch;
       prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
       verseJump.style.visibility = 'hidden';
       closeVbar(); rscroll.scrollTop = 0;
       enter(versePick);
-      versegrid.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Cargando versículos…' : 'Loading verses&hellip;') + '</div>';
+      versegrid.innerHTML = '<div class="vp-loading">' + (esW() ? 'Cargando versículos…' : 'Loading verses&hellip;') + '</div>';
       fetchChapter(curUsfm, ch, readT).then((j) => {
         if (curChap !== ch || versePick.hidden) return;
         if (j && j.verses.length) {
           versegrid.innerHTML = j.verses.map((v) => '<button class="chaptile" data-v="' + v.n + '">' + v.n + '</button>').join('');
         } else {
-          versegrid.innerHTML = '<div class="vp-loading">' + (esLock() ? 'Toca &ldquo;Leer todo el capítulo&rdquo; para comenzar.' : 'Tap &ldquo;Read the whole chapter&rdquo; to begin.') + '</div>';
+          versegrid.innerHTML = '<div class="vp-loading">' + (esW() ? 'Toca &ldquo;Leer todo el capítulo&rdquo; para comenzar.' : 'Tap &ldquo;Read the whole chapter&rdquo; to begin.') + '</div>';
         }
       });
     }
@@ -580,7 +618,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       curChap = ch;
       chapPick.hidden = true; versePick.hidden = true; rbody.hidden = false;
       readctl.hidden = false; rtrans.hidden = false;
-      chapLabelText.textContent = tW('word.chapter', 'Chapter ') + ch;
+      chapLabelText.textContent = (esW() ? 'Capítulo ' : tW('word.chapter', 'Chapter ')) + ch;
       prevChapBtn.disabled = ch <= 1; nextChapBtn.disabled = ch >= curChaps;
       closeVbar();
       renderTrans(); renderBody(); rscroll.scrollTop = 0;
@@ -689,7 +727,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       if (!compare) {
         fetchChapter(curUsfm, curChap, readT).then((j) => {
           if (myReq !== reqId) return;
-          if (!j) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esLock() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
+          if (!j) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esW() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
           rbody.innerHTML = j.verses.map((v) => '<div class="vrse m-veil" data-n="' + v.n + '"><span class="vn">' + v.n + '</span><span class="vt">' + esc(v.t) + '</span></div>').join('');
           if (window.DeclareMotion) { rbody.style.setProperty('--m-stagger', '34ms'); rbody.style.setProperty('--m-premium', '640ms'); window.DeclareMotion.reveal(rbody, { stagger: 30 }); }
           setCopyright([j.copyright]);
@@ -703,11 +741,11 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           if (myReq !== reqId) return;
           let base = null;
           for (const r of res) if (r.j && r.j.verses.length) { base = r.j.verses; break; }
-          if (!base) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esLock() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
+          if (!base) { rbody.innerHTML = panel(curBook + ' ' + curChap, (esW() ? 'No se pudo cargar este capítulo. Revisa tu conexión e inténtalo de nuevo.' : 'Couldn’t load this chapter. Check your connection and try again.')); verseJump.style.visibility = 'hidden'; return; }
           const maps = {};
           res.forEach((r) => { const m = {}; (r.j ? r.j.verses : []).forEach((v) => { m[v.n] = v.t; }); maps[r.t] = m; });
           rbody.innerHTML = '<div class="pcols">' + base.map((v) => (
-            '<div class="pverse" data-n="' + v.n + '"><div class="pn">' + (esLock() ? 'Versículo ' : 'Verse ') + v.n + '</div><div class="pgrid" style="grid-template-columns:repeat(' + cmpSet.length + ',1fr)">'
+            '<div class="pverse" data-n="' + v.n + '"><div class="pn">' + (esW() ? 'Versículo ' : 'Verse ') + v.n + '</div><div class="pgrid" style="grid-template-columns:repeat(' + cmpSet.length + ',1fr)">'
             + cmpSet.map((t) => '<div class="pcell"><div class="pcl">' + t + '</div><div class="pcx">' + esc((maps[t] && maps[t][v.n]) || '—') + '</div></div>').join('')
             + '</div></div>'
           )).join('') + '</div>';
@@ -855,7 +893,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       const saved = isSaved(saveId());
       vbSave.classList.toggle('on', saved);
       vbSave.querySelector('span').textContent = saved ? (esLock() ? 'Guardado' : 'Saved') : (esLock() ? 'Guardar' : 'Save');
-      vbref.textContent = curRef() + (n > 1 ? '  ·  ' + n + (esLock() ? ' versículos' : ' verses') : '') + '  ·  ' + byId(readT).label;
+      vbref.textContent = curRef() + (n > 1 ? '  ·  ' + n + (esW() ? ' versículos' : ' verses') : '') + '  ·  ' + byId(readT).label;
     }
     rbody.addEventListener('click', (e) => {
       if (e.target.closest('a,button')) return;
@@ -939,6 +977,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     enableSwipeDown(sharesheet.querySelector('.rspanel'), () => sharesheet.classList.remove('open'));
     enableSwipeDown(rsearch.querySelector('.rspanel'), () => rsearch.classList.remove('open'));
     enableSwipeDown(document.querySelector('#vjump .vjsheet'), () => vjump.classList.remove('open'));
+
+    // Present the Word in the reader translation's language on load (RVR1909 in an
+    // English app still reads Spanish). Deferred past i18n's DOMContentLoaded apply
+    // so both stash the same English originals.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(updateWordLangUI, 0); });
+    else setTimeout(updateWordLangUI, 0);
 
     /* deep-link: /word?book=Psalms&chapter=34&verse=18 (from /today + search) */
     (function deepLink() {
