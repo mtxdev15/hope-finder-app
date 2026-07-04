@@ -106,7 +106,7 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.19.0**. Newest first.*
+*App is on **v3.19.1**. Newest first.*
 - **Speed + stability pass (v3.17.0, 2026-07-02).** Killed the per-tap 308 redirect (tab links +
   prefetch now hit `/word/`-style URLs directly), pure-crossfade view transitions (no more bounce),
   all render-blocking scripts removed from every app page (/journey's ~400 KB classic stack + the

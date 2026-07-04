@@ -135,7 +135,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
           </div>
 
-          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.19.0</div>
+          <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.19.1</div>
         </section>
       </div>
     </div>
@@ -713,6 +713,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.19.1', date: 'July 2026', items: [
+        ['Fixed', 'Sharing Declare in WhatsApp, Messages, and social apps now shows the crisp gold-and-green card instead of a blurry icon.', 'Compartir Declare en WhatsApp, Mensajes y redes sociales ahora muestra la tarjeta nítida en dorado y verde en lugar de un ícono borroso.'],
+        ['Improved', 'The app icon was rebuilt from a new high-resolution master — adding Declare to your home screen is now pixel-crisp on iPhone and Android, with light and dark versions ready for the App Store.', 'El ícono de la app se reconstruyó desde un nuevo original en alta resolución — agregar Declare a tu pantalla de inicio ahora se ve nítido en iPhone y Android, con versiones clara y oscura listas para el App Store.'],
+      ] },
       { v: '3.19.0', date: 'July 2026', items: [
         ['New', 'When a new update ships, the What\u2019s new card now gives a gentle nudge — a soft bounce and a small gold dot — until you open it. Once you have read it, it rests until the next release.', 'Cuando llega una actualización, la tarjeta de Novedades ahora da un aviso suave — un pequeño rebote y un punto dorado — hasta que la abres. Una vez que la lees, descansa hasta el próximo lanzamiento.'],
       ] },
