@@ -130,10 +130,22 @@
 
   <!-- Primary entry: receive a word -->
   <url>
-    <loc>https://declareandbelieve.com/today</loc>
+    <loc>https://declareandbelieve.com/today/</loc>
     <lastmod>2026-06-17</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/word/</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/journey/</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
   </url>
 
   <!-- Struggles hub — index of all struggle pages -->

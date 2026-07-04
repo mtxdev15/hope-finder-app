@@ -836,7 +836,7 @@ html[data-theme="light"] .prayer{ background:#FBF7EC; }
   if(decls){ var dio=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ decls.classList.add('go'); dio.disconnect(); } }); }, { threshold:0.3 }); dio.observe(decls); }
   document.getElementById('faq').addEventListener('click', function(e){ var q=e.target.closest('.q'); if(q) q.classList.toggle('open'); });
   var nlForm=document.getElementById('nlForm');
-  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
+  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base='/signin'+(v?'?email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
 })();
 </script>
 <script src="/declare/vendor/lenis.min.js"></script>

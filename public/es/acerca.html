@@ -723,7 +723,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   // FAQ accordion
   var faqEl=document.getElementById('faq'); if(faqEl) faqEl.addEventListener('click', function(e){ var q=e.target.closest('.q'); if(q) q.classList.toggle('open'); });
   var nlForm=document.getElementById('nlForm');
-  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
+  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base='/signin'+(v?'?email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
 })();
 </script>
 <script src="/declare/vendor/lenis.min.js"></script>

@@ -898,7 +898,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   scrim.addEventListener('click', closeMenu);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
   var nlForm=document.getElementById('nlForm');
-  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base=(location.pathname.indexOf('/es/')>-1?'../':'')+'Signin.html?mode=create'+(v?'&email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
+  if(nlForm){ nlForm.addEventListener('submit', function(e){ e.preventDefault(); var v=(nlForm.querySelector('input')||{}).value||''; var base='/signin'+(v?'?email='+encodeURIComponent(v):''); var fx=document.getElementById('pagefx'); var noMo=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; if(fx&&!noMo){ fx.classList.add('show'); setTimeout(function(){ location.href=base; },340); } else { location.href=base; } }); }
   // .rv reveals are handled by the shared /declare/motion.js engine
   var moreChips=document.getElementById('moreChips');
   if(moreChips){ moreChips.addEventListener('click', function(){ document.getElementById('struggleChips').classList.add('more-open'); this.style.display='none'; }); }

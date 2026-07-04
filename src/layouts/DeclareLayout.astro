@@ -11,7 +11,16 @@ const {
   description = "Name what's heavy and receive His Word for this moment.",
   ogImage = '/declare/brand/og.png',
   activeTab = '',
+  // Utility screens (/you, /vault, /signin) opt out of the index — thin JS tool
+  // shells with no search value that otherwise churn as "crawled, not indexed".
+  noindex = false,
 } = Astro.props;
+
+// Self-referencing canonical: trailing-slash path, parameters dropped — folds the
+// many linked variants (?struggle=…, ?lang=es, ?rate=…) into ONE URL per page so
+// Google consolidates signals instead of crawling each variant as a thin page.
+const _path = Astro.url.pathname;
+const canonical = 'https://declareandbelieve.com' + (_path.endsWith('/') ? _path : _path + '/');
 
 // Google Tag Manager container id (loads GA4 via GTM). Renders nothing if unset.
 const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
@@ -22,6 +31,8 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 <!-- swallow benign "Transition was skipped" rejections from cross-document View Transitions -->
 <script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex" />}
 {GTM_ID && (
 <script is:inline define:vars={{ GTM_ID }}>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM_ID);</script>
 )}
