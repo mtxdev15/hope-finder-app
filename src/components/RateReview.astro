@@ -20,12 +20,12 @@ const STEPS = [
 <div class="rr-toast" id="rrToast" role="status" aria-live="polite" hidden>
   <div class="rr-toast-in">
     <div class="rr-toast-txt">
-      <div class="rr-toast-h serif">Has Declare met you?</div>
-      <div class="rr-toast-s">A moment to share how the Word has met you.</div>
+      <div class="rr-toast-h serif" data-i18n="rr.toastH">Has Declare met you?</div>
+      <div class="rr-toast-s" data-i18n="rr.toastS">A moment to share how the Word has met you.</div>
     </div>
     <div class="rr-toast-act">
-      <button class="rr-share btn btn-primary" id="rrToastShare" type="button">Share</button>
-      <button class="rr-not" id="rrToastNot" type="button">Not now</button>
+      <button class="rr-share btn btn-primary" id="rrToastShare" type="button" data-i18n="rr.toastShare">Share</button>
+      <button class="rr-not" id="rrToastNot" type="button" data-i18n="rr.toastNot">Not now</button>
     </div>
   </div>
 </div>
@@ -43,8 +43,8 @@ const STEPS = [
   <div class="rr-stage">
     {STEPS.map((s) => (
       <section class="rr-step" data-step={String(s.n)} aria-label={s.h} hidden={s.n !== 1}>
-        <div class="rr-h serif">{s.h}</div>
-        <div class="rr-sub">{s.sub}</div>
+        <div class="rr-h serif" data-i18n={`rr.${s.key}H`}>{s.h}</div>
+        <div class="rr-sub" data-i18n={`rr.${s.key}Sub`}>{s.sub}</div>
         <div class="rr-stars" data-stars={s.key} role="radiogroup" aria-label={s.h}>
           {[1, 2, 3, 4, 5].map((v) => (
             <button class="rr-star" type="button" data-val={String(v)} role="radio" aria-checked="false" aria-label={`${v} ${v === 1 ? "star" : "stars"}`}>
@@ -60,25 +60,25 @@ const STEPS = [
 
     {/* Step 4 — testimonial */}
     <section class="rr-step rr-write" data-step="4" aria-label="Share how it has met you" hidden>
-      <div class="rr-h serif">Share how it has met you</div>
-      <div class="rr-sub">Optional. Your words could carry someone else.</div>
-      <textarea class="rr-note" id="rrNote" rows="4" maxlength="2000" placeholder="What would you tell someone carrying the same thing?" aria-label="Your testimony"></textarea>
+      <div class="rr-h serif" data-i18n="rr.writeH">Share how it has met you</div>
+      <div class="rr-sub" data-i18n="rr.writeSub">Optional. Your words could carry someone else.</div>
+      <textarea class="rr-note" id="rrNote" rows="4" maxlength="2000" placeholder="What would you tell someone carrying the same thing?" data-i18n-ph="rr.notePh" aria-label="Your testimony"></textarea>
       <label class="rr-private" for="rrPrivate">
         <input type="checkbox" id="rrPrivate" />
         <span class="rr-private-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"></path></svg></span>
-        <span class="rr-private-lbl">Keep this private</span>
+        <span class="rr-private-lbl" data-i18n="rr.keepPrivate">Keep this private</span>
       </label>
       <div class="rr-notice" id="rrNotice" data-public="Your review will be publicly visible." data-private="Kept private. Only the Declare team will see it.">Your review will be publicly visible.</div>
-      <button class="btn btn-primary btn-full rr-submit" id="rrSubmit" type="button">Share my review</button>
+      <button class="btn btn-primary btn-full rr-submit" id="rrSubmit" type="button" data-i18n="rr.submit">Share my review</button>
     </section>
 
     {/* Close — Blessing to you */}
     <section class="rr-step rr-bless" data-step="close" aria-label="Blessing" hidden>
       <div class="coreglow rr-bless-glow" aria-hidden="true"></div>
       <div class="rr-bless-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-9.2-8.6A5 5 0 0 1 12 6.6a5 5 0 0 1 9.2 5.8C19 16.6 12 21 12 21z"></path></svg></div>
-      <div class="rr-bless-h serif">Blessing to you</div>
-      <div class="rr-bless-sub">Thank you for sharing. Go in peace.</div>
-      <button class="btn btn-primary rr-done" id="rrDone" type="button">Close</button>
+      <div class="rr-bless-h serif" data-i18n="rr.blessH">Blessing to you</div>
+      <div class="rr-bless-sub" data-i18n="rr.blessSub">Thank you for sharing. Go in peace.</div>
+      <button class="btn btn-primary rr-done" id="rrDone" type="button" data-i18n="rr.close">Close</button>
     </section>
   </div>
 </section>

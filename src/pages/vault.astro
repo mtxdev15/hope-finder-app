@@ -85,7 +85,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tV = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
-    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones' }; if (b[name]) return b[name]; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
+    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
     const TYPES = {
       verse: { get label(){ return tV('vault.tScripture','Scripture'); }, tagt: '#E8C97A' },
       declaration: { get label(){ return tV('vault.tDeclaration','Declaration'); }, tagt: '#E0A45A' },
@@ -110,6 +110,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       { re: /burnout|exhaust|overwhelm|weary/i, struggle: 'Burnout', to: 'Rest' },
     ];
     const journeyFor = (name) => JOURNEYS.find((j) => j.re.test(name || '')) || null;
+
+    /* Spanish display for the journey card (mirrors the English wording above).
+       Display only — the /journey localStorage handoff keeps the English struggle. */
+    const JRN_ES = {
+      'Shame & Guilt': { s: 'Vergüenza y culpa', to: 'Amado de Dios' },
+      'Fear & Anxiety': { s: 'Miedo y ansiedad', to: 'Paz' },
+      'Grief & Loss': { s: 'Duelo y pérdida', to: 'Consuelo' },
+      'Loneliness': { s: 'Soledad', to: 'Sostenido por Dios' },
+      'Doubt': { s: 'Duda', to: 'Fe' },
+      'Anger': { s: 'Ira', to: 'Paz' },
+      'Burnout': { s: 'Agotamiento', to: 'Descanso' },
+    };
+    const jrnLabel = (j) => { try { if (window.I18N && I18N.lang() === 'es' && JRN_ES[j.struggle]) return JRN_ES[j.struggle]; } catch (e) {} return { s: j.struggle, to: j.to }; };
 
     /* ---- explode store items into display TRUTHS (the real user data) ----
        word (from /today)  -> its verses + declarations + prayer, coll = struggle
@@ -301,14 +314,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         html = '<div class="empty-note">' + tV('vault.emptyNote','Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.') + '</div>'
           + '<div class="ve-actions" style="justify-content:center"><a class="btn btn-primary" href="/today">' + tV('vault.receiveWord','Receive the Word') + '</a><a class="btn btn-ghost" href="/word">' + tV('vault.readWord','Read the Word') + '</a></div>'
           + (c.kind ? '' : (userColls.some((x) => x.name === name && !x.kind)
-            ? '<div class="empty-note" style="padding-top:8px"><button class="vlink" id="collDelete">Delete this collection</button></div>' : ''));
+            ? '<div class="empty-note" style="padding-top:8px"><button class="vlink" id="collDelete">' + tV('vault.deleteColl','Delete this collection') + '</button></div>' : ''));
       }
       if (jrn) {
+        const jl = jrnLabel(jrn);
         html += '<div class="vdeep"><div class="vd-glow"></div>'
-          + '<div class="vd-tag">Be transplanted</div>'
-          + '<div class="vd-h">Don’t just keep it here</div>'
-          + '<div class="vd-shift"><b>' + esc(jrn.struggle) + '</b><span class="arr">→</span><b>' + esc(jrn.to) + '</b></div>'
-          + '<div class="vd-p">These are seeds. Give them five days to take root — one declaration a day — and watch the shift become real.</div>'
+          + '<div class="vd-tag">' + tV('vault.vdTag','Be transplanted') + '</div>'
+          + '<div class="vd-h">' + tV('vault.vdH','Don’t just keep it here') + '</div>'
+          + '<div class="vd-shift"><b>' + esc(jl.s) + '</b><span class="arr">→</span><b>' + esc(jl.to) + '</b></div>'
+          + '<div class="vd-p">' + tV('vault.vdP','These are seeds. Give them five days to take root — one declaration a day — and watch the shift become real.') + '</div>'
           + '<a class="btn btn-primary" href="/journey">' + tV('vault.startJourney','Start a 5-Day Journey')
           + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>';
       }

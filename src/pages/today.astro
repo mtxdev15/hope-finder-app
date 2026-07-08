@@ -284,7 +284,10 @@ import RateReview from '../components/RateReview.astro';
     const sheet = $('sheet'), scrim = $('scrim'), sheetCta = $('sheetCta');
     const toast = $('toast'), toastMsg = $('toastMsg');
     function tI(k, fb){ try { return (window.I18N ? window.I18N.t(k, fb) : fb); } catch(e){ return fb; } }
-    function struggleLabel(s){ try { if (window.I18N && I18N.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}; return m[s]||s; } } catch(e){} return s; }
+    function struggleLabel(s){ try { if (window.I18N && I18N.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}, c=window.__I18N_CHIP_ES||{}; return m[s]||c[s]||s; } } catch(e){} return s; }
+    /* inline (mid-sentence) form: Spanish lowercases only the first letter so proper
+       nouns survive ('esperar en Dios'); English keeps the full lowercase as before */
+    function struggleLower(s){ var l = struggleLabel(s); try { if (window.I18N && I18N.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
 
     let selected = 'Fear & Anxiety';
     let activeStruggle = '';
@@ -453,6 +456,9 @@ import RateReview from '../components/RateReview.astro';
     async function runGen(struggle) {
       const myReq = ++reqId;
       resultsBody.hidden = true; resultsError.hidden = true;
+      // the header is visible while the word streams — name the right struggle in the
+      // right language from the start (the SSR placeholder is English "fear & anxiety")
+      $('forLabel').textContent = tI('today.forPrefix', 'For ') + struggleLabel(struggle);
       if (window.RouteLoader) window.RouteLoader.show();
       try {
         const ai = await generateContent(struggle, activeTrans(), usedRefs, { language: activeLang() });
@@ -487,7 +493,7 @@ import RateReview from '../components/RateReview.astro';
         '<button class="receive" aria-expanded="false" data-i="' + i + '">'
         + '<span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>'
         + '<span class="rmid">'
-        +   '<span class="rprompt"><b>' + esc(v.ref) + '</b> &mdash; <span class="serif rp-i">tap to receive this verse</span></span>'
+        +   '<span class="rprompt"><b>' + esc(v.ref) + '</b> &mdash; <span class="serif rp-i">' + tI('today.tapReceive','tap to receive this verse') + '</span></span>'
         +   '<span class="reveal"><span class="reveal-in">'
         +     '<span class="serif rverse">&ldquo;' + esc(v.text) + '&rdquo;</span>'
         +     '<span class="rrow"><span class="rref">' + esc(v.ref) + ' &middot; ' + activeTrans() + '</span></span>'
@@ -514,7 +520,7 @@ import RateReview from '../components/RateReview.astro';
       $('amen').textContent = pr.amen || tI('today.amen','Amen.');
 
       $('readPassage').href = passageLink(v1.ref);
-      $('sjStruggle').textContent = struggleLabel(activeStruggle).toLowerCase();
+      $('sjStruggle').textContent = struggleLower(activeStruggle);
       updateSaveUI();
       resultsBody.hidden = false;
       // replay the design's cascade (motion.js): clear past reveals, then stagger in
@@ -608,10 +614,10 @@ import RateReview from '../components/RateReview.astro';
     function buildShareables() {
       const v1 = content.verses[0];
       shareables = [
-        { type: 'verse', label: 'Scripture', text: v1.text, ref: v1.ref + ' · ' + activeTrans(), ic: 'verse' },
-        { type: 'reading', label: 'Mindset', text: content.explanation, ref: 'Mindset', ic: 'mind' },
-        ...content.declarations.map((d) => ({ type: 'declaration', label: 'Declaration', text: d, ref: '', ic: 'dec' })),
-        { type: 'reading', label: 'Prayer', text: content.prayer, ref: 'A prayer', ic: 'pray' },
+        { type: 'verse', label: tI('today.lblScripture','Scripture'), text: v1.text, ref: v1.ref + ' · ' + activeTrans(), ic: 'verse' },
+        { type: 'reading', label: tI('today.lblMindset','Mindset'), text: content.explanation, ref: tI('today.lblMindset','Mindset'), ic: 'mind' },
+        ...content.declarations.map((d) => ({ type: 'declaration', label: tI('today.lblDeclaration','Declaration'), text: d, ref: '', ic: 'dec' })),
+        { type: 'reading', label: tI('today.lblPrayer','Prayer'), text: content.prayer, ref: tI('today.aPrayer','A prayer'), ic: 'pray' },
       ];
       spsRows.innerHTML = shareables.map((s, i) => (
         '<button class="sps-row" data-i="' + i + '"><span class="ic">' + SP_IC[s.ic] + '</span>'
@@ -628,7 +634,7 @@ import RateReview from '../components/RateReview.astro';
       closeSps();
       loadShareStack().then(() => {
         setTimeout(() => {
-          window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: tI('today.forPrefix','For ') + struggleLabel(activeStruggle).toLowerCase(), url: location.href, save: saveItem });
+          window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: tI('today.forPrefix','For ') + struggleLower(activeStruggle), url: location.href, save: saveItem });
         }, 180);
       });
     });

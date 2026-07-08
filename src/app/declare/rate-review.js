@@ -99,8 +99,11 @@ export function initRateReview(opts) {
   /* ---------- private toggle notice ---------- */
   function syncNotice() {
     if (!notice) return;
+    const t = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch (e) { return fb; } };
     const priv = !!(privateBox && privateBox.checked);
-    notice.textContent = priv ? (notice.dataset.private || '') : (notice.dataset.public || '');
+    notice.textContent = priv
+      ? t('rr.noticePrivate', notice.dataset.private || '')
+      : t('rr.noticePublic', notice.dataset.public || '');
   }
   if (privateBox) privateBox.addEventListener('change', syncNotice);
 
