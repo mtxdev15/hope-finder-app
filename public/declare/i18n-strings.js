@@ -338,7 +338,40 @@ window.__I18N_STRINGS = {
     'journey.done': 'Listo',
     'journey.beforeWeBegin': 'Antes de comenzar',
     'journey.talkToSomeone': 'Habla con alguien ahora',
-    'journey.readyBeginGently': 'Estoy listo, comencemos con calma'
+    'journey.readyBeginGently': 'Estoy listo, comencemos con calma',
+
+    /* ---- /today: inline verse reveal + share rows ---- */
+    'today.tapReceive': 'toca para recibir este versículo',
+    'today.lblDeclaration': 'Declaración',
+    'today.aPrayer': 'Una oración',
+
+    /* ---- /vault: "Be transplanted" journey card ---- */
+    'vault.vdTag': 'Sé trasplantado',
+    'vault.vdH': 'No lo dejes solo aquí',
+    'vault.vdP': 'Son semillas. Dales cinco días para echar raíz — una declaración al día — y mira cómo el cambio se hace real.',
+    'vault.deleteColl': 'Eliminar esta colección',
+
+    /* ---- Rate & Review (toast + sheet) ---- */
+    'rr.toastH': '¿Declare te ha encontrado?',
+    'rr.toastS': 'Un momento para contar cómo la Palabra te ha encontrado.',
+    'rr.toastShare': 'Compartir',
+    'rr.toastNot': 'Ahora no',
+    'rr.metH': '¿Te encontró?',
+    'rr.metSub': '¿La Palabra te encontró donde estabas?',
+    'rr.wordH': 'La Palabra',
+    'rr.wordSub': '¿La Escritura se sintió verdadera y firme?',
+    'rr.backH': '¿Volverías?',
+    'rr.backSub': '¿Regresarías cuando la carga se sienta pesada?',
+    'rr.writeH': 'Comparte cómo te ha encontrado',
+    'rr.writeSub': 'Opcional. Tus palabras podrían sostener a alguien más.',
+    'rr.notePh': '¿Qué le dirías a alguien que carga lo mismo?',
+    'rr.keepPrivate': 'Mantener esto privado',
+    'rr.noticePublic': 'Tu reseña será visible públicamente.',
+    'rr.noticePrivate': 'Se mantiene privado. Solo el equipo de Declare lo verá.',
+    'rr.submit': 'Compartir mi reseña',
+    'rr.blessH': 'Bendición para ti',
+    'rr.blessSub': 'Gracias por compartir. Ve en paz.',
+    'rr.close': 'Cerrar'
   }
 };
 
@@ -359,7 +392,29 @@ window.__I18N_STRUGGLES_ES = {
   'Unforgiveness': 'la falta de perdón',
   'Stress & Burnout': 'estrés y agotamiento',
   'Overthinking': 'pensar de más',
-  'Church Hurt': 'heridas de la iglesia'
+  'Church Hurt': 'heridas de la iglesia',
+  'Comparison': 'la comparación',
+  'Feeling Unworthy': 'sentirte indigno',
+  'Broken Identity': 'la identidad quebrantada',
+  'Feeling Lost': 'sentirte perdido',
+  'People Pleasing': 'agradar a la gente',
+  'Emotional & Verbal Abuse': 'el abuso emocional y verbal',
+  'Rejection & Abandonment': 'el rechazo y el abandono',
+  'Betrayal': 'la traición',
+  'Self-Sabotage': 'el autosabotaje',
+  'Family Conflict': 'el conflicto familiar',
+  'Marriage Struggles': 'las luchas en el matrimonio',
+  'Divorce / Separation': 'el divorcio o la separación',
+  'Control': 'el control',
+  'Perfectionism': 'el perfeccionismo',
+  'Spiritual Dryness': 'la sequía espiritual',
+  'Waiting on God': 'esperar en Dios',
+  'Financial Stress': 'el estrés financiero',
+  'Sexual Temptation': 'la tentación sexual',
+  'Addiction': 'la adicción',
+  'Faith Crisis': 'la crisis de fe',
+  'Feeling Spiritually Attacked': 'sentirte bajo ataque espiritual',
+  'Drifting from God': 'el alejamiento de Dios'
 };
 
 /* Full struggle -> Spanish chip label (Title Case). Keyed by the canonical English
