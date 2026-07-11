@@ -106,7 +106,18 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.19.2**. Newest first.*
+*App is on **v3.20.0**. Newest first.*
+- **Journey Day 1 can no longer be lost + save-progress invitation (v3.20.0, 2026-07-11,
+  from a user report).** Root cause: re-entering /journey through the "Start a 5-Day
+  Journey" card silently replanted Day 1 (wiping lock, instance, reflections) — now it
+  continues the growing journey (same struggle resumes even mid-day; different struggle
+  opens the existing progress-kept sheet). Day Complete now shows a gentle bilingual
+  "Save your progress" card to signed-out walkers (peak-end ask, dismissible), opening
+  the signup modal with a save-your-Day-N message. Account sync gained per-key merge
+  resolvers (`src/app/declare/journey-merge.js`) so signing in/up can never pull stale
+  account data (incl. the 'null' tombstone) over fresh guest progress; journey writes now
+  carry a timestamp. No Convex changes. Verified end-to-end in headless Chrome (EN + ES,
+  live worker) + 21 merge unit tests.
 - **Spanish struggle-name leaks fixed everywhere + rating flow habla español (v3.19.2,
   2026-07-08).** In Spanish, struggle names no longer fall back to English ("donde sexual
   temptation ha estado") — the `__I18N_STRUGGLES_ES` map now covers all 33 chips + 4 legacy
