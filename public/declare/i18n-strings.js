@@ -340,6 +340,12 @@ window.__I18N_STRINGS = {
     'journey.talkToSomeone': 'Habla con alguien ahora',
     'journey.readyBeginGently': 'Estoy listo, comencemos con calma',
 
+    /* ---- day-complete: save-your-progress invitation ---- */
+    'journey.saveProgressH': 'Guarda tu progreso',
+    'journey.saveProgressS': 'Crea una cuenta gratis para que mañana te esté esperando — tu fruto y tus versículos, todo a salvo.',
+    'journey.saveProgressBtn': 'Crear cuenta gratis',
+    'journey.saveProgressLater': 'Quizás más tarde',
+
     /* ---- /today: inline verse reveal + share rows ---- */
     'today.tapReceive': 'toca para recibir este versículo',
     'today.lblDeclaration': 'Declaración',

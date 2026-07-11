@@ -16,8 +16,16 @@ import { dataConfigured, udGetAll, udSet, udSetOk } from './convex-data.js';
 
 const keys = new Set();
 const subs = [];
+/* Optional per-key merge policies. Default (no resolver) stays "server wins /
+   lift local when server is empty" — right for preferences. Progress-like keys
+   (journey) pass a resolver so signing in can never destroy local progress. */
+const resolvers = new Map();
 
-export function registerSyncKey(key) { if (key) keys.add(key); }
+export function registerSyncKey(key, resolve) {
+  if (!key) return;
+  keys.add(key);
+  if (typeof resolve === 'function') resolvers.set(key, resolve);
+}
 export function onChange(cb) { if (typeof cb === 'function') subs.push(cb); }
 function fire() { subs.forEach((cb) => { try { cb(); } catch (e) {} }); }
 
@@ -49,6 +57,19 @@ async function syncDown() {
         // authority, or the next sync would pull the stale server language back.
         const local = readLocal(key);
         if (local != null) { const ok = await udSetOk(key, local); if (ok) clearLangPush(); }
+        continue;
+      }
+      const resolve = resolvers.get(key);
+      if (resolve) {
+        // Merge policy: the resolver picks (or builds) the winning blob; it flows
+        // both ways so neither the account nor this device loses real progress.
+        const local = readLocal(key);
+        let winner = null;
+        try { winner = resolve(server != null ? server : null, local); } catch (e) { winner = null; }
+        if (winner != null) {
+          if (winner !== local) { writeLocal(key, winner); changed = true; }
+          if (winner !== server) { try { await udSet(key, winner); } catch (e) {} }
+        }
         continue;
       }
       if (server != null) {
