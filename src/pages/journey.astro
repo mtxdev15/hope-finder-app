@@ -162,6 +162,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
               <button class="btn btn-primary dc-remind-set" id="dcRemindSet" data-i18n="journey.setReminderBtn">Set reminder</button>
             </div>
           </div>
+          <div class="dc-save" id="dcSave" style="display:none">
+            <div class="dc-save-h" data-i18n="journey.saveProgressH">Save your progress</div>
+            <div class="dc-save-s" data-i18n="journey.saveProgressS">Create a free account so tomorrow is waiting for you &mdash; your fruit and your verses, all kept safe.</div>
+            <button class="btn btn-primary" id="dcSaveBtn" data-i18n="journey.saveProgressBtn">Create free account</button>
+            <button class="dc-save-later" id="dcSaveLater" data-i18n="journey.saveProgressLater">Maybe later</button>
+          </div>
           <div class="dc-actions">
             <button class="btn btn-primary" id="dcDone">Done for today</button>
           </div>
@@ -273,11 +279,16 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        'db_journey_lock' (one day per calendar day + reminder time),
        'db_journeys_done' (rooted journeys — keeps the grid honest). */
     import { saveItem } from '../app/declare/vault-store.js';
-    import { initAuth } from '../app/declare/auth-store.js';
+    import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
-    // journey progress follows the account when signed in
-    ['db_active_journey', 'db_journeys_done', 'db_journey_lock'].forEach(registerSyncKey);
+    import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
+    // journey progress follows the account when signed in — with merge policies,
+    // so signing in/up can never pull stale account state over local progress
+    registerSyncKey('db_active_journey', mergeActiveJourney);
+    registerSyncKey('db_journeys_done', mergeDoneList);
+    registerSyncKey('db_journey_lock', mergeLockMap);
     initAuth(); // resolve any saved session before the user reaches a gate
 
     const $ = (id) => document.getElementById(id);
@@ -363,7 +374,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     // ---- which journey is genuinely active, persisted across reloads ----
     const ACT_KEY = 'db_active_journey';
-    function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned })); } } catch (e) {} mirror(ACT_KEY); }
+    function saveActive() { try { if (active && active.status === 'active') { localStorage.setItem(ACT_KEY, JSON.stringify({ id: active.id, day: state.day, returned: state.returned, ts: Date.now() })); } } catch (e) {} mirror(ACT_KEY); }
     function loadActiveSaved() { try { const r = localStorage.getItem(ACT_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
     function clearActiveSaved() { try { localStorage.setItem(ACT_KEY, 'null'); } catch (e) {} mirror(ACT_KEY); }
     // Per-journey instance cache (device-local): the AI-generated content + in-day progress.
@@ -736,6 +747,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       pendingReminder = null;
       $('dcNext').style.display = last ? 'none' : 'block';
       $('dcRemind').style.display = last ? 'none' : 'block';
+      // the emotional peak is the moment to protect what was just earned: invite
+      // signed-out walkers to keep their progress (final day celebrates instead)
+      $('dcSave').style.display = (!last && !isSignedIn()) ? 'block' : 'none';
       $('dcRemind').classList.remove('open');
       $('dcRemindState').textContent = '';
       $('dcRemindBody').style.display = '';
@@ -745,6 +759,21 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       setTimeout(function () { v.setProgress(completing, TOTAL); }, 560);
       $('dcDone')._completing = completing;
     }
+
+    // save-your-progress inside day-complete (signed-out only; sync lifts the
+    // local journey to the fresh account via the merge resolvers)
+    $('dcSaveBtn').addEventListener('click', function () {
+      openAuthModal({
+        mode: 'signup',
+        returnTo: '/journey',
+        message: esL() ? 'Guarda tu progreso del Día ' + ($('dcDone')._completing || state.day) + ' — gratis, para siempre.' : 'Save your Day ' + ($('dcDone')._completing || state.day) + ' progress — free, forever.',
+        onSuccess: function () {
+          $('dcSave').style.display = 'none';
+          toast(esL() ? 'Tu camino está a salvo' : 'Your journey is saved');
+        }
+      });
+    });
+    $('dcSaveLater').addEventListener('click', function () { $('dcSave').style.display = 'none'; });
 
     // reminder picker inside day-complete
     $('dcRemindToggle').addEventListener('click', function () { $('dcRemind').classList.toggle('open'); });
@@ -1062,7 +1091,27 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         struggle = localStorage.getItem('declare-journey-struggle') || localStorage.getItem('declare-struggle'); } catch (e) {}
       if (start) {
         try { localStorage.removeItem('declare-start-journey'); } catch (e) {}
-        const c = CATALOG.find(function (x) { return x.id === mapStruggle(struggle); });
+        const targetId = mapStruggle(struggle);
+        const already = loadActiveSaved();
+        if (already && already.id) {
+          // A journey is already growing — never silently replant. Users re-enter
+          // through /today's "Start a 5-Day Journey" card the day after Day 1 and
+          // were losing everything (lock, instance, reflections) to a fresh Day 1.
+          const sc = CATALOG.find(function (x) { return x.id === already.id; });
+          if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
+          state.day = already.day || state.day; state.returned = already.returned || state.returned;
+          restoreProgress();
+          showActiveUI();
+          if (already.id === targetId) {
+            // Same struggle: this is a continue, not a restart — open where they left off.
+            setTimeout(openDayFlow, 380);
+          } else {
+            // Different struggle: let them choose, with the existing progress-kept sheet.
+            setTimeout(function () { openSheet('resetSheet'); }, 420);
+          }
+          return;
+        }
+        const c = CATALOG.find(function (x) { return x.id === targetId; });
         if (c) { active = c; active.status = 'active'; }
         startPlan();
         state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
@@ -1459,6 +1508,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .dc-sub { font-size: 13.5px; color: var(--muted); margin-top: 18px; max-width: 30ch; line-height: 1.55; }
     .journey .dc-actions { margin-top: 26px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 11px; flex: 0 0 auto; }
     .journey .dc-actions .btn { width: 100%; }
+    /* save-your-progress invitation (signed-out, non-final days) — sits between
+       the reminder card and "Done for today", same surface language as .dc-remind */
+    .journey .dc-save { width: 100%; max-width: 340px; margin-top: 18px; padding: 16px 15px 13px; border: 1px solid var(--line2); border-radius: 14px; background: var(--surface); flex: 0 0 auto; text-align: center; }
+    .journey .dc-save-h { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); font-weight: 600; }
+    .journey .dc-save-s { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+    .journey .dc-save .btn { width: 100%; margin-top: 13px; }
+    .journey .dc-save-later { width: 100%; background: none; border: 0; cursor: pointer; font-family: inherit; font-size: 12.5px; color: var(--muted); padding: 9px 4px 2px; }
+    .journey .dc-save-later:hover { color: var(--text); }
 
     /* day-complete: come back tomorrow + reminder picker */
     .journey .dc-next { margin-top: 22px; max-width: 330px; }
