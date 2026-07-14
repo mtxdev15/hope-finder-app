@@ -713,6 +713,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.20.1', date: 'July 2026', items: [
+        ['Fixed', 'Continue with Google now truly signs you in — before, Google would accept you but Declare couldn’t hold onto the session, so you landed back signed out. The handshake is complete and your account opens right up.', 'Continúa con Google ahora sí inicia tu sesión — antes, Google te aceptaba pero Declare no podía conservar la sesión y volvías sin entrar. El saludo está completo y tu cuenta se abre de inmediato.'],
+        ['Improved', 'If Google sign-in is interrupted, Declare now brings you back with a clear message instead of a blank page — and inside app browsers like Instagram or Facebook, it guides you to Safari or Chrome, where Google allows sign-in.', 'Si el inicio con Google se interrumpe, Declare ahora te trae de vuelta con un mensaje claro en lugar de una página en blanco — y dentro de navegadores de apps como Instagram o Facebook, te guía a Safari o Chrome, donde Google sí permite iniciar sesión.'],
+      ] },
       { v: '3.20.0', date: 'July 2026', items: [
         ['New', 'Finish a Journey day without an account and Declare now offers to save your progress right there — one tap, free, and tomorrow is waiting for you.', 'Termina un día del Camino sin cuenta y Declare ahora te ofrece guardar tu progreso ahí mismo — un toque, gratis, y mañana te está esperando.'],
         ['Fixed', 'Coming back to your Journey through the "Start a 5-Day Journey" card no longer restarts you at Day 1 — Declare recognizes the vine you already planted and continues where you left off.', 'Volver a tu Camino por la tarjeta "Empieza un Camino de 5 días" ya no te reinicia en el Día 1 — Declare reconoce la vid que ya plantaste y continúa donde quedaste.'],

@@ -232,11 +232,25 @@ function mount() {
   // OAuth: a full-page redirect, so we hand the provider where to send the user
   // back — the page they were on (or the shell's ?return target).
   root.querySelectorAll('.am-pbtn').forEach((b) => b.addEventListener('click', async () => {
+    // Google refuses OAuth inside in-app browsers (Instagram, Facebook,
+    // Messenger, TikTok, …) with "Access blocked: use secure browsers".
+    // Don't send the user into that wall — tell them the way through.
+    if (inAppBrowser()) {
+      hint(amT('Google can’t sign you in inside this app’s browser. Open declareandbelieve.com in Safari or Chrome — or continue with email above.',
+               'Google no permite iniciar sesión dentro del navegador de esta app. Abre declareandbelieve.com en Safari o Chrome — o continúa con tu correo arriba.'), true);
+      return;
+    }
     const path = (state && state.returnTo) || (location.pathname + location.search);
     b.disabled = true;
     const res = await signInWithProvider(b.dataset.prov, location.origin + path);
     if (!res.ok) { b.disabled = false; hint(res.error, true); }
   }));
+}
+
+/* In-app webviews Google blocks for OAuth (disallowed_useragent). */
+function inAppBrowser() {
+  const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|musical_ly|Bytedance|Snapchat|LinkedInApp|Twitter for|GSA\/|; wv\)/i.test(ua);
 }
 
 function hint(msg, isErr) {
@@ -376,3 +390,22 @@ export function openAuthModal(opts) {
 export function closeAuthModal() {
   if (root) root.classList.remove('open');
 }
+
+/* If a Google attempt bounced back with ?authError=1 (the errorCallbackURL in
+   auth-store), reopen the modal and say what happened — the user must never
+   land back on the page wondering why nothing changed. */
+(function () {
+  if (typeof window === 'undefined') return;
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('authError') !== '1') return;
+    url.searchParams.delete('authError');
+    url.searchParams.delete('error'); // Better Auth's error code — not for humans
+    window.history.replaceState({}, '', url);
+    openAuthModal({
+      mode: 'signin',
+      message: amT('Google sign-in didn’t finish. Please try again — or continue with your email.',
+                   'El inicio de sesión con Google no se completó. Inténtalo de nuevo — o continúa con tu correo.'),
+    });
+  } catch (e) {}
+})();

@@ -106,7 +106,19 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.20.0**. Newest first.*
+*App is on **v3.20.1**. Newest first.*
+- **Continue with Google actually signs you in now (v3.20.1, 2026-07-13, from a user
+  report).** Root cause: after Google's redirect the session comes back as a one-time
+  token (`?ott=`) that must be exchanged at the Better Auth cross-domain verify
+  endpoint — that exchange only exists in the library's React provider, which our
+  vanilla client never used, so every Google user since launch (6 accounts) completed
+  OAuth but landed back signed out with zero synced data. auth-store now consumes the
+  token on load. Also: OAuth failures return to the page with a friendly reopened
+  modal (errorCallbackURL) instead of a blank convex.site page, the Google button is
+  guarded with a timeout, and in-app browsers (Instagram/FB/etc.), which Google blocks
+  outright, get clear "open in Safari/Chrome" guidance. Verified end-to-end with a
+  headless browser against the dev deployment (real ott exchange, reload persistence,
+  bogus-token, error-return, and webview paths).
 - **Journey Day 1 can no longer be lost + save-progress invitation (v3.20.0, 2026-07-11,
   from a user report).** Root cause: re-entering /journey through the "Start a 5-Day
   Journey" card silently replanted Day 1 (wiping lock, instance, reflections) — now it
