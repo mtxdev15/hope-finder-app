@@ -30,3 +30,6 @@ worker/.wrangler/
 .impeccable/
 
 .env.local
+
+# local working files
+/*.pdf
