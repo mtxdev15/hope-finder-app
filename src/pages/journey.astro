@@ -8,7 +8,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 ---
 <DeclareLayout
   title="Declare — Journey"
-  description="Be transplanted from the Tree of Knowledge into the Tree of Life — rooted by streams of water, bearing fruit."
+  description="A free 5-day guided journey out of one struggle — daily Scripture, reflection, declarations, and prayer that walk you from fear to faith."
   activeTab="journey"
 >
   <main class="journey">
@@ -263,6 +263,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
       <div class="scrim" id="scrim"></div>
     </div>
+
+  {/* SEO: crawlable summary for engines and AI answer bots (page is JS-rendered). */}
+  <noscript>
+    <section>
+      <h2>A 5-day walk out of the struggle you name</h2>
+      <p>The Journey is a free 5-day guided path out of one struggle — anxiety, shame, anger, grief, or any battle you name. Each day brings Scripture, an honest reflection, declarations to speak aloud, and a prayer, one step at a time, rooted in Romans 12:2 mind renewal.</p>
+      <p>Start by naming your struggle on <a href="/today/">Today</a>, or read <a href="/struggles">Scripture for every struggle</a>. The Journey requires JavaScript.</p>
+    </section>
+  </noscript>
   </main>
 
   <link rel="stylesheet" href="/declare/rate.css" media="print" onload="this.media='all'" /><noscript><link rel="stylesheet" href="/declare/rate.css" /></noscript>

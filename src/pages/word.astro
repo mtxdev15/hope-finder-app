@@ -19,7 +19,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 ---
 <DeclareLayout
   title="Declare — The Word"
-  description="Read and search the Bible — free and ad-free, in six translations."
+  description="Read the Bible free online — NKJV, NIV, NLT, KJV, WEB, ASV, and Reina-Valera 1909 — with side-by-side comparison and search."
   activeTab="word"
 >
   <main class="word">
@@ -240,6 +240,15 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       <div class="dim" id="dim" aria-hidden="true"></div>
       <div class="wtoast" id="wtoast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg><span id="wtoastMsg"></span></div>
     </div>
+
+  {/* SEO: crawlable summary for engines and AI answer bots (page is JS-rendered). */}
+  <noscript>
+    <section>
+      <h2>Read the Bible online, free and ad-free</h2>
+      <p>The Word is Declare and Believe's free Bible reader: NKJV, NIV, NLT, KJV, WEB, ASV, and Reina-Valera 1909 (Español), with side-by-side translation comparison and full-text search. No account required, no ads.</p>
+      <p>Looking for Scripture for a specific battle? See <a href="/struggles">every struggle we cover</a>, from <a href="/anxiety">anxiety</a> to <a href="/grief">grief</a>. This reader requires JavaScript.</p>
+    </section>
+  </noscript>
   </main>
 
   <script is:inline src="/declare/i18n-bible-es.js?v=3.16.2" defer></script>

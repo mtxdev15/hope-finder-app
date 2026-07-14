@@ -10,7 +10,7 @@
   <!-- Home -->
   <url>
     <loc>https://declareandbelieve.com/</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -38,9 +38,12 @@
   <!-- About / story -->
   <url>
     <loc>https://declareandbelieve.com/about</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/about" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/acerca" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/about" />
   </url>
 
   <!-- Support / help / answers -->
@@ -64,86 +67,102 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/ayuda</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/help" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/ayuda" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/help" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/cookies</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/cookies" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/cookies" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/cookies" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/cookies" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/cookies</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/cookies" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/cookies" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/cookies" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/acerca</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/about" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/acerca" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/about" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/faq</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/faq" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/faq" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/faq" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/privacidad</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/privacy" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/privacidad" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/privacy" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/terminos</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/terms" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/terms" />
   </url>
-  <url><loc>https://declareandbelieve.com/help</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://declareandbelieve.com/faq</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/help</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/help" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/ayuda" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/help" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/faq</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/faq" />
+  </url>
 
   <!-- Primary entry: receive a word -->
   <url>
     <loc>https://declareandbelieve.com/today/</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://declareandbelieve.com/word/</loc>
-    <lastmod>2026-07-03</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://declareandbelieve.com/journey/</loc>
-    <lastmod>2026-07-03</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
@@ -151,7 +170,7 @@
   <!-- Struggles hub — index of all struggle pages -->
   <url>
     <loc>https://declareandbelieve.com/struggles</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/struggles" />
@@ -160,7 +179,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/luchas</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/struggles" />
@@ -171,7 +190,7 @@
   <!-- ============ Struggle landing pages (primary SEO targets) ============ -->
   <url>
     <loc>https://declareandbelieve.com/anxiety</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/anxiety" />
@@ -180,7 +199,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/anger</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/anger" />
@@ -189,7 +208,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/ira</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/anger" />
@@ -198,7 +217,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/depression</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/depression" />
@@ -207,7 +226,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/depresion</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/depression" />
@@ -216,7 +235,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/doubt</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/doubt" />
@@ -225,7 +244,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/duda</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/doubt" />
@@ -234,7 +253,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/failure</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/failure" />
@@ -243,7 +262,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/fracaso</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/failure" />
@@ -252,7 +271,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/financial-pressure</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/financial-pressure" />
@@ -261,7 +280,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/presion-financiera</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/financial-pressure" />
@@ -270,7 +289,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/grief</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/grief" />
@@ -279,7 +298,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/duelo</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/grief" />
@@ -288,7 +307,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/loneliness</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/loneliness" />
@@ -297,7 +316,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/soledad</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/loneliness" />
@@ -306,7 +325,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/marriage</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/marriage" />
@@ -315,7 +334,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/matrimonio</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/marriage" />
@@ -324,7 +343,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/ansiedad</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/anxiety" />
@@ -333,7 +352,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/overthinking</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/overthinking" />
@@ -342,7 +361,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/sobrepensar</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/overthinking" />
@@ -351,7 +370,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/burnout</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/burnout" />
@@ -360,7 +379,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/estres-y-agotamiento</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/burnout" />
@@ -369,7 +388,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/purpose</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/purpose" />
@@ -378,7 +397,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/proposito</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/purpose" />
@@ -387,7 +406,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/shame</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/shame" />
@@ -396,7 +415,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/verguenza</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/shame" />
@@ -405,7 +424,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/unforgiveness</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/unforgiveness" />
@@ -414,7 +433,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/falta-de-perdon</loc>
-    <lastmod>2026-07-02</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/unforgiveness" />
@@ -425,7 +444,7 @@
   <!-- Church hurt — English/Spanish pair (hreflang alternates) -->
   <url>
     <loc>https://declareandbelieve.com/church-hurt</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/church-hurt" />
@@ -434,7 +453,7 @@
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/heridas-de-la-iglesia</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/church-hurt" />
@@ -443,8 +462,24 @@
   </url>
 
   <!-- Legal -->
-  <url><loc>https://declareandbelieve.com/privacy</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://declareandbelieve.com/terms</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url>
+    <loc>https://declareandbelieve.com/privacy</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/privacidad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/privacy" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/terms</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/terms" />
+  </url>
   <url>
     <loc>https://declareandbelieve.com/give-terms</loc>
     <lastmod>2026-06-27</lastmod>

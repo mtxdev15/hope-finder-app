@@ -12,7 +12,7 @@ import RateReview from '../components/RateReview.astro';
 ---
 <DeclareLayout
   title="Declare — Today"
-  description="Name what's heavy and receive His Word for this moment."
+  description="Name your struggle — anxiety, fear, shame, grief — and receive Bible verses, declarations, and a prayer for this exact moment. Free, English and Spanish."
   activeTab="declare"
 >
   <main class="today">
@@ -234,6 +234,15 @@ import RateReview from '../components/RateReview.astro';
 
     {/* Rate & Review surface (toast + multi-step sheet). Behavior wired in <script> below. */}
     <RateReview />
+
+  {/* SEO: crawlable summary for engines and AI answer bots (page is JS-rendered). */}
+  <noscript>
+    <section>
+      <h2>Receive God's Word for what you're carrying</h2>
+      <p>Declare and Believe gives Christians Scripture for the exact struggle they name — anxiety, fear, shame, grief, loneliness, doubt, burnout, and more. You describe what's weighing on you and receive Bible verses, a short faith-rooted reflection, "I am" declarations to speak aloud, and a personal prayer. Free, ad-free, in English and Spanish.</p>
+      <p>Explore <a href="/struggles">Scripture for every struggle</a>, read the Bible in <a href="/word/">seven translations</a>, or walk a <a href="/journey/">free 5-day journey</a> out of one battle. This experience requires JavaScript.</p>
+    </section>
+  </noscript>
   </main>
 
   <script>
