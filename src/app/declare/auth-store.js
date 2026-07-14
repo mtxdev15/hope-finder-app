@@ -92,6 +92,36 @@ async function refreshSession() {
   return sessionData;
 }
 
+/* Google (OAuth) return leg. The provider redirect lands back here with a
+   one-time token in the URL (?ott=…) — the session token itself never crosses
+   domains. It MUST be exchanged at /cross-domain/one-time-token/verify to
+   become a session this browser can hold; the library only does that exchange
+   inside its React provider, which this vanilla app doesn't use, so we do it
+   here. Without this, Google sign-in creates the account server-side but the
+   user lands back signed out — "nothing happened". */
+async function consumePendingOAuth() {
+  try {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('ott');
+    if (!token) return;
+    // Strip the token from the URL first: it is single-use, and a reload or
+    // share of the URL must not retry (or leak) it.
+    url.searchParams.delete('ott');
+    window.history.replaceState({}, '', url);
+    const res = await withTimeout(ac().crossDomain.oneTimeToken.verify({ token }));
+    const user = res && res.data && res.data.user;
+    if (user) {
+      // New account if Better Auth created the user within this flow (~3 min
+      // ott lifetime); otherwise it's a returning Google sign-in.
+      const isNew = user.createdAt && (Date.now() - new Date(user.createdAt).getTime()) < 3 * 60 * 1000;
+      track(isNew ? 'signup_completed' : 'signin_completed', { method: 'google' });
+    }
+  } catch (e) {
+    // A dead/expired token must not block the page — they can just retry.
+    if (e && e.message === 'auth-timeout') clearStaleAuth();
+  }
+}
+
 /* Resolve the persisted session once per page load; after this resolves,
    isSignedIn()/currentUser() are synchronous. */
 export function initAuth() {
@@ -101,7 +131,7 @@ export function initAuth() {
     inited = Promise.resolve(null);
     return inited;
   }
-  inited = refreshSession();
+  inited = consumePendingOAuth().then(refreshSession).then((s) => { fire(); return s; });
   return inited;
 }
 
@@ -194,12 +224,21 @@ export async function updatePassword(password) {
 export async function signInWithProvider(provider, redirectTo) {
   if (!isConfigured()) return { ok: false, error: 'Accounts aren’t set up yet.' };
   try {
-    const { data, error } = await ac().signIn.social({ provider, callbackURL: redirectTo });
+    // errorCallbackURL: if the provider leg fails after the redirect (denied
+    // consent, expired state, …), come back to OUR page flagged with
+    // ?authError=1 — never strand the user on a blank backend error page.
+    const back = new URL(redirectTo);
+    back.searchParams.set('authError', '1');
+    const { data, error } = await withTimeout(ac().signIn.social({
+      provider, callbackURL: redirectTo, errorCallbackURL: back.toString(),
+    }));
     if (error) return { ok: false, error: nice(error) };
     // Defensive: if the client returned a URL without auto-navigating, go there.
     if (data && data.url && typeof window !== 'undefined') window.location.href = data.url;
     return { ok: true }; // success = the browser is now navigating away
   } catch (e) {
+    // A wedged request must not leave the button dead — clear and let them retry.
+    if (e && e.message === 'auth-timeout') { clearStaleAuth(); return { ok: false, error: 'That took too long — please try again.' }; }
     return { ok: false, error: nice(e) };
   }
 }
