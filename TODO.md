@@ -107,6 +107,16 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.1**. Newest first.*
+- **Google consent screen now shows "Declare and Believe" + logo (2026-07-13, console +
+  homepage).** Google's branding verification kept rejecting because the checker reads
+  the homepage's machine-readable name tags, which said just "Declare"/"Declare &
+  Believe". Unified every signal on index.astro + site.webmanifest to the exact string
+  "Declare and Believe" (title, description, og:site_name/og:title, application-name
+  meta, JSON-LD WebSite schema, manifest name) and uploaded the 120x120 green DB logo
+  (public/declare/brand/declare-google-logo-120-green.png). Verified + published in
+  Google Auth Platform → Branding; live consent page now reads "to continue to Declare
+  and Believe". RULE: keep those homepage tags in sync with the console App name or
+  re-verification fails.
 - **Continue with Google actually signs you in now (v3.20.1, 2026-07-13, from a user
   report).** Root cause: after Google's redirect the session comes back as a one-time
   token (`?ott=`) that must be exchanged at the Better Auth cross-domain verify
