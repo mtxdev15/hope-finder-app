@@ -713,6 +713,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // feature. PATCH: a backward-compatible bug fix or small refinement, no new
     // feature. The top entry's version drives the footer label, so they never drift.
     const RELEASES = [
+      { v: '3.20.2', date: 'July 2026', items: [
+        ['Fixed', 'When Declare is shared in GroupMe, iMessage, and other chats, the round logo badge now shows the full gold-and-green mark — no more clipped edges.', 'Cuando Declare se comparte en GroupMe, iMessage y otros chats, la insignia redonda del logo ahora muestra la marca dorada y verde completa — sin bordes recortados.'],
+        ['Improved', 'Google now shows "Declare and Believe" with our logo on its sign-in screen instead of a technical server address — what you tap is what you trust.', 'Google ahora muestra "Declare and Believe" con nuestro logo en su pantalla de inicio de sesión en lugar de una dirección técnica del servidor — lo que tocas es lo que confías.'],
+      ] },
       { v: '3.20.1', date: 'July 2026', items: [
         ['Fixed', 'Continue with Google now truly signs you in — before, Google would accept you but Declare couldn’t hold onto the session, so you landed back signed out. The handshake is complete and your account opens right up.', 'Continúa con Google ahora sí inicia tu sesión — antes, Google te aceptaba pero Declare no podía conservar la sesión y volvías sin entrar. El saludo está completo y tu cuenta se abre de inmediato.'],
         ['Improved', 'If Google sign-in is interrupted, Declare now brings you back with a clear message instead of a blank page — and inside app browsers like Instagram or Facebook, it guides you to Safari or Chrome, where Google allows sign-in.', 'Si el inicio con Google se interrumpe, Declare ahora te trae de vuelta con un mensaje claro en lugar de una página en blanco — y dentro de navegadores de apps como Instagram o Facebook, te guía a Safari o Chrome, donde Google sí permite iniciar sesión.'],

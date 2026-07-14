@@ -106,7 +106,16 @@ Done items move to the bottom or get deleted.
       re-read (initial submit already succeeded).
 
 ## ✔️ Recently shipped
-*App is on **v3.20.1**. Newest first.*
+*App is on **v3.20.2**. Newest first.*
+- **Share badge logo no longer cut off in chat apps (v3.20.2, 2026-07-13, from Jeff's
+  GroupMe screenshot).** Root cause: favicon-32/64 were tight edge-to-edge crops of the
+  mark; GroupMe/iMessage circle-crop the site favicon, clipping the mark. Rebuilt
+  favicon-32/64 + apple-touch-icon from the transparent mark.png on the sampled green
+  vignette with a circular safe zone (mark 60% of canvas; bbox stays inside the
+  inscribed circle). Added icon-192/512-maskable.png + "purpose: maskable" entries in
+  site.webmanifest for Android. Bumped icon URLs to ?v=3.20.2 across layouts and all
+  public/*.html so chat-app caches re-fetch. Rebuild script pattern lives in the session
+  scratchpad (PIL venv); mark source: public/declare/brand/mark.png.
 - **Google consent screen now shows "Declare and Believe" + logo (2026-07-13, console +
   homepage).** Google's branding verification kept rejecting because the checker reads
   the homepage's machine-readable name tags, which said just "Declare"/"Declare &
