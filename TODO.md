@@ -62,8 +62,8 @@ Done items move to the bottom or get deleted.
 - [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
       because it links to 6 sibling pages that don't exist yet (control, depression, fear,
       overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
-- [ ] **Build out SEO struggle pages for the remaining chips — one new page per week.** 13 of 35
-      struggles have a `/public/<slug>.html` page; ~22 remain. The weekly cadence is deliberate: a
+- [ ] **Build out SEO struggle pages for the remaining chips — one new page per week.** 15 of 35
+      struggles have a `/public/<slug>.html` page (each with an `/es/` twin); ~20 remain. The weekly cadence is deliberate: a
       steady publishing rhythm signals to Google that the site keeps adding fresh content. Each new
       page copies the `public/anxiety.html` template exactly (GTM analytics `GTM-T65GXR22`, fixed
       header/nav + slide-out menu + footer, `.rv` scroll reveals, `data-atmos` atmosphere zones), with
@@ -87,9 +87,12 @@ Done items move to the bottom or get deleted.
         [ ] Family Conflict · [ ] Divorce / Separation · [ ] Control · [ ] Perfectionism ·
         [ ] Spiritual Dryness · [ ] Sexual Temptation · [ ] Faith Crisis ·
         [ ] Feeling Spiritually Attacked · [ ] Drifting from God
-      - **This week:** Overthinking (slug `overthinking`) — pairs with the live `anxiety` page for
-        immediate Related-Articles cross-linking. Full build process + verification in
-        `~/.claude/plans/please-check-on-whats-shimmering-moore.md`.
+      - **This week:** Rejection & Abandonment (slug `rejection`, next unchecked in Batch 1) + ES twin
+        `/es/rechazo`. Cross-links with shame, loneliness, church-hurt for Related Articles.
+      - **AEO requirements for every new page (added 2026-07-13):** keyword-first H1
+        ("Keyword — emotional line"), `Article` JSON-LD, a line in `llms.txt`, sitemap entry with
+        reciprocal EN/ES hreflang, then after deploy: ping IndexNow (key `8ae6ca7f…` at site root)
+        and Request Indexing in GSC.
 
 ## 🎨 Polish / ongoing
 - [ ] **Homepage SEO watch.** `/` is the (thin) Begin page; the keyword-rich `<noscript>` block
@@ -107,6 +110,16 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.2**. Newest first.*
+- **Bing Site Scan audit — all clear (2026-07-13).** The 4-day-old "D&B Scan" (1 error, 4
+  warnings) reviewed against the live site post-AEO-branch: the 1 HTTP-4xx error is the
+  stale `/Signin.html` path (dead since the 7/3 fix; zero references remain; all 54 sitemap
+  URLs verified 200). Alt-attribute warnings: zero images missing alt sitewide today. "H1
+  missing: 64" is inflated by `?struggle=` param variants of the JS-rendered app pages
+  (real count: 9 utility/app screens, all canonicalized, /today + /word now carry noscript
+  content). Two genuinely long titles (overthinking 91 / es sobrepensar 94 chars) left as
+  deliberate keyword titles — display truncation only, keyword is front-loaded. Jeff
+  resubmitted sitemaps in GSC + Bing; IndexNow ping accepted (202, key file validated
+  live). Action: re-run Bing Site Scan for a fresh post-deploy snapshot.
 - **AEO/SEO foundations branch (fix/aeo-foundations, 2026-07-13, from Jeff's website-review
   PDF).** Diagnosis: the PDF's "keyword problem" is the dead meta-keywords tag (Google
   ignores it); the real issue is the ~4-week-old domain has ZERO indexed pages in
