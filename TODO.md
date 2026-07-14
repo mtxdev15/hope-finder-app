@@ -107,6 +107,22 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.2**. Newest first.*
+- **AEO/SEO foundations branch (fix/aeo-foundations, 2026-07-13, from Jeff's website-review
+  PDF).** Diagnosis: the PDF's "keyword problem" is the dead meta-keywords tag (Google
+  ignores it); the real issue is the ~4-week-old domain has ZERO indexed pages in
+  Google/Brave/Bing (verified via site: queries) — AI engines can't cite what isn't
+  indexed. Crawler access verified fine (all bots 200). Shipped: sitemap hreflang bug
+  fixed (6 entries pointed en/x-default at /give; full reciprocity now script-verified),
+  orphaned Layout.astro schema (WebApplication + 19-Q FAQPage + GEO metas) mounted on the
+  live homepage and the orphan deleted, homepage meta description 153 chars + keywords
+  meta, all 30 struggle pages got keyword-blended H1s ("Bible Verses for Anxiety — you
+  can't turn your mind off…") + Article JSON-LD, struggles/luchas hubs got
+  CollectionPage+ItemList, llms.txt lists all 30 guides with descriptions, today/word/
+  journey got crawlable noscript blocks + real meta descriptions, IndexNow key hosted
+  (8ae6ca7f…) + ping on deploy. RULE for new struggle pages: include keyword-first H1,
+  Article schema, llms.txt line, sitemap entry with reciprocal hreflang.
+  HONEST NOTE: visibility now needs indexing time + the ~22 missing struggle pages +
+  backlinks — technical foundations are no longer the bottleneck.
 - **Share badge logo no longer cut off in chat apps (v3.20.2, 2026-07-13, from Jeff's
   GroupMe screenshot).** Root cause: favicon-32/64 were tight edge-to-edge crops of the
   mark; GroupMe/iMessage circle-crop the site favicon, clipping the mark. Rebuilt
