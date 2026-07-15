@@ -460,6 +460,60 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/heridas-de-la-iglesia" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/church-hurt" />
   </url>
+  <url>
+    <loc>https://declareandbelieve.com/rejection</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/rejection" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/rechazo" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/rejection" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/rechazo</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/rejection" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/rechazo" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/rejection" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/parental-abandonment</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/parental-abandonment" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/abandono-de-padres" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/parental-abandonment" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/abandono-de-padres</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/parental-abandonment" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/abandono-de-padres" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/parental-abandonment" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/feeling-unloved-in-marriage</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/feeling-unloved-in-marriage" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/no-amado-en-el-matrimonio" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/feeling-unloved-in-marriage" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/no-amado-en-el-matrimonio</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/feeling-unloved-in-marriage" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/no-amado-en-el-matrimonio" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/feeling-unloved-in-marriage" />
+  </url>
 
   <!-- Legal -->
   <url>

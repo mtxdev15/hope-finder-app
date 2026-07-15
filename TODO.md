@@ -77,8 +77,8 @@ Done items move to the bottom or get deleted.
       search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
       sitemap. Check off each chip as it ships.
       - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [x] Stress & Burnout
-        (shipped 2026-07-02, EN `/burnout` + ES `/es/estres-y-agotamiento`) · [ ] Rejection & Abandonment ·
-        [ ] Addiction · [ ] Waiting on God
+        (shipped 2026-07-02, EN `/burnout` + ES `/es/estres-y-agotamiento`) · [x] Rejection & Abandonment
+        (shipped 2026-07-15 as a 3-page mini-cluster, see below) · [ ] Addiction · [ ] Waiting on God
       - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
         (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
         existing 988 banner pattern. Confirm final copy with Jeff before shipping.
@@ -86,9 +86,14 @@ Done items move to the bottom or get deleted.
         [ ] People Pleasing · [ ] Emotional & Verbal Abuse · [ ] Betrayal · [ ] Self-Sabotage ·
         [ ] Family Conflict · [ ] Divorce / Separation · [ ] Control · [ ] Perfectionism ·
         [ ] Spiritual Dryness · [ ] Sexual Temptation · [ ] Faith Crisis ·
-        [ ] Feeling Spiritually Attacked · [ ] Drifting from God
-      - **This week:** Rejection & Abandonment (slug `rejection`, next unchecked in Batch 1) + ES twin
-        `/es/rechazo`. Cross-links with shame, loneliness, church-hurt for Related Articles.
+        [ ] Feeling Spiritually Attacked · [ ] Drifting from God ·
+        [ ] **Parental Abandonment** (added 2026-07-15, not one of the original 33 chips — a real,
+        searched, previously-uncovered wound: a parent, often a mother, who gave a child up or never
+        wanted them; shipped as part of the Rejection & Abandonment batch below, kept in this list as
+        a permanent addition to the backlog going forward)
+      - **Next up:** Addiction, then Waiting on God, then Betrayal (unchanged order — betrayal/
+        infidelity/"a partner who's been lying to me" content stays queued for the dedicated Betrayal
+        page rather than pulled forward).
       - **AEO requirements for every new page (added 2026-07-13):** keyword-first H1
         ("Keyword — emotional line"), `Article` JSON-LD, a line in `llms.txt`, sitemap entry with
         reciprocal EN/ES hreflang, then after deploy: ping IndexNow (key `8ae6ca7f…` at site root)
@@ -110,6 +115,28 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.2**. Newest first.*
+- **Rejection & Abandonment mini-cluster — 3 struggle pages, 6 URLs (2026-07-15, branch
+  `content/rejection-abandonment-cluster`).** Instead of one general page, shipped three
+  distinct, non-overlapping pages after Jeff named three real, unserved pains: `/rejection`
+  (general rejection, Psalm 27:10 anchor), `/parental-abandonment` (a parent, often a
+  mother, who gave a child up or never wanted them — Jeremiah 1:5, Psalm 139:13-14, Psalm
+  68:5, coda Romans 8:15, adoption theme; NOT one of the original 33 chips, added
+  permanently to the backlog), `/feeling-unloved-in-marriage` (feeling unwanted by your
+  own spouse inside an intact marriage, distinct from `marriage.html`'s betrayal/divorce
+  content — anchored on Proverbs 30:23, which literally names "an unloved woman" as one
+  of four things the earth cannot bear, plus Isaiah 54:5, Psalm 55:22, coda Psalm 34:18;
+  FAQ carries an explicit "when to seek counseling" note so the page never reads as "endure
+  mistreatment quietly"). Each has an ES twin (`/es/rechazo`, `/es/abandono-de-padres`,
+  `/es/no-amado-en-el-matrimonio`) with genuine RVR1909 verse text pulled from the site's
+  own Bible worker (never fabricated or paraphrased — verified every citation, including
+  catching that Proverbs 30:23's "unloved" wording only appears in the WEB translation
+  among the site's supported versions, not NLT/NIV/KJV). All 6 pages follow the AEO rules:
+  keyword-first H1, `Article` + `FAQPage` JSON-LD, registered in `struggles.html`/
+  `luchas.html` (CollectionPage/ItemList) and `sitemap.xml` with reciprocal hreflang and
+  `llms.txt`. Backfilled reciprocal Related Articles links on `shame`, `loneliness`,
+  `church-hurt`, `marriage` (EN + their ES twins where that pattern already existed).
+  Betrayal/infidelity content stays deliberately out of scope here — that's the separate,
+  already-queued Betrayal page.
 - **Bing Site Scan audit — all clear (2026-07-13).** The 4-day-old "D&B Scan" (1 error, 4
   warnings) reviewed against the live site post-AEO-branch: the 1 HTTP-4xx error is the
   stale `/Signin.html` path (dead since the 7/3 fix; zero references remain; all 54 sitemap
