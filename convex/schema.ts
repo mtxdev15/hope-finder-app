@@ -100,7 +100,13 @@ export default defineSchema({
     sessionId: v.string(),
     giftedAt: v.number(),
     subscriptionId: v.optional(v.string()),
-  }).index("by_user", ["userId"]),
+    // Stripe Customer id (cus_...), captured at webhook time so the billing
+    // portal can open a session without an extra live Stripe lookup.
+    customerId: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    // For the billing-portal lookup: most recent recurring gift for a user.
+    .index("by_user_and_recurring", ["userId", "recurring"]),
 
   // Idempotency: one row per processed Stripe Checkout session, so webhook
   // retries never double-count.

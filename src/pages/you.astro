@@ -132,7 +132,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <div class="yg-next" id="ygNext" hidden></div>
             <ul class="yg-list" id="ygList"></ul>
             <a class="yg-again" href="/give" data-i18n-href="/es/dar" data-i18n="you.giveAgain">Give again</a>
-            <a class="yg-manage" id="ygManage" target="_blank" rel="noopener" hidden data-i18n="you.manageGiving">Manage giving</a>
+            <a class="yg-manage" id="ygManage" href="/give" data-i18n-href="/es/dar" hidden data-i18n="you.manageGiving">Manage giving</a>
+            <div class="yg-fine" id="ygFine" hidden><span data-i18n="you.manageGivingHint">Opens Stripe&rsquo;s secure portal &mdash; update your card, change your amount, or cancel anytime.</span> <a href="mailto:support@declareandbelieve.com" data-i18n="you.manageGivingSupport">Need help? Email support@declareandbelieve.com</a></div>
           </div>
 
           <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.19.1</div>
@@ -621,10 +622,58 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
 
     /* ---------- Your giving: a signed-in user's own gift history (newest first) ---------- */
-    // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
-    // Empty string = the "Manage giving" link stays hidden until the link is pasted here.
-    const YG_PORTAL = 'https://billing.stripe.com/p/login/dRmfZidrIh248Ae5HZasg00';
     const YG_WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
+    // Mirrors getGiverId() in public/declare/give.js — same localStorage session shape,
+    // read directly rather than widening auth-store.js's currentUser() (which only
+    // exposes email/firstName) just for this one Worker call.
+    function ygGiverId() {
+      try {
+        const d = localStorage.getItem('better-auth_session_data');
+        if (!d) return null;
+        const u = (JSON.parse(d) || {}).user;
+        return (u && (u._id || u.id)) || null;
+      } catch (e) { return null; }
+    }
+    // "Manage giving" — opens a real Stripe billing-portal session server-side (the
+    // Worker resolves the Stripe customer via Convex), so this redirects straight into
+    // Stripe with no "type your email, wait for a magic link" step.
+    function openBillingPortal(el) {
+      const uid = ygGiverId();
+      if (!uid) return; // this card only renders when signed in; guard anyway
+      const original = el.textContent;
+      el.textContent = tY('you.manageGivingOpening', 'Opening your giving portal…');
+      el.setAttribute('aria-busy', 'true');
+      const u = currentUser();
+      fetch(YG_WORKER + '/give/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, email: (u && u.email) || null, path: location.pathname }),
+      }).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).then(({ ok, d }) => {
+        if (ok && d && d.url) { location.href = d.url; return; }
+        el.textContent = original;
+        el.removeAttribute('aria-busy');
+        showGivingError(d && d.error === 'no-recurring-gift'
+          ? tY('you.manageGivingErrNoGift', 'We couldn’t find an active recurring gift on this account. Email us at support@declareandbelieve.com if this seems wrong.')
+          : tY('you.manageGivingErrGeneric', 'Something went wrong opening your portal. Please try again or email support@declareandbelieve.com.'));
+      }).catch(() => {
+        el.textContent = original;
+        el.removeAttribute('aria-busy');
+        showGivingError(tY('you.manageGivingErrGeneric', 'Something went wrong opening your portal. Please try again or email support@declareandbelieve.com.'));
+      });
+    }
+    // Reuses the existing reassurance line under the button for errors too, instead
+    // of a native alert() — this message names an email address worth reading or
+    // tapping, which a popup dialog or a 2-second toast doesn't give room for.
+    function showGivingError(msg) {
+      const fine = $('ygFine'); if (!fine) return;
+      fine.innerHTML = msg.replace(
+        'support@declareandbelieve.com',
+        '<a href="mailto:support@declareandbelieve.com">support@declareandbelieve.com</a>',
+      );
+      fine.hidden = false;
+      fine.classList.add('yg-fine-err');
+    }
+    { const mgEl = $('ygManage'); if (mgEl) mgEl.addEventListener('click', (e) => { e.preventDefault(); openBillingPortal(mgEl); }); }
     function ygMoney(cents) {
       var n = (cents || 0) / 100;
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: (cents % 100 ? 2 : 0), maximumFractionDigits: 2 });
@@ -644,10 +693,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           var badge = g.recurring ? '<span class="yg-badge">' + (g.frequency === 'semimonthly' ? 'Twice a month' : 'Monthly') + '</span>' : '';
           return '<li><span class="yg-amt">' + ygMoney(g.amountCents) + '</span>' + badge + '<span class="yg-date">' + ygDate(g.giftedAt) + '</span></li>';
         }).join('');
-        var mg = $('ygManage');
-        if (mg) {
-          if (YG_PORTAL) { mg.href = YG_PORTAL; mg.hidden = false; }
-          else mg.hidden = true;
+        var hasRecurring = gifts.some(function (g) { return g.recurring; });
+        var mg = $('ygManage'); if (mg) mg.hidden = !hasRecurring;
+        var fine = $('ygFine');
+        if (fine) {
+          fine.hidden = !hasRecurring;
+          fine.classList.remove('yg-fine-err');
+          fine.innerHTML = '<span>' + tY('you.manageGivingHint', 'Opens Stripe’s secure portal — update your card, change your amount, or cancel anytime.') + '</span> <a href="mailto:support@declareandbelieve.com">' + tY('you.manageGivingSupport', 'Need help? Email support@declareandbelieve.com') + '</a>';
         }
         // Next-charge line: live status for the most recent recurring gift, so a
         // canceled gift never shows a phantom date.
@@ -1368,6 +1420,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yg-manage { display: inline-block; margin: 15px 0 0 18px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; }
     .you .yg-manage[hidden] { display: none; }
     .you .yg-manage:hover { color: var(--text); text-decoration: underline; }
+    .you .yg-fine { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+    .you .yg-fine[hidden] { display: none; }
+    .you .yg-fine a { color: var(--muted); text-decoration: underline; }
+    .you .yg-fine a:hover { color: var(--text); }
+    .you .yg-fine.yg-fine-err { color: var(--goldd); }
+    .you .yg-fine.yg-fine-err a { color: var(--goldd); font-weight: 600; }
     .you .yg-next { margin: 0 0 14px; padding: 9px 13px; border-radius: 11px; background: var(--field); font-size: 12.5px; color: var(--text2); }
     .you .yg-next[hidden] { display: none; }
 
