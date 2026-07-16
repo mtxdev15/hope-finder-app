@@ -424,12 +424,24 @@
   /* ============================================================
      DOCK CTA + GIVE → confirmation
      ============================================================ */
-  var dock = $('#dock'), inlineBtn = $('.give-btn-inline');
+  var dock = $('#dock'), inlineBtn = $('.give-btn-inline'), pageFooter = $('footer');
+  var footerVisible = false;
   if ('IntersectionObserver' in window && inlineBtn) {
+    var btnVisible = false;
+    var syncDock = function () { dock.classList.toggle('show', !btnVisible && !footerVisible); };
     var io = new IntersectionObserver(function (en) {
-      en.forEach(function (x) { dock.classList.toggle('show', !x.isIntersecting); });
+      en.forEach(function (x) { btnVisible = x.isIntersecting; });
+      syncDock();
     }, { threshold: 0 });
     io.observe(inlineBtn);
+    // hide the dock once the footer scrolls into view so it never covers the footer links
+    if (pageFooter) {
+      var footerIo = new IntersectionObserver(function (en) {
+        en.forEach(function (x) { footerVisible = x.isIntersecting; });
+        syncDock();
+      }, { threshold: 0 });
+      footerIo.observe(pageFooter);
+    }
   } else dock.classList.add('show');
 
   var confirm = $('#confirm');
@@ -485,7 +497,7 @@
   $('#cDone').addEventListener('click', function () {
     confirm.classList.remove('show');
     var r = inlineBtn && inlineBtn.getBoundingClientRect();
-    if (r && (r.bottom < 0 || r.top > window.innerHeight)) dock.classList.add('show');
+    if (r && (r.bottom < 0 || r.top > window.innerHeight) && !footerVisible) dock.classList.add('show');
     if (globe) globe.setLevel(levelOf(peopleOf(S.amount)));
   });
   $('#cShare').addEventListener('click', function () {
