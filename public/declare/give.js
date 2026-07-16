@@ -37,6 +37,18 @@
       return (u && (u._id || u.id)) || null;
     } catch (e) { return null; }
   }
+  // Email fallback for the billing portal: some accounts gave before per-user gift
+  // history existed (or gave signed out, then signed in later), so there's nothing in
+  // our own records to look up a Stripe customer from. The Worker falls back to a
+  // Stripe customer search by this email when our own history comes up empty.
+  function getGiverEmail() {
+    try {
+      var d = localStorage.getItem('better-auth_session_data');
+      if (!d) return null;
+      var u = (JSON.parse(d) || {}).user;
+      return (u && u.email) || null;
+    } catch (e) { return null; }
+  }
 
   /* ---------- localized data ---------- */
   var CUR_SYM = { USD: '$', EUR: '€', GBP: '£', CAD: '$', AUD: '$', NGN: '₦', INR: '₹', BRL: 'R$', KES: 'KSh', PHP: '₱' };
@@ -104,7 +116,10 @@
     shareGiftText: 'Acabo de sembrar una semilla en Declare para que la Palabra de Dios siga fluyendo gratis para todos. Únete:',
     shareHelpText: 'Ayuda a que la Palabra de Dios siga fluyendo gratis para todos en Declare. Da aquí:',
     totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'persona liberada' : 'personas liberadas') + ' por la Palabra de Dios'; },
-    processing: 'Redirigiendo…', payErr: 'Algo salió mal al iniciar tu ofrenda. Inténtalo de nuevo.'
+    processing: 'Redirigiendo…', payErr: 'Algo salió mal al iniciar tu ofrenda. Inténtalo de nuevo.',
+    portalOpening: 'Abriendo tu portal de donaciones…',
+    portalErrNoGift: 'No encontramos una donación recurrente activa en esta cuenta. Escríbenos a support@declareandbelieve.com si esto no es correcto.',
+    portalErrGeneric: 'Algo salió mal al abrir tu portal. Inténtalo de nuevo o escríbenos a support@declareandbelieve.com.'
   } : {
     addPay: 'Add new payment method', opening: 'Opening secure form…',
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -128,7 +143,10 @@
     shareGiftText: 'I just sowed a seed into Declare to keep God’s Word flowing free for everyone. Join me:',
     shareHelpText: 'Help keep God’s Word flowing free for everyone on Declare. Give here:',
     totalLine: function (n, one) { return '<b class="gt-n">' + n + '</b> ' + (one ? 'person' : 'people') + ' set free by the Word of God'; },
-    processing: 'Redirecting…', payErr: 'Something went wrong starting your gift. Please try again.'
+    processing: 'Redirecting…', payErr: 'Something went wrong starting your gift. Please try again.',
+    portalOpening: 'Opening your giving portal…',
+    portalErrNoGift: 'We couldn’t find an active recurring gift on this account. Email us at support@declareandbelieve.com if this seems wrong.',
+    portalErrGeneric: 'Something went wrong opening your portal. Please try again or email support@declareandbelieve.com.'
   };
 
   /* ---------- state ---------- */
@@ -446,10 +464,59 @@
 
   var confirm = $('#confirm');
   var WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
-  // Stripe Customer Portal login link (Stripe → Settings → Billing → Customer portal).
-  // Empty = the "Manage your giving" link stays hidden on the thank-you screen.
-  var PORTAL_URL = 'https://billing.stripe.com/p/login/dRmfZidrIh248Ae5HZasg00';
   var giveBtns = $$('[data-give-btn]');
+
+  // Shows a persistent inline message under a manage-giving link instead of a native
+  // alert() — the message includes a real mailto: link the user may want to read or
+  // tap, which a 2-second popup doesn't give them time to do.
+  function portalMsg(el, text) {
+    var next = el.nextElementSibling;
+    var box = (next && next.classList && next.classList.contains('portal-msg')) ? next : null;
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'give-fine portal-msg';
+      el.insertAdjacentElement('afterend', box);
+    }
+    box.innerHTML = text.replace(
+      'support@declareandbelieve.com',
+      '<a href="mailto:support@declareandbelieve.com">support@declareandbelieve.com</a>'
+    );
+  }
+
+  // "Manage giving" — opens a real Stripe billing-portal session server-side (the
+  // Worker resolves the signed-in user's Stripe customer via Convex), so clicking
+  // this redirects straight into Stripe with no "type your email, wait for a magic
+  // link" step. Not signed in → send them to sign in first, since the portal has to
+  // know who they are. Shared by the footer link and the post-gift #cManage link.
+  function openBillingPortal(el) {
+    var uid = getGiverId();
+    if (!uid) {
+      location.href = '/signin?next=' + encodeURIComponent(location.pathname + location.search);
+      return;
+    }
+    var original = el.textContent;
+    el.textContent = T.portalOpening;
+    el.setAttribute('aria-busy', 'true');
+    fetch(WORKER + '/give/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: uid, email: getGiverEmail(), path: location.pathname }),
+    }).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (res) {
+      if (res.ok && res.d && res.d.url) { location.href = res.d.url; return; }
+      el.textContent = original;
+      el.removeAttribute('aria-busy');
+      portalMsg(el, (res.d && res.d.error === 'no-recurring-gift') ? T.portalErrNoGift : T.portalErrGeneric);
+    }).catch(function () {
+      el.textContent = original;
+      el.removeAttribute('aria-busy');
+      portalMsg(el, T.portalErrGeneric);
+    });
+  }
+  $$('[data-manage-giving]').forEach(function (el) {
+    el.addEventListener('click', function (e) { e.preventDefault(); openBillingPortal(el); });
+  });
 
   // show the Thank-you screen for a gift (used on the success return from Stripe)
   function showConfirm(amt, recurring, freqKey) {
@@ -465,9 +532,9 @@
       var tail = recurring ? ', ' + pp : '';
       $('#cSum').innerHTML = T.confPoet(n, noun, head, tail);
     }
-    // Soft account nudge for guests only; manage-link for recurring gifts (when a portal is set).
+    // Soft account nudge for guests only; manage-link for recurring gifts.
     var ca = $('#cAccount'); if (ca) ca.hidden = !!getGiverId();
-    var cm = $('#cManage'); if (cm) { if (recurring && PORTAL_URL) { cm.setAttribute('href', PORTAL_URL); cm.hidden = false; } else cm.hidden = true; }
+    var cm = $('#cManage'); if (cm) cm.hidden = !recurring;
     confirm.classList.add('show'); dock.classList.remove('show');
     if (globe) globe.setLevel(Math.min(1, levelOf(ppl) + 0.12));
   }

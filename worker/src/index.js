@@ -516,6 +516,7 @@ async function handleWebhook(request, env) {
       if (md.frequency) recordBody.frequency = md.frequency;
       if (md.userId) recordBody.userId = md.userId;
       if (s.subscription) recordBody.subscriptionId = s.subscription;
+      if (s.customer) recordBody.customerId = s.customer;
       const r = await fetch(env.CONVEX_SITE_URL + '/give/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
@@ -559,6 +560,120 @@ async function handleSubscription(request, env) {
   }, 200, CORS_HEADERS);
 }
 
+/* ===== Stripe Billing Portal — real "Manage giving" session, no email step ==========
+   POST /give/portal  { userId, path }
+   Replaces the old static Stripe hosted "Customer Portal login page" link (type your
+   email, wait for a magic-link email that may never arrive). For a signed-in giver we
+   already know who they are, so we resolve their Stripe customer id server-side and
+   open a real portal session — the browser redirects straight in.
+   ================================================================================= */
+async function handleBillingPortal(request, env) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
+  }
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (checkRateLimit(ip)) {
+    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
+  }
+  if (!env.STRIPE_SECRET_KEY) {
+    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
+  }
+  if (!env.CONVEX_SITE_URL || !env.GIFT_WEBHOOK_SECRET) {
+    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
+  }
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
+  const userId = String((body && body.userId) || '');
+  if (!userId) return jsonResponse({ error: 'not-signed-in' }, 401, CORS_HEADERS);
+  const email = String((body && body.email) || '').trim();
+
+  // Same allowlisted-origin return URL as /give/checkout, so /es/dar comes back to /es/dar.
+  const origin = request.headers.get('Origin') || '';
+  const okOrigin =
+    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
+    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
+    /^http:\/\/localhost(:\d+)?$/i.test(origin);
+  const base = okOrigin ? origin : 'https://declareandbelieve.com';
+  const rawPath = String((body && body.path) || '/give');
+  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
+  const returnUrl = base + path;
+
+  // Resolve which Stripe customer this account's giving belongs to, three ways,
+  // cheapest/most-authoritative first:
+  //  1. customerId already stored on their most recent recurring gift (fast path,
+  //     every gift going forward has this — no extra Stripe call needed).
+  //  2. subscriptionId on that gift, but recorded before customerId capture shipped —
+  //     resolve live, same fetch pattern as /give/subscription.
+  //  3. No usable history at all in our own records (e.g. they gave signed out, or
+  //     before per-user history existed) — search Stripe directly by account email.
+  //     This is the path that makes "Manage giving" actually work for givers who
+  //     predate this fix, not just gifts made after it ships.
+  let lookup = null;
+  try {
+    const lr = await fetch(env.CONVEX_SITE_URL + '/give/customer-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
+      body: JSON.stringify({ userId }),
+    });
+    lookup = lr.ok ? await lr.json() : null;
+  } catch (e) { /* fall through — email search below still has a shot */ }
+
+  let customerId = (lookup && lookup.customerId) || null;
+  if (!customerId && lookup && lookup.subscriptionId) {
+    try {
+      const sr = await fetch('https://api.stripe.com/v1/subscriptions/' + lookup.subscriptionId, {
+        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
+      });
+      if (sr.ok) {
+        const sub = await sr.json();
+        customerId = sub.customer || null;
+      }
+    } catch (e) { /* fall through to the email search below */ }
+  }
+  if (!customerId && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    try {
+      const cr = await fetch('https://api.stripe.com/v1/customers?email=' + encodeURIComponent(email) + '&limit=1', {
+        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
+      });
+      if (cr.ok) {
+        const cd = await cr.json();
+        const found = cd && cd.data && cd.data[0];
+        if (found && found.id) customerId = found.id;
+      }
+    } catch (e) { /* no match — fall through to the error below */ }
+  }
+  if (!customerId) {
+    return jsonResponse({ error: 'no-recurring-gift' }, 404, CORS_HEADERS);
+  }
+
+  let res, data;
+  try {
+    const p = new URLSearchParams();
+    p.set('customer', customerId);
+    p.set('return_url', returnUrl);
+    res = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: p.toString(),
+    });
+    data = await res.json();
+  } catch (e) {
+    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
+  }
+  if (!res.ok || !data || !data.url) {
+    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
+    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
+  }
+  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
+}
+
 export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
@@ -580,6 +695,9 @@ export default {
     }
     if (pathname === '/give/subscription') {
       return handleSubscription(request, env);
+    }
+    if (pathname === '/give/portal') {
+      return handleBillingPortal(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====

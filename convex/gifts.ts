@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, internalMutation } from "./_generated/server";
+import { query, internalQuery, internalMutation } from "./_generated/server";
 import { authComponent } from "./auth";
 
 // $1.25 reaches one person (mirrors PER_PERSON in public/declare/give.js).
@@ -37,6 +37,7 @@ export const record = internalMutation({
     frequency: v.optional(v.string()),
     userId: v.optional(v.string()),
     subscriptionId: v.optional(v.string()),
+    customerId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (!Number.isFinite(args.amountCents) || args.amountCents <= 0) return null;
@@ -76,11 +77,35 @@ export const record = internalMutation({
         recurring: args.recurring,
         ...(args.frequency ? { frequency: args.frequency } : {}),
         ...(args.subscriptionId ? { subscriptionId: args.subscriptionId } : {}),
+        ...(args.customerId ? { customerId: args.customerId } : {}),
         sessionId: args.sessionId,
         giftedAt: Date.now(),
       });
     }
     return null;
+  },
+});
+
+// INTERNAL: called only by the Worker's /give/portal endpoint (via the
+// /give/customer-lookup httpAction, shared-secret guarded — see http.ts) to
+// resolve which Stripe customer to open a billing portal session for. Returns
+// the most recent recurring gift's customerId/subscriptionId, or null if the
+// user has never made a recurring gift.
+export const mostRecentRecurring = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("giftHistory")
+      .withIndex("by_user_and_recurring", (q) =>
+        q.eq("userId", args.userId).eq("recurring", true),
+      )
+      .order("desc")
+      .first();
+    if (!row) return null;
+    return {
+      customerId: row.customerId ?? null,
+      subscriptionId: row.subscriptionId ?? null,
+    };
   },
 });
 
