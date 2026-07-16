@@ -115,6 +115,40 @@ Done items move to the bottom or get deleted.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.2**. Newest first.*
+- **Real Stripe billing portal, replacing the static email-login page (2026-07-16, branch
+  `fix/billing-portal`, from Jeff's report that clicking "Manage giving" and entering his
+  email never delivered a login link).** Root cause: every "Manage giving" link sitewide
+  (EN + ES — give.html footer, the post-gift thank-you screen, `you.astro`'s giving card,
+  both give-terms FAQ pages) pointed at the same static Stripe-hosted login page, which
+  emails a magic link with no idea the visitor was already signed in on our own site.
+  Signed-in users now get a real Stripe Billing Portal session opened server-side with
+  zero email step: new Worker endpoint `/give/portal` resolves the Stripe customer via a
+  3-tier fallback (stored `customerId` → live subscription lookup → Stripe customer search
+  by account email, since gifts recorded before this fix have no `customerId` on file),
+  then opens the portal directly. Convex's `giftHistory` now stores `customerId` from the
+  webhook going forward (`gifts.ts`, `http.ts`, new `by_user_and_recurring` index). Native
+  `alert()` error states replaced with inline, on-brand messaging that keeps
+  support@declareandbelieve.com as a visible fallback. FAQ pages repointed from the static
+  Stripe URL to the working button; help/give-terms pages now set a "we typically respond
+  within 1-2 business days" expectation for support@. Also ran a full `/email-marketing-bible`
+  audit: DKIM and the Resend `send.` subdomain were already correctly configured (no fix
+  needed); DMARC is intentionally monitor-only (`p=none`) for now — revisit `p=quarantine`
+  once a few weeks of clean reports confirm nothing legitimate fails; mail (incl. support@)
+  routes through Apple's iCloud Custom Email Domain, not this codebase, so a true automated
+  auto-reply would require moving MX to Cloudflare Email Routing — deferred as a separate
+  project, not done here. Verified end-to-end (give.html + es/dar.html share the same
+  `give.js`, `you.astro`'s card uses the identical fetch), Cloudflare Pages preview reviewed
+  and approved by Jeff, merged to main and confirmed live on declareandbelieve.com.
+  **Known follow-up:** the Stripe email-search fallback found no customer matching
+  `jeffmt15_social@icloud.com` (the email from Jeff's original screenshot) — need to confirm
+  which email Jeff's actual recurring gift is recorded under in the Stripe Dashboard to
+  verify his own account resolves cleanly.
+  **Not done in this pass (Stripe Dashboard settings, not code):** Settings → Billing →
+  Customer portal — enable current plan/payment method/invoice history/cancel, keep
+  cancellation to one click with no required reason, and set the portal's business name +
+  logo to match "Declare and Believe." Also a known limitation: donors can't change their
+  monthly amount from inside the portal yet (checkout builds an ad-hoc price rather than a
+  saved Stripe Price) — they can cancel and start a new gift at a different amount instead.
 - **Rejection & Abandonment mini-cluster — 3 struggle pages, 6 URLs (2026-07-15, branch
   `content/rejection-abandonment-cluster`).** Instead of one general page, shipped three
   distinct, non-overlapping pages after Jeff named three real, unserved pains: `/rejection`
@@ -255,9 +289,11 @@ Done items move to the bottom or get deleted.
 - **Vault refinements** (v3.11.x) — saved words/verses/declarations continue to sync and follow the account.
 - **Giving system — fully live.** Cinematic `/give` + `/es/dar` with Stripe Checkout (one-time +
   recurring, Apple Pay); webhook → Convex public impact counter ("X people set free by the Word of
-  God"); account-linked gift history + live next-charge line on `/you`; Stripe Customer Portal to
-  manage/cancel; "Manage giving" on the give pages + the Giving terms FAQ; Spanish Giving terms page
-  (`/es/terminos-de-donacion`) + hreflang + sitemap. SemVer adopted at v3.9.1.
+  God"); account-linked gift history + live next-charge line on `/you`; "Manage giving" on the give
+  pages + the Giving terms FAQ; Spanish Giving terms page (`/es/terminos-de-donacion`) + hreflang +
+  sitemap. SemVer adopted at v3.9.1. (This entry originally claimed a working Stripe Customer Portal —
+  it shipped as one static email-login link duplicated everywhere, not a real per-customer flow; see
+  the 2026-07-16 billing portal fix above, which replaced it with a real session-based portal.)
 - **Site-wide navigation unified** — every explore page's logo/back goes to `/welcome` (no longer
   dumps people into the app); give/help/faq/struggles now share the canonical header + slide-out menu
   + footer (shared `public/declare/chrome.css` + `menu.js`); the in-app mast brand links back to
