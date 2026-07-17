@@ -28,10 +28,38 @@ Done items move to the bottom or get deleted.
       3,000 emails/mo total, 100/day cap, shared across transactional + automations + broadcasts on one
       domain. `/es`: no separate setup — automations branch off the user's locale field to send the
       Spanish template instead of English.
-- [ ] **Build out the Resend email marketing flows (platform decided above).** Next steps:
-      (a) wire Convex signup → Resend `user.created` custom event; (b) build the welcome/onboarding
-      automation; (c) this is the delivery mechanism for the 4-email lead-magnet nurture sequence once
-      the PDF decisions above are made; (d) build the first blog-email broadcast template.
+- [ ] **Build out the Resend email marketing flows (platform decided above).** Steps:
+      **(a) wire Convex signup → Resend — IN PROGRESS (branch `claude/resend-email-marketing-setup-pn132l`).**
+      Done: new `convex/marketing.ts` `registerNewContact` internalAction (raw Resend REST — the
+      `@convex-dev/resend` component only *sends*, it has no contacts/segments/events surface) that on
+      each new account (email sign-up AND Google OAuth, both via the new `databaseHooks.user.create.after`
+      hook in `convex/auth.ts`) upserts the person as a Resend contact in the **"Declare — All Signups"**
+      segment (id `c2b2ff08-d7c8-431c-963b-3b690014c1e9`) and fires the **`user.created`** event. Fully
+      non-blocking: the hook only schedules the action (runs after commit) and swallows all errors, so a
+      Resend outage can never break/slow sign-up. Resend account primitives already created via MCP:
+      segment above, `user.created` event (schema locale+name), `locale` string contact-property.
+      **Jeff must, before this works in prod:** (1) set Convex env var `RESEND_SEGMENT_ID` =
+      `c2b2ff08-d7c8-431c-963b-3b690014c1e9`; (2) confirm the deployment `RESEND_API_KEY` is
+      **full-access** (contacts+events), not sending-only; (3) `npx convex dev`, do a test e-mail + a
+      Google sign-up, and confirm in the Convex dashboard logs that `registerNewContact` returns 2xx and
+      the contact + event land in Resend (the `POST /events` route is the one endpoint to eyeball — if it
+      non-2xx's, fix the single URL constant in `marketing.ts`). **Locale is a deliberate second sub-step**
+      (defaults to `en` for now): capturing it needs a Better Auth `user.additionalFields.locale`
+      (`input:true`) in `convex/auth.ts` + passing `locale` from `window.I18N.lang()` at
+      `src/app/declare/auth-store.js:175`. Deferred because it changes the live auth user schema and this
+      component version's persistence of undeclared fields needs a dev check first — must NOT be bundled
+      with the safe wiring. The hook already forwards `user.locale` with zero further changes once added.
+      (Google OAuth has no sign-up body, so those always default to `en`.)
+      (b) build the welcome/onboarding automation — **also decides the send engine** (Convex sends via
+      `@convex-dev/resend`, OR Resend dashboard Automations triggered by the `user.created` event; Jeff
+      chose to decide this here, not at wiring time); (c) this is the delivery mechanism for the 4-email
+      lead-magnet nurture sequence once the PDF decisions above are made; (d) build the first blog-email
+      broadcast template.
+      **⚠️ Domain discrepancy found (2026-07-17):** the Resend account has ONLY `declareandbelieve.com`
+      verified — there is **no `send.` subdomain** despite the note above. Password reset already sends
+      from `noreply@declareandbelieve.com` (root, verified). Doesn't block wiring (no mail sent in step a),
+      but before step (b) sends real welcome mail, either send from the verified root domain or add +
+      verify `send.declareandbelieve.com` in Resend first.
 - [ ] **Finish Google OAuth branding (Google Auth Platform → Branding).** App published to production
       (auth fixed). Still: set App name = Declare, support email, home page, privacy `/privacy`, terms
       `/terms`; authorized domains cleaned (added declareandbelieve.com, removed stale Supabase domain).

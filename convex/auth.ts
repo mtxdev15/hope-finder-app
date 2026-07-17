@@ -1,7 +1,7 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { betterAuth } from "better-auth/minimal";
@@ -46,6 +46,36 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       // Required for Convex compatibility.
       convex({ authConfig }),
     ],
+    // When a NEW account is created — email sign-up AND Google OAuth both
+    // converge here — register the person into Resend for the welcome/onboarding
+    // flow. This is deliberately non-blocking: we only enqueue a scheduled action
+    // (runAfter 0), which runs AFTER the sign-up commits, and the whole body is
+    // wrapped so nothing can throw back into account creation. A Resend problem
+    // can never break or slow a sign-up. See convex/marketing.ts.
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            try {
+              await requireActionCtx(ctx).scheduler.runAfter(
+                0,
+                internal.marketing.registerNewContact,
+                {
+                  email: user.email,
+                  name: user.name ?? "",
+                  // locale isn't captured at sign-up yet, so this defaults to
+                  // "en" today. Once the account stores a locale, it flows
+                  // through here with no change to this hook.
+                  locale: (user as { locale?: string }).locale ?? "en",
+                },
+              );
+            } catch {
+              // Marketing registration must never break sign-up. Swallow.
+            }
+          },
+        },
+      },
+    },
   });
 };
 
