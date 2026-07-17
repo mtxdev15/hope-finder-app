@@ -19,7 +19,7 @@ Done items move to the bottom or get deleted.
       sections, recommended); 2) intro voice (reframe to Declare, drop Righteously Unrighteous,
       recommended); 3) delivery (instant download + email, recommended); 4) keep the list for the iOS
       launch (recommended). Generate the PDF via headless-Chrome print (no new deps).
-- [ ] **Email marketing platform decided: Resend (Automations + Broadcasts + Audiences), no new tool.**
+- [x] **Email marketing platform decided: Resend (Automations + Broadcasts + Audiences), no new tool.**
       Staying on Resend's Free plan rather than adding a second ESP — Automations (event-driven,
       10,000 runs/mo free) covers onboarding/welcome/follow-up sequences; Broadcasts (WYSIWYG editor,
       scheduling, Audiences segments) covers the blog email. Both share the account already used for
@@ -27,10 +27,11 @@ Done items move to the bottom or get deleted.
       + DKIM already verified, see 2026-07-16 billing-portal entry below). Free tier ceiling to watch:
       3,000 emails/mo total, 100/day cap, shared across transactional + automations + broadcasts on one
       domain. `/es`: no separate setup — automations branch off the user's locale field to send the
-      Spanish template instead of English. **Next steps:** (a) wire Convex signup → Resend `user.created`
-      custom event; (b) build the welcome/onboarding automation; (c) this is the delivery mechanism for
-      the 4-email lead-magnet nurture sequence once the PDF decisions above are made; (d) build the
-      first blog-email broadcast template.
+      Spanish template instead of English.
+- [ ] **Build out the Resend email marketing flows (platform decided above).** Next steps:
+      (a) wire Convex signup → Resend `user.created` custom event; (b) build the welcome/onboarding
+      automation; (c) this is the delivery mechanism for the 4-email lead-magnet nurture sequence once
+      the PDF decisions above are made; (d) build the first blog-email broadcast template.
 - [ ] **Finish Google OAuth branding (Google Auth Platform → Branding).** App published to production
       (auth fixed). Still: set App name = Declare, support email, home page, privacy `/privacy`, terms
       `/terms`; authorized domains cleaned (added declareandbelieve.com, removed stale Supabase domain).
