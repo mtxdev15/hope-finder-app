@@ -28,8 +28,9 @@ Done items move to the bottom or get deleted.
       3,000 emails/mo total, 100/day cap, shared across transactional + automations + broadcasts on one
       domain. `/es`: no separate setup — automations branch off the user's locale field to send the
       Spanish template instead of English.
-- [ ] **Build out the Resend email marketing flows (platform decided above).** Steps:
-      **(a) wire Convex signup → Resend — IN PROGRESS (branch `claude/resend-email-marketing-setup-pn132l`).**
+- [ ] **Build out the Resend email marketing flows (platform decided above).** ⏸ **ON HOLD
+      (2026-07-20 — switched focus to a LinkedIn marketing push; resume after).** Steps:
+      **(a) wire Convex signup → Resend — code shipped, awaiting Jeff's dev test (branch `claude/resend-email-marketing-setup-pn132l`).**
       Done: new `convex/marketing.ts` `registerNewContact` internalAction (raw Resend REST — the
       `@convex-dev/resend` component only *sends*, it has no contacts/segments/events surface) that on
       each new account (email sign-up AND Google OAuth, both via the new `databaseHooks.user.create.after`
