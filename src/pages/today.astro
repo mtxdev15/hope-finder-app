@@ -1081,14 +1081,21 @@ import RateReview from '../components/RateReview.astro';
        the page's own margin:auto. Kept last so it wins the .head/.results-*
        max-width contests declared earlier in this stylesheet. ===== */
     @media (min-width: 1024px) {
-      /* Exactly 3 direct children now (rail-left, results-main, rail-right),
-         side by side in a single row — no row-spanning, so there is no
-         track-sizing ambiguity between the rails and the center column. */
-      .today .results { display: grid; grid-template-columns: 260px minmax(0, 1fr) 280px; align-items: start; gap: 40px; max-width: 1400px; margin: 0 auto; padding: 0 32px; }
-      .today .results-rail { display: block; position: sticky; top: 32px; padding-top: 56px; align-self: start; }
-      .today .results-rail-left { grid-column: 1; }
-      .today .results-rail-right { grid-column: 3; }
-      .today .results-main { grid-column: 2; min-width: 0; }
+      /* Flexbox, not Grid — a single flex row with three items, each sized
+         only by its OWN content (align-items:flex-start). Grid's row-track
+         sizing has real edge cases when a spanning item shares rows with
+         separately-placed siblings (that was the cause of the huge gap
+         between .head and #resultsBody); flexbox has no row concept at all
+         in a single, non-wrapping row, so that whole class of bug can't
+         happen here. */
+      .today .results { display: flex; align-items: flex-start; gap: 40px; max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+      .today .results-rail { display: block; flex: 0 0 260px; position: sticky; top: 32px; padding-top: 56px; }
+      /* DOM order is rail-left, rail-right, results-main (the aside markup
+         comes before the wrapped center content) — explicit `order` puts
+         them in the correct LEFT / CENTER / RIGHT visual order regardless. */
+      .today .results-rail-left { order: 1; }
+      .today .results-rail-right { order: 3; flex-basis: 280px; }
+      .today .results-main { order: 2; flex: 1 1 auto; min-width: 0; }
       .today .nextsteps, .today .results-crisis { display: none; }
 
       .today .rail-title { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 12px; }
@@ -1106,9 +1113,15 @@ import RateReview from '../components/RateReview.astro';
       .today .idx-n { font-family: 'Cormorant Garamond', serif; color: var(--goldd); font-size: 16px; flex: 0 0 auto; width: 16px; }
       .today .idx-ref { font-size: 12.5px; font-weight: 500; color: var(--text); display: block; }
       .today .idx-go { font-size: 10.5px; color: var(--goldd); margin-top: 2px; display: block; }
-      .today .idx-breakdown { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .35s ease, opacity .3s ease; margin: 0 10px; }
-      .today .idx-row.open .idx-breakdown { grid-template-rows: 1fr; opacity: 1; }
-      .today .idx-breakdown .in { overflow: hidden; min-height: 0; }
+      /* max-height transition, not grid-template-rows:0fr — a fixed cap is
+         less "exact" than the fr-collapse trick but works reliably in every
+         browser; the fr version was rendering these cards permanently
+         expanded/empty instead of collapsed. */
+      .today .idx-breakdown { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .35s ease, opacity .3s ease; margin: 0 10px; }
+      /* generous cap: verified real breakdown text needs up to ~450-500px in
+         this rail's narrow column (breakdowns run 3-5 sentences), 400px was
+         clipping real content */
+      .today .idx-row.open .idx-breakdown { max-height: 800px; opacity: 1; }
       .today .idx-breakdown p { font-size: 12.5px; line-height: 1.6; color: var(--text2); padding: 0 2px 12px 32px; }
       .today .idx-divider { height: 1px; background: var(--line); margin: 16px 0; }
       .today .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--field); margin-bottom: 8px; }
