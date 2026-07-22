@@ -90,6 +90,18 @@ import RateReview from '../components/RateReview.astro';
       <aside class="results-rail results-rail-right" aria-hidden="true">
         <div class="rail-title" data-i18n="today.inThisWord">In this Word</div>
         <div id="railIndex"></div>
+
+        {/* Translation switcher: applies to the NEXT word generated (the one on
+            screen keeps the translation it was written in). NLT is the default,
+            matching the Declare flow default. Real state, wired in the script. */}
+        <div class="idx-divider"></div>
+        <div class="rail-title" data-i18n="today.translation">Translation</div>
+        <div class="rail-trans" id="railTrans">
+          <button class="trans-pill" type="button" data-trans="NIV">NIV</button>
+          <button class="trans-pill on" type="button" data-trans="NLT">NLT</button>
+          <button class="trans-pill" type="button" data-trans="KJV">KJV</button>
+        </div>
+
         <div class="idx-divider" id="railRecentDivider" hidden></div>
         <div class="rail-title" id="railRecentTitle" hidden data-i18n="today.recentWords">Your Recent Words</div>
         <div id="railRecent"></div>
@@ -332,9 +344,16 @@ import RateReview from '../components/RateReview.astro';
     }
 
     // The Declare flow default per the Bible Integration Spec. The brain call,
-    // prompts, streaming, and crisis logic in declare-api.js are unchanged.
-    const TRANSLATION = 'NLT';
-    function activeTrans(){ return (window.I18N && I18N.lang() === 'es') ? 'RVR1909' : TRANSLATION; }
+    // prompts, streaming, and crisis logic in declare-api.js are unchanged. The
+    // reader can now switch the English translation from the >=1024px right rail
+    // (NIV / NLT / KJV); the choice applies to the NEXT word generated, not the
+    // one already on screen. Spanish always uses RVR1909 regardless of the pill.
+    let currentTranslation = 'NLT';
+    // The translation actually used for the word currently on screen, captured at
+    // request time so the verse labels stay correct even if the pill is switched
+    // while a new word is streaming.
+    let responseTranslation = 'NLT';
+    function activeTrans(){ return (window.I18N && I18N.lang() === 'es') ? 'RVR1909' : currentTranslation; }
     function activeLang(){ try { return (window.I18N && I18N.lang()) || 'en'; } catch(e){ return 'en'; } }
 
     const $ = (id) => document.getElementById(id);
@@ -393,6 +412,19 @@ import RateReview from '../components/RateReview.astro';
       if (!m) return '/word';
       const book = BOOK_ALIASES[m[1].trim()] || m[1].trim();
       return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
+    }
+    // Compact relative time for the >=1024px "Your Recent Words" rail (e.g.
+    // "just now", "2 hours ago", "2 days ago"). English-only, like the rest of
+    // the rail's labels; Spanish falls back to these English strings.
+    function relTime(ts) {
+      if (!ts) return '';
+      const diff = Math.max(0, Date.now() - ts);
+      const min = 60000, hour = 3600000, day = 86400000;
+      if (diff < min) return tI('today.justNow', 'just now');
+      if (diff < hour) { const m = Math.floor(diff / min); return m + ' ' + (m === 1 ? 'minute' : 'minutes') + ' ago'; }
+      if (diff < day) { const h = Math.floor(diff / hour); return h + ' ' + (h === 1 ? 'hour' : 'hours') + ' ago'; }
+      const d = Math.floor(diff / day);
+      return d === 1 ? tI('today.yesterday', 'yesterday') : d + ' days ago';
     }
 
     /* ---------- entry: chips (design behavior) ---------- */
@@ -494,7 +526,7 @@ import RateReview from '../components/RateReview.astro';
       const s = slugifyStruggle(label);
       return KNOWN_STRUGGLES.has(s) ? s : 'other';
     }
-    const KNOWN_TRANSLATIONS = new Set(['nkjv', 'nlt', 'niv']);
+    const KNOWN_TRANSLATIONS = new Set(['nkjv', 'nlt', 'niv', 'kjv']);
     function translationSlug(t) {
       const s = (t || '').toLowerCase();
       return KNOWN_TRANSLATIONS.has(s) ? s : 'other';
@@ -522,8 +554,11 @@ import RateReview from '../components/RateReview.astro';
       // right language from the start (the SSR placeholder is English "fear & anxiety")
       $('forLabel').textContent = tI('today.forPrefix', 'For ') + struggleLabel(struggle);
       if (window.RouteLoader) window.RouteLoader.show();
+      // freeze the translation for this request so render() labels it correctly
+      // even if the reader taps a different pill mid-stream
+      responseTranslation = activeTrans();
       try {
-        const ai = await generateContent(struggle, activeTrans(), usedRefs, { language: activeLang() });
+        const ai = await generateContent(struggle, responseTranslation, usedRefs, { language: activeLang() });
         if (myReq !== reqId) return;
         if (!isCompleteResult(ai)) throw new Error('incomplete result');
         usedRefs = usedRefs.concat(ai.verses.map((v) => v.ref));
@@ -548,7 +583,7 @@ import RateReview from '../components/RateReview.astro';
 
       const v1 = ai.verses[0];
       $('verse1').innerHTML = '&ldquo;' + esc(v1.t || v1.text) + '&rdquo;';
-      $('ref1').textContent = v1.ref + ' · ' + activeTrans();
+      $('ref1').textContent = v1.ref + ' · ' + responseTranslation;
       $('ref1').href = passageLink(v1.ref);
 
       // further verses: "tap to receive this verse" reveals (design .receive)
@@ -562,7 +597,7 @@ import RateReview from '../components/RateReview.astro';
         + '</button>'
         + '<span class="reveal"><span class="reveal-in">'
         +   '<span class="serif rverse">&ldquo;' + esc(v.text) + '&rdquo;</span>'
-        +   '<span class="rrow"><a class="rref ref-link" href="' + passageLink(v.ref) + '">' + esc(v.ref) + ' &middot; ' + activeTrans() + '</a></span>'
+        +   '<span class="rrow"><a class="rref ref-link" href="' + passageLink(v.ref) + '">' + esc(v.ref) + ' &middot; ' + responseTranslation + '</a></span>'
         + '</span></span>'
         + '</div>'
       )).join('');
@@ -596,16 +631,35 @@ import RateReview from '../components/RateReview.astro';
       $('sjTod').textContent = (hr < 6 || hr >= 18) ? tI('today.tonight', 'tonight') : tI('today.today', 'today');
 
       // >=1024px right rail: verse index + expandable Breakdown. `ai.breakdowns`
-      // is optional (older cached/fallback content may not have it) so every
-      // row falls back gracefully instead of breaking.
+      // is optional (older cached/fallback content may not have it) so every row
+      // falls back gracefully instead of breaking. Each breakdown is now a
+      // { context, application } object: `context` renders as a paragraph, and
+      // `application` renders under a bold, gold "For your [struggle] tonight:"
+      // lead-in (same 6pm/6am tonight/today boundary as the Journey card above).
+      // A legacy plain-string breakdown is treated as context only.
       const breakdowns = Array.isArray(ai.breakdowns) ? ai.breakdowns : [];
+      const todWord = (hr < 6 || hr >= 18) ? tI('today.tonight', 'tonight') : tI('today.today', 'today');
+      const forYou = 'For your ' + struggleLower(activeStruggle) + ' ' + todWord + ':';
+      const noBreakdown = tI('today.noBreakdown', 'A deeper look at this verse is not available for this word.');
+      function breakdownBody(b) {
+        if (b && typeof b === 'object') {
+          const ctx = (b.context || '').trim();
+          const app = (b.application || '').trim();
+          let html = '';
+          if (ctx) html += '<p>' + esc(ctx) + '</p>';
+          if (app) html += '<p class="idx-app"><b>' + esc(forYou) + '</b> ' + esc(app) + '</p>';
+          return html || '<p>' + esc(noBreakdown) + '</p>';
+        }
+        if (typeof b === 'string' && b.trim()) return '<p>' + esc(b.trim()) + '</p>';
+        return '<p>' + esc(noBreakdown) + '</p>';
+      }
       $('railIndex').innerHTML = ai.verses.map((v, i) => (
         '<div class="idx-row" data-i="' + i + '">'
         + '<button class="idx-top" type="button">'
         +   '<span class="idx-n">' + (i + 1) + '</span>'
         +   '<span><span class="idx-ref">' + esc(v.ref) + '</span><span class="idx-go">' + tI('today.breakdown', 'Breakdown') + '</span></span>'
         + '</button>'
-        + '<div class="idx-breakdown"><div class="in"><p>' + esc(breakdowns[i] || tI('today.noBreakdown', 'A deeper look at this verse is not available for this word.')) + '</p></div></div>'
+        + '<div class="idx-breakdown">' + breakdownBody(breakdowns[i]) + '</div>'
         + '</div>'
       )).join('');
 
@@ -623,7 +677,13 @@ import RateReview from '../components/RateReview.astro';
         $('railRecentDivider').hidden = recent.length === 0;
         $('railRecentTitle').hidden = recent.length === 0;
         $('railRecent').innerHTML = recent.map((it) => (
-          '<a class="recent-row" href="/today/?struggle=' + encodeURIComponent(it.struggle) + '"><span class="rdot"></span><span class="rt">' + esc(struggleLabel(it.struggle)) + '</span></a>'
+          '<a class="recent-row" href="/today/?struggle=' + encodeURIComponent(it.struggle) + '">'
+          + '<span class="rdot"></span>'
+          + '<span class="rmeta">'
+          +   '<span class="rt">' + esc(struggleLabel(it.struggle)) + '</span>'
+          +   '<span class="rsub">' + esc(relTime(it.ts)) + ' &middot; ' + tI('today.tapRevisit', 'tap to revisit') + '</span>'
+          + '</span>'
+          + '</a>'
         )).join('');
       } catch (e) { /* Vault unavailable — rail just shows the verse index */ }
 
@@ -679,7 +739,7 @@ import RateReview from '../components/RateReview.astro';
         showToast(tI('today.removedVault','Removed from Vault.'));
       } else {
         saveItem({
-          id: currentId, type: 'word', struggle: activeStruggle, translation: activeTrans(),
+          id: currentId, type: 'word', struggle: activeStruggle, translation: responseTranslation,
           verses: content.verses, explanation: content.explanation,
           declarations: content.declarations, prayer: content.prayer,
         });
@@ -723,7 +783,7 @@ import RateReview from '../components/RateReview.astro';
     function buildShareables() {
       const v1 = content.verses[0];
       shareables = [
-        { type: 'verse', label: tI('today.lblScripture','Scripture'), text: v1.text, ref: v1.ref + ' · ' + activeTrans(), ic: 'verse' },
+        { type: 'verse', label: tI('today.lblScripture','Scripture'), text: v1.text, ref: v1.ref + ' · ' + responseTranslation, ic: 'verse' },
         { type: 'reading', label: tI('today.lblMindset','Mindset'), text: content.explanation, ref: tI('today.lblMindset','Mindset'), ic: 'mind' },
         ...content.declarations.map((d) => ({ type: 'declaration', label: tI('today.lblDeclaration','Declaration'), text: d, ref: '', ic: 'dec' })),
         { type: 'reading', label: tI('today.lblPrayer','Prayer'), text: content.prayer, ref: tI('today.aPrayer','A prayer'), ic: 'pray' },
@@ -768,6 +828,16 @@ import RateReview from '../components/RateReview.astro';
       const wasOpen = row.classList.contains('open');
       $('railIndex').querySelectorAll('.idx-row.open').forEach((r) => r.classList.remove('open'));
       if (!wasOpen) row.classList.add('open');
+    });
+
+    /* >=1024px right rail: translation switcher. Updates the selected translation
+       (used by the NEXT generation via activeTrans) and the active pill. The word
+       already on screen is unchanged; the reader taps "Receive another word" (or
+       submits again) to get it in the new translation. */
+    $('railTrans').addEventListener('click', (e) => {
+      const b = e.target.closest('.trans-pill'); if (!b) return;
+      currentTranslation = b.dataset.trans;
+      $('railTrans').querySelectorAll('.trans-pill').forEach((p) => p.classList.toggle('on', p === b));
     });
     $('startJourney').addEventListener('click', () => {
       // bridge: /journey reads these, maps the struggle to a journey, and opens Day 1
@@ -1123,11 +1193,28 @@ import RateReview from '../components/RateReview.astro';
          clipping real content */
       .today .idx-row.open .idx-breakdown { max-height: 800px; opacity: 1; }
       .today .idx-breakdown p { font-size: 12.5px; line-height: 1.6; color: var(--text2); padding: 0 2px 12px 32px; }
+      /* the application line: a distinct, gold, eyebrow-style lead-in ("For your
+         fear & anxiety tonight:") followed by the applied sentence, set apart
+         from the context paragraph above it */
+      .today .idx-breakdown p.idx-app { padding-top: 4px; }
+      .today .idx-breakdown p.idx-app b { color: var(--goldd); font-weight: 600; }
       .today .idx-divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+      /* translation switcher pills: same active language as the entry chips
+         (gold fill, forest text) so the whole app reads as one system */
+      .today .rail-trans { display: flex; gap: 8px; }
+      .today .trans-pill { flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--field); color: var(--text2); font-family: inherit; font-size: 12.5px; font-weight: 500;
+        letter-spacing: .04em; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+      .today .trans-pill:hover { border-color: var(--line2); color: var(--text); }
+      .today .trans-pill.on { background: var(--gold); color: #22382E; border-color: transparent; }
+
       .today .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--field); margin-bottom: 8px; }
       .today .recent-row:hover { background: color-mix(in srgb, var(--text) 6%, var(--field)); }
       .today .recent-row .rdot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: 0 0 auto; }
+      .today .recent-row .rmeta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
       .today .recent-row .rt { font-size: 12.5px; font-weight: 500; color: var(--text); }
+      .today .recent-row .rsub { font-size: 10.5px; color: var(--muted); }
     }
     @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
       .today .idx-breakdown { transition: none; }

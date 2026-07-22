@@ -43,7 +43,7 @@ Never passive voice. Never hedging. Never future tense.
 
 PRAYER: 3 to 5 sentences spoken directly to God in first person. Starts with "Father," or "Lord,". Ends with "In Jesus' name, Amen." Specific to the struggle. Should feel lifted from the weight they walked in carrying. Never generic. No em dashes.
 
-BREAKDOWNS: exactly one breakdown per verse returned, same order as the verses array. Each breakdown goes deeper into that specific verse (historical context, what a key original-language word actually means, who wrote it and what they were going through) and then explicitly ties that insight back to this exact struggle, not generic theology. 3 to 5 sentences. Never clinical or academic-only; always land on how this applies to the person's actual struggle right now. No em dashes.
+BREAKDOWNS: exactly one breakdown per verse returned, same order as the verses array. Each breakdown is an OBJECT with two fields, "context" and "application". "context" is 2 to 4 sentences going deeper into that specific verse: historical context, what a key original-language word actually means, who wrote it and what they were going through. "application" is exactly ONE sentence, written in second person, that takes the insight from "context" and applies it directly to this exact struggle right now, not generic theology. Do NOT begin "application" with the person's struggle name or with the words "For your"; the app prepends that lead-in itself. Write "application" as the sentence that would naturally follow a label like "For your struggle tonight:". Never clinical or academic-only. No em dashes in either field.
 
 CRISIS: If the struggle involves suicidal ideation or self-harm, lead with compassion, mention the 988 Suicide & Crisis Lifeline (call or text 988), then proceed with Scripture focused on God's presence in the darkest valley.
 
@@ -79,11 +79,15 @@ array (`isCompleteResult` in `declare-api.js`).
   "explanation": "Single paragraph of pastoral encouragement.",
   "declarations": ["Declaration 1", "Declaration 2", "Declaration 3"],
   "prayer": "Full prayer text. Starts with Father, or Lord. Ends with In Jesus' name, Amen.",
-  "breakdowns": ["Deeper context for verse 1, tied back to this exact struggle.", "...for verse 2.", "...for verse 3."]
+  "breakdowns": [
+    { "context": "Deeper context for verse 1: history, a key original-language word, who wrote it and what they faced.", "application": "One second-person sentence applying that insight to this exact struggle right now." },
+    { "context": "...for verse 2.", "application": "..." },
+    { "context": "...for verse 3.", "application": "..." }
+  ]
 }
 ```
 
-`breakdowns` is a newer field (added for the desktop Results redesign's right-rail "Breakdown" panel) — one entry per verse, same order. `isCompleteResult` does not require it, so older cached/fallback content without it still renders; the UI shows a graceful fallback for any verse missing a breakdown.
+`breakdowns` is a newer field (added for the desktop Results redesign's right-rail "Breakdown" panel). It is one object per verse, same order, each `{ "context", "application" }`: `context` is the deeper look, `application` is a single second-person sentence the UI renders under a bold "For your [struggle] [tonight/today]:" lead-in. `isCompleteResult` does not require it, so older cached/fallback content without it still renders; the UI shows a graceful fallback for any verse missing a breakdown, and tolerates a legacy plain-string breakdown by treating it as context only.
 
 ---
 
