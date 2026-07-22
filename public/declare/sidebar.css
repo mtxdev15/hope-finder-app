@@ -1,0 +1,108 @@
+/* ============================================================
+   DESKTOP SIDEBAR SHELL (redesign/desktop-web-shell)
+   >=1024px only. Mobile (<=480px bottom bar) and tablet/small-desktop
+   (481-1023px fixed top bar, both from declare.css) are UNTOUCHED.
+   At >=1024px the same <TabBar> markup reflows into a persistent left
+   sidebar instead of the top bar. Restrained on purpose: this app has
+   no thread history/projects to fill a sidebar with, so its real job
+   is permanent nav + an always-visible crisis-help link, not decoration.
+   ============================================================ */
+
+:root { --sbw: 248px; }
+html[data-sidebar="collapsed"] { --sbw: 72px; }
+
+/* Elements that only exist for the sidebar layout — hidden everywhere else */
+.sb-brand, .sb-crisis { display: none; }
+
+@media (min-width: 1024px) {
+  /* the sidebar's own brand row replaces the floating mast dot/avatar */
+  .app-shell .mast { display: none; }
+
+  body.app-shell {
+    padding-left: var(--sbw);
+    transition: padding-left var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1));
+  }
+
+  .app-shell .tabbar {
+    position: fixed; top: 0; left: 0; right: auto; bottom: 0;
+    width: var(--sbw); height: 100vh; height: 100dvh; max-width: none;
+    display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+    gap: 2px; margin: 0; padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 0; border-bottom: 0; border-right: 1px solid var(--line);
+    background: var(--screen); backdrop-filter: none; -webkit-backdrop-filter: none;
+    overflow-y: auto; overflow-x: hidden; z-index: 40;
+    transition: width var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1));
+  }
+  .app-shell .tabbar .arc { display: none; }
+
+  /* brand row: dot + wordmark + collapse toggle, pinned to the top of the list */
+  .app-shell .sb-brand {
+    display: flex; align-items: center; gap: 10px; order: -2;
+    padding: 6px 8px 18px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+  }
+  .app-shell .sb-brand .sb-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--dot); box-shadow: 0 0 12px rgba(216, 184, 95, .55); }
+  .app-shell .sb-brand .sb-word { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-shell .sb-brand .sb-collapse { flex: 0 0 auto; width: 26px; height: 26px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .2s ease, color .2s ease, transform var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1)); }
+  .app-shell .sb-brand .sb-collapse:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+  .app-shell .sb-brand .sb-collapse svg { width: 15px; height: 15px; }
+
+  /* nav rows: full-width, icon + label, in a fixed reading order regardless of DOM position */
+  .app-shell .tab {
+    flex: 0 0 auto; flex-direction: row; justify-content: flex-start; align-items: center;
+    width: 100%; gap: 13px; padding: 11px 12px; border-radius: 11px; color: var(--muted);
+    position: relative; transition: color .2s ease, background .2s ease;
+  }
+  .app-shell .tab:hover { color: var(--text); background: color-mix(in srgb, var(--text) 5%, transparent); }
+  .app-shell .tab svg { width: 19px; height: 19px; flex: 0 0 auto; }
+  .app-shell .tab .tlbl { font-size: 14px; letter-spacing: 0; text-transform: none; font-weight: 500; opacity: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-shell .tab.on { color: var(--text); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+  .app-shell .tab.on .tlbl { color: var(--goldd); }
+  .app-shell .tab.on::after { display: none; } /* drop the top-bar gold underline; the row highlight already reads as active */
+
+  /* neutralize the raised "Declare" disc so it sits as a normal row, gold-accented like the mobile center tab */
+  .app-shell .tab.center { margin: 0; }
+  .app-shell .tab.center .tdisc { width: auto; height: auto; margin: 0; padding: 0; border-radius: 0; background: none; box-shadow: none; color: var(--goldd); }
+  .app-shell .tab.center svg { width: 19px; height: 19px; }
+  .app-shell .tab.center.on .tdisc { background: none; box-shadow: none; filter: drop-shadow(0 0 6px rgba(216, 184, 95, .4)); }
+
+  /* fixed reading order: Word, Journey, Declare, Vault, then crisis link (pushed to
+     the bottom via margin-top:auto), then You/account at the very bottom */
+  .app-shell .tab-word { order: 1; }
+  .app-shell .tab-journey { order: 2; }
+  .app-shell .tab-declare { order: 3; }
+  .app-shell .tab-vault { order: 4; }
+  .app-shell .sb-crisis { order: 90; margin-top: auto; }
+  .app-shell .tab-you { order: 100; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; }
+
+  /* the always-visible crisis link — the sidebar's real reason to exist on this app */
+  .app-shell .sb-crisis {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
+    border-radius: 11px; font-size: 13.5px; color: var(--text); opacity: .88;
+    background: color-mix(in srgb, var(--gold) 7%, transparent);
+    transition: opacity .2s ease, background .2s ease;
+  }
+  .app-shell .sb-crisis:hover { opacity: 1; background: color-mix(in srgb, var(--gold) 12%, transparent); }
+  .app-shell .sb-crisis svg { width: 17px; height: 17px; flex: 0 0 auto; color: var(--gold); }
+  .app-shell .sb-crisis .sb-crisis-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* collapsed state: icon-only rail. State is set on <html data-sidebar> before
+     paint (see DeclareLayout's inline resolver) so there is no load-time flash. */
+  html[data-sidebar="collapsed"] .app-shell .sb-brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-word { display: none; }
+  html[data-sidebar="collapsed"] .app-shell .tab,
+  html[data-sidebar="collapsed"] .app-shell .sb-crisis { justify-content: center; padding-left: 0; padding-right: 0; }
+  html[data-sidebar="collapsed"] .app-shell .tab .tlbl,
+  html[data-sidebar="collapsed"] .app-shell .sb-crisis .sb-crisis-label { display: none; }
+  html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-collapse { transform: rotate(180deg); }
+
+  /* generic shared-shell clearance now that pages no longer need to clear a
+     fixed top bar — pages with a dedicated desktop pass (today.astro so far)
+     tune this themselves; this is just a safe shared default for the rest
+     until their turn in the plan. */
+  .app-shell .scroll { padding-top: 40px; }
+}

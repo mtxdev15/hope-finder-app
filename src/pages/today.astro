@@ -148,6 +148,16 @@ import RateReview from '../components/RateReview.astro';
             <button class="nscard" id="anotherWord"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span><span class="nsm"><span class="nst" data-i18n="today.nsAnotherT">Receive another word</span><span class="nsd" data-i18n="today.nsAnotherD">For whatever else is heavy</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
           </div>
         </div>
+
+        {/* Crisis help must be reachable here too, not only pre-submission — a
+            gap found during the desktop redesign audit (also always-visible in
+            the >=1024px sidebar, see TabBar.astro/sidebar.css, but this keeps
+            it one tap away at every breakpoint including mobile/tablet). */}
+        <a class="crisis results-crisis" href="/crisis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
+          <span data-i18n="today.crisisLink">In crisis? Find help now</span>
+        </a>
+
         {/* Rate & Review: bottom sentinel — IntersectionObserver shows the toast here. */}
         <div id="rrSentinel" aria-hidden="true" style="height:1px;pointer-events:none;"></div>
       </div>
@@ -722,7 +732,10 @@ import RateReview from '../components/RateReview.astro';
     .today .input textarea::-webkit-scrollbar { display: none; }
     .today .input textarea { scrollbar-width: none; }
 
-    .today .entry-input { margin-top: 28px; }
+    /* Textarea focus (DESIGN.md component spec: "gold 2px border" on focus) —
+       transparent border reserved at rest so focus never shifts layout. */
+    .today .entry-input { margin-top: 28px; border: 2px solid transparent; transition: border-color .2s ease; }
+    .today .entry-input:focus-within { border-color: var(--gold); }
     .today .entry-div { margin: 26px 0 18px; }
     .today .entry-chips { justify-content: center; }
     .today .spacer { flex: 1; min-height: 22px; }
@@ -858,6 +871,8 @@ import RateReview from '../components/RateReview.astro';
     .today .nscard .nsa { flex: 0 0 auto; color: var(--muted); display: flex; }
     .today .nscard .nsa svg { width: 16px; height: 16px; }
 
+    .today .results-crisis { margin: 6px auto 18px; opacity: .82; }
+
     /* share chooser sheet (Results.html .sps) */
     .today .sps-scrim { position: fixed; inset: 0; z-index: 64; background: rgba(6, 11, 8, .55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
     .today .sps-scrim.show { opacity: 1; pointer-events: auto; }
@@ -918,19 +933,30 @@ import RateReview from '../components/RateReview.astro';
       .today .journey { max-width: 720px; margin: 0 auto; width: 100%; }
       .today .foot { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 24px; }
       .today .nextsteps { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 96px; }
+      .today .results-crisis { max-width: 720px; }
       .today .botglow { bottom: 120px; }
       .today .toast { bottom: 60px; }
     }
     @media (min-width: 1100px) {
       .today .in { max-width: 660px; padding-top: 104px; }
       .today .entryhero .heading { font-size: 44px; }
-      .today .head, .today .intro, .today .journey, .today .foot, .today .nextsteps { max-width: 760px; }
+      .today .head, .today .intro, .today .journey, .today .foot, .today .nextsteps, .today .results-crisis { max-width: 760px; }
     }
     @media (min-width: 481px) {
       .today .startjourney { max-width: 720px; margin-left: auto; margin-right: auto; }
     }
     @media (min-width: 1100px) {
       .today .startjourney { max-width: 760px; }
+    }
+
+    /* ===== >=1024px: the sidebar shell (sidebar.css) replaces the fixed top
+       bar, so the top-clearance padding tuned for a 60px top bar (84-104px
+       above) is no longer needed — just calm, generous breathing room instead.
+       Kept last among the padding-top rules so it wins at every width the
+       sidebar is present, including >=1100px. ===== */
+    @media (min-width: 1024px) {
+      .today .in { padding-top: 64px; }
+      .today .head { padding-top: 56px; }
     }
 
     /* ===== DESKTOP (≥720px): sheets → centered modals (bottom sheets are a mobile

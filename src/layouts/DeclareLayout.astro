@@ -45,6 +45,9 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <!-- resolve the saved/system theme synchronously, before paint, so a returning
      light-mode user never sees a dark->light jump -->
 <script is:inline>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"dark";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<!-- resolve the saved desktop-sidebar collapse state synchronously, before paint,
+     so the >=1024px sidebar never flashes open then snaps collapsed (or vice versa) -->
+<script is:inline>/*__declSidebar*/(function(){try{var c=localStorage.getItem("declare-sidebar-collapsed")==="1";document.documentElement.setAttribute("data-sidebar",c?"collapsed":"expanded");}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0c130f" />
 
@@ -81,6 +84,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <link rel="stylesheet" href="/declare/motion.css" />
 <link rel="stylesheet" href="/declare/route-loader.css" />
 <link rel="stylesheet" href="/declare/i18n-guards.css?v=3.16.2" />
+<link rel="stylesheet" href="/declare/sidebar.css?v=1" />
 </head>
 <body class="app-shell">
 {GTM_ID && (
@@ -105,6 +109,7 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
   <script is:inline src="/declare/theme.js?v=3.16.3" defer></script>
   <script is:inline src="/declare/motion.js?v=3.16.6" defer></script>
   <script is:inline src="/declare/route-loader.js?v=3.16.5" defer></script>
+  <script is:inline src="/declare/sidebar.js?v=1" defer></script>
 
   <!-- Greet the signed-in user by name in the nav (the "You" tab → first name),
        so the app confirms who you are, like the welcome header does. -->
