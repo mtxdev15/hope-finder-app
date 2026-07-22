@@ -113,4 +113,17 @@ export default defineSchema({
   giftEvents: defineTable({
     sessionId: v.string(),
   }).index("by_session", ["sessionId"]),
+
+  // Root-Pattern Insight's source data: one row per "Receive the Word" request
+  // a signed-in user makes, logged regardless of whether they save the result
+  // to their Vault. Deliberately minimal (no verse/declaration/prayer text) —
+  // this is the lightest, least-sensitive record of a genuinely sensitive
+  // history (fear, shame, grief) that still lets the insight generator see
+  // patterns over time. Append-only, matching giftHistory's shape, not
+  // vaultItems' "saved content" shape.
+  struggleHistory: defineTable({
+    userId: v.string(),
+    struggle: v.string(),
+    askedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

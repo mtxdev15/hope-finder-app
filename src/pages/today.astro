@@ -253,7 +253,7 @@ import RateReview from '../components/RateReview.astro';
     import { track } from '../app/declare/analytics.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { isToastEligible, noteDismissed, noteSubmitted, recordWordReceived } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit } from '../app/declare/convex-data.js';
+    import { reviewsSubmit, logStruggle } from '../app/declare/convex-data.js';
     import Lenis from 'lenis';
 
     // Rate & Review: the gated results toast. RateReview.astro is mounted in this
@@ -491,6 +491,11 @@ import RateReview from '../components/RateReview.astro';
       content = ai;
       currentId = wordId(activeStruggle, ai.verses);
       recordWordReceived(); // count toward the rate-prompt gate (>= 3 Words received)
+      // fire-and-forget: Root-Pattern Insight's source data. Guests and
+      // unconfigured environments never reach the mutation (logStruggle
+      // fails soft, same as every other convex-data.js helper); never
+      // awaited so this can't slow down the response the user is reading.
+      logStruggle(activeStruggle, Date.now());
       $('forLabel').textContent = tI('today.forPrefix','For ') + struggleLabel(activeStruggle);
 
       const v1 = ai.verses[0];

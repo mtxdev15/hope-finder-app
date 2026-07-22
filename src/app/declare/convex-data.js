@@ -97,3 +97,11 @@ export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.
 
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
+
+/* ── struggle history (Root-Pattern Insight's source data) — fire-and-forget
+   log call from today.astro right after a successful response; guests and
+   unconfigured environments never reach the mutation at all, since ensure()
+   returns false first, same fail-soft shape as every helper above. ── */
+export async function logStruggle(struggle, askedAt) { return (await ensure()) ? runMutation(apiRef.struggleHistory.log, { struggle, askedAt }) : null; }
+export async function struggleHistorySummary() { return (await ensure()) ? runQuery(apiRef.struggleHistory.summary, {}) : null; }
+export async function struggleHistoryClearMine() { return (await ensure()) ? runMutation(apiRef.struggleHistory.clearMine, {}) : null; }
