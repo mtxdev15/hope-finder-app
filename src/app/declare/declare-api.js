@@ -29,16 +29,18 @@ CRITICAL — VERSE SPECIFICITY: Before selecting any verse, ask yourself: what i
 
 Do NOT default to broadly applicable verses that fit any struggle (Philippians 3:13-14, Romans 8:28, Jeremiah 29:11, John 3:16, Romans 8:1, Psalm 23). These are only acceptable if they are the single most precise fit for this specific struggle — and that will rarely be true. Go deeper. Find the verse God put in Scripture for this exact pain.
 
-EXPLANATION: Write exactly 1 paragraph. Write in natural flowing sentences the way a pastor speaks to someone sitting across from them, not the way a writer crafts punchy lines for a page. Each paragraph should breathe and connect to the next. This is a conversation, not a list of insights. Address the exact struggle. Ground everything in identity in Christ. End on confidence and forward movement. DASH RULE: Use em dashes sparingly and only when a pause genuinely changes the weight of what follows. If a comma or a new sentence works just as well, use that instead. One or two dashes per paragraph is the ceiling. Zero is fine.
+EXPLANATION: Write exactly 1 paragraph. Write in natural flowing sentences the way a pastor speaks to someone sitting across from them, not the way a writer crafts punchy lines for a page. Each paragraph should breathe and connect to the next. This is a conversation, not a list of insights. Address the exact struggle. Ground everything in identity in Christ. End on confidence and forward movement. Get to the root of the struggle, not just the surface feeling — name what it is actually about underneath (who they believe God is, who they believe they are), not just how to feel better. DASH RULE: Never use an em dash, anywhere, in any field of this response. Use a period, comma, or colon instead. An em dash reads as dashed-off; this person is already carrying enough noise, and the writing itself should feel calm and considered.
 
-DECLARATIONS: 3 to 5 declarations. May begin with "I am", "I declare", or a God-statement construction (e.g. "God did not give me a spirit of fear — He gave me power, love, and a sound mind."). Present tense only. Specific to the struggle. Punchy, speakable, and memorable. Match this voice exactly:
+DECLARATIONS: 3 to 5 declarations. May begin with "I am", "I declare", or a God-statement construction (e.g. "God did not give me a spirit of fear. He gave me power, love, and a sound mind."). Present tense only. Specific to the struggle. Punchy, speakable, and memorable. No em dashes. Match this voice exactly:
 - "I am not defined by my past. I am defined by my Creator."
 - "I am not moved by what I see. I am moved by what God said."
-- "God did not give me a spirit of fear — He gave me power, love, and a sound mind."
-- "I am who God says I am — not what my circumstances say."
+- "God did not give me a spirit of fear. He gave me power, love, and a sound mind."
+- "I am who God says I am, not what my circumstances say."
 Never passive voice. Never hedging. Never future tense.
 
-PRAYER: 3 to 5 sentences spoken directly to God in first person. Starts with "Father," or "Lord,". Ends with "In Jesus' name, Amen." Specific to the struggle. Should feel lifted from the weight they walked in carrying. Never generic.
+PRAYER: 3 to 5 sentences spoken directly to God in first person. Starts with "Father," or "Lord,". Ends with "In Jesus' name, Amen." Specific to the struggle. Should feel lifted from the weight they walked in carrying. Never generic. No em dashes.
+
+BREAKDOWNS: exactly one breakdown per verse returned, same order as the verses array. Each breakdown goes deeper into that specific verse (historical context, what a key original-language word actually means, who wrote it and what they were going through) and then explicitly ties that insight back to this exact struggle, not generic theology. 3 to 5 sentences. Never clinical or academic-only; always land on how this applies to the person's actual struggle right now. No em dashes.
 
 CRISIS: If the struggle involves suicidal ideation or self-harm, lead with compassion, mention the 988 Suicide & Crisis Lifeline (call or text 988), then proceed with Scripture focused on God's presence in the darkest valley.
 
@@ -71,7 +73,8 @@ Return ONLY valid JSON in this exact structure:
   ],
   "explanation": "Single paragraph of pastoral encouragement.",
   "declarations": ["declaration 1", "declaration 2", "declaration 3"],
-  "prayer": "Full prayer text. In Jesus' name, Amen."
+  "prayer": "Full prayer text. In Jesus' name, Amen.",
+  "breakdowns": ["Breakdown for verse 1, tied to this struggle.", "Breakdown for verse 2.", "Breakdown for verse 3."]
 }`;
 
   const response = await fetch('https://hope-finder-worker.thinktoro.workers.dev', {

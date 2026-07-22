@@ -11,8 +11,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 import RateReview from '../components/RateReview.astro';
 ---
 <DeclareLayout
-  title="Declare — Today"
-  description="Name your struggle — anxiety, fear, shame, grief — and receive Bible verses, declarations, and a prayer for this exact moment. Free, English and Spanish."
+  title="Declare: Today"
+  description="Name your struggle, anxiety, fear, shame, grief, and receive Bible verses, declarations, and a prayer for this exact moment. Free, English and Spanish."
   activeTab="declare"
 >
   <main class="today">
@@ -59,6 +59,42 @@ import RateReview from '../components/RateReview.astro';
     <div class="results" id="resultsView" hidden>
       <div class="botglow" aria-hidden="true"></div>
 
+      {/* >=1024px only (results-grid CSS below) — a quiet wayfinding rail:
+          the same actions already reachable in .nextsteps/.results-crisis
+          below, just always visible instead of requiring a scroll. Hidden
+          at every narrower width; .nextsteps/.results-crisis stay as the
+          only copy at those widths. */}
+      <aside class="results-rail results-rail-left" aria-hidden="true">
+        <a class="rail-action" id="railReadPassage" href="/word">
+          <span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span>
+          <span data-i18n="today.nsReadT">Read the full passage</span>
+        </a>
+        <a class="rail-action" href="/vault">
+          <span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><path d="M8 5V3.5M16 5V3.5M12 13.2v3"></path><circle cx="12" cy="12.4" r="1.3"></circle></svg></span>
+          <span data-i18n="today.nsReturnT">Return to it later</span>
+        </a>
+        <button class="rail-action" id="railAnotherWord" type="button">
+          <span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span>
+          <span data-i18n="today.nsAnotherT">Receive another word</span>
+        </button>
+        <a class="rail-crisis" href="/crisis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
+          <span data-i18n="today.crisisLink">In crisis? Find help now</span>
+        </a>
+      </aside>
+
+      {/* >=1024px only — optional depth, never required reading: a verse
+          index with an expandable "Breakdown" (deep context tied back to
+          the struggle, from the AI's `breakdowns` field) and, once there's
+          real data for it, a quiet "Your Recent Words" list. */}
+      <aside class="results-rail results-rail-right" aria-hidden="true">
+        <div class="rail-title" data-i18n="today.inThisWord">In this Word</div>
+        <div id="railIndex"></div>
+        <div class="idx-divider" id="railRecentDivider" hidden></div>
+        <div class="rail-title" id="railRecentTitle" hidden data-i18n="today.recentWords">Your Recent Words</div>
+        <div id="railRecent"></div>
+      </aside>
+
       <div class="head">
         <button class="iconbtn" id="resultsBack" aria-label="Back" data-i18n-aria="today.back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
@@ -78,7 +114,7 @@ import RateReview from '../components/RateReview.astro';
             <span class="node" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span>
             <div class="stnhead"><span class="lbl" data-i18n="today.lblScripture">Scripture</span></div>
             <div class="serif verse" id="verse1"></div>
-            <div class="ref" id="ref1"></div>
+            <a class="ref ref-link" id="ref1"></a>
             <div id="receives"></div>
           </div>
 
@@ -132,9 +168,9 @@ import RateReview from '../components/RateReview.astro';
 
         <div class="startjourney m-rise">
           <div class="sj-glow" aria-hidden="true"></div>
-          <div class="sj-tag" data-i18n="today.sjTag">Be transplanted</div>
-          <div class="sj-h" data-i18n="today.sjH">Don&rsquo;t just declare it today</div>
-          <div class="sj-p"><span data-i18n="today.sjP1">Be rooted in it. Start a 5-day journey and let this truth grow real where </span><b id="sjStruggle">fear &amp; anxiety</b><span data-i18n="today.sjP2"> has been &mdash; one declaration at a time.</span></div>
+          <div class="sj-tag" data-i18n="today.sjTag">Five days to free</div>
+          <div class="sj-h" data-i18n="today.sjH">Don&rsquo;t just feel better. Be made free.</div>
+          <div class="sj-p"><span data-i18n="today.sjP1">One Word can steady you for </span><span class="tod-word" id="sjTod">tonight</span><span data-i18n="today.sjP2">. But real change rarely comes from understanding a truth once. It comes from meeting God in it again and again, until you believe what you are declaring instead of just saying it. This 5-Day Journey walks you deeper into </span><b id="sjStruggle">fear &amp; anxiety</b><span data-i18n="today.sjP3">, not to manage it, but to replace what is underneath it: what you believe about yourself, and what you believe about God.</span></div>
           <button class="btn btn-primary btn-full" id="startJourney"><span data-i18n="today.startJourney">Start a 5-Day Journey</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;margin-left:7px;vertical-align:-3px"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
           </button>
@@ -166,7 +202,7 @@ import RateReview from '../components/RateReview.astro';
         <div class="rsoon">
           <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></div>
           <div class="rt2" data-i18n="today.errTitle">Something interrupted this</div>
-          <div class="rd" data-i18n="today.errDesc">The Word is still here &mdash; let&rsquo;s try again.</div>
+          <div class="rd" data-i18n="today.errDesc">The Word is still here. Let&rsquo;s try again.</div>
           <div class="err-actions">
             <button class="btn btn-primary" id="tryAgain" data-i18n="today.tryAgain">Try again</button>
             <button class="btn btn-ghost" id="errBack" data-i18n="today.goBack">Go back</button>
@@ -249,7 +285,7 @@ import RateReview from '../components/RateReview.astro';
   <noscript>
     <section>
       <h2>Receive God's Word for what you're carrying</h2>
-      <p>Declare and Believe gives Christians Scripture for the exact struggle they name — anxiety, fear, shame, grief, loneliness, doubt, burnout, and more. You describe what's weighing on you and receive Bible verses, a short faith-rooted reflection, "I am" declarations to speak aloud, and a personal prayer. Free, ad-free, in English and Spanish.</p>
+      <p>Declare and Believe gives Christians Scripture for the exact struggle they name: anxiety, fear, shame, grief, loneliness, doubt, burnout, and more. You describe what's weighing on you and receive Bible verses, a short faith-rooted reflection, "I am" declarations to speak aloud, and a personal prayer. Free, ad-free, in English and Spanish.</p>
       <p>Explore <a href="/struggles">Scripture for every struggle</a>, read the Bible in <a href="/word/">seven translations</a>, or walk a <a href="/journey/">free 5-day journey</a> out of one battle. This experience requires JavaScript.</p>
     </section>
   </noscript>
@@ -257,7 +293,7 @@ import RateReview from '../components/RateReview.astro';
 
   <script>
     import { generateContent, isCompleteResult } from '../app/declare/declare-api.js';
-    import { saveItem, removeItem, isSaved, wordId } from '../app/declare/vault-store.js';
+    import { saveItem, removeItem, isSaved, wordId, listItems } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     import { track } from '../app/declare/analytics.js';
@@ -506,18 +542,22 @@ import RateReview from '../components/RateReview.astro';
       const v1 = ai.verses[0];
       $('verse1').innerHTML = '&ldquo;' + esc(v1.t || v1.text) + '&rdquo;';
       $('ref1').textContent = v1.ref + ' · ' + activeTrans();
+      $('ref1').href = passageLink(v1.ref);
 
       // further verses: "tap to receive this verse" reveals (design .receive)
       $('receives').innerHTML = ai.verses.slice(1).map((v, i) => (
-        '<button class="receive" aria-expanded="false" data-i="' + i + '">'
-        + '<span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>'
-        + '<span class="rmid">'
-        +   '<span class="rprompt"><b>' + esc(v.ref) + '</b> &mdash; <span class="serif rp-i">' + tI('today.tapReceive','tap to receive this verse') + '</span></span>'
-        +   '<span class="reveal"><span class="reveal-in">'
-        +     '<span class="serif rverse">&ldquo;' + esc(v.text) + '&rdquo;</span>'
-        +     '<span class="rrow"><span class="rref">' + esc(v.ref) + ' &middot; ' + activeTrans() + '</span></span>'
-        +   '</span></span>'
-        + '</span></button>'
+        '<div class="receive" data-i="' + i + '">'
+        + '<button class="rtoggle" aria-expanded="false">'
+        +   '<span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>'
+        +   '<span class="rmid">'
+        +     '<span class="rprompt"><b>' + esc(v.ref) + '</b> &middot; <span class="serif rp-i">' + tI('today.tapReceive','tap to receive this verse') + '</span></span>'
+        +   '</span>'
+        + '</button>'
+        + '<span class="reveal"><span class="reveal-in">'
+        +   '<span class="serif rverse">&ldquo;' + esc(v.text) + '&rdquo;</span>'
+        +   '<span class="rrow"><a class="rref ref-link" href="' + passageLink(v.ref) + '">' + esc(v.ref) + ' &middot; ' + activeTrans() + '</a></span>'
+        + '</span></span>'
+        + '</div>'
       )).join('');
 
       const ex = splitExplanation(ai.explanation);
@@ -539,7 +579,47 @@ import RateReview from '../components/RateReview.astro';
       $('amen').textContent = pr.amen || tI('today.amen','Amen.');
 
       $('readPassage').href = passageLink(v1.ref);
+      $('railReadPassage').href = passageLink(v1.ref);
       $('sjStruggle').textContent = struggleLower(activeStruggle);
+      // time-of-day copy: same 6pm/6am boundary the theme auto-resolver uses
+      // in DeclareLayout.astro, so the Journey card's tone and the app's
+      // visual theme flip at the same moment. "Tonight" only shows up when
+      // it is actually night for this reader.
+      const hr = new Date().getHours();
+      $('sjTod').textContent = (hr < 6 || hr >= 18) ? tI('today.tonight', 'tonight') : tI('today.today', 'today');
+
+      // >=1024px right rail: verse index + expandable Breakdown. `ai.breakdowns`
+      // is optional (older cached/fallback content may not have it) so every
+      // row falls back gracefully instead of breaking.
+      const breakdowns = Array.isArray(ai.breakdowns) ? ai.breakdowns : [];
+      $('railIndex').innerHTML = ai.verses.map((v, i) => (
+        '<div class="idx-row" data-i="' + i + '">'
+        + '<button class="idx-top" type="button">'
+        +   '<span class="idx-n">' + (i + 1) + '</span>'
+        +   '<span><span class="idx-ref">' + esc(v.ref) + '</span><span class="idx-go">' + tI('today.breakdown', 'Breakdown') + '</span></span>'
+        + '</button>'
+        + '<div class="idx-breakdown"><div class="in"><p>' + esc(breakdowns[i] || tI('today.noBreakdown', 'A deeper look at this verse is not available for this word.')) + '</p></div></div>'
+        + '</div>'
+      )).join('');
+
+      // >=1024px right rail: "Your Recent Words" — other struggles already
+      // saved to the Vault, most recent first, excluding this one. (Device-
+      // local Vault data today; once struggleHistory ships this can widen to
+      // every struggle asked, not just the ones someone chose to save.)
+      try {
+        const seen = new Set(); const recent = [];
+        for (const it of listItems()) {
+          if (!it.struggle || it.struggle === activeStruggle || seen.has(it.struggle)) continue;
+          seen.add(it.struggle); recent.push(it);
+          if (recent.length >= 3) break;
+        }
+        $('railRecentDivider').hidden = recent.length === 0;
+        $('railRecentTitle').hidden = recent.length === 0;
+        $('railRecent').innerHTML = recent.map((it) => (
+          '<a class="recent-row" href="/today/?struggle=' + encodeURIComponent(it.struggle) + '"><span class="rdot"></span><span class="rt">' + esc(struggleLabel(it.struggle)) + '</span></a>'
+        )).join('');
+      } catch (e) { /* Vault unavailable — rail just shows the verse index */ }
+
       updateSaveUI();
       resultsBody.hidden = false;
       // replay the design's cascade (motion.js): clear past reveals, then stagger in
@@ -548,11 +628,14 @@ import RateReview from '../components/RateReview.astro';
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
-    /* reveals + read-more + play (delegation) */
+    /* reveals + read-more + play (delegation) — only the .rtoggle button
+       opens/closes the card; clicking the revealed verse-reference link
+       inside it must navigate, not toggle it shut again. */
     $('receives').addEventListener('click', (e) => {
-      const r = e.target.closest('.receive'); if (!r) return;
-      const open = r.classList.toggle('open');
-      r.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const btn = e.target.closest('.rtoggle'); if (!btn) return;
+      const card = btn.closest('.receive');
+      const open = card.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
     $('more').addEventListener('click', () => {
       const open = $('mind').classList.toggle('open');
@@ -664,9 +747,21 @@ import RateReview from '../components/RateReview.astro';
       loadShareStack(); // warm the studio while the user chooses
     });
 
-    /* back / reset */
+    /* back / reset — also the >=1024px left rail's "Receive another word",
+       same action, different entry point */
+    function resetToEntry() { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); }
     $('resultsBack').addEventListener('click', () => { stopSpeak(); showView(entryView); });
-    $('anotherWord').addEventListener('click', () => { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); });
+    $('anotherWord').addEventListener('click', resetToEntry);
+    $('railAnotherWord').addEventListener('click', resetToEntry);
+
+    /* >=1024px right rail: expand/collapse a verse's Breakdown, one open at a time */
+    $('railIndex').addEventListener('click', (e) => {
+      const btn = e.target.closest('.idx-top'); if (!btn) return;
+      const row = btn.closest('.idx-row');
+      const wasOpen = row.classList.contains('open');
+      $('railIndex').querySelectorAll('.idx-row.open').forEach((r) => r.classList.remove('open'));
+      if (!wasOpen) row.classList.add('open');
+    });
     $('startJourney').addEventListener('click', () => {
       // bridge: /journey reads these, maps the struggle to a journey, and opens Day 1
       try {
@@ -773,6 +868,9 @@ import RateReview from '../components/RateReview.astro';
 
     /* ===== RESULTS (Results.html) ===== */
     .today .results { position: relative; z-index: 1; padding-bottom: 120px; }
+    /* the two rails only exist for the >=1024px layout below; hidden by
+       default so they never render inline on mobile/tablet */
+    .today .results-rail { display: none; }
     .today .botglow { position: absolute; bottom: 64px; left: 0; right: 0; height: 360px; z-index: 0; pointer-events: none;
       background: radial-gradient(120% 78% at 50% 112%, var(--botglow), transparent 58%); }
     .today .head { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px 4px; color: var(--text); }
@@ -797,10 +895,15 @@ import RateReview from '../components/RateReview.astro';
     .today .node svg { width: 15px; height: 15px; }
     .today .stnhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
     .today .verse { font-family: 'Cormorant Garamond', serif; font-size: 27px; line-height: 1.34; color: var(--text); margin-top: 12px; }
-    .today .ref { font-size: 12px; letter-spacing: .05em; color: var(--goldd); margin-top: 11px; font-weight: 500; }
+    .today .ref { display: block; font-size: 12px; letter-spacing: .05em; color: var(--goldd); margin-top: 11px; font-weight: 500; width: fit-content; }
 
-    .today .receive { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 15px 16px; background: var(--receive);
-      border-radius: 14px; border: 1px solid var(--line); box-shadow: var(--card-shadow); cursor: pointer; width: 100%; text-align: left; font-family: inherit; }
+    /* .receive is the card container (block); .rtoggle is the actual clickable
+       flex row inside it (icon + prompt). Split this way so the reveal's
+       verse-reference link can be a real anchor. An anchor can never nest
+       inside a button, which the single-element version used to be. */
+    .today .receive { display: block; margin-top: 18px; padding: 15px 16px; background: var(--receive);
+      border-radius: 14px; border: 1px solid var(--line); box-shadow: var(--card-shadow); width: 100%; text-align: left; font-family: inherit; }
+    .today .receive .rtoggle { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; font-family: inherit; text-align: left; }
     .today .receive .pl { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--gold); display: flex;
       align-items: center; justify-content: center; color: var(--goldd); box-shadow: 0 0 14px rgba(216, 184, 95, .4); transition: transform .35s cubic-bezier(.2, .7, .2, 1); }
     .today .receive .pl svg { width: 14px; height: 14px; }
@@ -814,6 +917,8 @@ import RateReview from '../components/RateReview.astro';
     .today .receive .reveal-in { overflow: hidden; min-height: 0; display: block; }
     .today .receive .rverse { font-family: 'Cormorant Garamond', serif; font-size: 19px; line-height: 1.4; color: var(--text); display: block; }
     .today .receive .rrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+    .today .rref.ref-link, .today .ref.ref-link { cursor: pointer; border-bottom: 1px solid transparent; transition: border-color .15s ease; }
+    .today .rref.ref-link:hover, .today .ref.ref-link:hover { border-bottom-color: var(--goldd); }
     .today .receive .rref { font-size: 11px; letter-spacing: .06em; color: var(--goldd); font-weight: 500; }
 
     .today .body { font-size: 14.5px; line-height: 1.66; color: var(--text2); margin-top: 13px; }
@@ -957,6 +1062,51 @@ import RateReview from '../components/RateReview.astro';
     @media (min-width: 1024px) {
       .today .in { padding-top: 64px; }
       .today .head { padding-top: 56px; }
+    }
+
+    /* ===== >=1024px: two flanking rails around the results reading column.
+       Left rail is wayfinding only (the same actions already reachable at
+       the bottom of the page, just always visible instead of requiring a
+       scroll) — .nextsteps/.results-crisis are hidden at this width since
+       the rail supersedes them. Right rail is optional depth (per-verse
+       Breakdown + Recent Words), never required reading. The center column
+       is untouched content; it just gets recentered by the grid instead of
+       the page's own margin:auto. Kept last so it wins the .head/.results-*
+       max-width contests declared earlier in this stylesheet. ===== */
+    @media (min-width: 1024px) {
+      .today .results { display: grid; grid-template-columns: 260px minmax(0, 1fr) 280px; align-items: start; gap: 40px; max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+      .today .results-rail { display: block; grid-row: 1 / -1; position: sticky; top: 32px; padding-top: 56px; }
+      .today .results-rail-left { grid-column: 1; }
+      .today .results-rail-right { grid-column: 3; }
+      .today .results > .head, .today .results > #resultsBody, .today .results > #resultsError { grid-column: 2; }
+      .today .nextsteps, .today .results-crisis { display: none; }
+
+      .today .rail-title { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 12px; }
+      .today .rail-action { display: flex; align-items: center; gap: 12px; padding: 11px 6px; border-radius: 10px; color: var(--text2); font-size: 14px; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; font-family: inherit; margin-bottom: 2px; }
+      .today .rail-action:hover { background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--text); }
+      .today .rail-action .nsi { width: 28px; height: 28px; border-radius: 8px; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); flex: 0 0 auto; }
+      .today .rail-action .nsi svg { width: 13px; height: 13px; }
+      .today .rail-crisis { margin-top: 26px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text); opacity: .85; }
+      .today .rail-crisis svg { width: 15px; height: 15px; color: var(--gold); flex: 0 0 auto; }
+
+      .today .idx-row { padding: 4px 0; }
+      .today .idx-top { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; font-family: inherit; padding: 8px 6px; border-radius: 10px; }
+      .today .idx-top:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+      .today .idx-n { font-family: 'Cormorant Garamond', serif; color: var(--goldd); font-size: 15px; flex: 0 0 auto; width: 16px; }
+      .today .idx-ref { font-size: 12.5px; font-weight: 500; color: var(--text); display: block; }
+      .today .idx-go { font-size: 10.5px; color: var(--muted); margin-top: 1px; display: block; }
+      .today .idx-breakdown { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .35s ease, opacity .3s ease; margin-left: 26px; }
+      .today .idx-row.open .idx-breakdown { grid-template-rows: 1fr; opacity: 1; margin-top: 6px; }
+      .today .idx-breakdown .in { overflow: hidden; min-height: 0; }
+      .today .idx-breakdown p { font-size: 12.5px; line-height: 1.6; color: var(--text2); padding: 2px 2px 12px; }
+      .today .idx-divider { height: 1px; background: var(--line); margin: 16px 0; }
+      .today .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--field); margin-bottom: 8px; }
+      .today .recent-row:hover { background: color-mix(in srgb, var(--text) 6%, var(--field)); }
+      .today .recent-row .rdot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: 0 0 auto; }
+      .today .recent-row .rt { font-size: 12.5px; font-weight: 500; color: var(--text); }
+    }
+    @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+      .today .idx-breakdown { transition: none; }
     }
 
     /* ===== DESKTOP (≥720px): sheets → centered modals (bottom sheets are a mobile

@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Christians ages 18–45 who are struggling silently — fear, shame, broken identity, loneliness,
+Christians ages 18–45 who are struggling silently: fear, shame, broken identity, loneliness,
 burnout, doubt. The archetypal user arrives at 2–4am on their phone at their lowest point.
 Secondary users: morning devotional readers, Bible study leaders, parents guiding teens,
 people in recovery. All share one thread: they know God exists but can't find His voice
@@ -15,21 +15,38 @@ for their specific pain right now.
 ## Product Purpose
 
 Declare & Believe is a faith-based mind renewal tool built on Romans 12:2. A user describes
-their struggle — by selecting a chip or writing it out — and receives: three targeted Bible
+their struggle, by selecting a chip or writing it out, and receives: three targeted Bible
 verses (in their chosen translation), a pastoral explanation of how Scripture speaks to that
 pain, 3–5 personalized declarations rooted in Scripture, and a prayer they can speak aloud.
 
 Success looks like: a person leaves the interaction knowing who they are in Christ. Not just
-informed — transformed. Every word choice, animation, and color exists to serve that moment.
+informed. Transformed. Every word choice, animation, and color exists to serve that moment.
 
 ## Brand Personality
 
 Pastoral · Grounded · Tender
 
-The voice is a trusted friend who knows the Bible cold and meets you where you are — no
+The voice is a trusted friend who knows the Bible cold and meets you where you are: no
 judgment, all truth. Never preachy. Never therapeutic in the secular sense. Never shallow.
 Speaks with the quiet authority of someone who has been in the dark too and found the Word
 to be a lamp.
+
+## Writing Rules
+
+**No em-dashes, anywhere, in any copy.** Not in Mindset explanations, declarations, prayers,
+verse breakdowns, marketing copy, or UI labels. Rephrase with a period, comma, or colon
+instead. An em-dash reads as dashed-off; this app is speaking to someone already carrying
+enough noise, and the writing itself should feel calm and considered, never rushed. (En
+dashes inside a verse range like "4:6–7" are a different, purely typographic thing and are
+fine to keep.)
+
+**Get to the root, not just the symptom.** This app exists to get underneath what's weighing
+on someone, not to manage it or soothe it on the surface. Mindset copy, verse breakdowns,
+and Journey copy should name what the struggle is actually about at a spiritual level, who
+the person believes God is, who they believe they are, not stop at surface comfort ("you'll
+feel better"). Deep over easy. Human over polished. Specific over generic (this is the same
+instinct as the existing "Specificity over comfort" design principle, applied to the words
+themselves, not just which verses get chosen).
 
 ## Anti-references
 
