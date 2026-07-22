@@ -95,6 +95,12 @@ import RateReview from '../components/RateReview.astro';
         <div id="railRecent"></div>
       </aside>
 
+      {/* everything between the two rails is ONE grid cell (results-main),
+          so the grid only ever has a single row across all three columns —
+          no row-spanning between the rails and this content, which is what
+          was causing the huge vertical gap between .head and #resultsBody
+          (a spanning item's minimum-size resolution was inflating row 1). */}
+      <div class="results-main">
       <div class="head">
         <button class="iconbtn" id="resultsBack" aria-label="Back" data-i18n-aria="today.back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
@@ -209,6 +215,7 @@ import RateReview from '../components/RateReview.astro';
           </div>
         </div>
       </div>
+      </div><!-- /results-main -->
     </div>
 
     {/* ============ More sheet (design: Today.html, verbatim) ============ */}
@@ -1074,11 +1081,14 @@ import RateReview from '../components/RateReview.astro';
        the page's own margin:auto. Kept last so it wins the .head/.results-*
        max-width contests declared earlier in this stylesheet. ===== */
     @media (min-width: 1024px) {
+      /* Exactly 3 direct children now (rail-left, results-main, rail-right),
+         side by side in a single row — no row-spanning, so there is no
+         track-sizing ambiguity between the rails and the center column. */
       .today .results { display: grid; grid-template-columns: 260px minmax(0, 1fr) 280px; align-items: start; gap: 40px; max-width: 1400px; margin: 0 auto; padding: 0 32px; }
-      .today .results-rail { display: block; grid-row: 1 / -1; position: sticky; top: 32px; padding-top: 56px; }
+      .today .results-rail { display: block; position: sticky; top: 32px; padding-top: 56px; align-self: start; }
       .today .results-rail-left { grid-column: 1; }
       .today .results-rail-right { grid-column: 3; }
-      .today .results > .head, .today .results > #resultsBody, .today .results > #resultsError { grid-column: 2; }
+      .today .results-main { grid-column: 2; min-width: 0; }
       .today .nextsteps, .today .results-crisis { display: none; }
 
       .today .rail-title { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 12px; }
@@ -1089,16 +1099,17 @@ import RateReview from '../components/RateReview.astro';
       .today .rail-crisis { margin-top: 26px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text); opacity: .85; }
       .today .rail-crisis svg { width: 15px; height: 15px; color: var(--gold); flex: 0 0 auto; }
 
-      .today .idx-row { padding: 4px 0; }
-      .today .idx-top { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; font-family: inherit; padding: 8px 6px; border-radius: 10px; }
+      .today .idx-row { background: var(--field); border: 1px solid var(--line); border-radius: 13px; padding: 3px; margin-bottom: 9px; transition: border-color .2s ease; }
+      .today .idx-row.open { border-color: var(--line2); }
+      .today .idx-top { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; font-family: inherit; padding: 11px 10px; border-radius: 10px; }
       .today .idx-top:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
-      .today .idx-n { font-family: 'Cormorant Garamond', serif; color: var(--goldd); font-size: 15px; flex: 0 0 auto; width: 16px; }
+      .today .idx-n { font-family: 'Cormorant Garamond', serif; color: var(--goldd); font-size: 16px; flex: 0 0 auto; width: 16px; }
       .today .idx-ref { font-size: 12.5px; font-weight: 500; color: var(--text); display: block; }
-      .today .idx-go { font-size: 10.5px; color: var(--muted); margin-top: 1px; display: block; }
-      .today .idx-breakdown { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .35s ease, opacity .3s ease; margin-left: 26px; }
-      .today .idx-row.open .idx-breakdown { grid-template-rows: 1fr; opacity: 1; margin-top: 6px; }
+      .today .idx-go { font-size: 10.5px; color: var(--goldd); margin-top: 2px; display: block; }
+      .today .idx-breakdown { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .35s ease, opacity .3s ease; margin: 0 10px; }
+      .today .idx-row.open .idx-breakdown { grid-template-rows: 1fr; opacity: 1; }
       .today .idx-breakdown .in { overflow: hidden; min-height: 0; }
-      .today .idx-breakdown p { font-size: 12.5px; line-height: 1.6; color: var(--text2); padding: 2px 2px 12px; }
+      .today .idx-breakdown p { font-size: 12.5px; line-height: 1.6; color: var(--text2); padding: 0 2px 12px 32px; }
       .today .idx-divider { height: 1px; background: var(--line); margin: 16px 0; }
       .today .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--field); margin-bottom: 8px; }
       .today .recent-row:hover { background: color-mix(in srgb, var(--text) 6%, var(--field)); }
