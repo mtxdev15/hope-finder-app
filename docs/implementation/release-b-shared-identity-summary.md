@@ -183,4 +183,109 @@ event with no listeners elsewhere to break, and no storage key or data shape cha
 
 ---
 
-**B1.5B complete. Stopping here per instruction — not beginning B1.5C or B2. Not committed.**
+## B1.5B.1 — Closeout: One Authoritative Profile Entry (2026-07-23)
+
+### Goal
+
+At rail widths (>=768px) the shared identity card and `.tab-you` were two separate destinations
+pointing at the same place — a duplicate control, duplicate keyboard stop, and possible visual
+inconsistency. This pass makes the identity card the **sole** profile/account entry at those widths
+and gives it a restrained "you are here" treatment when the visitor is actually on `/you`. Mobile
+(<768px) is untouched: `.tab-you` remains the 5th bottom-nav tab exactly as before.
+
+### Files changed
+
+```
+public/declare/sidebar.css  | 23 ++++++++++++++++++-----
+src/components/TabBar.astro | 14 +++++++++++++-
+2 files changed, 31 insertions(+), 6 deletions(-)
+```
+No other files touched — `auth-store.js`, `profile-store.js`, `account-sync.js`, `i18n-strings.js`,
+`DeclareLayout.astro` unchanged, confirmed by `git status --short`.
+
+### Hiding `.tab-you` at rail widths
+
+One rule added inside the existing shared `@media (min-width: 768px)` block in `sidebar.css`:
+```css
+.app-shell .tab-you { display: none; }
+```
+`display:none` was used deliberately (not `visibility:hidden`/`opacity:0`/`pointer-events:none`
+alone/negative positioning/`tabindex` manipulation) — it is the only one of those techniques that
+removes the element from layout, the tab order, **and** the accessibility tree simultaneously, so no
+hidden duplicate can be focused or announced by assistive tech. `.tab-you` itself was **not**
+deleted from `TabBar.astro`'s markup — the same shared component still renders it for the mobile
+bottom bar, which selects it back into view below 768px via the existing (unmodified) mobile CSS.
+The dead `order`/`border-top`/`margin-top`/`padding-top` properties that used to position `.tab-you`
+within the rail's flex column were removed along with the rule they supported, since `display:none`
+makes them moot — no reason to keep positioning CSS for an element no longer in that layout.
+
+### Rail order confirmed unchanged
+
+With `.tab-you` removed from the rail's flex layout, the approved order — logo/brand row → Word →
+Journey → Declare → Vault → (flexible spacer) → crisis link → identity card → collapse control —
+holds exactly as before, confirmed live: 7 focusable rail controls at 1440px (collapse, Word,
+Journey, Declare, Vault, crisis, identity), 6 at compact widths where the collapse toggle is itself
+hidden (768-899px, an existing B1.5A rule). The collapse control's position (top of the brand row)
+was left as-is — the existing DOM/CSS order was already the safer, unambiguous location, so no
+relocation was needed or made.
+
+### `/you` active-state treatment
+
+A small, scoped addition — no re-architecture of the existing script:
+- `TabBar.astro`'s identity anchor now carries `data-route-you={active === 'you' ? '1' : ''}`,
+  driven by the same server-known `active` prop every other tab already uses. `signin.astro` passes
+  no `activeTab` prop at all, so `active === 'you'` can never be true there — the signed-out Guest
+  card can never receive this attribute, by construction, not by a new conditional.
+- The module script reads `data-route-you` once at init (`const routeYou = ...`), then on every
+  `repaint()` computes `isCurrent = signedIn && routeYou` and toggles a `.on` class plus
+  `aria-current="page"` (removed when not current). Gating on `signedIn` as well as `routeYou` means
+  the treatment can never appear on the inert/guest card even if `routeYou` were somehow true.
+- CSS reuses the existing `.tab.on` visual language — no new bright/heavy style, no hardcoded color:
+  ```css
+  .app-shell .sb-identity.on {
+    border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+    background: color-mix(in srgb, var(--gold) 10%, var(--surface));
+  }
+  .app-shell .sb-identity.on .sbi-name { color: var(--goldd); }
+  ```
+This did not require more than the small change anticipated — no expansion of scope was needed.
+
+### Verified live (dev server, `localhost:4321`, dev Convex `good-dotterel-906`)
+
+- Signed-out, `/today`, 1440px: 1 identity card (Guest), 0 `.tab-you` in DOM layout, no `aria-current`.
+- Signed-in (fresh test account, see below), `/you`, 1440px: identity card gets `class="sb-identity
+  on"` and `aria-current="page"`; same account on `/today`: no `.on`, no `aria-current`.
+- Compact rail (800px, collapsed): identity card 47x56→47x52px icon-only, still the only account
+  control, active state (`.on`/`aria-current`) survives the collapse.
+- Manually-collapsed desktop rail (1440px collapsed via the toggle): same — active state persists
+  icon-only.
+- Mobile (390px): 5 visible bottom tabs including `.tab-you` with its live first-name label,
+  identity card `display:none`, pixel-unchanged from B1.5B.
+- Real keyboard `Tab` press from the crisis link landed directly on `#sbIdentity`
+  (`outline-style: auto`) — confirms crisis → identity is the immediate next stop with `.tab-you`
+  fully out of tab order.
+- Light theme: active-state border/background remain legible warm-ivory-appropriate tones via the
+  same `color-mix()` tokens, no separate light-mode override needed.
+
+### Test account
+
+A fresh, fully generic dev-only account was created for this pass (first name "Closeout Tester",
+so the sidebar's live first-word name reads "Closeout" — no connection to any real person's name),
+signed out again after verification. No email address appears in any closeout screenshot — all are
+element-scoped crops of `.tabbar` only, same redaction pattern established in B1.5B's checkpoint.
+
+### Known limitations
+
+None new. Carries forward the same limitations already listed under B1.5B above (this closeout
+didn't touch avatar/name-priority logic, provider-image handling, or the account-sync path).
+
+### Rollback
+
+```
+git checkout -- src/components/TabBar.astro public/declare/sidebar.css
+```
+
+---
+
+**B1.5B.1 complete. Stopping here per instruction — not beginning B1.5C or B2. Committed, not yet
+pushed as of this note (see verification report for the exact commit hash).**

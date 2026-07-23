@@ -97,12 +97,14 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
   .app-shell .tab-declare { order: 3; }
   .app-shell .tab-vault { order: 4; }
   .app-shell .sb-crisis { order: 90; margin-top: auto; }
-  /* B1.5B: the identity card sits between crisis (90) and the You nav row
-     (100) — crisis stays the most prominent/nearest-the-bottom item, per the
-     existing shell order; the card is a richer account shortcut adjacent to
-     it, not a replacement for .tab-you. */
+  /* B1.5B closeout: the identity card is now the SOLE profile/account entry
+     at rail widths — .tab-you is removed from layout, tab order, and the
+     accessibility tree entirely (display:none, not visibility/opacity/
+     pointer-events, so no hidden duplicate can be focused or announced).
+     It stays completely unchanged below 768px (mobile bottom bar) — this
+     rule only exists inside the >=768px block. */
   .app-shell .sb-identity { order: 95; margin-top: 8px; }
-  .app-shell .tab-you { order: 100; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; }
+  .app-shell .tab-you { display: none; }
 
   /* the always-visible crisis link — the sidebar's real reason to exist on this app.
      min-height:44px matches the floor .tab already gets from declare.css's base
@@ -134,6 +136,17 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
   /* inert while whenSynced() hasn't resolved yet: no click-through, but the
      box still occupies its final size so nothing shifts once real content lands */
   .app-shell .sb-identity.sbi-loading { pointer-events: none; }
+  /* B1.5B closeout: restrained "you are here" treatment when signed in and on
+     /you — same tokens/visual language as .tab.on, just applied to the card's
+     own surface/border instead of a background swap, since the card already
+     has a border. Never applied to the signed-out Guest state (the script
+     only adds .on when isSignedIn() is also true), so /signin/ never reads
+     as current. */
+  .app-shell .sb-identity.on {
+    border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+    background: color-mix(in srgb, var(--gold) 10%, var(--surface));
+  }
+  .app-shell .sb-identity.on .sbi-name { color: var(--goldd); }
 
   .app-shell .sbi-av {
     flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
