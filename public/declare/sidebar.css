@@ -1,21 +1,33 @@
 /* ============================================================
-   DESKTOP SIDEBAR SHELL (redesign/desktop-web-shell)
-   >=1024px only. Mobile (<=480px bottom bar) and tablet/small-desktop
-   (481-1023px fixed top bar, both from declare.css) are UNTOUCHED.
-   At >=1024px the same <TabBar> markup reflows into a persistent left
-   sidebar instead of the top bar. Restrained on purpose: this app has
-   no thread history/projects to fill a sidebar with, so its real job
-   is permanent nav + an always-visible crisis-help link, not decoration.
+   LEFT NAVIGATION SHELL (B1.5A — responsive left navigation)
+   Canonical breakpoint map (viewport width, not device class):
+     0-767px    : fixed bottom tab bar (declare.css / DeclareLayout.astro)
+     768-899px  : compact left rail, icon-only, no expand capability yet
+     900-1023px : expanded left rail (~220px), user-collapsible to 72px
+     >=1024px   : desktop sidebar, unchanged (248px expanded / 72px collapsed)
+   One shared block (>=768px) carries every rail rule; the two narrower
+   sub-ranges only override the --sbw width value and, at 768-899, hide the
+   collapse toggle (see the two small blocks below the shared one). The same
+   <TabBar> markup reflows into this rail at every width in this range —
+   no separate tablet markup, exactly like the desktop-only version before it.
    ============================================================ */
 
 :root { --sbw: 248px; }
+/* tablet expanded default (900-1023px) — narrower than desktop's 248px so
+   768-1023px content keeps adequate width; wins here by source order (this
+   rule and the one above have equal specificity), loses outside 768-1023
+   since its media condition goes false there. */
+@media (min-width: 768px) and (max-width: 1023px) { :root { --sbw: 220px; } }
+/* explicitly collapsed always wins at every rail width (768px+), regardless
+   of the above, by selector specificity (html[attr] > :root) — same
+   mechanism this file has always used for the desktop collapse toggle. */
 html[data-sidebar="collapsed"] { --sbw: 72px; }
 
-/* Elements that only exist for the sidebar layout — hidden everywhere else */
+/* Elements that only exist for the rail layout — hidden everywhere else */
 .sb-brand, .sb-crisis { display: none; }
 
-@media (min-width: 1024px) {
-  /* the sidebar's own brand row replaces the floating mast dot/avatar */
+@media (min-width: 768px) {
+  /* the rail's own brand row replaces the floating mast dot/avatar */
   .app-shell .mast { display: none; }
 
   body.app-shell {
@@ -44,9 +56,16 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
     background: var(--dot); box-shadow: 0 0 12px rgba(216, 184, 95, .55); }
   .app-shell .sb-brand .sb-word { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* B1.5A closeout: visible icon stays 26x26px (unchanged) — position:relative
+     plus the ::before below give it a real 44x44px hit area (same invisible
+     centered-pseudo-element technique already used for the Journey day-dots
+     44px fix), without resizing anything the eye sees. */
   .app-shell .sb-brand .sb-collapse { flex: 0 0 auto; width: 26px; height: 26px; border: 0; border-radius: 8px;
     background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    position: relative;
     transition: background .2s ease, color .2s ease, transform var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1)); }
+  .app-shell .sb-brand .sb-collapse::before { content: ''; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%); }
   .app-shell .sb-brand .sb-collapse:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
   .app-shell .sb-brand .sb-collapse svg { width: 15px; height: 15px; }
 
@@ -79,10 +98,15 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
   .app-shell .sb-crisis { order: 90; margin-top: auto; }
   .app-shell .tab-you { order: 100; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; }
 
-  /* the always-visible crisis link — the sidebar's real reason to exist on this app */
+  /* the always-visible crisis link — the sidebar's real reason to exist on this app.
+     min-height:44px matches the floor .tab already gets from declare.css's base
+     rule — .sb-crisis doesn't carry the .tab class, so without this it measures
+     41px (17px icon + 12px*2 padding) in the collapsed/compact state, a real
+     touch-target shortfall this pass surfaced: 768-899px now defaults to that
+     state, not just an opt-in desktop toggle. */
   .app-shell .sb-crisis {
     display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
-    border-radius: 11px; font-size: 13.5px; color: var(--text); opacity: .88;
+    min-height: 44px; border-radius: 11px; font-size: 13.5px; color: var(--text); opacity: .88;
     background: color-mix(in srgb, var(--gold) 7%, transparent);
     transition: opacity .2s ease, background .2s ease;
   }
@@ -96,8 +120,20 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
   html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-word { display: none; }
   html[data-sidebar="collapsed"] .app-shell .tab,
   html[data-sidebar="collapsed"] .app-shell .sb-crisis { justify-content: center; padding-left: 0; padding-right: 0; }
+  /* Visually hidden, NOT display:none — a real finding from this pass: the
+     compact/collapsed range is now a default (768-899px), not just an
+     opt-in desktop toggle, so an icon-only link with no accessible name is
+     no longer an edge case. display:none removes text from the accessibility
+     tree entirely, leaving Word/Journey/Declare/Vault/You (and the You tab's
+     own dynamic first-name label) with NO accessible name at all when
+     collapsed. This standard visually-hidden pattern keeps the exact same
+     text (including the You tab's live-swapped name) available to assistive
+     tech while staying visually absent — no aria-label duplication needed. */
   html[data-sidebar="collapsed"] .app-shell .tab .tlbl,
-  html[data-sidebar="collapsed"] .app-shell .sb-crisis .sb-crisis-label { display: none; }
+  html[data-sidebar="collapsed"] .app-shell .sb-crisis .sb-crisis-label {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
   html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-collapse { transform: rotate(180deg); }
 
   /* generic shared-shell clearance now that pages no longer need to clear a
@@ -105,4 +141,15 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
      tune this themselves; this is just a safe shared default for the rest
      until their turn in the plan. */
   .app-shell .scroll { padding-top: 40px; }
+}
+
+/* Compact rail (768-899px): icon-only by default (--sbw:72px, resolved above),
+   and — deliberately, per B1.5A scope — no way to expand it. The pre-paint
+   resolver in DeclareLayout.astro already forces data-sidebar="collapsed" in
+   this range regardless of any stored desktop preference; hiding the toggle
+   here backs that up so there's no visible control that would suggest this
+   capability exists yet. A verified expand-at-compact-width treatment is
+   deferred, not this milestone. */
+@media (min-width: 768px) and (max-width: 899px) {
+  .app-shell .sb-brand .sb-collapse { display: none; }
 }

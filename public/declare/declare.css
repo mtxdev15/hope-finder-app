@@ -239,8 +239,16 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 .tab.center.on .tdisc{ background:var(--gold); color:#13211A; box-shadow:0 10px 30px -6px rgba(216,184,95,.75); }
 
 /* ---------- bottom sheet ---------- */
+/* B1.5A closeout: z-index:41, not 40 — tied exactly with the shared rail's
+   .app-shell .tabbar (sidebar.css, also z-index:40), and since <TabBar> renders
+   after the page's own content in DeclareLayout.astro, that tie resolved in
+   the rail's favor by DOM order: the rail stayed fully undimmed/crisp above an
+   open sheet, and (as a real side effect) clicks could reach nav links right
+   through the dimmed backdrop. today.astro is the only current consumer of
+   this class (confirmed before changing a shared value), so this is a
+   single-file-impact fix despite living in the shared stylesheet. */
 .sheet-scrim{ position:fixed; inset:0; background:rgba(8,14,11,.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none;
-  transition:opacity .3s ease; z-index:40; }
+  transition:opacity .3s ease; z-index:41; }
 .sheet-scrim.open{ opacity:1; pointer-events:auto; }
 .grabber{ width:42px; height:5px; border-radius:999px; background:var(--line2); margin:12px auto 0; }
 
@@ -256,12 +264,23 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
   *{ scroll-behavior:auto !important; }
 }
 
-/* ---------- real-phone full-bleed (drop the showcase frame) ---------- */
+/* ---------- real-phone full-bleed (drop the showcase frame) ----------
+   .stage/.phone/.screen/.bar belong ONLY to the legacy "/" device-mockup app
+   (Layout.astro) — no DeclareLayout page carries those classes, so this stays
+   untouched at its original 480px boundary. */
 @media (max-width:480px){
   .stage{ padding:0; }
   .phone{ width:100%; border-radius:0; padding:0; box-shadow:none; }
   .screen{ border-radius:0; min-height:100vh; min-height:100dvh; }
   .bar{ padding-top:max(14px, env(safe-area-inset-top)); }
+}
+
+/* ---------- shared shell bottom nav: safe-area clearance ----------
+   Extracted from the block above (B1.5A) — this is the one declaration in
+   that legacy block that actually belongs to the shared shell's bottom tab
+   bar. Canonical mobile range is now 0-767px (see sidebar.css for the
+   768px+ left-rail takeover), so this moves from max-width:480 to 767. */
+@media (max-width:767px){
   .tabbar{ padding-bottom:max(22px, calc(env(safe-area-inset-bottom) + 14px)); }
 }
 
@@ -274,40 +293,24 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 
 /* ============================================================
    RESPONSIVE APP SHELL  —  opt-in via class="stage app-shell"
-   At >=481px this drops the phone bezel and presents the screen as a
-   true full-viewport responsive web app with a fixed top app bar
-   (the bottom tab bar reflows into it). Mobile (<=480px) is untouched.
-   A page adopts it by: (1) class="stage app-shell", (2) including the
-   standard .tabbar nav, (3) optional per-page column tuning.
+   At >=481px this drops the phone bezel for the legacy "/" device-mockup
+   app only (.stage/.phone/.screen/.bar — no DeclareLayout page carries the
+   .stage class, so these four rules are inert there and left as-is).
+
+   The bottom-tab-bar -> fixed-top-app-bar reflow that used to live here
+   (B1.5 "tablet top nav") is RETIRED as of B1.5A: the shared shell's left
+   rail now owns every width from 768px up (see sidebar.css), and the
+   bottom tab bar now owns every width below that (see the shared shell
+   bottom-nav rule above). Nothing in the shared shell reads a top app bar
+   at any width anymore, so the .app-shell .tabbar/.tab/.scroll rules that
+   used to live in this block were removed outright, not re-scoped —
+   there's no width left for them to apply to.
    ============================================================ */
 @media (min-width:481px){
   .app-shell.stage{ padding:0; align-items:stretch; min-height:100vh; min-height:100dvh; }
   .app-shell .phone{ width:100%; max-width:none; background:none; border-radius:0; padding:0; box-shadow:none; }
   .app-shell .screen{ border-radius:0; min-height:100vh; min-height:100dvh; box-shadow:inset 0 0 260px var(--vignette); }
   .app-shell .bar{ display:none; }
-
-  /* bottom tab bar -> fixed top app bar */
-  .app-shell .tabbar{ position:fixed; top:0; left:0; right:0; z-index:30; height:60px; margin:0; max-width:none; border-radius:0;
-    display:flex; flex-direction:row; justify-content:center; align-items:center; gap:2px; padding:0 24px;
-    background:color-mix(in srgb, var(--bgfield) 82%, transparent);
-    backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
-    border-bottom:1px solid var(--line); }
-  .app-shell .tabbar .arc{ display:none; }
-  .app-shell .tab{ flex:0 0 auto; flex-direction:row; gap:8px; padding:8px 14px; border-radius:11px; color:var(--muted);
-    transition:color .2s ease, background .2s ease; position:relative; }
-  .app-shell .tab:hover{ color:var(--text); background:color-mix(in srgb,var(--text) 5%, transparent); }
-  .app-shell .tab svg{ width:18px; height:18px; }
-  .app-shell .tab .tlbl{ font-size:13px; letter-spacing:0; text-transform:none; font-weight:500; opacity:1; }
-  .app-shell .tab.on{ color:var(--text); }
-  .app-shell .tab.on .tlbl{ color:var(--goldd); }
-  /* neutralize the raised "Today" disc so it sits inline in the bar */
-  .app-shell .tab.center{ margin:0; }
-  .app-shell .tab.center .tdisc{ width:auto; height:auto; margin:0; padding:0; border-radius:0; background:none; box-shadow:none; }
-  .app-shell .tab.center svg{ width:18px; height:18px; }
-  .app-shell .tab.center.on .tdisc{ background:none; box-shadow:none; color:var(--goldd); filter:drop-shadow(0 0 8px rgba(216,184,95,.45)); }
-
-  /* primary scroll region sits below the bar; pages center their own column */
-  .app-shell .scroll{ padding-top:84px; }
 }
 
 /* ---------- theme toggle (shared control) — simplified to Light/Dark/Auto ---------- */

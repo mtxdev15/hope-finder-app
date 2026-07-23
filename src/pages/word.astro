@@ -1341,6 +1341,23 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       .word .w-col { max-width: 720px; }
     }
 
+    /* B1.5A closeout: at 768px+ the shared shell (sidebar.css) is a persistent
+       LEFT RAIL (z-index:40, full viewport height), not the old 60px-tall top
+       bar this 481px block's top:60px/z-index:20 pairing was tuned for. Below
+       768px (still governed by the rule above, UNCHANGED) the reader
+       deliberately stays under the shared chrome so the bottom tab bar remains
+       reachable while reading — that's correct and untouched. At 768px+, the
+       same z-index:20 left the reader rendering BEHIND the rail's full-height
+       column, visibly covering its own header/chapter-nav content, not just a
+       thin top strip. Fix: only at 768px+, raise the reader just enough to win
+       the tie (41 > the rail's 40) so it becomes the immersive full-screen
+       takeover it's meant to be. top:60px is untouched — the ~60px gap at the
+       very top (showing the rail's brand row) is the same pre-existing
+       composition this reader has always had over persistent nav chrome. */
+    @media (min-width: 768px) {
+      .w-reader { z-index: 41; }
+    }
+
     /* ===== DESKTOP sheets → centered modals (bottom sheets are a mobile idiom).
        Blur-dimmed backdrop, scale-fade entrance on the house expo-out curve. ===== */
     @media (min-width: 720px) {

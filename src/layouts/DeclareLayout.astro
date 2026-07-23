@@ -45,9 +45,15 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 <!-- resolve the saved/system theme synchronously, before paint, so a returning
      light-mode user never sees a dark->light jump -->
 <script is:inline>/*__declTheme*/(function(){try{var m=localStorage.getItem("declare-theme")||"dark";var h=new Date().getHours();var t=m==="light"?"light":m==="dark"?"dark":m==="auto"?((h<6||h>=18)?"dark":"light"):((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
-<!-- resolve the saved desktop-sidebar collapse state synchronously, before paint,
-     so the >=1024px sidebar never flashes open then snaps collapsed (or vice versa) -->
-<script is:inline>/*__declSidebar*/(function(){try{var c=localStorage.getItem("declare-sidebar-collapsed")==="1";document.documentElement.setAttribute("data-sidebar",c?"collapsed":"expanded");}catch(e){}})();</script>
+<!-- resolve the saved rail collapse state synchronously, before paint, so the
+     768px+ rail never flashes open then snaps collapsed (or vice versa).
+     B1.5A: width-aware — same "declare-sidebar-collapsed" key/values ("1"/"0")
+     the desktop-only sidebar has always stored, no format change, but now also
+     read at the compact-rail width (768-899px) where the value is deliberately
+     NOT honored if it says expanded: that range has no expand capability yet
+     (see sidebar.css), so an explicit "0" from a device previously used only
+     at desktop still resolves safely to compact there. -->
+<script is:inline>/*__declSidebar*/(function(){try{var raw=localStorage.getItem("declare-sidebar-collapsed");var w=window.innerWidth;var collapsed;if(raw==="1"){collapsed=true;}else if(w<900){collapsed=true;}else{collapsed=false;}document.documentElement.setAttribute("data-sidebar",collapsed?"collapsed":"expanded");}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0c130f" />
 
@@ -157,10 +163,10 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     }
 
     /* ── shell adaptation: design pages render inside a .screen flex column; our
-       pages scroll the document. Pin the design tabbar to the viewport bottom on
-       mobile (the design's own full-bleed treatment), and let declare.css's
-       .app-shell rules (body class) reflow it into the fixed top bar at >=481px. */
-    @media (max-width: 480px) {
+       pages scroll the document. Pin the design tabbar to the viewport bottom
+       for the whole mobile range (0-767px — see sidebar.css for the 768px+
+       left-rail takeover, which replaces what used to be a fixed top bar here). */
+    @media (max-width: 767px) {
       .tabbar {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
         background: color-mix(in srgb, var(--bgfield) 90%, transparent);
@@ -173,23 +179,22 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
        so the app is not a one-way door. Comfortable tap target around the small dot
        without shifting layout. */
     .mast .masthome { display: inline-flex; align-items: center; padding: 10px; margin: -10px; line-height: 0; cursor: pointer; }
-    /* mast: in-flow on mobile (declare.css base), pinned into the top band on desktop
-       (design Today.html/Vault.html desktop treatment) */
-    @media (min-width: 481px) {
+    /* mast: in-flow for the whole mobile range (declare.css base, 0-767px, matches
+       the small mast-avatar entry point to /you that mobile has always had),
+       pinned into a top band only where the sidebar (sidebar.css) takes over at
+       768px+ and hides it outright — this fixed treatment is otherwise inert
+       there, kept only so there's no gap before sidebar.css's own display:none
+       applies. (B1.5A: moved from 481px — the tablet top-bar era this coincided
+       with is retired; obsolete top-bar clearance rules that used to live here
+       — .app-shell .tab.center.on::after, .word .w-col, .you .you-col,
+       .vault .vhero padding-top — were removed outright, not moved: a left rail
+       consumes no vertical space, so nothing needs clearing at 768px+ anymore.) */
+    @media (min-width: 768px) {
       .mast { position: fixed; top: 0; left: 0; right: 0; z-index: 31; height: 60px;
         margin: 0; padding: 0 clamp(22px, 3vw, 44px);
         display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
       .mast .masthome { pointer-events: auto; }
-      /* desktop: the top bar already carries the You tab — hide the mast avatar
-         (duplicate profile icon, per review) */
       .mast .avatar { display: none; }
-      /* design Today.html: the active center tab carries a slim gold underline in the top bar */
-      .app-shell .tab.center.on::after { content: ''; position: absolute; left: 13px; right: 13px; bottom: 2px; height: 2px; border-radius: 2px;
-        background: linear-gradient(90deg, transparent, var(--gold), transparent); }
-      /* clear the fixed top bar on pages that start content at the top */
-      .word .w-col { padding-top: 64px; }
-      .you .you-col { padding-top: 64px; }
-      .vault .vhero { padding-top: 96px; }
     }
   </style>
 </body>
