@@ -48,8 +48,187 @@ const on = (k) => (active === k ? ' on' : '');
     <span class="sb-crisis-label" data-i18n="today.crisisLink">In crisis? Find help now</span>
   </a>
 
+  {/* B1.5B shared identity card — desktop-sidebar/tablet-rail only (sidebar.css).
+      Coexists with .tab-you below (a richer account shortcut, not a replacement).
+      Ships inert (aria-hidden, tabindex="-1", pointer-events:none via .sbi-loading)
+      until the module script resolves real signed-in/out state — see this
+      component's own <script> block. Never server-rendered with real content:
+      name/avatar are painted client-side only, from real session/profile data. */}
+  <a class="sb-identity sbi-loading" id="sbIdentity" href="/signin/" aria-hidden="true" tabindex="-1">
+    <span class="sbi-av" id="sbiAv" aria-hidden="true"></span>
+    <span class="sbi-meta">
+      <span class="sbi-name" id="sbiName"></span>
+      <span class="sbi-tag" data-i18n="sidebar.tagline">Walk with Him</span>
+    </span>
+    <svg class="sbi-go" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+  </a>
+
   <a class={'tab tab-you' + on('you')} href="/you/">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path></svg>
     <span class="tlbl" data-you-label>You</span>
   </a>
 </nav>
+
+<script>
+  import { isSignedIn, currentUser, onAuthChange } from '../app/declare/auth-store.js';
+  import { getProfile } from '../app/declare/profile-store.js';
+  import { whenSynced, onChange as onAccountSync } from '../app/declare/account-sync.js';
+
+  (function () {
+    // One initialization guard — TabBar is only ever rendered once per page,
+    // but this defends against any future duplicate mount rather than assuming.
+    if (window.__sbIdentityInit) return;
+    window.__sbIdentityInit = true;
+
+    const card = document.getElementById('sbIdentity');
+    if (!card) return;
+    const avEl = document.getElementById('sbiAv');
+    const nameEl = document.getElementById('sbiName');
+
+    let lastFingerprint = null;
+    let resolvedOnce = false;
+
+    function tr(key, fallback) {
+      try { return (window.I18N ? window.I18N.t(key, fallback) : fallback) || fallback; } catch (e) { return fallback; }
+    }
+    function esL() {
+      try { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); } catch (e) { return false; }
+    }
+    function isHttpUrl(v) {
+      if (typeof v !== 'string' || !v) return false;
+      try { const u = new URL(v, window.location.href); return u.protocol === 'http:' || u.protocol === 'https:'; } catch (e) { return false; }
+    }
+    function initialOf(name) {
+      const t = (name || '').trim();
+      return t ? t[0].toUpperCase() : '';
+    }
+
+    function neutralIcon() {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.7');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', '12'); c.setAttribute('cy', '8'); c.setAttribute('r', '3.4');
+      const p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', 'M5.5 20a6.5 6.5 0 0 1 13 0');
+      svg.appendChild(c); svg.appendChild(p);
+      return svg;
+    }
+
+    function clearAvatar() {
+      while (avEl.firstChild) avEl.removeChild(avEl.firstChild);
+    }
+
+    function showInitialsOrIcon(name) {
+      clearAvatar();
+      const ch = initialOf(name);
+      if (ch) {
+        const span = document.createElement('span');
+        span.className = 'sbi-initial';
+        span.textContent = ch;
+        avEl.appendChild(span);
+      } else {
+        avEl.appendChild(neutralIcon());
+      }
+    }
+
+    // Never leaves a broken-image indicator: on load failure the <img> is
+    // removed immediately and the next tier is tried. Never inline onerror.
+    function tryImage(src, onFail) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      if (/^https?:/i.test(src)) img.referrerPolicy = 'no-referrer';
+      img.addEventListener('error', function onerr() {
+        img.removeEventListener('error', onerr);
+        if (img.parentNode) img.parentNode.removeChild(img);
+        onFail();
+      });
+      clearAvatar();
+      avEl.appendChild(img);
+      img.src = src;
+    }
+
+    // Priority: P.avatar -> currentUser().image -> initials -> neutral icon.
+    // Failure chain does NOT skip tiers: a failed P.avatar still tries the
+    // provider image before falling to initials.
+    function paintAvatar(name, pAvatar, providerImage) {
+      const hasP = typeof pAvatar === 'string' && pAvatar;
+      const hasProvider = isHttpUrl(providerImage);
+      if (hasP) {
+        tryImage(pAvatar, function () {
+          if (hasProvider) tryImage(providerImage, function () { showInitialsOrIcon(name); });
+          else showInitialsOrIcon(name);
+        });
+        return;
+      }
+      if (hasProvider) { tryImage(providerImage, function () { showInitialsOrIcon(name); }); return; }
+      showInitialsOrIcon(name);
+    }
+
+    function composeAriaLabel(signedIn, name) {
+      const tag = tr('sidebar.tagline', 'Walk with Him');
+      if (signedIn) return name + '. ' + tag + '. ' + tr('sidebar.openProfile', 'Open your profile') + '.';
+      return tr('sidebar.guest', 'Guest') + '. ' + tag + '. ' + tr('nav.signin', 'Sign in') + '.';
+    }
+
+    function fingerprint(signedIn, name, avatarKey, lang) {
+      return [signedIn ? '1' : '0', name, avatarKey, lang].join('|');
+    }
+
+    // Read-only: never seeds/writes P.name or P.avatar from this module.
+    function repaint() {
+      const signedIn = isSignedIn();
+      const lang = esL() ? 'es' : 'en';
+      let name = '';
+      let pAvatar = '';
+      let providerImage = '';
+
+      if (signedIn) {
+        const P = getProfile();
+        const u = currentUser() || {};
+        name = (P.name || '').trim() || (u.name || '').trim() || (u.firstName || '').trim() || tr('you.friend', 'Friend');
+        pAvatar = (typeof P.avatar === 'string' && P.avatar) ? P.avatar : '';
+        providerImage = (typeof u.image === 'string' && u.image) ? u.image : '';
+      }
+
+      const avatarKey = signedIn ? (pAvatar || providerImage || ('initials:' + name)) : 'neutral';
+      const fp = fingerprint(signedIn, signedIn ? name : '', avatarKey, lang);
+      if (fp === lastFingerprint) return;
+      lastFingerprint = fp;
+
+      card.href = signedIn ? '/you/' : '/signin/';
+      card.setAttribute('aria-label', composeAriaLabel(signedIn, name));
+
+      if (signedIn) {
+        nameEl.textContent = name;
+        paintAvatar(name, pAvatar, providerImage);
+      } else {
+        nameEl.textContent = tr('sidebar.guest', 'Guest');
+        clearAvatar();
+        avEl.appendChild(neutralIcon());
+      }
+
+      if (!resolvedOnce) {
+        resolvedOnce = true;
+        card.classList.remove('sbi-loading');
+        card.removeAttribute('aria-hidden');
+        card.removeAttribute('tabindex');
+      }
+    }
+
+    // Importing account-sync.js (for whenSynced/onChange) already triggers its
+    // own initAuth() call as a module-load side effect — no need to call it
+    // again here.
+    whenSynced().then(repaint).catch(repaint);
+    onAuthChange(repaint);
+    onAccountSync(repaint);
+    document.addEventListener('declare-profile-change', repaint);
+    document.addEventListener('declare-lang', repaint);
+  })();
+</script>
