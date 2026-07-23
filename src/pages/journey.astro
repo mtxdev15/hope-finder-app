@@ -16,8 +16,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     <div class="jin">
       <div class="jhead rise d1">
-        <h1 data-i18n="journey.hTitle">Your Journey</h1>
-        <div class="sub" data-i18n="journey.becoming">Who are you becoming?</div>
+        <div class="jhead-ey" data-i18n="journey.hTitle">Your Journey</div>
+        <h1 data-i18n="journey.becoming">Who are you becoming?</h1>
+        <div class="sub" data-i18n="journey.overviewSub">God is meeting you in the everyday and growing something eternal.</div>
       </div>
 
       <div class="scroll" id="homeScroll">
@@ -34,34 +35,48 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         </section>
 
         <section class="jcard rise d2" id="activeCard" aria-label="Active journey">
-          <div class="jc-top">
-            <div>
-              <div class="ey" data-i18n="journey.activeJourney">Active Journey</div>
-              <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="to-row"><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></span></div>
+          <div class="jc-grid">
+            <div class="jc-copy">
+              <div class="jc-top">
+                <div class="ey" data-i18n="journey.activeJourney">Active Journey</div>
+              </div>
+              <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></div>
               <div class="jc-habit" id="habitW"></div>
+              <span class="daypill" id="dayPill">Day 1 / 5</span>
+
+              <div class="today">
+                <div class="today-ey" data-i18n="journey.todayJourney">Today's Journey</div>
+                <div class="tt" id="todayTitle"></div>
+                <div class="tref" id="todayRef"></div>
+                <div class="focus" id="focusLine"></div>
+                <div class="gen-tag"><span class="gd"></span><span data-i18n="journey.personalizing">Personalizing your path</span></div>
+              </div>
+
+              <div class="jc-actions">
+                <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
+                <button class="btn btn-ghost btn-view" id="viewTreeBtn"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.viewVine">View Vine</span></button>
+              </div>
+
+              <div class="jc-foot">
+                <div class="dots" id="dayDots"></div>
+                <div class="remain" id="remainTxt">Just planted</div>
+              </div>
             </div>
-            <span class="daypill" id="dayPill">Day 1 / 5</span>
-          </div>
 
-          <div class="vinewrap">
-            <div class="tree-mount" id="vineMount"></div>
-          </div>
+            <!-- Real-data-only preview of the most recently completed day's fruit —
+                 hidden entirely until at least one day is actually done (see
+                 renderFruitPreview()). Never shows today's unfinished day. -->
+            <div class="jc-fruit-preview" id="fruitPreview" style="display:none">
+              <div class="fp-h"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.fruitSoFar">Fruit God Is Growing</span></div>
+              <div class="fp-item">
+                <span class="fp-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span>
+                <div class="fp-meta"><div class="fp-nm" id="fpName"></div><div class="fp-tr" id="fpTruth"></div></div>
+              </div>
+            </div>
 
-          <div class="jc-foot">
-            <div class="dots" id="dayDots"></div>
-            <div class="remain" id="remainTxt">Just planted</div>
-          </div>
-
-          <div class="today">
-            <div class="tt" id="todayTitle"></div>
-            <div class="tref" id="todayRef"></div>
-            <div class="focus" id="focusLine"></div>
-            <div class="gen-tag"><span class="gd"></span><span data-i18n="journey.personalizing">Personalizing your path</span></div>
-          </div>
-
-          <div class="jc-actions">
-            <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
-            <button class="btn btn-ghost btn-view" id="viewTreeBtn" data-i18n="journey.viewVine">View Vine</button>
+            <div class="vinewrap">
+              <div class="tree-mount" id="vineMount"></div>
+            </div>
           </div>
 
           <div class="lock-note" id="lockNote">
@@ -86,7 +101,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
         <!-- Fruit log — a quiet record of grace -->
         <section class="fruitlog rise d3" id="fruitLog" style="display:none">
-          <div class="fl-h" data-i18n="journey.fruitSoFar">Fruit so far</div>
+          <div class="fl-h"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.fruitSoFar">Fruit God Is Growing</span></div>
           <div class="fl-list" id="fruitList"></div>
         </section>
 
@@ -433,7 +448,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     function renderHome() {
       $('fromW').textContent = cFrom(); $('toW').textContent = cTo();
       $('habitW').textContent = cLine();
-      $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + ' / ' + TOTAL;
+      $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
       const n = completed(); $('remainTxt').textContent = n > 0 ? (n + (esL() ? (n === 1 ? ' fruto hasta ahora' : ' frutos hasta ahora') : ' fruit so far')) : (esL() ? 'Recién plantado' : 'Just planted');
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { const cl = (i < state.day ? 'done' : (i === state.day ? 'cur' : '')); dots += '<i class="' + cl + (i < state.day ? ' tap' : '') + '" data-day="' + i + '"' + (i < state.day ? ' role="button" tabindex="0" aria-label="Revisit day ' + i + '"' : '') + '></i>'; } $('dayDots').innerHTML = dots;
       const d = PLAN[state.day - 1];
@@ -455,6 +470,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       $('resetShift').innerHTML = '&ldquo;' + cFrom() + ' &rarr; ' + cTo() + '.&rdquo;';
       $('doneCount').textContent = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
       buildVine();
+      renderFruitPreview();
       renderFruitLog();
       renderGrid();
       // Hybrid: quietly upgrade today's card with a freshly generated plan.
@@ -464,13 +480,26 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (generating) { ensureDay(state.day).then(function () { if (document.querySelector('.jcard') && active.status === 'active') { renderHome(); } }); }
     }
 
+    // Small, real-data-only preview inside the Active Journey card: the most
+    // recently COMPLETED day's fruit only — never today's unfinished day, never
+    // fabricated. Hidden entirely until completed() > 0. Does not touch or
+    // duplicate renderFruitLog()'s own logic, just reads the same PLAN data.
+    function renderFruitPreview() {
+      const n = completed(), box = $('fruitPreview');
+      if (n <= 0) { box.style.display = 'none'; return; }
+      const d = PLAN[n - 1];
+      $('fpName').textContent = d.fruit;
+      $('fpTruth').textContent = d.fruitTruth;
+      box.style.display = 'flex';
+    }
+
     function renderFruitLog() {
       const n = completed(), sec = $('fruitLog'), box = $('fruitList');
       if (n <= 0) { sec.style.display = 'none'; return; }
       sec.style.display = 'block';
       let html = '';
       for (let i = 1; i <= n; i++) { const d = PLAN[i - 1];
-        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-bud" aria-hidden="true"></span><div class="fl-meta"><div class="nm">' + d.fruit + '</div><div class="dy">' + (esL() ? 'Día ' : 'Day ') + i + ' &middot; ' + d.fruitTruth + '</div></div><span class="fl-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm">' + d.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth">' + d.fruitTruth + '</div></div></button>';
       }
       box.innerHTML = html;
     }
@@ -488,6 +517,23 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     $('lnTimeSave').addEventListener('click', function () { const t = $('lnTimeInput').value || '07:00'; setReminderOnly(t); renderLockNote(); toast((esL() ? 'Recordatorio a las ' : 'Reminder set for ') + fmtTime(t)); });
     $('lnPreview').addEventListener('click', function () { previewTomorrow(); renderHome(); toast(esL() ? ('Mañana ha llegado — el Día ' + state.day + ' está abierto') : ('Tomorrow has come — Day ' + state.day + ' is open')); });
 
+    // Reads the (untouched, not-mirrored) per-journey instance cache left behind
+    // by a completed Journey — read-only, no write, no shape change. Returns a
+    // real authored fruit/truth pair when the cache is still present, or null
+    // (never invented) once it's been cleared by a later restart of that struggle.
+    function pastFruitSummary(id) {
+      try {
+        const raw = localStorage.getItem('db_journey_inst:' + id);
+        if (!raw) return null;
+        const inst = JSON.parse(raw);
+        const plan = inst && inst.plan;
+        if (!Array.isArray(plan) || !plan.length) return null;
+        const last = plan[plan.length - 1];
+        if (!last || !last.fruit) return null;
+        return { fruit: last.fruit, fruitTruth: last.fruitTruth || '' };
+      } catch (e) { return null; }
+    }
+
     function renderGrid() {
       const box = $('jgrid');
       const done = CATALOG.filter(function (c) { return c.status === 'done'; });
@@ -496,10 +542,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         return;
       }
       box.innerHTML = done.map(function (c) {
+        const fr = pastFruitSummary(c.id);
         return '<div class="cell done" data-id="' + c.id + '">'
-          + '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
+          + '<span class="cell-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
+          + '<div class="cell-body">'
+          +   '<div class="nm">' + cFrom(c) + ' <span class="a2">&rarr; ' + cTo(c) + '</span></div>'
+          +   (fr ? '<div class="cell-fruit">' + fr.fruit + (fr.fruitTruth ? ' &middot; ' + fr.fruitTruth : '') + '</div>' : '')
+          + '</div>'
           + '<span class="st done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>' + (esL() ? 'Arraigado' : 'Rooted') + '</span>'
-          + '<div class="nm">' + cFrom(c) + ' <span class="a2">&rarr; ' + cTo(c) + '</span></div>'
           + '</div>';
       }).join('');
       box.querySelectorAll('.cell').forEach(function (cell) {
@@ -1172,23 +1222,23 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     /* header */
     .journey .jhead { padding: 8px 22px 2px 40px; }
+    .journey .jhead-ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 6px; }
     .journey .jhead h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.04; color: var(--text); font-weight: 600; }
     .journey .jhead .sub { font-size: 14px; color: var(--muted); margin-top: 5px; }
 
     /* ============ ACTIVE JOURNEY CARD ============ */
     .journey .jcard { position: relative; margin: 16px 0 0; border-radius: 20px; overflow: hidden;
       border: 1px solid var(--line); box-shadow: var(--card-shadow); background: var(--surface); }
-    .journey .jc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; position: relative; z-index: 3; }
+    .journey .jc-top { padding: 16px 18px 0; position: relative; z-index: 3; }
     .journey .jc-top .ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
-    .journey .jc-shift { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.12; color: var(--text); font-weight: 600; margin-top: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-    .journey .jc-top > div:first-child { flex: 1; min-width: 0; }
-    .journey .jc-shift .from { color: var(--muted); font-weight: 500; font-style: italic; font-size: .74em; }
-    .journey .jc-shift .to-row { display: flex; align-items: baseline; gap: 9px; flex-wrap: nowrap; white-space: nowrap; }
-    .journey .jc-shift .arr { color: var(--gold); font-size: .72em; transform: translateY(-1px); }
-    .journey .jc-shift .to { color: var(--text); position: relative; padding-bottom: 2px; white-space: nowrap; }
-    .journey .jc-shift .to::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 18%, transparent)); }
-    .journey .jc-habit { font-size: 11.5px; color: var(--soft); margin-top: 6px; letter-spacing: .01em; }
-    .journey .daypill { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--gold) 15%, transparent);
+    /* Unified from → to weight (no muted/italic "from" or underlined "to") —
+       both segments read as one continuous transformation heading. */
+    .journey .jc-shift { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.15; color: var(--text); font-weight: 600;
+      margin-top: 8px; padding: 0 18px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+    .journey .jc-shift .from, .journey .jc-shift .to { color: var(--text); font-weight: 600; }
+    .journey .jc-shift .arr { color: var(--gold); }
+    .journey .jc-habit { font-size: 11.5px; color: var(--soft); margin-top: 8px; padding: 0 18px; letter-spacing: .01em; }
+    .journey .daypill { display: inline-block; margin: 12px 18px 0; font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--gold) 15%, transparent);
       border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent); padding: 7px 13px; border-radius: 100px; white-space: nowrap; }
 
     /* the Vine */
@@ -1210,6 +1260,31 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .vine-cap .cn { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--goldd); }
     .journey .vine-cap .ct { display: block; font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.4; }
 
+    /* Compact overview-card composition only (#activeCard's Vine) — a tighter
+       crop and the from/to + "Jesus, the Vine" captions hidden here, since the
+       card already states the transformation in its own copy. The exact same
+       tree-mount markup, images, and captions are untouched everywhere else
+       (day-complete, journey-complete, the full-screen viewer) — this is a
+       scoped CSS-only rule, the-vine.js itself was not touched. */
+    #activeCard .vinewrap .vine-lab, #activeCard .vinewrap .vine-root { display: none; }
+    @media (min-width: 1024px) {
+      #activeCard .tree-mount.tree-live { aspect-ratio: 4 / 5; }
+      #activeCard .tree-mount.tree-live img.tl-over { object-position: 50% 32%; }
+    }
+
+    /* In-card fruit preview — real data only (renderFruitPreview()), hidden via
+       inline style until completed() > 0. Desktop-only visually meaningful
+       (see .jc-grid's "auto" middle column); stacks in normal flow elsewhere. */
+    .journey .jc-fruit-preview { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 18px; margin: 0 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--chip-shadow); }
+    .journey .fp-h { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .fp-item { display: flex; align-items: flex-start; gap: 11px; }
+    .journey .fp-ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd); background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .fp-ic svg { width: 15px; height: 15px; }
+    .journey .fp-meta { min-width: 0; }
+    .journey .fp-nm { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.15; }
+    .journey .fp-tr { font-size: 12px; color: var(--text2); line-height: 1.4; margin-top: 3px; }
+    @media (min-width: 1024px) { .journey .jc-fruit-preview { width: 220px; margin: 0; } }
+
     /* Tree of Life — death-to-life living tree (image frames + sparks). Immersive
        scene that looks the same in light/dark; only the frame chrome adapts. */
     .journey .tree-mount.tree-live { position: relative; border-radius: 18px; overflow: hidden; background: #0c1611; box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
@@ -1227,27 +1302,39 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .tree-mount.tree-live .vine-root span { color: #e8c96e; }
     @media (prefers-reduced-motion: reduce) { .journey .tree-mount.tree-live .tl-fruit.on { animation: none; } }
 
-    /* Fruit log */
-    .journey .fruitlog { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px 16px; }
-    .journey .fruitlog .fl-h { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 11px; }
-    .journey .fl-list { display: flex; flex-direction: column; gap: 11px; }
-    .journey .fl-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 6px; margin: -6px; border-radius: 12px; cursor: pointer; font-family: inherit; transition: background .18s ease; }
-    .journey .fl-item:hover { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+    /* Fruit God Is Growing — a real section heading (not a tiny label) above a
+       responsive card grid: 1 column on mobile, 2-then-1 on tablet, 3 across
+       on desktop when there's enough completed data (never invented). */
+    .journey .fruitlog { margin-top: 20px; }
+    .journey .fruitlog .fl-h { display: flex; align-items: center; gap: 8px; font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text); margin-bottom: 13px; }
+    .journey .fruitlog .fl-h .leaf-ic { width: 17px; height: 17px; color: var(--goldd); }
+    .journey .fl-list { display: grid; grid-template-columns: 1fr; gap: 11px; }
+    @media (min-width: 640px) { .journey .fl-list { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .journey .fl-list { grid-template-columns: 1fr 1fr 1fr; } }
+    .journey .fl-item { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px; border-radius: 14px; cursor: pointer; font-family: inherit; transition: border-color .2s ease, transform .15s ease; }
+    .journey .fl-item:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
     .journey .fl-item:active { transform: scale(.99); }
-    .journey .fl-go { flex: 0 0 auto; color: var(--soft); display: flex; transition: color .18s ease, transform .18s ease; }
-    .journey .fl-go svg { width: 18px; height: 18px; }
-    .journey .fl-item:hover .fl-go { color: var(--goldd); transform: translateX(2px); }
-    .journey .fl-bud { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: radial-gradient(circle at 50% 42%, rgba(246, 234, 194, .95), rgba(216, 184, 95, .5) 60%, transparent 72%); box-shadow: 0 0 12px -2px rgba(216, 184, 95, .7); }
+    .journey .fl-ic { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd); background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .fl-ic svg { width: 15px; height: 15px; }
     .journey .fl-meta { flex: 1; min-width: 0; }
+    .journey .fl-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .journey .fl-meta .nm { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); font-weight: 600; line-height: 1.1; }
-    .journey .fl-meta .dy { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .journey .fl-day { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); flex: 0 0 auto; }
+    .journey .fl-truth { font-size: 12.5px; color: var(--text2); line-height: 1.4; margin-top: 3px; }
 
     /* card footer */
     .journey .jc-foot { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px 2px; position: relative; z-index: 3; }
-    .journey .dots { display: flex; gap: 5px; align-items: center; }
+    /* gap widened from 5px so the 44px invisible hit-areas below never overlap —
+       see .dots i.tap::before. The visible dots themselves are unchanged. */
+    .journey .dots { display: flex; gap: 28px; align-items: center; }
     .journey .dots i { width: 16px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--text) 15%, transparent); transition: background .4s ease, width .4s ease; }
     .journey .dots i.done { background: var(--gold); }
-    .journey .dots i.tap { cursor: pointer; }
+    .journey .dots i.tap { cursor: pointer; position: relative; }
+    /* invisible 44x44 touch target, centered on the visible dot. position:absolute
+       takes it out of flow so it can never affect .jc-foot's layout or push
+       neighboring content — only the real Continue/View Vine controls below it
+       and the widened .dots gap above account for spacing. */
+    .journey .dots i.tap::before { content: ''; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
     .journey .dots i.tap:hover { height: 7px; }
     .journey .dots i.viewing { outline: 2px solid var(--goldd); outline-offset: 2px; }
     .journey .dots i.cur { background: var(--goldd); width: 22px; }
@@ -1255,14 +1342,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     /* what you'll do today */
     .journey .today { padding: 12px 18px 4px; position: relative; z-index: 3; }
+    .journey .today-ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 7px; }
     .journey .today .tt { font-family: 'Cormorant Garamond', serif; font-size: 19px; color: var(--text); font-weight: 600; line-height: 1.18; }
     .journey .today .tref { font-size: 11px; letter-spacing: .04em; color: var(--goldd); font-weight: 600; margin-top: 3px; text-transform: uppercase; }
     .journey .today .focus { font-size: 13.5px; color: var(--text2); line-height: 1.5; margin-top: 9px; }
 
     .journey .jc-actions { display: flex; gap: 10px; padding: 14px 16px 16px; position: relative; z-index: 3; }
     .journey .jc-actions .btn { border-radius: 14px; padding: 15px 18px; }
-    .journey .btn-cont { flex: 1; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); }
-    .journey .btn-view { flex: 0 0 auto; }
+    /* Decorative arrow only (::after survives renderHome()'s textContent
+       re-assignment on this button; a real inline SVG child would not). */
+    .journey .btn-cont { flex: 1; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .journey .btn-cont:not(.locked)::after { content: '\2192'; font-size: 16px; }
+    .journey .btn-view { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
+    .journey .leaf-ic { width: 15px; height: 15px; flex: 0 0 auto; }
 
     /* faithfulness line */
     .journey .returnline { display: flex; align-items: center; gap: 10px; margin: 16px 22px 0 18px; font-size: 13px; color: var(--muted); }
@@ -1275,15 +1367,21 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .allj .h .t { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
     .journey .allj .h .c { font-size: 11px; color: var(--muted); }
     .journey .jgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-    .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px 13px 14px; background: var(--surface);
-      box-shadow: var(--chip-shadow); min-height: 104px; display: flex; flex-direction: column; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }
+    .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: var(--surface);
+      box-shadow: var(--chip-shadow); display: flex; align-items: flex-start; gap: 11px; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }
     .journey .cell:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
     .journey .cell:active { transform: scale(.985); }
-    .journey .cell .ic { color: var(--muted); } .journey .cell .ic svg { width: 17px; height: 17px; }
-    .journey .cell .st { position: absolute; top: 12px; right: 12px; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+    .journey .cell-ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd);
+      background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .cell-ic svg { width: 15px; height: 15px; }
+    .journey .cell-body { flex: 1; min-width: 0; }
+    .journey .cell .st { flex: 0 0 auto; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
     .journey .cell .st svg { width: 15px; height: 15px; }
-    .journey .cell .nm { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; margin-top: auto; line-height: 1.12; }
+    .journey .cell .nm { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; line-height: 1.12; }
     .journey .cell .nm .a2 { color: var(--muted); } .journey .cell.done .nm .a2 { color: var(--goldd); }
+    /* the real fruit/truth summary, shown only when the completed journey's
+       cached content is still present (see pastFruitSummary()) — never invented */
+    .journey .cell-fruit { font-size: 11.5px; color: var(--text2); line-height: 1.4; margin-top: 6px; }
     .journey .jgrid-empty { grid-column: 1 / -1; font-size: 13px; color: var(--soft); line-height: 1.55; text-align: center; padding: 14px 10px; border: 1px dashed var(--line2); border-radius: 13px; }
 
     /* see all journeys toggle */
@@ -1647,6 +1745,38 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       .journey .sheet { max-width: 560px; left: 50%; transform: translate(-50%, 102%); }
       .journey .sheet.open { transform: translate(-50%, 0); }
       .journey .toast { bottom: 40px; }
+    }
+
+    /* Desktop only (matches the Release A sidebar breakpoint): a wide, focused
+       main column with a horizontal Active Journey card — copy / fruit preview
+       (real data only, collapses to nothing when there's none yet) / Vine.
+       Placed last in the stylesheet so it wins over the ≥481px tablet block
+       above for the properties both touch (.jhead/.scroll max-width) — two
+       media queries matching at the same width resolve by source order when
+       specificity ties. */
+    @media (min-width: 1024px) {
+      .journey .jhead { max-width: 1180px; }
+      .journey .scroll { max-width: 1180px; }
+      .journey .jhead h1 { font-size: 54px; }
+      /* Explicit grid-column placement on .jc-copy/.jc-fruit-preview/.vinewrap —
+         required because .jc-fruit-preview is display:none until real fruit
+         exists, and a display:none item is removed from grid auto-placement
+         entirely; without pinning, .vinewrap would slide into the middle
+         (auto) track instead of the 320px track whenever the preview is hidden. */
+      .journey .jc-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto 320px; column-gap: 32px; align-items: start; padding: 24px; }
+      .journey .jc-copy { min-width: 0; grid-column: 1; }
+      .journey .jc-fruit-preview { grid-column: 2; }
+      .journey .jc-top, .journey .today, .journey .jc-actions { padding-left: 0; padding-right: 0; }
+      .journey .jc-foot { padding: 13px 0 2px; }
+      .journey .vinewrap { align-self: start; border-radius: 16px; overflow: hidden; grid-column: 3; }
+      .journey .jc-shift { font-size: 34px; }
+      /* the dots row's widened 28px gap (see the B1 closeout 44px hit-area fix)
+         no longer fits beside the "N fruit so far" text on one line once the
+         card gets this much narrower internally than mobile — stack instead
+         of wrapping mid-word. Unaffected: the hit-areas themselves are
+         position:absolute and don't participate in this flex direction. */
+      .journey .jc-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .journey .remain { font-size: 11.5px; }
     }
   </style>
 </DeclareLayout>
