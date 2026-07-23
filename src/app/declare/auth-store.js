@@ -146,7 +146,10 @@ export function currentUser() {
   if (!sessionData || !sessionData.user) return null;
   const u = sessionData.user;
   const first = ((u.name || '').trim().split(/\s+/)[0]) || '';
-  return { email: u.email || '', firstName: first };
+  // B1.5B: additive only — email/firstName keep their exact prior meaning and
+  // position; name/image are the session's own fields, passed through as-is
+  // (never fetched separately, never cached elsewhere).
+  return { email: u.email || '', firstName: first, name: u.name || '', image: u.image || '' };
 }
 
 /* All return { ok, error } — error is a human sentence, never a code.

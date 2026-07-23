@@ -37,6 +37,11 @@ window.__I18N_STRINGS = {
     'tab.declare': 'Declara',
     'tab.vault': 'Bóveda',
 
+    /* ---- B1.5B shared sidebar identity card ---- */
+    'sidebar.tagline': 'Camina con Él',
+    'sidebar.guest': 'Invitado',
+    'sidebar.openProfile': 'Abre tu perfil',
+
     /* ---- home (/) ---- */
     'home.kicker': 'Escritura, para el peso que cargas',
     'home.sub': 'Nombra lo que pesa. Recibe Su Palabra para este momento.',

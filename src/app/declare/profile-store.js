@@ -31,6 +31,11 @@ export function setProfile(patch) {
   Object.assign(p, patch);
   persist(p);
   mirror(KEY); // push the updated profile to the account
+  // Same-tab notification only — no profile data in the payload. Lets other
+  // components on this page (e.g. the shared sidebar identity card) know a
+  // write just landed, without a full storage-event round trip (which only
+  // fires in *other* tabs, never this one).
+  try { document.dispatchEvent(new CustomEvent('declare-profile-change')); } catch (e) {}
   return p;
 }
 
