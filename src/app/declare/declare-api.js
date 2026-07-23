@@ -143,6 +143,66 @@ Return ONLY valid JSON in this exact structure:
   }
 }
 
+/* Re-translates the verse text of an already-generated word into a different
+   translation, keeping the exact same references — used when a reader switches
+   the Translation pill on a word already on screen (src/pages/today.astro),
+   so they see the same verses in the new translation instead of having to
+   start over. A small, factual, non-streaming lookup (temperature 0), not a
+   creative generation call: same Worker endpoint, same Haiku model as the
+   main Declare response, just a much smaller prompt and no system-prompt cache
+   (this call is infrequent per reader, caching would buy nothing). */
+export async function translateVerses(verses, translation, language = 'en') {
+  const es = language === 'es';
+  const trans = es ? 'Reina-Valera 1909 (RVR1909, español)' : translation;
+  const refsList = verses.map((v) => v.ref).join('; ');
+
+  const userPrompt = `You are a precise Bible lookup tool. Given these Bible verse references, return the exact verse text for each one in the ${trans} translation.
+
+References (return exactly one JSON entry per reference listed here, in this exact order, copying each "ref" string back character-for-character including any verse range like "4:6-7" as a SINGLE entry; never split a range into separate verses, never merge two references together, never add or omit any): ${refsList}
+
+Return ONLY valid JSON, no preamble, no markdown fences, in this exact structure:
+{ "verses": [ { "ref": "Book Chapter:Verse", "text": "Full accurate verse text in ${trans}" } ] }`;
+
+  const response = await fetch('https://hope-finder-worker.thinktoro.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      temperature: 0,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error('translateVerses: API error ' + response.status);
+  const data = await response.json();
+  const text = (data && data.content && data.content[0] && data.content[0].text) || '';
+
+  const stripped = text.replace(/```json|```/g, '').trim();
+  const firstBrace = stripped.indexOf('{');
+  const lastBrace = stripped.lastIndexOf('}');
+  const cleaned = (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace)
+    ? stripped.slice(firstBrace, lastBrace + 1)
+    : stripped;
+
+  const parsed = JSON.parse(cleaned);
+  if (!parsed || !Array.isArray(parsed.verses) || parsed.verses.length === 0) {
+    throw new Error('translateVerses: unexpected response shape');
+  }
+
+  // Match by reference rather than trusting position/count: the model can still
+  // occasionally reformat or reorder a ref. Every original verse must resolve to
+  // a real match, or the whole call fails (a Scripture app should never show a
+  // guessed pairing) — the caller keeps the prior translation on screen instead.
+  const norm = (r) => (r || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const byRef = new Map(parsed.verses.map((v) => [norm(v.ref), v]));
+  const result = verses.map((v) => byRef.get(norm(v.ref)));
+  if (result.some((v) => !v || !v.text)) {
+    throw new Error('translateVerses: could not match every reference in the response');
+  }
+  return result;
+}
+
 export function isCompleteResult(ai) {
   return !!(ai
     && Array.isArray(ai.verses) && ai.verses.length > 0 && ai.verses.every((v) => v && v.ref && v.text)

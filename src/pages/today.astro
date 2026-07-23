@@ -91,11 +91,12 @@ import RateReview from '../components/RateReview.astro';
         <div class="rail-title" data-i18n="today.inThisWord">In this Word</div>
         <div id="railIndex"></div>
 
-        {/* Translation switcher: applies to the NEXT word generated (the one on
-            screen keeps the translation it was written in). NLT is the default,
-            matching the Declare flow default. Real state, wired in the script. */}
-        <div class="idx-divider"></div>
-        <div class="rail-title" data-i18n="today.translation">Translation</div>
+        {/* Translation switcher: re-translates the verse text of the word
+            already on screen in place (no restart needed). English only —
+            Spanish always reads RVR1909, so this section hides in that
+            language. NLT is the default, matching the Declare flow default. */}
+        <div class="idx-divider" id="transDivider"></div>
+        <div class="rail-title" id="transTitle" data-i18n="today.translation">Translation</div>
         <div class="rail-trans" id="railTrans">
           <button class="trans-pill" type="button" data-trans="NIV">NIV</button>
           <button class="trans-pill on" type="button" data-trans="NLT">NLT</button>
@@ -311,7 +312,7 @@ import RateReview from '../components/RateReview.astro';
   </main>
 
   <script>
-    import { generateContent, isCompleteResult } from '../app/declare/declare-api.js';
+    import { generateContent, isCompleteResult, translateVerses } from '../app/declare/declare-api.js';
     import { saveItem, removeItem, isSaved, wordId, listItems } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
@@ -345,14 +346,16 @@ import RateReview from '../components/RateReview.astro';
 
     // The Declare flow default per the Bible Integration Spec. The brain call,
     // prompts, streaming, and crisis logic in declare-api.js are unchanged. The
-    // reader can now switch the English translation from the >=1024px right rail
-    // (NIV / NLT / KJV); the choice applies to the NEXT word generated, not the
-    // one already on screen. Spanish always uses RVR1909 regardless of the pill.
+    // reader can switch the English translation from the >=1024px right rail
+    // (NIV / NLT / KJV). If a word is already on screen, the pill re-translates
+    // its verse text in place (translateVerses below); otherwise it just sets
+    // what the next generation uses. Spanish always uses RVR1909 regardless.
     let currentTranslation = 'NLT';
-    // The translation actually used for the word currently on screen, captured at
-    // request time so the verse labels stay correct even if the pill is switched
-    // while a new word is streaming.
+    // The translation actually shown for the word currently on screen — set at
+    // request time, and again whenever a pill re-translates in place, so labels
+    // (ref, Save, Share) always match what's really on screen.
     let responseTranslation = 'NLT';
+    let transReqId = 0; // guards against a stale in-place translation resolving late
     function activeTrans(){ return (window.I18N && I18N.lang() === 'es') ? 'RVR1909' : currentTranslation; }
     function activeLang(){ try { return (window.I18N && I18N.lang()) || 'en'; } catch(e){ return 'en'; } }
 
@@ -369,6 +372,17 @@ import RateReview from '../components/RateReview.astro';
     /* inline (mid-sentence) form: Spanish lowercases only the first letter so proper
        nouns survive ('esperar en Dios'); English keeps the full lowercase as before */
     function struggleLower(s){ var l = struggleLabel(s); try { if (window.I18N && I18N.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
+
+    // The Translation switcher only ever changes English output — Spanish is
+    // always RVR1909 — so the whole section hides itself in that language.
+    function updateTransVisibility() {
+      const es = activeLang() === 'es';
+      $('transDivider').hidden = es;
+      $('transTitle').hidden = es;
+      $('railTrans').hidden = es;
+    }
+    updateTransVisibility();
+    document.addEventListener('declare-lang', updateTransVisibility);
 
     let selected = 'Fear & Anxiety';
     let activeStruggle = '';
@@ -695,6 +709,21 @@ import RateReview from '../components/RateReview.astro';
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
+    // Swaps just the verse text + reference labels for the word already on
+    // screen, after the Translation pill re-translates it in place. Everything
+    // else (Mindset, declarations, prayer, Breakdown commentary) is unaffected
+    // since none of it quotes Scripture verbatim in a translation-specific way.
+    function renderVerseText() {
+      const v1 = content.verses[0];
+      $('verse1').innerHTML = '&ldquo;' + esc(v1.text) + '&rdquo;';
+      $('ref1').textContent = v1.ref + ' · ' + responseTranslation;
+      $('receives').querySelectorAll('.receive').forEach((card, i) => {
+        const v = content.verses[i + 1]; if (!v) return;
+        card.querySelector('.rverse').innerHTML = '&ldquo;' + esc(v.text) + '&rdquo;';
+        card.querySelector('.rref').textContent = v.ref + ' · ' + responseTranslation;
+      });
+    }
+
     /* reveals + read-more + play (delegation) — only the .rtoggle button
        opens/closes the card; clicking the revealed verse-reference link
        inside it must navigate, not toggle it shut again. */
@@ -830,14 +859,44 @@ import RateReview from '../components/RateReview.astro';
       if (!wasOpen) row.classList.add('open');
     });
 
-    /* >=1024px right rail: translation switcher. Updates the selected translation
-       (used by the NEXT generation via activeTrans) and the active pill. The word
-       already on screen is unchanged; the reader taps "Receive another word" (or
-       submits again) to get it in the new translation. */
-    $('railTrans').addEventListener('click', (e) => {
+    function setPillActive(t) {
+      $('railTrans').querySelectorAll('.trans-pill').forEach((p) => p.classList.toggle('on', p.dataset.trans === t));
+    }
+    function setTransLoading(on) {
+      $('railTrans').classList.toggle('loading', on);
+      $('verse1').style.opacity = on ? '.45' : '';
+      $('receives').style.opacity = on ? '.45' : '';
+    }
+    /* >=1024px right rail: translation switcher. Sets what the NEXT generation
+       uses either way. If a word is already showing, also re-translates its
+       verse text in place immediately, no restart, since making someone start
+       over just to read the same word in a different translation defeats the
+       point of a switcher living right next to the word they're already reading. */
+    $('railTrans').addEventListener('click', async (e) => {
       const b = e.target.closest('.trans-pill'); if (!b) return;
-      currentTranslation = b.dataset.trans;
-      $('railTrans').querySelectorAll('.trans-pill').forEach((p) => p.classList.toggle('on', p === b));
+      const next = b.dataset.trans;
+      if (next === currentTranslation) return;
+      currentTranslation = next;
+      setPillActive(next);
+      if (!content || resultsView.hidden) return; // no word on screen yet — nothing more to do
+      const myGen = reqId, myTrans = ++transReqId;
+      setTransLoading(true);
+      try {
+        const translated = await translateVerses(content.verses, next, activeLang());
+        if (myTrans !== transReqId || myGen !== reqId) return; // superseded by a newer click or a fresh word
+        content.verses.forEach((v, i) => { if (translated[i] && translated[i].text) v.text = translated[i].text; });
+        responseTranslation = next;
+        renderVerseText();
+      } catch (err) {
+        console.error('[today] translateVerses failed:', err);
+        if (myTrans === transReqId && myGen === reqId) {
+          showToast(tI('today.transFailed', 'Could not switch translation. Try again.'));
+          currentTranslation = responseTranslation;
+          setPillActive(responseTranslation);
+        }
+      } finally {
+        if (myTrans === transReqId) setTransLoading(false);
+      }
     });
     $('startJourney').addEventListener('click', () => {
       // bridge: /journey reads these, maps the struggle to a journey, and opens Day 1
@@ -1208,6 +1267,8 @@ import RateReview from '../components/RateReview.astro';
         letter-spacing: .04em; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease; }
       .today .trans-pill:hover { border-color: var(--line2); color: var(--text); }
       .today .trans-pill.on { background: var(--gold); color: #22382E; border-color: transparent; }
+      .today .rail-trans.loading .trans-pill { pointer-events: none; opacity: .6; }
+      .today #verse1, .today #receives { transition: opacity .2s ease; }
 
       .today .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--field); margin-bottom: 8px; }
       .today .recent-row:hover { background: color-mix(in srgb, var(--text) 6%, var(--field)); }
