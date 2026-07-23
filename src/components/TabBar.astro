@@ -54,7 +54,7 @@ const on = (k) => (active === k ? ' on' : '');
       until the module script resolves real signed-in/out state — see this
       component's own <script> block. Never server-rendered with real content:
       name/avatar are painted client-side only, from real session/profile data. */}
-  <a class="sb-identity sbi-loading" id="sbIdentity" href="/signin/" aria-hidden="true" tabindex="-1">
+  <a class="sb-identity sbi-loading" id="sbIdentity" href="/signin/" aria-hidden="true" tabindex="-1" data-route-you={active === 'you' ? '1' : ''}>
     <span class="sbi-av" id="sbiAv" aria-hidden="true"></span>
     <span class="sbi-meta">
       <span class="sbi-name" id="sbiName"></span>
@@ -84,6 +84,10 @@ const on = (k) => (active === k ? ' on' : '');
     if (!card) return;
     const avEl = document.getElementById('sbiAv');
     const nameEl = document.getElementById('sbiName');
+    // B1.5B closeout: server-known once per page load (the `active` prop is
+    // never 'you' on /signin/, since that page passes no activeTab at all) —
+    // read once here rather than re-derived on every repaint.
+    const routeYou = card.getAttribute('data-route-you') === '1';
 
     let lastFingerprint = null;
     let resolvedOnce = false;
@@ -204,6 +208,14 @@ const on = (k) => (active === k ? ' on' : '');
 
       card.href = signedIn ? '/you/' : '/signin/';
       card.setAttribute('aria-label', composeAriaLabel(signedIn, name));
+
+      // Restrained "current" treatment: only when actually signed in AND on
+      // /you — never on the signed-out Guest card, so /signin/ is never
+      // falsely announced as the current page.
+      const isCurrent = signedIn && routeYou;
+      card.classList.toggle('on', isCurrent);
+      if (isCurrent) card.setAttribute('aria-current', 'page');
+      else card.removeAttribute('aria-current');
 
       if (signedIn) {
         nameEl.textContent = name;
