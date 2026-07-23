@@ -109,30 +109,62 @@ export function initRateReview(opts) {
 
   /* ---------- sheet open/close ---------- */
   let scrollY = 0;
+  let opener = null; // the control that opened the sheet — focus returns here on close
   function lockScroll(on) {
     try {
       if (on) { document.body.style.overflow = 'hidden'; }
       else { document.body.style.overflow = ''; }
     } catch (e) {}
   }
+  // Focusable, currently-visible elements inside the sheet — used both to focus
+  // the first real control on open and to trap Tab while open. Hidden steps
+  // ([hidden]) are already excluded from the tab order by the browser, so
+  // filtering on offsetParent (null for anything not rendered) is sufficient.
+  function focusableInSheet() {
+    const all = sheet.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    return Array.from(all).filter((el) => el.offsetParent !== null);
+  }
+  function trapFocus(e) {
+    if (e.key !== 'Tab' || !sheet.classList.contains('open')) return;
+    const list = focusableInSheet();
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   function open(source) {
+    opener = document.activeElement;
     reset();
     scrim.classList.add('open'); scrim.setAttribute('aria-hidden', 'false');
     sheet.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
+    sheet.inert = false;
     lockScroll(true);
     track('rate_started', { source: source }); // source bounded by callers
-    try { sheet.focus({ preventScroll: true }); } catch (e) {}
+    // Focus the first star of the now-active step 1 — the dialog's actual
+    // content, not the close button (which is also focusable but would put a
+    // dismiss action ahead of the thing the dialog is actually asking for).
+    // Falls back to the first focusable element if that step ever renders
+    // without a star group.
+    const firstStar = sheet.querySelector('.rr-step:not([hidden]) .rr-star');
+    const first = firstStar || focusableInSheet()[0];
+    try { first && first.focus({ preventScroll: true }); } catch (e) {}
   }
   function close() {
     scrim.classList.remove('open'); scrim.setAttribute('aria-hidden', 'true');
     sheet.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true');
+    sheet.inert = true;
     lockScroll(false);
+    try { opener && typeof opener.focus === 'function' && opener.focus(); } catch (e) {}
+    opener = null;
   }
   $('rrClose') && $('rrClose').addEventListener('click', close);
   scrim.addEventListener('click', close);
   $('rrDone') && $('rrDone').addEventListener('click', close);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sheet.classList.contains('open')) close();
+    if (e.key === 'Escape' && sheet.classList.contains('open')) { close(); return; }
+    trapFocus(e);
   });
 
   /* ---------- submit ---------- */

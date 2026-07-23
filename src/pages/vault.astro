@@ -92,8 +92,15 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       prayer: { get label(){ return tV('vault.tPrayer','Prayer'); }, tagt: '#9BD0A8' },
     };
     function relTime(ts) {
-      const d = (Date.now() - ts) / 86400000;
-      if (d < 1) return (window.I18N && I18N.lang() === 'es') ? ('hace ' + Math.max(1, Math.round(d * 24)) + 'h') : (Math.max(1, Math.round(d * 24)) + 'h ago');
+      // Clamp to 0 so a clock-skewed/future ts never renders a negative "ago."
+      const diffMs = Math.max(0, Date.now() - ts);
+      const d = diffMs / 86400000;
+      if (d < 1) {
+        if (diffMs < 60000) return (window.I18N && I18N.lang() === 'es') ? 'ahora mismo' : 'Just now';
+        if (diffMs < 3600000) { const m = Math.floor(diffMs / 60000); return (window.I18N && I18N.lang() === 'es') ? ('hace ' + m + 'm') : (m + 'm ago'); }
+        const h = Math.floor(diffMs / 3600000);
+        return (window.I18N && I18N.lang() === 'es') ? ('hace ' + h + 'h') : (h + 'h ago');
+      }
       if (d < 2) return tV('vault.yesterday','Yesterday');
       if (d < 7) return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d) + ' días') : (Math.round(d) + ' days ago');
       return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d/7) + ' sem') : (Math.round(d/7) + 'w ago');

@@ -78,6 +78,8 @@ themselves, not just which verses get chosen).
 ## Accessibility & Inclusion
 
 WCAG AA minimum on all text. Current implementation is AA/AAA across all tokens. Generous
-line heights (1.6–1.8) for late-night anxious reading. Touch targets minimum 44px. Color is
+line heights (1.6–1.8) for late-night anxious reading. Touch targets minimum 44px (the
+interactive hit area, not necessarily the visible control; see DESIGN.md's Struggle Chips
+component for how a visually compact control still meets this floor). Color is
 never the only differentiator (state, focus, error use shape + label too). Reduced motion
 must be respected for the cross loader pulse and results fade-up animations.

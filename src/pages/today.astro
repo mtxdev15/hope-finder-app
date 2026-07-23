@@ -964,9 +964,18 @@ import RateReview from '../components/RateReview.astro';
     .today .input textarea { scrollbar-width: none; }
 
     /* Textarea focus (DESIGN.md component spec: "gold 2px border" on focus) —
-       transparent border reserved at rest so focus never shifts layout. */
-    .today .entry-input { margin-top: 28px; border: 2px solid transparent; transition: border-color .2s ease; }
+       transparent border reserved at rest so focus never shifts layout. The
+       border shows for any focus-within (mouse or keyboard — expected for a
+       text field, so the click-to-focus cursor position is always visible);
+       the added ring below is keyboard-specific (:focus-visible), so a mouse
+       click doesn't show the stronger keyboard-only affordance. This ring is
+       the outline's replacement (outline:none is set on the textarea itself,
+       below) — :has() has full support in current Chromium and Safari, and
+       Firefox 121+; older Firefox simply keeps the border-only treatment,
+       which still meets the outline it's standing in for. */
+    .today .entry-input { margin-top: 28px; border: 2px solid transparent; transition: border-color .2s ease, box-shadow .2s ease; }
     .today .entry-input:focus-within { border-color: var(--gold); }
+    .today .entry-input:has(textarea:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 35%, transparent); }
     .today .entry-div { margin: 26px 0 18px; }
     .today .entry-chips { justify-content: center; }
     .today .spacer { flex: 1; min-height: 22px; }

@@ -211,7 +211,10 @@ toggle, textarea, submit button.
 ### Struggle Chips
 Pill shape (`rounded.pill` = 20px). Resting: `cream` bg, `parchment` border, `text-muted` label text.
 Selected: `forest` bg, white text, no border. Transition: 0.2s ease on all properties.
-Grid: `flex-wrap`, gap `spacing.sm`. Minimum touch target: 36px height.
+Grid: `flex-wrap`, gap `spacing.sm`. Minimum touch target: 36px height (visual footprint — the
+product-wide 44px interactive-hit-area floor from PRODUCT.md's Accessibility & Inclusion section
+still applies underneath; reach it with padding/min-height on the tappable element, not by growing
+the visible pill past this 36px guidance).
 
 ### Translation Toggle
 Three-button group (NKJV / NLT / NIV). Resting: transparent bg, `parchment` border, `text-muted`

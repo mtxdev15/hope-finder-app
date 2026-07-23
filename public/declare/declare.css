@@ -188,7 +188,10 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 /* ---------- struggle chips ---------- */
 .chips{ display:flex; flex-wrap:wrap; gap:10px; }
 .chip{ font-size:14px; padding:11px 17px; border-radius:999px; background:var(--chipbg); color:var(--text);
-  box-shadow:var(--chip-shadow); cursor:pointer; border:0; transition:transform .16s ease, box-shadow .2s ease; }
+  box-shadow:var(--chip-shadow); cursor:pointer; border:0; transition:transform .16s ease, box-shadow .2s ease;
+  /* interactive hit area floor: 44px (see PRODUCT.md Accessibility & Inclusion); padding/font-size
+     above stay the visual footprint, this only guarantees the tappable box is never smaller */
+  min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
 .chip:active{ transform:scale(.96); }
 .chip.on{ background:var(--gold); color:#22382E; box-shadow:0 8px 20px -6px rgba(201,168,76,.5); }
 .chip.more{ color:var(--goldd); background:transparent; box-shadow:none; border:1px dashed var(--line2); }
@@ -219,8 +222,9 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
 .tabbar .arc{ position:absolute; top:0; left:0; width:100%; height:18px; pointer-events:none; }
 .tabbar .arc path{ fill:none; stroke:var(--line); stroke-width:1; }
-.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--muted); cursor:pointer;
-  background:none; border:0; transition:color .2s ease, transform .16s ease; }
+.tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  color:var(--muted); cursor:pointer; background:none; border:0; transition:color .2s ease, transform .16s ease;
+  min-height:44px; /* interactive hit area floor: 44px (see PRODUCT.md Accessibility & Inclusion) */ }
 .tab:active{ transform:translateY(1px); }
 .tab svg{ width:22px; height:22px; }
 .tab .tlbl{ font-size:11px; letter-spacing:.01em; text-transform:none; font-weight:500; opacity:1; transition:opacity .2s ease, color .2s ease; }
