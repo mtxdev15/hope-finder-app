@@ -42,6 +42,13 @@ window.__I18N_STRINGS = {
     'sidebar.guest': 'Invitado',
     'sidebar.openProfile': 'Abre tu perfil',
 
+    /* ---- B1.5C shared sidebar crisis card ---- */
+    'sidebar.crisisTitle': '¿Estás en crisis?',
+    'sidebar.crisisReassurance': 'No estás a solas.',
+    'sidebar.crisisSupport': 'Hay ayuda y esperanza disponibles.',
+    'sidebar.crisisCta': 'Recibe ayuda',
+    'sidebar.crisisAria': 'Ayuda en una crisis. No estás a solas. Hay ayuda y esperanza disponibles. Recibe ayuda.',
+
     /* ---- home (/) ---- */
     'home.kicker': 'Escritura, para el peso que cargas',
     'home.sub': 'Nombra lo que pesa. Recibe Su Palabra para este momento.',

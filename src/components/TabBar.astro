@@ -41,11 +41,28 @@ const on = (k) => (active === k ? ' on' : '');
     <span class="tlbl" data-i18n="tab.vault">Vault</span>
   </a>
 
-  {/* desktop-sidebar-only: always-visible crisis link (sidebar.css) — closes the
-      gap where this was previously reachable only from inside a sheet */}
-  <a class="crisis sb-crisis" href="/crisis" aria-label="In crisis? Find help now">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
-    <span class="sb-crisis-label" data-i18n="today.crisisLink">In crisis? Find help now</span>
+  {/* desktop-sidebar-only: always-visible crisis card (sidebar.css) — closes the
+      gap where this was previously reachable only from inside a sheet.
+      B1.5C: one real anchor, no modal/loading/redirecting state, direct /crisis
+      link at all times (signed in or out). Reflows between the compact icon-only
+      chip (768-899px, or any manually-collapsed rail) and the full expanded card
+      (900px+) purely via CSS — same markup at every width, no client script,
+      since this content never depends on session state. */}
+  <a class="crisis sb-crisis" href="/crisis"
+     aria-label="Crisis help. You are not alone. Help and hope are available. Get help."
+     data-i18n-aria="sidebar.crisisAria">
+    <span class="sbc-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.4"></circle><line x1="5.6" y1="5.6" x2="9.6" y2="9.6"></line><line x1="14.4" y1="14.4" x2="18.4" y2="18.4"></line><line x1="18.4" y1="5.6" x2="14.4" y2="9.6"></line><line x1="9.6" y1="14.4" x2="5.6" y2="18.4"></line></svg>
+    </span>
+    <span class="sbc-body">
+      <span class="sbc-title" data-i18n="sidebar.crisisTitle">In crisis?</span>
+      <span class="sbc-reassurance" data-i18n="sidebar.crisisReassurance">You are not alone.</span>
+      <span class="sbc-support" data-i18n="sidebar.crisisSupport">Help and hope are available.</span>
+      <span class="sbc-action">
+        <span data-i18n="sidebar.crisisCta">Get Help</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+      </span>
+    </span>
   </a>
 
   {/* B1.5B shared identity card — desktop-sidebar/tablet-rail only (sidebar.css).
