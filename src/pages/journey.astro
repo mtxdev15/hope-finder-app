@@ -56,7 +56,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           <button class="seeall zs-seeall" id="zsSeeAll"><span data-i18n="journey.seeAllJourneys">See all journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         </section>
 
-        <section class="jcard rise d2" id="activeCard" aria-label="Active journey">
+        <section class="jcard rise d2" id="activeCard" aria-label="Active journey" tabindex="-1">
           <div class="jc-grid">
             <div class="jc-copy">
               <div class="jc-top">
@@ -140,6 +140,38 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           <div class="h"><span class="t" data-i18n="journey.pastJourneys">Past journeys</span><span class="c"><span id="doneCount">0</span> rooted</span></div>
           <div class="jgrid" id="jgrid"></div>
         </section>
+      </div>
+
+      <!-- ===== JOURNEY PREVIEW (B2.1) =====
+           Shown for a brand-new, not-yet-committed journey only — resolved
+           read-only from real journey-data.js/journey-engine.js content, never
+           mutating active/PLAN/storage until "Begin Day 1" is chosen. Modeled
+           on the same full-screen overlay pattern as #dayflow (fixed, its own
+           z-index above the rail, toggled via .open + aria-hidden) so the
+           shared crisis/identity rail is untouched code-wise, exactly as it's
+           already temporarily covered while a day is open today. -->
+      <div class="jpreview scroll" id="journeyPreview" aria-hidden="true" role="region" aria-labelledby="jpHeading">
+        <div class="jp-head">
+          <h2 class="jp-ey" data-i18n="journey.previewEyebrow" tabindex="-1" id="jpHeading">Preview Your 5-Day Journey</h2>
+          <div class="jp-shift" id="jpShift"><span id="jpFrom">Shame</span><span class="jp-arr" aria-hidden="true">&rarr;</span><span id="jpTo">Beloved Child</span></div>
+          <div class="jp-meta">
+            <span data-i18n="journey.previewDays">5 Days</span>
+            <span class="jp-dot" aria-hidden="true">&middot;</span>
+            <span data-i18n="journey.previewPace">One step at a time.</span>
+          </div>
+          <p class="jp-support" id="jpSupport" style="display:none"></p>
+        </div>
+
+        <div class="jp-days" id="jpDays"></div>
+
+        <div class="jp-actions">
+          <button class="btn btn-primary jp-begin" id="jpBegin" data-i18n="journey.previewBeginDay1">Begin Day 1</button>
+          <button class="btn btn-ghost jp-secondary" id="jpSecondary">Back to Today</button>
+        </div>
+        <div class="jp-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+          <span data-i18n="journey.previewPrivacy">Your journey is private and only visible to you.</span>
+        </div>
       </div>
 
       <!-- ===== DAY FLOW ===== -->
@@ -383,18 +415,32 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     const CURATED = ['anxiety', 'shame', 'loneliness', 'doubt', 'burnout'];
 
     function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+    // PURE — B2.1: extracted from startPlan()'s own resolution logic below,
+    // unchanged in behavior. Touches no global (no `active`, no `PLAN`, no
+    // storage, no JourneyEngine.generateDay()/Sonnet call). Safe to call
+    // before a journey is committed — this is what the Journey Preview reads.
+    // Same resolution priority as always: authored bank (journey-data.js) →
+    // seeded programmatic fallback (journey-engine.js, for any struggle with
+    // no authored content) → the 'shame' bank as an always-valid last resort.
+    function resolveJourneyPlan(struggleId, fromLabel, toLabel, seed) {
+      const bespoke = JOURNEY_CONTENT[struggleId];
+      const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
+        ? window.JourneyEngine.fallbackPlan({ struggleId: struggleId, fromLabel: fromLabel, toLabel: toLabel, seed: seed })
+        : null;
+      return clone(bespoke || composed || JOURNEY_CONTENT.shame);
+    }
     // A fresh journey instance: clone the authored bank (always-valid fallback),
     // give it a new seed + theme arc, and clear the AI-upgrade cache. The Worker
     // then rewrites each day on demand so no two journeys are ever the same.
-    function startPlan() {
-      active._seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+    // B2.1: accepts an optional pre-generated seed so a journey committed after
+    // Preview produces the EXACT plan Preview already showed (same seed →
+    // same resolveJourneyPlan() output) rather than re-rolling a new one.
+    function startPlan(existingSeed) {
+      active._seed = (existingSeed !== undefined && existingSeed !== null) ? existingSeed : ((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
       active._themes = window.JourneyEngine ? window.JourneyEngine.arc(active.id, active._seed) : null;
       active._ai = {}; active._inflight = {};
-      const bespoke = JOURNEY_CONTENT[active.id];
-      const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
-        ? window.JourneyEngine.fallbackPlan({ struggleId: active.id, fromLabel: active.from, toLabel: active.to, seed: active._seed })
-        : null;
-      PLAN = clone(bespoke || composed || JOURNEY_CONTENT.shame);
+      PLAN = resolveJourneyPlan(active.id, active.from, active.to, active._seed);
     }
     // Ensure day n has freshly generated content (else keep the fallback already
     // in PLAN). One attempt per day per journey — a failed/slow Worker call keeps
@@ -1049,15 +1095,23 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       list.innerHTML = CATALOG.filter(function (c) { return c.status === 'open'; }).map(function (c) {
         return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + cFrom(c) + ' &rarr; ' + cTo(c) + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + cLine(c) + '</span></span></button>';
       }).join('');
-      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginJourney(b.dataset.id, !!openDay); }); });
+      // B2.1: `openDay` is no longer consulted here — every pick from this list
+      // (whether reached via "See all" from the zero state, or via the
+      // switch-confirmed conflict flow) now routes through the care-gate-then-
+      // Preview funnel instead of committing immediately.
+      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginNewJourneyFlow(b.dataset.id, 'chooser'); }); });
       openSheet('chooseSheet');
     }
 
     // ---- begin a journey (shared by zero-state cards, See-all, and the switch flow) ----
-    function beginJourney(id, openDay, silent) {
+    // B2.1: accepts an optional 4th `seed` arg — when the caller is the Journey
+    // Preview's "Begin Day 1" commit, this is the exact seed Preview already
+    // resolved its plan from (see resolveJourneyPlan()/startPlan() above), so
+    // the committed journey is byte-identical to what was previewed.
+    function beginJourney(id, openDay, silent, seed) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
       CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
-      active = c; active.status = 'active'; startPlan();
+      active = c; active.status = 'active'; startPlan(seed);
       state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
       closeSheets(); showActiveUI();
       if (!silent) toast((esL() ? 'Una vid nueva ha sido plantada — ' : 'A fresh vine is planted — ') + cFrom(c) + ' → ' + cTo(c));
@@ -1104,6 +1158,158 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         setTimeout(openAfterBegin, 360);
       };
     }
+    // plantAndBegin()/openAfterBegin() are kept, unmodified, for any future
+    // reuse — they are no longer called by the entry paths below (B2.1 routes
+    // every brand-new-journey pick through the Preview first instead), but
+    // deleting them isn't in scope for this pass.
+
+    // ---- B2.1: Journey Preview (side-effect-free until "Begin Day 1") ----
+    // In-memory only — never written to localStorage. Discarded on cancel.
+    let previewState = null;
+    let previewCommitting = false;
+
+    // Single funnel for every "a brand-new struggle was just picked" moment
+    // (zero-state card, choose-list button, Today bridge with no conflict).
+    // Replaces the old immediate beginJourney()/plantAndBegin() commit at
+    // pick-time — resolves the existing care gate (unmodified) first for the
+    // 6 sensitive struggles, then shows Preview; nothing is committed here.
+    function beginNewJourneyFlow(id, entrySource) {
+      const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
+      closeSheets();
+      if (isSensitive(c.id)) { openCareGate(c.id, function () { showJourneyPreview(c, entrySource); }); }
+      else { showJourneyPreview(c, entrySource); }
+    }
+
+    function showJourneyPreview(c, entrySource) {
+      previewCommitting = false;
+      const seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+      const plan = resolveJourneyPlan(c.id, c.from, c.to, seed);
+      previewState = { id: c.id, entrySource: entrySource, seed: seed, plan: plan };
+      renderJourneyPreview(c, plan, entrySource);
+      // In-flow content swap (not a full-viewport overlay like #dayflow) —
+      // the persistent rail (desktop/tablet) and bottom nav (mobile) live
+      // outside <main class="journey"> and are untouched either way, but
+      // hiding #homeScroll here keeps this from ever rendering underneath.
+      $('homeScroll').style.display = 'none';
+      $('journeyPreview').classList.add('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'false');
+      window.scrollTo(0, 0);
+      const h = $('jpHeading'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
+    }
+
+    function renderJourneyPreview(c, plan, entrySource) {
+      $('jpFrom').textContent = cFrom(c); $('jpTo').textContent = cTo(c);
+      const supportLine = cLine(c);
+      const sup = $('jpSupport');
+      if (supportLine) { sup.textContent = supportLine; sup.style.display = 'block'; } else { sup.style.display = 'none'; }
+
+      let html = '';
+      for (let i = 0; i < TOTAL; i++) {
+        const d = plan[i]; const n = i + 1; const focus = d.fruitTruth || '';
+        if (n === 1) {
+          // Static labels here are built via tj()/esL(), not data-i18n — this
+          // markup is injected via innerHTML on demand (not present at the
+          // page's initial data-i18n sweep or reliably re-swept afterward),
+          // so the language must be resolved at generation time. The
+          // declare-lang listener below re-calls this function to repaint on
+          // a live switch instead of relying on the global attribute sweep.
+          html += '<div class="jp-day jp-day-current">'
+            + '<div class="jp-day-top"><span class="jp-daynum">' + tj('journey.previewDayWord', 'Day') + ' 1</span>'
+            + '<span class="jp-badge jp-badge-now">' + tj('journey.previewBeginsNow', 'Begins now') + '</span></div>'
+            + '<div class="jp-daytitle">' + d.title + '</div>'
+            + (d.ref ? '<div class="jp-dayref">' + d.ref + '</div>' : '')
+            + (focus ? '<div class="jp-dayfocus">' + focus + '</div>' : '')
+            + '</div>';
+        } else {
+          html += '<div class="jp-day jp-day-locked" aria-label="' + (esL() ? 'Día ' : 'Day ') + n + ' — ' + tj('journey.previewLocked', 'Locked') + '">'
+            + '<div class="jp-day-top"><span class="jp-daynum">' + tj('journey.previewDayWord', 'Day') + ' ' + n + '</span>'
+            + '<span class="jp-lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span></div>'
+            + '<div class="jp-daytitle">' + d.title + '</div>'
+            + (d.ref ? '<div class="jp-dayref">' + d.ref + '</div>' : '')
+            + (focus ? '<div class="jp-dayfocus">' + focus + '</div>' : '')
+            + '<div class="jp-lockedlbl">' + tj('journey.previewLocked', 'Locked') + '</div>'
+            + '</div>';
+        }
+      }
+      $('jpDays').innerHTML = html;
+
+      const sec = $('jpSecondary');
+      sec.removeAttribute('data-i18n');
+      if (entrySource === 'today') { sec.textContent = tj('journey.previewBackToday', 'Back to Today'); }
+      else if (entrySource === 'chooser') { sec.textContent = tj('journey.previewChooseDifferent', 'Choose a Different Struggle'); }
+      else { sec.textContent = tj('journey.previewReturn', 'Return to Journey'); }
+    }
+
+    // Guards against double activation: disabled immediately, and a boolean
+    // flag in case a second event still slips through before disabled takes.
+    $('jpBegin').addEventListener('click', function () {
+      if (!previewState || previewCommitting) return;
+      previewCommitting = true;
+      $('jpBegin').disabled = true;
+      const id = previewState.id, seed = previewState.seed;
+      const c = CATALOG.find(function (x) { return x.id === id; });
+      if (!c) { previewCommitting = false; $('jpBegin').disabled = false; toast(esL() ? 'Algo salió mal — intenta de nuevo.' : 'Something went wrong — please try again.'); return; }
+      beginJourney(id, false, true, seed);   // exactly-once commit, same plan Preview showed, no toast (the transition below replaces it)
+      previewState = null;
+      $('journeyPreview').classList.remove('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'true');
+      $('homeScroll').style.display = '';    // beginJourney() already called showActiveUI()/renderHome() into it
+      playPlantedTransition();
+      setTimeout(openDayFlow, 380);          // sensitivity already resolved before Preview — never show the care gate again
+    });
+
+    // Restrained, local, non-viewport-crossing acknowledgment that the
+    // journey now exists — reuses the same small scale-pulse already used at
+    // the end of plantAndBegin()'s flight animation (journey.astro ~line 989),
+    // without the seed-flight/bloom (which needs the now-gone chooser card's
+    // position). Respects prefers-reduced-motion by simply doing nothing.
+    function playPlantedTransition() {
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) return;
+      const vm = $('vineMount') || $('activeCard');
+      if (!vm) return;
+      try { vm.animate([{ transform: 'scale(.94)', opacity: .7 }, { transform: 'scale(1.03)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.34,1.4,.5,1)' }); } catch (e) {}
+    }
+
+    function closeJourneyPreview() {
+      const src = previewState && previewState.entrySource;
+      $('journeyPreview').classList.remove('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'true');
+      $('homeScroll').style.display = '';
+      previewState = null;
+      if (src === 'today') { window.location.href = '/today/'; return; }
+      // 'chooser' and any unresolved source both return to whichever Journey
+      // home state is actually true right now — a still-active journey (this
+      // Preview may have been reached via the switch-conflict flow) or the
+      // honest zero state. Never commits anything.
+      const saved = loadActiveSaved();
+      // Focus a guaranteed-present landmark rather than the original tapped
+      // element — renderZero() rebuilds #zsList's buttons from scratch, so the
+      // pre-Preview element reference would otherwise be a detached, silently
+      // unfocusable node.
+      if (saved && saved.id) {
+        showActiveUI();
+        // continueBtn is disabled while the next day is pacing-locked, and a
+        // disabled control silently refuses focus — fall back to the card
+        // itself (tabindex="-1", programmatically focusable only) so focus
+        // always lands somewhere sensible either way.
+        const cb = $('continueBtn');
+        const target = (cb && !cb.disabled) ? cb : $('activeCard');
+        if (target) { try { target.focus(); } catch (e) {} }
+      }
+      else { showZeroUI(); renderZero(loadDone().length > 0); const sa = $('zsSeeAll'); if (sa) { try { sa.focus(); } catch (e) {} } }
+    }
+    $('jpSecondary').addEventListener('click', closeJourneyPreview);
+    // Repaint Preview's dynamically-templated day cards + secondary-action
+    // label on a live language switch. No new resolution/re-seeding — the
+    // already-resolved plan is just re-painted in the new language. Scoped to
+    // Preview only; the rest of this page has no equivalent listener today.
+    document.addEventListener('declare-lang', function () {
+      if (previewState && $('journeyPreview').classList.contains('open')) {
+        const c = CATALOG.find(function (x) { return x.id === previewState.id; });
+        if (c) renderJourneyPreview(c, previewState.plan, previewState.entrySource);
+      }
+    });
 
     // ---- home mode: the active-journey card vs. the zero state ----
     function showActiveUI() {
@@ -1131,7 +1337,9 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       $('zsList').innerHTML = CURATED.map(function (id) { const c = CATALOG.find(function (x) { return x.id === id; }); if (!c || c.status !== 'open') return '';
         return '<button class="zs-card" data-id="' + c.id + '"><span class="zs-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span><span class="zs-txt"><span class="zs-shift"><span class="zs-from">' + cFrom(c) + '</span><span class="zs-toline"><span class="zs-arr" aria-hidden="true">→</span><span class="zs-to">' + cTo(c) + '</span></span></span><span class="zs-line">' + cLine(c) + '</span></span><span class="zs-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
       }).join('');
-      $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { plantAndBegin(b); }); });
+      // B2.1: no longer commits immediately (plantAndBegin) — resolves the
+      // care gate first for sensitive struggles, then shows Journey Preview.
+      $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { beginNewJourneyFlow(b.dataset.id, 'chooser'); }); });
     }
     $('zsSeeAll').addEventListener('click', function () { openChooseList(true); });
 
@@ -1284,13 +1492,13 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           }
           return;
         }
+        // B2.1: brand-new journey via the Today bridge, no conflict — resolve
+        // (care-gate first if sensitive), then show Preview. Do NOT commit
+        // here anymore (no startPlan()/saveActive()/showActiveUI() at pick
+        // time) — commitment now happens once, at Preview's "Begin Day 1".
         const c = CATALOG.find(function (x) { return x.id === targetId; });
-        if (c) { active = c; active.status = 'active'; }
-        startPlan();
-        state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
-        showActiveUI();
-        if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
-        else { setTimeout(openDayFlow, 380); }
+        showZeroUI(); renderZero(loadDone().length > 0); // sane default behind the Preview overlay; nothing is committed yet
+        if (c) { beginNewJourneyFlow(c.id, 'today'); }
         return;
       }
       // No bridge entry: honor real persistence.
@@ -1902,6 +2110,67 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
          position:absolute and don't participate in this flex direction. */
       .journey .jc-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
       .journey .remain { font-size: 11.5px; }
+    }
+
+    /* ============================================================
+       B2.1 — Journey Preview
+       In-flow content (not a full-viewport overlay like .dayflow) — the
+       persistent left rail (>=768px, TabBar.astro/sidebar.css) and the
+       mobile bottom tab bar (<768px) live outside <main class="journey">
+       and are never covered or touched. Only existing semantic tokens
+       (declare.css) are used — no new palette, no red/emergency styling.
+       ============================================================ */
+    /* Reuses the .scroll class (same element `#homeScroll` uses) for its
+       existing padding/max-width/margin at every breakpoint — .scroll's own
+       generous bottom padding (120px+safe-area at mobile, still 60px at
+       tablet+) already clears the mobile bottom tab bar; no separate values
+       are duplicated here. */
+    .journey .jpreview { display: none; }
+    .journey .jpreview.open { display: flex; flex-direction: column; gap: 20px; }
+
+    .journey .jp-head { display: flex; flex-direction: column; gap: 6px; }
+    .journey .jp-ey { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; line-height: 1.15; color: var(--text); outline: none; }
+    .journey .jp-shift { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--goldd); display: flex; align-items: center; gap: 8px; }
+    .journey .jp-arr { color: var(--muted); }
+    .journey .jp-meta { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .journey .jp-dot { opacity: .6; }
+    .journey .jp-support { font-size: 13.5px; color: var(--text2); line-height: 1.5; margin: 2px 0 0; }
+
+    .journey .jp-days { display: flex; flex-direction: column; gap: 10px; }
+    .journey .jp-day { border-radius: 14px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+    .journey .jp-day-current { border-color: color-mix(in srgb, var(--gold) 55%, var(--line)); background: color-mix(in srgb, var(--gold) 8%, var(--surface)); box-shadow: var(--chip-shadow, none); }
+    .journey .jp-day-locked { opacity: .8; }
+    .journey .jp-day-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .journey .jp-daynum { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .journey .jp-day-current .jp-daynum { color: var(--goldd); }
+    .journey .jp-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+    .journey .jp-badge-now { background: var(--gold); color: #22382E; }
+    .journey .jp-lock { color: var(--muted); flex: 0 0 auto; }
+    .journey .jp-lock svg { width: 16px; height: 16px; display: block; }
+    .journey .jp-daytitle { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 2px; line-height: 1.2; }
+    .journey .jp-day-locked .jp-daytitle { color: var(--text2); }
+    .journey .jp-dayref { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .journey .jp-dayfocus { font-size: 13px; color: var(--text2); line-height: 1.42; }
+    .journey .jp-lockedlbl { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+    .journey .jp-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .journey .jp-begin, .journey .jp-secondary { width: 100%; min-height: 48px; border-radius: 12px; font-size: 15px; }
+    .journey .jp-begin:disabled { opacity: .6; pointer-events: none; }
+    .journey .jp-privacy { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); justify-content: center; }
+    .journey .jp-privacy svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+    @media (min-width: 768px) {
+      .journey .jp-ey { font-size: 27px; }
+      .journey .jp-shift { font-size: 20px; }
+    }
+
+    @media (min-width: 1024px) {
+      .journey .jp-ey { font-size: 32px; }
+      .journey .jp-days { flex-direction: row; align-items: stretch; }
+      .journey .jp-day { flex: 1; min-width: 0; }
+      .journey .jp-actions { flex-direction: row; }
+      .journey .jp-begin { flex: 2; }
+      .journey .jp-secondary { flex: 1; }
     }
   </style>
 </DeclareLayout>
