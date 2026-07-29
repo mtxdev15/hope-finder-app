@@ -365,6 +365,19 @@ window.__I18N_STRINGS = {
     'journey.talkToSomeone': 'Habla con alguien ahora',
     'journey.readyBeginGently': 'Estoy listo, comencemos con calma',
 
+    /* ---- B2.1 Journey Preview ---- */
+    'journey.previewEyebrow': 'Vista previa de tu camino de 5 días',
+    'journey.previewDays': '5 días',
+    'journey.previewPace': 'Un paso a la vez.',
+    'journey.previewBeginDay1': 'Comienza el Día 1',
+    'journey.previewBeginsNow': 'Comienza ahora',
+    'journey.previewLocked': 'Bloqueado',
+    'journey.previewDayWord': 'Día',
+    'journey.previewBackToday': 'Volver a Hoy',
+    'journey.previewChooseDifferent': 'Elegir otra lucha',
+    'journey.previewReturn': 'Volver al Camino',
+    'journey.previewPrivacy': 'Tu camino es privado y solo tú puedes verlo.',
+
     /* ---- day-complete: save-your-progress invitation ---- */
     'journey.saveProgressH': 'Guarda tu progreso',
     'journey.saveProgressS': 'Crea una cuenta gratis para que mañana te esté esperando — tu fruto y tus versículos, todo a salvo.',
