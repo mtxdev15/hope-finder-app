@@ -218,11 +218,9 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 
 /* ---------- curved bottom tab bar (Open-style, Today centered) ---------- */
 .tabbar{ position:relative; z-index:3; display:flex; justify-content:space-between; align-items:flex-end;
-  padding:18px 22px 22px; background:linear-gradient(to top, var(--screen) 26%, transparent);
+  padding:18px 22px 22px; background:linear-gradient(to top, var(--screen) 48%, transparent);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
-.tabbar .arc{ position:absolute; top:0; left:0; width:100%; height:18px; pointer-events:none; }
-.tabbar .arc path{ fill:none; stroke:var(--line); stroke-width:1; }
-.tab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+.tab{ position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
   color:var(--muted); cursor:pointer; background:none; border:0; transition:color .2s ease, transform .16s ease;
   min-height:44px; /* interactive hit area floor: 44px (see PRODUCT.md Accessibility & Inclusion) */ }
 .tab:active{ transform:translateY(1px); }
@@ -230,6 +228,13 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 .tab .tlbl{ font-size:11px; letter-spacing:.01em; text-transform:none; font-weight:500; opacity:1; transition:opacity .2s ease, color .2s ease; }
 .tab.on{ color:var(--text); }
 .tab.on .tlbl{ opacity:1; color:var(--goldd); }
+/* quiet active-tab indicator — a single small dot, not an underline bar or
+   badge, so it reads as a gentle marker rather than a gamified progress cue.
+   Excluded from .tab.center: the raised gold "Declare" disc already carries
+   its own on/off treatment (see .tab.center.on below) and doesn't need a
+   second signal stacked on top of it. */
+.tab.on:not(.center)::after{ content:''; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+  width:4px; height:4px; border-radius:50%; background:var(--gold); box-shadow:0 0 6px rgba(216,184,95,.55); }
 /* Today — centered, emphasized, gold-tinted glow */
 .tab.center{ flex:0 0 auto; margin:0 4px; }
 .tab.center .tdisc{ width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -281,7 +286,8 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
    bar. Canonical mobile range is now 0-767px (see sidebar.css for the
    768px+ left-rail takeover), so this moves from max-width:480 to 767. */
 @media (max-width:767px){
-  .tabbar{ padding-bottom:max(22px, calc(env(safe-area-inset-bottom) + 14px)); }
+  .tabbar{ padding-bottom:max(22px, calc(env(safe-area-inset-bottom) + 14px));
+    box-shadow:0 -10px 24px -14px rgba(0,0,0,.35); }
 }
 
 /* ---------- tablet & desktop: show the TRUE-SIZE device mockup, framed and

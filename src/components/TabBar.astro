@@ -11,8 +11,6 @@ const { active = '' } = Astro.props;
 const on = (k) => (active === k ? ' on' : '');
 ---
 <nav class="tabbar" aria-label="Primary">
-  <svg class="arc" viewBox="0 0 390 18" preserveAspectRatio="none"><path d="M0 1 Q195 20 390 1"></path></svg>
-
   {/* desktop-sidebar-only brand row: wordmark + collapse toggle (sidebar.css/sidebar.js) */}
   <div class="sb-brand" aria-hidden="true">
     <span class="sb-dot"></span>
@@ -27,7 +25,7 @@ const on = (k) => (active === k ? ' on' : '');
     <span class="tlbl" data-i18n="tab.word">Word</span>
   </a>
   <a class={'tab tab-journey' + on('journey')} href="/journey/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"></path></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"></path></svg>
     <span class="tlbl" data-i18n="tab.journey">Journey</span>
   </a>
   <a class={'tab center tab-declare' + on('declare')} href="/today/">
