@@ -378,6 +378,10 @@ window.__I18N_STRINGS = {
     'journey.previewReturn': 'Volver al Camino',
     'journey.previewPrivacy': 'Tu camino es privado y solo tú puedes verlo.',
 
+    /* ---- B2.2 Day-Opening screen ---- */
+    'journey.dayOpenBegin': 'Comienza el camino de hoy',
+    'journey.dayOpenOverview': 'Ver el resumen del camino',
+
     /* ---- day-complete: save-your-progress invitation ---- */
     'journey.saveProgressH': 'Guarda tu progreso',
     'journey.saveProgressS': 'Crea una cuenta gratis para que mañana te esté esperando — tu fruto y tus versículos, todo a salvo.',
