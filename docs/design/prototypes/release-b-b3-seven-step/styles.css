@@ -1,0 +1,417 @@
+/* B3.1 / B3.1A seven-step Journey — design-only prototype.
+   Supports BOTH light and dark themes using the real repository tokens,
+   ported verbatim from public/declare/declare.css (:root = light base,
+   html[data-theme="dark"] = dark override — same convention as production).
+   Hardcoded here (not var()-linked to the real stylesheet) because this
+   file is intentionally not wired into the app — see README for why B2.2's
+   own dark-forest overlay made the same choice. Two additional semantic
+   tokens (--ok/--err/--btn-shadow/--day-scrim) are prototype-only additions
+   not present in declare.css; flagged in spec.md "Light and Dark Theme
+   System" as something B3 production would need to add or inline. */
+
+:root{
+  /* ---------- LIGHT (declare.css :root base) ---------- */
+  --text:#22382E; --text2:#465A50; --muted:#7E8E84; --soft:rgba(34,56,46,.78);
+  --gold:#C9A84C; --goldd:#9A7A24; --clay:#B5703F;
+  --bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);
+  --bg:#FAF7F2; --screen:#FBF8F3; --surface:#FFFFFF;
+  --line:rgba(34,56,46,.08); --line2:rgba(34,56,46,.16); --field:#F4ECDB;
+  --prayer:#F3EAD4;
+  --cta:#2D4A3E; --ctatext:#FAF7F2;
+  --card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 12px -3px rgba(34,56,46,.1), inset 0 1px 0 rgba(255,255,255,.7);
+  --chip-shadow:0 6px 16px -6px rgba(34,56,46,.16), inset 0 1px 0 rgba(255,255,255,.6);
+  /* prototype-only additions (not in declare.css — see note above) */
+  --btn-shadow:0 16px 34px -14px rgba(45,74,62,.4), inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 1px rgba(0,0,0,.06);
+  --btn-shadow-hover:0 20px 42px -14px rgba(45,74,62,.5), inset 0 1px 0 rgba(255,255,255,.6);
+  --day-scrim:linear-gradient(to bottom, rgba(250,247,242,.1) 0%, rgba(250,247,242,.76) 46%, rgba(250,247,242,.97) 100%);
+  --ok:#3E6B52; --ok-bg:rgba(62,107,82,.1); --err:#95412A; --err-bg:rgba(149,65,42,.08);
+  --modal-scrim:rgba(30,40,34,.42);
+}
+html[data-theme="dark"]{
+  /* ---------- DARK (declare.css html[data-theme="dark"]) ---------- */
+  --text:#F3EFE6; --text2:#C7D6CD; --muted:#92A89E; --soft:rgba(244,240,231,.6);
+  --gold:#D8B85F; --goldd:#E2C572; --clay:#D08A5B;
+  --bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);
+  --bg:#0E1A14; --screen:#13211A; --surface:#1b2c23;
+  --line:rgba(244,239,230,.09); --line2:rgba(244,239,230,.2); --field:rgba(255,255,255,.05);
+  --prayer:#1D2E25;
+  --cta:#D0AE54; --ctatext:#13211A;
+  --card-shadow:0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22), inset 0 1px 0 rgba(255,255,255,.06);
+  --chip-shadow:0 8px 20px -8px rgba(0,0,0,.6), 0 0 0 1px rgba(244,239,230,.05), inset 0 1px 0 rgba(255,255,255,.05);
+  --btn-shadow:0 16px 34px -12px rgba(216,184,95,.55), inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px rgba(0,0,0,.1);
+  --btn-shadow-hover:0 20px 42px -12px rgba(216,184,95,.65), inset 0 1px 0 rgba(255,255,255,.45);
+  --day-scrim:linear-gradient(to bottom, rgba(6,11,8,.25) 0%, rgba(6,11,8,.55) 45%, rgba(6,11,8,.88) 100%);
+  --ok:#8FCBB2; --ok-bg:rgba(143,203,178,.12); --err:#E2A87A; --err-bg:rgba(226,168,122,.1);
+  --modal-scrim:rgba(6,11,8,.68);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+body{ font-family:'DM Sans', sans-serif; background:var(--bg); color:var(--text); transition:background-color .35s ease, color .35s ease; }
+/* Every font-size in this file is a fixed px value (matches declare.css's own
+   approach), so a body-level font-size percentage is a no-op; caught during
+   B3.1A final review (two "larger text" screenshots were byte-identical to
+   unrelated states). Simulated instead via the same honest transform-scale
+   technique already used for 200% zoom, at a smaller factor. This is a
+   design-review approximation of OS/browser text-size boosting, not a true
+   independent-text-reflow simulation; documented as such in the README. */
+body.rt-larger-text .shell, body.rt-larger-text .vault-demo{ transform:scale(1.16); transform-origin:top center; }
+
+/* ============ theme preview control (design-only reviewer tool) ============ */
+.theme-preview-ctl{ position:fixed; top:10px; right:10px; z-index:61; display:flex; align-items:center; gap:2px; background:var(--surface); border:1px solid var(--line2); border-radius:100px; padding:4px; box-shadow:var(--chip-shadow); }
+[data-hide-badge] .theme-preview-ctl{ display:none; }
+.theme-preview-ctl .tpc-label{ font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:0 8px; }
+.theme-preview-ctl button{ font-family:'DM Sans',sans-serif; font-size:11.5px; font-weight:600; border:0; background:none; color:var(--muted); padding:0 14px; min-height:36px; border-radius:100px; cursor:pointer; }
+.theme-preview-ctl button[aria-pressed="true"]{ background:var(--cta); color:var(--ctatext); }
+.theme-preview-ctl button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+/* ============ fake backdrop app (dimmed context only, tablet/desktop) ============ */
+.fake-app{ position:fixed; inset:0; background:var(--bgfield); display:flex; }
+.fake-rail{ width:248px; flex:0 0 auto; border-right:1px solid var(--line); padding:20px 14px; display:none; flex-direction:column; gap:2px; }
+.fake-rail .frow{ display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:11px; color:var(--muted); font-size:14px; }
+.fake-rail .frow.on{ color:var(--goldd); background:color-mix(in srgb, var(--gold) 8%, transparent); }
+.fake-main{ flex:1; padding:60px; opacity:.5; }
+.fake-main h1{ font-family:'Cormorant Garamond',serif; font-size:40px; color:var(--text); max-width:520px; }
+.fake-main p{ color:var(--muted); margin-top:14px; max-width:460px; font-size:14px; line-height:1.6; }
+@media (min-width:768px){ .fake-rail{ display:flex; } }
+
+/* ============ ritual shell ============ */
+.ritual{ position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; }
+.ritual-back{ position:absolute; inset:0; background:transparent; }
+/* Per-day generated forest photograph (same photo in both themes — only the
+   scrim changes, see --day-scrim per theme above and spec.md "Light and
+   Dark Theme System" for why a second image set is deliberately NOT
+   generated). Set via --day-bg per current day by prototype.js (setDay()). */
+.shell{ position:relative; width:100%; height:100%; display:flex; flex-direction:column;
+  --day-bg: url('../../../../public/declare/dayopen-bg.jpg');
+  background: var(--day-scrim), var(--day-bg) center top / cover no-repeat, var(--bg);
+  transition: background-image 1.1s ease, background-color .4s ease; }
+@media (min-width:768px){
+  .ritual{ padding:28px; }
+  .ritual-back{ background:var(--modal-scrim); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .shell{ width:100%; max-width:620px; height:auto; max-height:calc(100dvh - 56px); border-radius:24px; border:1px solid var(--line2); box-shadow:var(--card-shadow); overflow:hidden; }
+}
+@media (min-width:1024px){ .shell{ max-width:660px; } }
+
+/* ---- top bar ----
+   A frosted backing band sits behind the top bar + progress row so the day
+   label, icons, and dots stay legible against the photo regardless of how
+   bright/dark that region of the image is — true in both themes, not just
+   dark (a bright light-theme sky under the gold label was unreadable
+   without this; caught in review, see spec.md). */
+.rtop{ position:relative; z-index:1; display:flex; align-items:center; gap:12px; padding:max(14px, env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--line);
+  background:color-mix(in srgb, var(--bg) 58%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); flex:0 0 auto; }
+.rtop-ctx{ flex:1; min-width:0; }
+.rtop-day{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--goldd); font-weight:700; white-space:nowrap; }
+.rback{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
+.rback svg{ width:18px; height:18px; }
+.rhelp{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--goldd); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; position:relative; }
+.rhelp svg{ width:19px; height:19px; }
+.rhelp.focused{ outline:2px solid var(--gold); outline-offset:2px; }
+.rclose{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
+.rclose svg{ width:17px; height:17px; }
+
+/* ---- 7-dot progress ---- */
+.rprog{ display:flex; gap:6px; align-items:center; padding:12px 16px 10px; flex:0 0 auto;
+  background:color-mix(in srgb, var(--bg) 58%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+.rprog i{ width:12px; height:4px; border-radius:100px; background:var(--line2); }
+.rprog i.done{ background:var(--gold); }
+.rprog i.cur{ background:var(--goldd); width:18px; }
+
+/* ---- content ---- */
+/* True vertical centering of the active step's content — `safe center`:
+   centers when it fits, scrolls from the top instead of overlapping once
+   content grows too tall (same fix proven for B2.2's 200%-zoom bug). */
+.rscroll{ flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; padding:20px 22px max(24px, env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; justify-content:safe center; align-items:center; }
+.rscroll::-webkit-scrollbar{ display:none; }
+.rhead{ text-align:center; margin-bottom:18px; }
+.rleaf{ color:var(--goldd); width:24px; height:24px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; }
+.rleaf svg{ width:100%; height:100%; }
+.rtitle{ font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:600; color:var(--text); line-height:1.14; }
+.rsub{ font-size:13.5px; color:var(--muted); margin-top:8px; max-width:38ch; margin-left:auto; margin-right:auto; line-height:1.5; }
+
+.step-body{ display:none; }
+.step-body.active{ display:block; width:100%; }
+
+/* verse block (Receive) */
+.verse-card{ border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:14px; padding:16px 17px; background:var(--surface); box-shadow:var(--chip-shadow); }
+.verse-text{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.44; color:var(--text); }
+.verse-ref{ margin-top:10px; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+.step-note{ display:flex; gap:9px; align-items:flex-start; margin-top:14px; font-size:13px; color:var(--text2); line-height:1.5; }
+.step-note svg{ width:16px; height:16px; flex:0 0 auto; margin-top:2px; color:var(--goldd); }
+
+/* prayer block */
+.pray-card{ border:1px solid color-mix(in srgb, var(--gold) 16%, var(--line)); border-radius:14px; padding:16px 17px; background:var(--prayer); }
+.pray-title{ font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--goldd); font-weight:600; margin-bottom:8px; }
+.pray-text{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; line-height:1.5; color:var(--text); }
+
+/* cast off — lie/truth contrast */
+.lt-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
+@media (min-width:480px){ .lt-grid{ grid-template-columns:1fr auto 1fr; align-items:center; } }
+.lt-card{ border-radius:14px; padding:15px 16px; }
+.lt-lie{ background:linear-gradient(180deg, color-mix(in srgb, var(--clay) 16%, var(--surface)), var(--surface)); border:1px solid color-mix(in srgb, var(--clay) 42%, transparent); opacity:.86; }
+.lt-truth{ background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 14%, var(--surface)), var(--surface)); border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); box-shadow:0 0 34px -10px color-mix(in srgb, var(--gold) 45%, transparent); }
+.lt-lab{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; margin-bottom:8px; }
+.lt-lie .lt-lab{ color:var(--clay); }
+.lt-truth .lt-lab{ color:var(--goldd); }
+.lt-text{ font-family:'Cormorant Garamond',serif; font-size:17px; line-height:1.4; }
+.lt-truth .lt-text{ font-size:19px; font-weight:600; }
+.lt-arrow{ display:flex; align-items:center; justify-content:center; color:var(--goldd); }
+.lt-arrow svg{ width:20px; height:20px; }
+@media (max-width:479px){ .lt-arrow{ transform:rotate(90deg); margin:2px auto; } }
+
+/* repent & breathe — full-bleed atmospheric glow + quieted chrome while
+   actively breathing (inhale/hold/exhale), inspired by Open's session-start
+   breathing screen (referenced live via Downloads zip + Mobbin, not copied:
+   no audio scrubber, no streak/"Congratulations" completion, no new colors —
+   only existing --gold/--goldd, and the real 4s/2s/6s asymmetric phases). */
+.breath-wrap{ display:flex; flex-direction:column; align-items:center; gap:16px; padding:8px 0 4px; position:relative; }
+.breath-verse{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; color:var(--text2); text-align:center; max-width:34ch; transition:opacity .6s ease; }
+.breath-idle{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.breath-stage-wrap{ display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; }
+.breath-stage{ position:relative; width:100%; max-width:320px; aspect-ratio:1; display:flex; align-items:center; justify-content:center; }
+.breath-glow{ position:absolute; inset:-12%; border-radius:50%; opacity:.32; filter:blur(2px);
+  background:radial-gradient(circle, color-mix(in srgb, var(--gold) 68%, white 32%), color-mix(in srgb, var(--gold) 24%, transparent) 45%, transparent 68%);
+  transition:transform 1.3s cubic-bezier(.4,0,.4,1), opacity 1.3s ease; }
+.breath-ring{ position:relative; width:132px; height:132px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1.5px solid color-mix(in srgb, var(--gold) 55%, transparent); box-shadow:0 0 34px -6px color-mix(in srgb, var(--gold) 42%, transparent), inset 0 0 26px -8px color-mix(in srgb, var(--gold) 32%, transparent); background:radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 70%); transform:scale(.62); transition:transform 1.3s cubic-bezier(.4,0,.4,1); }
+.rt-reduced-motion .breath-ring, .rt-reduced-motion .breath-glow{ transition:none!important; }
+.breath-count{ font-family:'DM Sans',sans-serif; font-size:30px; font-weight:300; color:var(--text); font-variant-numeric:tabular-nums; }
+.breath-label{ font-family:'DM Sans',sans-serif; font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+.breath-round{ font-size:11px; color:var(--muted); letter-spacing:.06em; }
+.breath-phase-ready .breath-ring{ transform:scale(.55); }
+.breath-phase-inhale .breath-ring{ transform:scale(1.06); border-color:color-mix(in srgb, var(--gold) 75%, transparent); }
+.breath-phase-inhale .breath-glow{ opacity:.75; transform:scale(1.15); }
+.breath-phase-hold .breath-ring{ transform:scale(1.06); }
+.breath-phase-hold .breath-glow{ opacity:.7; transform:scale(1.1); }
+.breath-phase-exhale .breath-ring{ transform:scale(.62); }
+.breath-phase-exhale .breath-glow{ opacity:.3; transform:scale(.7); }
+.rt-breathing .rtop, .rt-breathing .rprog{ opacity:.35; transition:opacity .6s ease; }
+.rt-breathing .breath-verse{ opacity:.55; }
+.breath-done{ display:none; flex-direction:column; align-items:center; gap:8px; text-align:center; }
+.breath-phase-complete .breath-idle, .breath-phase-complete .breath-stage-wrap{ display:none; }
+.breath-phase-complete .breath-done{ display:flex; }
+.breath-done-ic{ width:34px; height:34px; border-radius:50%; background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--goldd); display:flex; align-items:center; justify-content:center; }
+.breath-done-ic svg{ width:17px; height:17px; }
+.breath-done-t{ font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--goldd); font-weight:600; }
+.breath-skip{ background:none; border:0; color:var(--soft); font-size:12.5px; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:8px; min-height:44px; }
+.rm-note{ display:none; align-items:center; gap:7px; font-size:11.5px; color:var(--muted); margin-top:4px; }
+.rt-reduced-motion .rm-note{ display:flex; }
+.rm-note svg{ width:14px; height:14px; color:var(--goldd); }
+
+/* declare */
+.declare-card{ border-radius:16px; padding:22px 18px; text-align:center; background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 12%, var(--surface)), var(--surface)); border:1px solid color-mix(in srgb, var(--gold) 34%, transparent); box-shadow:0 0 40px -10px color-mix(in srgb, var(--gold) 48%, transparent), var(--chip-shadow); }
+.declare-text{ font-family:'Cormorant Garamond',serif; font-size:24px; line-height:1.3; color:var(--text); font-weight:600; }
+.speak-hint{ display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; font-size:13px; color:var(--text2); }
+.speak-hint svg{ width:16px; height:16px; color:var(--goldd); }
+
+/* ============ reflect (step 6) — Approved Step 6 Product Model ============ */
+.reflect-view{ width:100%; }
+.reflect-prompt{ font-size:14.5px; color:var(--text2); line-height:1.5; margin-bottom:12px; }
+.reflect-box{ position:relative; }
+textarea.reflect-input{ width:100%; min-height:140px; resize:vertical; border-radius:14px; border:1px solid var(--line2); background:var(--surface); color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.55; padding:14px 15px; }
+textarea.reflect-input:focus{ outline:none; border-color:color-mix(in srgb, var(--gold) 50%, transparent); box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 18%, transparent); }
+textarea.reflect-input::placeholder{ color:var(--soft); }
+.reflect-count{ position:absolute; right:12px; bottom:10px; font-size:11px; color:var(--muted); pointer-events:none; }
+/* Draft status — text/icon communicate state, never color alone. Two visual
+   states: pending (protecting, before the debounced "Draft saved" lands)
+   and confirmed draft (after it lands / on restore). */
+.reflect-status{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12.5px; color:var(--muted); min-height:18px; }
+.reflect-status svg{ width:14px; height:14px; color:var(--goldd); flex:0 0 auto; }
+.reflect-status.rs-draft{ color:var(--ok); }
+.reflect-status.rs-draft svg{ color:var(--ok); }
+.reflect-restored-banner{ display:none; align-items:center; justify-content:space-between; gap:10px; background:color-mix(in srgb, var(--gold) 8%, transparent); border:1px solid color-mix(in srgb, var(--gold) 28%, transparent); border-radius:12px; padding:10px 13px; margin-bottom:12px; font-size:12.5px; color:var(--text2); }
+.rt-reflect-restored .reflect-restored-banner{ display:flex; }
+.reflect-restored-banner button{ background:none; border:0; color:var(--goldd); font-weight:600; text-decoration:underline; text-underline-offset:2px; cursor:pointer; font-size:inherit; }
+
+/* saving / AI-loading async cards — spinner is a design-only affordance;
+   reduced motion swaps it for a static pulsing dot (no rotation). */
+.reflect-async-card{ display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:36px 20px; border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--text2); font-size:14px; }
+.reflect-spinner{ width:30px; height:30px; border-radius:50%; border:2.5px solid color-mix(in srgb, var(--gold) 25%, transparent); border-top-color:var(--gold); animation:reflect-spin .9s linear infinite; }
+.rt-reduced-motion .reflect-spinner{ animation:none; border-top-color:color-mix(in srgb, var(--gold) 25%, transparent); background:var(--gold); opacity:.6; }
+@keyframes reflect-spin{ to{ transform:rotate(360deg); } }
+.ai-loading-cancel{ background:none; border:0; color:var(--muted); font-size:12.5px; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:8px; min-height:44px; }
+
+/* Saved to Vault — the durable, intentional state. Visually distinct from
+   the draft/typing view (a quoted card + explicit status row), never
+   reachable from typing alone — only after Save Reflection completes. */
+.vault-saved-card{ border:1px solid color-mix(in srgb, var(--gold) 30%, var(--line)); border-radius:16px; padding:18px 18px 16px; background:var(--surface); box-shadow:var(--chip-shadow); }
+.vault-saved-quote{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; line-height:1.5; color:var(--text); }
+.vault-saved-status{ display:flex; align-items:flex-start; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+.vs-icon{ width:28px; height:28px; border-radius:50%; background:var(--ok-bg); color:var(--ok); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.vs-icon svg{ width:14px; height:14px; }
+.vs-text{ display:flex; flex-direction:column; gap:2px; font-size:12.5px; color:var(--text2); line-height:1.5; }
+.vs-text strong{ font-size:13.5px; color:var(--ok); font-weight:700; }
+.reflect-vault-link{ background:none; border:0; padding:0; color:var(--goldd); font-weight:600; text-decoration:underline; text-underline-offset:2px; cursor:pointer; font-size:inherit; font-family:inherit; }
+
+/* AI Guidance response — required hierarchy: label → acknowledgement →
+   Scripture (visually distinct, never mistaken for generated text) →
+   explanation → next step → question → restrained disclaimer. */
+.ai-response-card{ border:1px solid var(--line2); border-radius:16px; padding:18px; background:var(--surface); box-shadow:var(--chip-shadow); text-align:left; }
+.ai-label{ display:flex; align-items:center; gap:7px; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--goldd); margin-bottom:12px; }
+.ai-label-dot{ width:6px; height:6px; border-radius:50%; background:var(--goldd); }
+.ai-ack{ font-size:14.5px; color:var(--text2); line-height:1.55; }
+.ai-scripture{ margin:14px 0; padding:14px 16px; border-left:3px solid var(--gold); border-radius:0 12px 12px 0; background:color-mix(in srgb, var(--gold) 9%, var(--surface)); }
+.ai-scripture-text{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:18px; line-height:1.45; color:var(--text); }
+.ai-scripture-ref{ margin-top:8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--goldd); font-weight:600; }
+.ai-explain{ font-size:13.5px; color:var(--text2); line-height:1.55; margin-bottom:12px; }
+.ai-next{ display:flex; flex-direction:column; gap:3px; padding:12px 14px; border-radius:12px; background:var(--field); margin-bottom:12px; font-size:13px; color:var(--text2); line-height:1.5; }
+.ai-next-lab{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+.ai-question{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:15.5px; color:var(--text); line-height:1.5; margin-bottom:14px; }
+/* Reassurance, deliberately unalarming — small, muted, not a warning box. */
+.ai-disclaimer{ font-size:11px; color:var(--muted); line-height:1.5; padding-top:12px; border-top:1px solid var(--line); }
+.ai-next-link{ display:inline-block; margin-top:8px; background:none; border:0; padding:0; color:var(--goldd); font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit; min-height:32px; }
+
+/* Scripture follow-through: reader deep-link + dashboard resume card
+   (representative recreations, not word.astro / the real Dashboard). */
+.reader-card{ width:100%; max-width:460px; background:var(--surface); border:1px solid var(--line2); border-radius:20px; padding:22px 22px 20px; box-shadow:var(--card-shadow); text-align:left; }
+.reader-breadcrumb{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid var(--line); font-size:11.5px; color:var(--muted); }
+.reader-breadcrumb button{ background:none; border:1px solid var(--line2); border-radius:100px; padding:8px 13px; color:var(--goldd); font-weight:600; font-size:11.5px; cursor:pointer; font-family:inherit; }
+.reader-ref{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--text); margin-bottom:10px; }
+.reader-verse{ font-size:14.5px; color:var(--text2); line-height:1.6; margin-bottom:8px; }
+.reader-verse strong{ color:var(--goldd); font-weight:700; margin-right:4px; }
+.reader-note{ font-size:11px; color:var(--muted); margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+
+/* AI failure / connection error — reflection is never implied lost. */
+.ai-error-card{ display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; padding:30px 20px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }
+.ai-error-ic{ width:38px; height:38px; border-radius:50%; background:var(--err-bg); color:var(--err); display:flex; align-items:center; justify-content:center; }
+.ai-error-ic svg{ width:19px; height:19px; }
+.ai-error-h{ font-family:'Cormorant Garamond',serif; font-size:19px; color:var(--text); font-weight:600; }
+.ai-error-b{ font-size:13.5px; color:var(--ok); font-weight:600; }
+
+/* Crisis-language safety route — reuses the vault-saved-card visual
+   language; adds a compact safety-first note above it and auto-opens the
+   REAL support sheet (see prototype.js). No separate invented crisis UI. */
+.crisis-safety-card{ border-color:color-mix(in srgb, var(--clay) 40%, var(--line)); }
+.crisis-safety-note{ display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--text2); line-height:1.5; }
+.crisis-safety-note svg{ width:18px; height:18px; color:var(--clay); flex:0 0 auto; margin-top:1px; }
+
+/* act */
+.act-card{ border:1px solid var(--line); border-radius:14px; padding:16px 17px; background:var(--surface); }
+.act-title{ font-family:'Cormorant Garamond',serif; font-size:18px; color:var(--goldd); font-weight:600; margin-bottom:8px; }
+.act-text{ font-size:14.5px; color:var(--text2); line-height:1.55; }
+.act-check{ display:flex; align-items:center; gap:10px; margin-top:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--line2); background:transparent; color:var(--text2); font-family:inherit; font-size:14px; cursor:pointer; min-height:44px; width:100%; }
+.act-check .bx{ width:20px; height:20px; border-radius:6px; border:1.5px solid var(--line2); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:transparent; }
+.act-check .bx svg{ width:13px; height:13px; }
+.act-check.on{ border-color:color-mix(in srgb, var(--gold) 50%, transparent); color:var(--goldd); }
+.act-check.on .bx{ background:var(--gold); border-color:var(--gold); color:#13211A; }
+.act-optional-note{ font-size:11.5px; color:var(--muted); margin-top:8px; text-align:center; }
+
+/* footer actions */
+.ractions{ width:100%; margin-top:28px; padding-bottom:max(4px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; align-items:center; gap:10px; }
+.ractions .rbtn-primary, .ractions .rbtn-secondary, .ractions .rbtn-review-back{ max-width:420px; }
+/* Elevated pill: built from the REAL --cta/--ctatext tokens per theme (light
+   = solid forest fill + cream text, dark = gold gradient + dark text — the
+   same split the production app already uses elsewhere), with a soft
+   themed shadow/highlight pair for pressed-metal depth. Not a gold-only
+   treatment hardcoded for dark and reused unchanged on light. */
+.rbtn-primary{ width:100%; min-height:52px; border-radius:100px; border:0;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--cta) 84%, white 16%), var(--cta) 55%, color-mix(in srgb, var(--cta) 88%, black 12%));
+  color:var(--ctatext); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:700; letter-spacing:.01em;
+  cursor:pointer;
+  box-shadow:var(--btn-shadow);
+  transition:transform .16s ease, box-shadow .2s ease, filter .2s ease; }
+@media (hover:hover){ .rbtn-primary:hover:not(:disabled){ filter:brightness(1.05); box-shadow:var(--btn-shadow-hover); } }
+.rbtn-primary:active:not(:disabled){ transform:scale(.985); }
+.rbtn-primary:disabled{ opacity:.45; cursor:default; filter:grayscale(.3); box-shadow:none; }
+.rbtn-primary:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+/* Secondary — "Receive Guidance" / "Reflect More" / "Try Again". Outlined,
+   deliberately quieter than the primary so AI reads as available, not
+   required — the Continue action must always stay the visually stronger
+   pill (per Approved Button Model). */
+.rbtn-secondary{ width:100%; min-height:48px; border-radius:100px; border:1px solid color-mix(in srgb, var(--gold) 45%, var(--line2)); background:transparent; color:var(--goldd); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s ease, border-color .2s ease; }
+@media (hover:hover){ .rbtn-secondary:hover{ background:color-mix(in srgb, var(--gold) 8%, transparent); border-color:color-mix(in srgb, var(--gold) 65%, transparent); } }
+.rbtn-secondary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.rbtn-back{ width:100%; min-height:44px; border-radius:100px; border:0; background:none; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13.5px; letter-spacing:.02em; cursor:pointer; transition:color .2s ease; }
+@media (hover:hover){ .rbtn-back:hover{ color:var(--goldd); } }
+
+/* ============ support drawer / AI consent (shared .support-sheet component) ============ */
+.support-scrim{ position:fixed; inset:0; background:var(--modal-scrim); z-index:29; opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s; }
+.support-scrim.open{ opacity:1; visibility:visible; }
+.support-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:30; background:var(--screen); border-top:1px solid var(--line2); border-radius:22px 22px 0 0; padding:10px 20px max(22px, env(safe-area-inset-bottom)); transform:translateY(102%); opacity:0; visibility:hidden; transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .3s ease, visibility .3s; max-width:480px; margin:0 auto; }
+.support-sheet.open{ transform:translateY(0); opacity:1; visibility:visible; }
+@media (min-width:600px){ .support-sheet{ left:50%; right:auto; bottom:auto; top:50%; transform:translate(-50%,-46%); border-radius:20px; width:min(440px,92vw); } .support-sheet.open{ transform:translate(-50%,-50%); } }
+.support-grab{ width:38px; height:5px; border-radius:100px; background:var(--line2); margin:8px auto 14px; }
+.support-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.support-h h3{ font-family:'Cormorant Garamond',serif; font-size:19px; color:var(--text); }
+.support-close{ width:32px; height:32px; border-radius:50%; border:0; background:transparent; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.support-close svg{ width:15px; height:15px; }
+.support-list{ display:flex; flex-direction:column; gap:9px; margin:12px 0 16px; }
+.support-row{ display:flex; align-items:center; gap:13px; padding:13px 14px; border-radius:13px; background:var(--field); text-decoration:none; color:var(--text); }
+.support-row .si{ width:34px; height:34px; border-radius:10px; background:var(--surface); display:flex; align-items:center; justify-content:center; color:var(--goldd); flex:0 0 auto; }
+.support-row .si svg{ width:16px; height:16px; }
+.support-row .sm{ flex:1; min-width:0; }
+.support-row .st{ display:block; font-size:14.5px; font-weight:600; }
+.support-row .sd{ display:block; font-size:12px; color:var(--muted); margin-top:1px; }
+.ai-consent-copy{ font-size:13px; color:var(--text2); line-height:1.55; }
+
+/* ============ resume / review / conflict cards ============ */
+.overlay-scrim{ position:fixed; inset:0; z-index:25; background:var(--modal-scrim); display:none; align-items:center; justify-content:center; padding:20px; }
+.overlay-scrim.open{ display:flex; }
+.oc-card{ width:100%; max-width:400px; background:var(--surface); border:1px solid var(--line2); border-radius:20px; padding:22px 20px; box-shadow:var(--card-shadow); text-align:center; }
+.oc-eyebrow{ font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--goldd); font-weight:700; }
+.oc-title{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--text); margin-top:8px; }
+.oc-sub{ font-size:13.5px; color:var(--text2); margin-top:8px; line-height:1.5; }
+.oc-progress-bar{ height:6px; border-radius:100px; background:var(--line2); margin:16px 0; overflow:hidden; }
+.oc-progress-fill{ height:100%; background:var(--gold); border-radius:100px; }
+.oc-actions{ display:flex; flex-direction:column; gap:9px; margin-top:6px; }
+
+.review-badge{ display:inline-flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:color-mix(in srgb, var(--text) 6%, transparent); border:1px solid var(--line2); border-radius:100px; padding:5px 11px; margin-bottom:10px; }
+.review-badge svg{ width:12px; height:12px; }
+.rt-review .rractions .rbtn-primary{ display:none; }
+.rt-review .rractions .rbtn-review-back{ display:block; }
+.rbtn-review-back{ display:none; width:100%; min-height:52px; border-radius:100px; border:1px solid var(--line2); background:color-mix(in srgb, var(--text) 4%, transparent); color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; letter-spacing:.01em; cursor:pointer; backdrop-filter:blur(6px); transition:border-color .2s ease, background .2s ease; }
+@media (hover:hover){ .rbtn-review-back:hover{ border-color:color-mix(in srgb, var(--text) 40%, transparent); background:color-mix(in srgb, var(--text) 8%, transparent); } }
+.rt-review .step-body input, .rt-review .step-body textarea, .rt-review .step-body button:not(.rbtn-review-back){ pointer-events:none; opacity:.75; }
+
+/* ============ Vault destination demo ============ */
+.vault-demo{ position:fixed; inset:0; z-index:40; background:var(--bg); display:none; flex-direction:column; }
+.vault-demo.open{ display:flex; }
+.vd-top{ display:flex; align-items:center; gap:12px; padding:max(14px, env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--line); flex:0 0 auto; }
+.vd-title{ flex:1; font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--text); text-align:center; }
+.vd-body{ flex:1; min-height:0; overflow-y:auto; padding:18px 18px max(28px, env(safe-area-inset-bottom)); max-width:640px; margin:0 auto; width:100%; }
+.vd-filters{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px; }
+.vd-chip{ flex:0 0 auto; font-family:'DM Sans',sans-serif; font-size:12.5px; font-weight:600; padding:9px 15px; border-radius:100px; border:1px solid var(--line2); background:var(--surface); color:var(--text2); cursor:pointer; white-space:nowrap; }
+.vd-chip.on{ background:var(--cta); color:var(--ctatext); border-color:var(--cta); }
+.vd-chip-new{ border-color:color-mix(in srgb, var(--gold) 50%, var(--line2)); color:var(--goldd); }
+.vd-grid{ display:flex; flex-direction:column; gap:12px; }
+.vd-card{ text-align:left; border:1px solid var(--line); border-radius:16px; padding:16px 17px; background:var(--surface); box-shadow:var(--chip-shadow); font-family:inherit; cursor:pointer; width:100%; }
+.vd-card-ghost{ opacity:.55; cursor:default; }
+.vd-card-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.vd-tag{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; padding:4px 9px; border-radius:100px; }
+.vd-tag-reflection{ background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--goldd); }
+.vd-tag-verse{ background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--goldd); }
+.vd-tag-declaration{ background:color-mix(in srgb, var(--clay) 16%, transparent); color:var(--clay); }
+.vd-private{ width:22px; height:22px; color:var(--muted); display:flex; align-items:center; justify-content:center; }
+.vd-private svg{ width:13px; height:13px; }
+.vd-card-meta{ font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:7px; }
+.vd-card-excerpt{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; line-height:1.45; color:var(--text); }
+.vd-card-date{ font-size:11.5px; color:var(--muted); margin-top:9px; }
+.vd-back{ background:none; border:0; color:var(--goldd); font-size:13px; font-weight:600; cursor:pointer; padding:8px 0; margin-bottom:12px; min-height:44px; }
+.vd-detail-card{ border:1px solid var(--line); border-radius:18px; padding:22px 20px; background:var(--surface); box-shadow:var(--card-shadow); }
+.vd-detail-meta{ font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:10px 0 16px; }
+.vd-detail-prompt{ font-size:13.5px; color:var(--text2); line-height:1.5; margin-bottom:12px; padding-bottom:14px; border-bottom:1px solid var(--line); }
+.vd-detail-text{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.5; color:var(--text); }
+.vd-detail-actions{ display:flex; gap:18px; margin-top:22px; padding-top:16px; border-top:1px solid var(--line); }
+.vd-link{ background:none; border:0; color:var(--goldd); font-size:13px; font-weight:600; cursor:pointer; padding:8px 0; min-height:44px; }
+.vd-link-danger{ color:var(--err); }
+.vd-private-banner{ display:flex; align-items:flex-start; gap:10px; font-size:12.5px; color:var(--text2); line-height:1.5; background:var(--field); border-radius:12px; padding:12px 14px; margin-bottom:16px; }
+.vd-private-banner svg{ width:16px; height:16px; color:var(--goldd); flex:0 0 auto; margin-top:1px; }
+
+/* ============ [SIMULATED] badge ============ */
+.sim-badge{ position:fixed; top:10px; left:10px; z-index:60; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#13211A; background:var(--gold); padding:4px 9px; border-radius:100px; font-weight:700; }
+[data-hide-badge] .sim-badge{ display:none; }
+
+/* ============ accessibility helpers ============ */
+.zoom-200 .shell, .zoom-200 .vault-demo{ transform:scale(2); transform-origin:top center; }
+:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+/* ============ responsive polish ============ */
+@media (min-width:768px){
+  .rtitle{ font-size:32px; }
+  .rscroll{ padding-top:22px; }
+  .vd-body{ padding-top:28px; }
+}
+@media (min-width:1024px){
+  .rtitle{ font-size:34px; }
+}
