@@ -1,7 +1,7 @@
 ---
 // The five-tab navigation, taken verbatim from the design source product pages
-// (Today.html / Results.html / Vault.html nav markup). Mobile: bottom bar with
-// the raised gold Declare disc. Tablet/small-desktop (481-1023px, body.app-shell):
+// (Today.html / Results.html / Vault.html nav markup). Mobile: bottom bar, all
+// five tabs the same size/weight, active-only label (declare.css). Tablet/small-desktop (481-1023px, body.app-shell):
 // declare.css reflows this same markup into a fixed top app bar. Desktop
 // (>=1024px): sidebar.css reflows it again into a persistent left sidebar —
 // the .sb-brand row and .sb-crisis link only render/matter at that width
@@ -30,7 +30,7 @@ const on = (k) => (active === k ? ' on' : '');
   </a>
   <a class={'tab center tab-declare' + on('declare')} href="/today/">
     <span class="tdisc">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M7 21h10"></path></svg>
     </span>
     <span class="tlbl" data-i18n="tab.declare">Declare</span>
   </a>

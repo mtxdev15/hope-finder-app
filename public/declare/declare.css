@@ -216,7 +216,9 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
 .crisis{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--text); opacity:.82; }
 .crisis svg{ width:17px; height:17px; color:var(--gold); }
 
-/* ---------- curved bottom tab bar (Open-style, Today centered) ---------- */
+/* ---------- curved bottom tab bar (Open-style: quiet, uniform icons, active-
+   only label — matches the reference app's restraint instead of a raised
+   badge on Declare) ---------- */
 .tabbar{ position:relative; z-index:3; display:flex; justify-content:space-between; align-items:flex-end;
   padding:18px 22px 22px; background:linear-gradient(to top, var(--screen) 48%, transparent);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
@@ -225,23 +227,24 @@ html[data-theme="dark"] .stage{ background:radial-gradient(140% 100% at 50% 0%,#
   min-height:44px; /* interactive hit area floor: 44px (see PRODUCT.md Accessibility & Inclusion) */ }
 .tab:active{ transform:translateY(1px); }
 .tab svg{ width:22px; height:22px; }
-.tab .tlbl{ font-size:11px; letter-spacing:.01em; text-transform:none; font-weight:500; opacity:1; transition:opacity .2s ease, color .2s ease; }
+/* Label stays in its layout slot either way (so the icon's position never
+   shifts between tabs) — only its opacity changes. Text remains in the
+   accessible name regardless of visibility. */
+.tab .tlbl{ font-size:11px; letter-spacing:.01em; text-transform:none; font-weight:500; opacity:0; transition:opacity .2s ease, color .2s ease; }
 .tab.on{ color:var(--text); }
 .tab.on .tlbl{ opacity:1; color:var(--goldd); }
 /* quiet active-tab indicator — a single small dot, not an underline bar or
    badge, so it reads as a gentle marker rather than a gamified progress cue.
-   Excluded from .tab.center: the raised gold "Declare" disc already carries
-   its own on/off treatment (see .tab.center.on below) and doesn't need a
-   second signal stacked on top of it. */
-.tab.on:not(.center)::after{ content:''; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+   Now applies uniformly to every tab, Declare included, since it no longer
+   carries its own separate raised-disc on/off treatment. */
+.tab.on::after{ content:''; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
   width:4px; height:4px; border-radius:50%; background:var(--gold); box-shadow:0 0 6px rgba(216,184,95,.55); }
-/* Today — centered, emphasized, gold-tinted glow */
-.tab.center{ flex:0 0 auto; margin:0 4px; }
-.tab.center .tdisc{ width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-  background:var(--field); color:var(--goldd); box-shadow:0 8px 22px -6px rgba(216,184,95,.5), inset 0 1px 0 rgba(255,255,255,.08);
-  margin-top:-14px; transition:transform .2s ease, box-shadow .25s ease; }
-.tab.center svg{ width:25px; height:25px; }
-.tab.center.on .tdisc{ background:var(--gold); color:#13211A; box-shadow:0 10px 30px -6px rgba(216,184,95,.75); }
+/* Declare: same size and treatment as every other tab — no raised disc, no
+   glow. The wrapper span stays in the markup (TabBar.astro) but carries no
+   circle styling of its own anymore. */
+.tab.center{ flex:1; margin:0; }
+.tab.center .tdisc{ width:auto; height:auto; border-radius:0; background:none; box-shadow:none; margin-top:0; color:inherit; }
+.tab.center.on .tdisc{ background:none; box-shadow:none; color:inherit; }
 
 /* ---------- bottom sheet ---------- */
 /* B1.5A closeout: z-index:41, not 40 — tied exactly with the shared rail's
