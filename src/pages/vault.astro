@@ -85,11 +85,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tV = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
-    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
+    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones', 'Journey Reflections':'Reflexiones de camino' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
     const TYPES = {
       verse: { get label(){ return tV('vault.tScripture','Scripture'); }, tagt: '#E8C97A' },
       declaration: { get label(){ return tV('vault.tDeclaration','Declaration'); }, tagt: '#E0A45A' },
       prayer: { get label(){ return tV('vault.tPrayer','Prayer'); }, tagt: '#9BD0A8' },
+      journeyReflection: { get label(){ return tV('vault.tReflection','Journey Reflection'); }, tagt: '#9BD0A8' },
     };
     function relTime(ts) {
       // Clamp to 0 so a clock-skewed/future ts never renders a negative "ago."
@@ -148,6 +149,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
             bgKind: it.bgKind, bgSrc: it.bgSrc, bgBy: it.bgBy, bgByLink: it.bgByLink, bgColor: it.bgColor, bgPhotoId: it.bgPhotoId });
         } else if (it.type === 'prayer') {
           truths.push({ parentId: it.id, type: 'prayer', body: it.prayer || it.text, coll: it.struggle || 'Prayers', ts: it.ts, parentKind: 'prayer' });
+        } else if (it.type === 'journeyReflection') {
+          // Grouped into one shelf regardless of struggle — the art/identity
+          // is "your Journey reflections" as a whole, matching the approved
+          // Vault mockup's single reflection list rather than splitting by
+          // struggle the way word/verse saves already do.
+          truths.push({ parentId: it.id, type: 'journeyReflection', body: it.text, coll: 'Journey Reflections',
+            ts: it.updatedTs || it.ts, day: it.day, journeyTitle: it.journeyTitle, parentKind: 'journeyReflection' });
         }
       });
       userColls = listCollections();
@@ -304,6 +312,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         if (t.vref) {
           foot = '<div class="ft-ref">' + esc(t.vref) + (t.trans ? ' · ' + esc(t.trans) : '') + '</div>'
             + '<a class="ft-read" href="' + readLink(t.vref) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>Read in the Word</a>';
+        } else if (t.type === 'journeyReflection' && t.day) {
+          const esV = window.I18N && I18N.lang() === 'es';
+          // esc() on the day too: every field here comes from localStorage, which
+          // is only as trustworthy as the device, so nothing is interpolated raw.
+          const dayN = esc(String(t.day));
+          foot = '<div class="ft-ref">' + (esV ? 'Día ' + dayN + ' de 5' : 'Day ' + dayN + ' of 5') + (t.journeyTitle ? ' · ' + esc(t.journeyTitle) : '') + '</div>';
         }
         let bgBlock = '';
         if (t.bgKind === 'photo' && t.bgSrc) {
@@ -312,10 +326,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         } else if (t.bgKind === 'solid' && t.bgColor) {
           bgBlock = '<div class="ft-bg"><span class="ft-bgsolid" style="background:' + esc(t.bgColor) + '"></span></div>';
         }
+        // Reflections are personal, not meant for the Card Studio share flow
+        // (built for verses/declarations) — no share action, delete only.
+        const shareBtn = t.type === 'journeyReflection' ? '' : '<button class="ft-share" data-i="' + i + '" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>';
         return '<div class="ftruth ' + (t.type === 'declaration' ? 'dec' : t.type === 'prayer' ? 'pray' : '') + '" style="--tagt:' + cfg.tagt + ';animation-delay:' + (i * 70) + 'ms"><span class="ft-glow"></span>'
-          + '<span class="ft-acts"><button class="ft-share" data-i="' + i + '" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>'
+          + '<span class="ft-acts">' + shareBtn
           + '<button class="ft-del" data-i="' + i + '" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 13h9l1-13"/></svg></button></span>'
-          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + (t.type === 'declaration' ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
+          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + ((t.type === 'declaration' || t.type === 'journeyReflection') ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
       }).join('');
       if (!focusList.length) {
         html = '<div class="empty-note">' + tV('vault.emptyNote','Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.') + '</div>'

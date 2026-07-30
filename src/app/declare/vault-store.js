@@ -33,7 +33,7 @@ function load() {
 }
 
 function persist(data) {
-  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* quota/private mode */ }
+  try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; /* quota/private mode */ }
 }
 
 export function listItems() {
@@ -53,6 +53,33 @@ export function saveItem(item) {
   }
   mirror(() => vaultSave(toPayload(item)));
   return item.id;
+}
+
+export function getItem(id) {
+  return load().items.find((it) => it.id === id) || null;
+}
+
+/* True upsert: unlike saveItem() (create-once — every existing caller relies
+   on a repeat save with the same id being silently ignored, so this stays
+   untouched), upsertItem() REPLACES an existing item's fields in place,
+   preserving its original `ts` (created) and stamping `updatedTs` (edited).
+   Added for Journey reflections, the first Vault content genuinely edited
+   and re-saved after its first save. Returns the full saved item. */
+export function upsertItem(item) {
+  const data = load();
+  const now = Date.now();
+  const idx = data.items.findIndex((it) => it.id === item.id);
+  let saved;
+  if (idx >= 0) {
+    saved = { ...data.items[idx], ...item, ts: data.items[idx].ts, updatedTs: now };
+    data.items[idx] = saved;
+  } else {
+    saved = { ...item, ts: item.ts || now, updatedTs: now };
+    data.items.push(saved);
+  }
+  if (!persist(data)) return null; // local write failed -- caller must not claim success
+  mirror(() => vaultSave(toPayload(saved)));
+  return saved;
 }
 
 export function removeItem(id) {
@@ -132,7 +159,8 @@ function mirror(op) {
 function toPayload(item) {
   const p = { clientId: item.id, type: item.type, ts: item.ts || Date.now() };
   ['struggle', 'translation', 'explanation', 'prayer', 'text', 'ref', 'coll',
-   'bgKind', 'bgPhotoId', 'bgSrc', 'bgBy', 'bgByLink', 'bgColor'].forEach((k) => {
+   'bgKind', 'bgPhotoId', 'bgSrc', 'bgBy', 'bgByLink', 'bgColor',
+   'day', 'updatedTs', 'journeyTitle', 'prompt', 'route'].forEach((k) => {
     if (item[k] != null) p[k] = item[k];
   });
   if (Array.isArray(item.verses)) p.verses = item.verses.map((v) => ({ ref: v.ref || '', text: v.text || '' }));

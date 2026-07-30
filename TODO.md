@@ -30,14 +30,17 @@ Done items move to the bottom or get deleted.
       normal production CTA," but it currently renders unconditionally with no gating. Fix: hide it
       from production (dev-console-only, or a `?debug=1`-style flag) and keep `previewTomorrow()`
       reachable for QA.
-- [ ] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
-      2026-07-29).** The "Reflect" textarea in the seven-step day flow (`src/pages/journey.astro`,
-      `.block.reflect`) always renders blank with just a placeholder — nothing reads or writes it to
-      storage, so revisiting a past day via the fruit log or day-dots shows everything else (verse,
-      prayer, lie/truth, declaration) but never what the user actually wrote. This was an explicit
-      requirement in the original B3 spec (local-only persistence, restore after refresh, "Saved
-      privately on this device," never synced to Convex or sent to the AI) that appears to have never
-      been built. Small, self-contained follow-up milestone whenever there's room for it.
+- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
+      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
+      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
+      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
+      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
+      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
+      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
+      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
+      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
+      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
+      interpret it.
 - [ ] **Lead magnet: free declarations download (PAUSED — needs Jeff's 4 answers).** Replace the
       weak "early access" band at the bottom of `/welcome` (and 15 other pages, the `fsignup`/`nlForm`
       block) with a free PDF download offer. Today the form redirects to a broken `Signin.html` and
