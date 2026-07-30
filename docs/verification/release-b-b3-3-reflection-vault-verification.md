@@ -93,6 +93,45 @@ guest, theme switch), other than the pre-existing environment-wide Astro dev-too
 `504 Outdated Optimize Dep` warning already documented in B3.2 and confirmed unrelated (it appears
 identically on untouched pages).
 
+### 2.7 Vault editing and copy — verified (added after review)
+
+Added at Jeff's direction once testing exposed that a completed day's reflection was uneditable
+everywhere. See the implementation summary §13 for the reasoning.
+
+| Check | Result |
+|---|---|
+| Edit + Copy actions present on a reflection | Pass |
+| Share action correctly absent | Pass |
+| Delete action still present | Pass |
+| Editor prefills with current text | Pass |
+| Editor has an accessible name | Pass — `aria-label="Edit reflection"` |
+| Save / Cancel touch targets | Pass — both 44px tall |
+| Empty / whitespace-only edit refused | Pass — toast, editor stays open, nothing written |
+| Cancel discards without writing | Pass — item byte-identical afterwards |
+| Save updates in place | Pass — **same id, still 1 item**, `ts` preserved, `updatedTs` advanced |
+| `day` / `journeyTitle` metadata preserved through an edit | Pass |
+| Rendered body reflects the new text | Pass |
+| Console errors | None |
+
+**Vault-edit vs. Step 6 draft interaction — the reason this was originally deferred.** Verified
+end-to-end: saved in Step 6, left a newer unsaved Step 6 draft, then edited the same reflection in
+the Vault, then reopened Step 6.
+
+| Check | Result |
+|---|---|
+| Vault edit produces a newer `updatedTs` than the draft | Pass |
+| No spurious conflict prompt on reopen | Pass — Vault is newer, so it wins silently |
+| Textarea shows the Vault text | Pass |
+| Status / button | Pass — "Saved to Vault" / "Continue" |
+| Superseded draft cleared | Pass |
+| Still exactly one Vault item | Pass |
+
+**The existing conflict rule required no modification** — `draftTs > (updatedTs ?? ts)` already
+handles a Vault edit correctly, which retroactively validates that timestamp comparison as the
+right abstraction rather than a Step-6-specific hack.
+
+---
+
 ---
 
 ## 3. Responsive — verified, all required viewports × both themes

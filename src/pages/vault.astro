@@ -77,7 +77,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   </main>
 
   <script>
-    import { listItems, removeItem, listCollections, addCollection, removeCollection, onChange } from '../app/declare/vault-store.js';
+    import { listItems, removeItem, listCollections, addCollection, removeCollection, onChange, getItem, upsertItem } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     initAuth(); // resolve any saved session before the user reaches a gate
@@ -327,12 +327,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           bgBlock = '<div class="ft-bg"><span class="ft-bgsolid" style="background:' + esc(t.bgColor) + '"></span></div>';
         }
         // Reflections are personal, not meant for the Card Studio share flow
-        // (built for verses/declarations) — no share action, delete only.
-        const shareBtn = t.type === 'journeyReflection' ? '' : '<button class="ft-share" data-i="' + i + '" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>';
-        return '<div class="ftruth ' + (t.type === 'declaration' ? 'dec' : t.type === 'prayer' ? 'pray' : '') + '" style="--tagt:' + cfg.tagt + ';animation-delay:' + (i * 70) + 'ms"><span class="ft-glow"></span>'
-          + '<span class="ft-acts">' + shareBtn
+        // (built for verses/declarations) — no share action. They get Edit and
+        // Copy instead: a reflection is something you keep adding to, and
+        // something you may want to carry out of the app as plain text.
+        const isRefl = t.type === 'journeyReflection';
+        const shareBtn = isRefl ? '' : '<button class="ft-share" data-i="' + i + '" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>';
+        const reflBtns = !isRefl ? '' :
+          '<button class="ft-copy" data-i="' + i + '" aria-label="' + tV('vault.copyReflection','Copy reflection') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></button>'
+          + '<button class="ft-edit" data-i="' + i + '" aria-label="' + tV('vault.editReflection','Edit reflection') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5z"/><path d="M13.5 6.5l4 4"/></svg></button>';
+        return '<div class="ftruth ' + (t.type === 'declaration' ? 'dec' : t.type === 'prayer' ? 'pray' : '') + '" data-ti="' + i + '" style="--tagt:' + cfg.tagt + ';animation-delay:' + (i * 70) + 'ms"><span class="ft-glow"></span>'
+          + '<span class="ft-acts">' + shareBtn + reflBtns
           + '<button class="ft-del" data-i="' + i + '" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 13h9l1-13"/></svg></button></span>'
-          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + ((t.type === 'declaration' || t.type === 'journeyReflection') ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
+          + '<span class="ft-tag">' + cfg.label + '</span><div class="ft-body">' + ((t.type === 'declaration' || isRefl) ? esc(t.body) : '“' + esc(t.body) + '”') + '</div>' + foot + bgBlock + '</div>';
       }).join('');
       if (!focusList.length) {
         html = '<div class="empty-note">' + tV('vault.emptyNote','Nothing here yet. Save a word on Declare or a verse in the Word and it will find its way here.') + '</div>'
@@ -363,6 +369,80 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (del) del.onclick = () => { removeCollection(name); toast(tV('vault.collRemoved','Collection removed')); closeFocus(); render(); };
       $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
         b.onclick = (e) => { e.stopPropagation(); reshareTruth(focusList[+b.dataset.i]); };
+      });
+      // Copy a reflection out as plain text. Uses the async Clipboard API where
+      // available (it needs a secure context), with a select-and-execCommand
+      // fallback so this still works over plain http on a LAN/dev origin.
+      $('focusIn').querySelectorAll('.ft-copy').forEach((b) => {
+        b.onclick = async (e) => {
+          e.stopPropagation();
+          const txt = focusList[+b.dataset.i].body || '';
+          let ok = false;
+          try {
+            if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(txt); ok = true; }
+          } catch (err) { ok = false; }
+          if (!ok) {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = txt; ta.setAttribute('readonly', '');
+              ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              ok = document.execCommand('copy');
+              document.body.removeChild(ta);
+            } catch (err2) { ok = false; }
+          }
+          toast(ok ? tV('vault.copied', 'Copied') : tV('vault.copyFailed', 'Could not copy'));
+        };
+      });
+      // Edit a reflection in place. Swaps the body for a textarea plus Save /
+      // Cancel, then writes through upsertItem() with the SAME clientId — so it
+      // updates the one item for that Journey day (and re-mirrors to Convex for
+      // signed-in users) instead of ever creating a second row.
+      $('focusIn').querySelectorAll('.ft-edit').forEach((b) => {
+        b.onclick = (e) => {
+          e.stopPropagation();
+          const idx = +b.dataset.i;
+          const t = focusList[idx];
+          const card = $('focusIn').querySelector('.ftruth[data-ti="' + idx + '"]');
+          if (!card || card.querySelector('.ft-editwrap')) return; // already editing
+          const bodyEl = card.querySelector('.ft-body');
+          const actsEl = card.querySelector('.ft-acts');
+          bodyEl.style.display = 'none';
+          if (actsEl) actsEl.style.display = 'none';
+          const wrap = document.createElement('div');
+          wrap.className = 'ft-editwrap';
+          const ta = document.createElement('textarea');
+          ta.className = 'ft-editta';
+          ta.value = t.body || '';
+          ta.setAttribute('aria-label', tV('vault.editReflection', 'Edit reflection'));
+          const row = document.createElement('div');
+          row.className = 'ft-editrow';
+          const save = document.createElement('button');
+          save.className = 'ft-esave'; save.type = 'button';
+          save.textContent = tV('vault.saveChanges', 'Save changes');
+          const cancel = document.createElement('button');
+          cancel.className = 'ft-ecancel'; cancel.type = 'button';
+          cancel.textContent = tV('vault.cancel', 'Cancel');
+          row.appendChild(save); row.appendChild(cancel);
+          wrap.appendChild(ta); wrap.appendChild(row);
+          bodyEl.parentNode.insertBefore(wrap, bodyEl.nextSibling);
+          ta.focus();
+          const restore = () => { wrap.remove(); bodyEl.style.display = ''; if (actsEl) actsEl.style.display = ''; };
+          cancel.onclick = (ev) => { ev.stopPropagation(); restore(); };
+          save.onclick = (ev) => {
+            ev.stopPropagation();
+            const next = (ta.value || '').replace(/^\s+|\s+$/g, '');
+            if (!next) { toast(tV('vault.reflectionEmpty', 'A reflection can’t be empty')); ta.focus(); return; }
+            if (next === (t.body || '')) { restore(); return; } // nothing changed — no pointless write
+            const existing = getItem(t.parentId);
+            if (!existing) { toast(tV('vault.saveFailed', 'Could not save')); return; }
+            const saved = upsertItem({ ...existing, text: next });
+            if (!saved) { toast(tV('vault.saveFailed', 'Could not save')); return; }
+            toast(tV('vault.reflectionUpdated', 'Reflection updated'));
+            render();
+            openFocus(name, kind);
+          };
+        };
       });
       $('focusIn').querySelectorAll('.ft-del').forEach((b) => {
         b.onclick = (e) => {
@@ -545,6 +625,29 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .vault .ft-share:hover, .vault .ft-del:hover { color: #F3EFE6; background: rgba(255, 255, 255, .12); }
     .vault .ft-del:hover { color: #E89B7E; }
     .vault .ft-share:active, .vault .ft-del:active { transform: scale(.9); }
+    /* reflection actions: same chip treatment as share/delete */
+    .vault .ft-copy, .vault .ft-edit { width: 32px; height: 32px; border: 0; background: rgba(255, 255, 255, .06); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; color: rgba(243, 239, 230, .72); cursor: pointer;
+      transition: transform .16s ease, color .2s ease, background .2s ease; }
+    .vault .ft-copy:hover, .vault .ft-edit:hover { color: #F3EFE6; background: rgba(255, 255, 255, .12); }
+    .vault .ft-copy:active, .vault .ft-edit:active { transform: scale(.9); }
+    .vault .ft-copy svg, .vault .ft-edit svg { width: 16px; height: 16px; }
+    /* inline reflection editor */
+    .vault .ft-editwrap { position: relative; z-index: 2; margin-top: 11px; }
+    .vault .ft-editta { width: 100%; min-height: 132px; resize: vertical; font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6;
+      color: #F3EFE6; background: rgba(0, 0, 0, .26); border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+      border-radius: 12px; padding: 13px 14px; }
+    .vault .ft-editta:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 68%, transparent); }
+    .vault .ft-editrow { display: flex; gap: 9px; margin-top: 10px; flex-wrap: wrap; }
+    .vault .ft-esave, .vault .ft-ecancel { min-height: 44px; padding: 11px 18px; border-radius: 100px; cursor: pointer;
+      font-family: inherit; font-size: 13.5px; font-weight: 600; transition: .18s; }
+    .vault .ft-esave { flex: 1; min-width: 150px; border: 0; background: var(--gold); color: #13211A; }
+    .vault .ft-esave:hover { filter: brightness(1.06); }
+    .vault .ft-ecancel { border: 1px solid var(--line2); background: transparent; color: rgba(243, 239, 230, .8); }
+    .vault .ft-ecancel:hover { color: #F3EFE6; border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+    html[data-theme="light"] .vault .ft-copy, html[data-theme="light"] .vault .ft-edit { background: rgba(60, 45, 15, .08); color: rgba(50, 40, 16, .7); }
+    html[data-theme="light"] .vault .ft-editta { color: var(--text); background: rgba(255, 255, 255, .72); }
+    html[data-theme="light"] .vault .ft-ecancel { color: var(--text2); }
     .vault .ft-share svg, .vault .ft-del svg { width: 16px; height: 16px; }
     .vault .ft-ref { position: relative; z-index: 2; display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgba(243, 239, 230, .5); font-weight: 700; margin-top: 13px; }
     .vault .ft-read { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 7px; margin-top: 11px; text-decoration: none;
