@@ -165,14 +165,16 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
     /* ── shell adaptation: design pages render inside a .screen flex column; our
        pages scroll the document. Pin the design tabbar to the viewport bottom
        for the whole mobile range (0-767px — see sidebar.css for the 768px+
-       left-rail takeover, which replaces what used to be a fixed top bar here). */
+       left-rail takeover, which replaces what used to be a fixed top bar here).
+       Background is a soft fade, not a solid frosted panel with a hard edge —
+       it should blend into whatever's scrolled beneath it, the same restraint
+       declare.css's own base .tabbar gradient already uses. */
     @media (max-width: 767px) {
       .tabbar {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-        background: color-mix(in srgb, var(--bgfield) 90%, transparent);
-        backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
-        border-top: 1px solid var(--line);
-        padding-left: 14px; padding-right: 14px; padding-top: 10px;
+        background: linear-gradient(to top, color-mix(in srgb, var(--bgfield) 70%, transparent) 55%, transparent);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        padding-left: 14px; padding-right: 14px; padding-top: 18px;
       }
     }
     /* app->explore bridge: the mast brand dot is a link home to /welcome (logo = home),
