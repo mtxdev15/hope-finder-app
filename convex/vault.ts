@@ -33,6 +33,12 @@ const itemArgs = {
   bgColor: v.optional(v.string()),
   verses: v.optional(v.array(v.object({ ref: v.string(), text: v.string() }))),
   declarations: v.optional(v.array(v.string())),
+  // Journey reflections (B3.3) — see schema.ts for field notes.
+  day: v.optional(v.number()),
+  updatedTs: v.optional(v.number()),
+  journeyTitle: v.optional(v.string()),
+  prompt: v.optional(v.string()),
+  route: v.optional(v.string()),
 };
 
 // Shape a stored row back into the client item shape (id = clientId; drop the

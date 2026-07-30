@@ -417,7 +417,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        Persistence is device-local: 'db_active_journey' (which vine is growing),
        'db_journey_lock' (one day per calendar day + reminder time),
        'db_journeys_done' (rooted journeys — keeps the grid honest). */
-    import { saveItem } from '../app/declare/vault-store.js';
+    import { saveItem, upsertItem, getItem } from '../app/declare/vault-store.js';
     import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
@@ -705,7 +705,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     let breathInst = null;
     let reviewDay = null; // when set, the day flow shows a completed day read-only
     function curDay() { return reviewDay || state.day; }
-    function dstate() { const k = curDay(); if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false }; return dayState[k]; }
+    function dstate() {
+      const k = curDay();
+      if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false };
+      const ds = dayState[k];
+      // B3.3: backfill for day-state objects saved before the reflection gate
+      // existed (an old db_journey_inst cache has cast/spoke/acted but not
+      // these) — never overwrite real values, only fill in what's missing.
+      if (ds.reflected === undefined) ds.reflected = false;
+      if (ds.reflectDraft === undefined) ds.reflectDraft = null;
+      if (ds.reflectDraftTs === undefined) ds.reflectDraftTs = null;
+      return ds;
+    }
 
     // ---- B3.2: one-step-at-a-time pagination ----
     // `activeStep` tracks position (1-7) within the ACTIVE day's ritual;
@@ -727,8 +738,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (step === 3) return !!ds.cast;
       if (step === 4) return !!ds.repented;
       if (step === 5) return !!ds.spoke;
+      // B3.3: Step 6 is gated by a successful Save Reflection — an empty
+      // reflection can't be saved, so the user must intentionally write and
+      // save before continuing. Step 7's own defensive check is deliberately
+      // left as the original three-part cast/repented/spoke expression, not
+      // touched, per this milestone's scope.
+      if (step === 6) return !!ds.reflected;
       if (step === 7) return !!(ds.cast && ds.repented && ds.spoke);
-      return true; // 1, 2, 6 — no gate
+      return true; // 1, 2 — no gate
     }
     let dayFlowReturnEl = null; // for close-focus restoration, same pattern as B2.2's dayOpenReturnEl
 
@@ -749,9 +766,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // exactly; navigating between steps calls applyStepVisibility() alone.
     function renderDayFlow() {
       clearInterval(renderDayLoading._t);
+      // Defensive: a pending reflection debounce belongs to the DOM we are
+      // about to replace. Its closure holds the old (detached) textarea, so
+      // letting it fire could write stale text into the freshly rendered day.
+      if (reflectDebounceT) { clearTimeout(reflectDebounceT); reflectDebounceT = null; }
       const fd = curDay(), reviewing = !!reviewDay;
       const d = PLAN[fd - 1], ds = dstate();
-      if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; }
+      if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; ds.reflected = true; }
       $('dayflow').classList.toggle('reviewing', reviewing);
       if (reviewing) { if (reviewStep < 1 || reviewStep > TOTAL_STEPS) reviewStep = 1; }
 
@@ -796,14 +817,32 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           + '<div class="dc">“' + d.declare + '”</div>'
           + '<div class="mic-hint" id="micHint">' + (ds.spoke ? (esL() ? 'Amén. Lo declaraste. &#10003;' : 'Amen. You declared it. &#10003;') : (esL() ? 'Dilo en voz alta, luego márcalo aquí.' : 'Say it out loud — then mark it here.')) + '</div>'
           + '<button class="act-check' + (ds.spoke ? ' on' : '') + '" id="declCheck"><span class="bx">' + ck + '</span><span id="declLbl">' + (ds.spoke ? (esL() ? 'Declarado en voz alta' : 'Declared aloud') : (esL() ? 'Marcar como declarado' : 'Mark as declared')) + '</span></button></div>'
-        // 6 — REFLECT
-        + '<div class="block reflect" data-step="6"><div class="lab"><span class="step">6</span>' + (esL() ? 'Reflexiona' : 'Reflect') + '</div><p>' + d.reflect + '</p><textarea placeholder="' + (esL() ? 'Escribe con libertad. Esto es entre tú y Dios.' : 'Write freely. This is between you and God.') + '"></textarea></div>'
+        // 6 — REFLECT (B3.3: draft autosave + explicit Save Reflection to Vault;
+        // see bindReflect()/renderReflectBlock() below for all the real logic —
+        // this markup is a static skeleton, same convention as every other block.)
+        + '<div class="block reflect" id="reflectBlock" data-step="6"><div class="lab"><span class="step">6</span>' + (esL() ? 'Reflexiona' : 'Reflect') + '</div><p id="reflectPrompt">' + d.reflect + '</p>'
+          + '<div class="reflect-conflict" id="reflectConflict" style="display:none" role="region" aria-label="' + (esL() ? 'Conflicto de borrador' : 'Draft conflict') + '">'
+            + '<div class="rc-h">' + (esL() ? 'Encontramos un borrador más reciente.' : 'We found a newer draft.') + '</div>'
+            + '<p>' + (esL() ? 'Tienes un borrador más reciente que la reflexión guardada. ¿Qué te gustaría hacer?' : 'You have a newer draft than the saved reflection. What would you like to do?') + '</p>'
+            + '<button class="rc-opt" id="reflectRestoreDraft"><b>' + (esL() ? 'Restaurar borrador' : 'Restore Draft') + '</b><span>' + (esL() ? 'Abre tu último borrador y continúa.' : 'Open your latest draft and continue.') + '</span></button>'
+            + '<button class="rc-opt" id="reflectUseSaved"><b>' + (esL() ? 'Usar reflexión guardada' : 'Use Saved Reflection') + '</b><span>' + (esL() ? 'Usa tu reflexión guardada tal cual.' : 'Use your saved reflection as-is.') + '</span></button>'
+          + '</div>'
+          + '<div id="reflectEditWrap">'
+            + '<textarea id="reflectText" aria-label="' + (esL() ? 'Tu reflexión' : 'Your reflection') + '" aria-describedby="reflectPrompt" placeholder="' + (esL() ? 'Escribe con libertad. Esto es entre tú y Dios.' : 'Write freely. This is between you and God.') + '"></textarea>'
+            + '<div class="reflect-status" id="reflectStatus" aria-live="polite"></div>'
+            + '<div class="reflect-error" id="reflectErrorBox" style="display:none" aria-live="assertive">'
+              + '<div class="re-t">' + (esL() ? 'No pudimos guardar esta reflexión en la Bóveda.' : 'We couldn’t save this reflection to Vault.') + '</div>'
+              + '<div class="re-s">' + (esL() ? 'Tu borrador sigue seguro.' : 'Your draft is still safe.') + '</div>'
+            + '</div>'
+          + '</div>'
+          + '<div class="reflect-review" id="reflectReviewBox" style="display:none"></div>'
+        + '</div>'
         // 7 — ACT
         + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock" data-step="7"><div class="lab"><span class="step">7</span>' + (esL() ? 'Llévalo a tu día' : 'Take it into your day') + '</div>'
           + '<div class="act-t">' + d.actionTitle + '</div><div class="act-d">' + d.action + '</div>'
           + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? (esL() ? 'Lo hice' : 'I did this') : (esL() ? 'Lo llevaré hoy' : 'I’ll carry this today')) + '</span></button></div>';
 
-      bindCast(); bindRepent(); bindSpeak(); bindAction();
+      bindCast(); bindRepent(); bindSpeak(); bindReflect(); bindAction();
       applyStepVisibility(false);
     }
 
@@ -865,6 +904,24 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       next.style.display = 'none';
       const ready = stepReady(ds, s);
       $('dfFoot').classList.toggle('ready', ready);
+      // Step 6 replaces the generic disabled-Continue-plus-hint pattern with
+      // its own explicit action label (approved product language: "Save
+      // Reflection" -> "Saving..." -> "Continue") — every other gated step
+      // keeps the original pattern untouched.
+      if (s === 6) {
+        primary.classList.toggle('df-btn-error', reflectError && !ready);
+        if (reflectError && !ready) {
+          primary.disabled = false;
+          primary.textContent = esL() ? 'Intentar de nuevo' : 'Try Again';
+        } else {
+          primary.disabled = ready ? false : (reflectSaving || !reflectHasText());
+          primary.textContent = ready ? (esL() ? 'Continuar' : 'Continue')
+            : (reflectSaving ? (esL() ? 'Guardando...' : 'Saving...') : (esL() ? 'Guardar reflexión' : 'Save Reflection'));
+        }
+        hint.style.display = 'none';
+        saveInstance();
+        return;
+      }
       primary.disabled = !ready;
       primary.textContent = (s < TOTAL_STEPS) ? (esL() ? 'Continuar' : 'Continue') : ((esL() ? 'Completar Día ' : 'Complete Day ') + fd);
       if (ready) { hint.style.display = 'none'; }
@@ -960,6 +1017,253 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       });
     }
 
+    // ---- step 6: reflect (B3.3 — draft autosave + explicit Save Reflection to Vault) ----
+    // Deterministic per-day identity, same convention as the existing
+    // 'journey:' + active.id + ':' + seed vault ids elsewhere in this file —
+    // distinguishes both the struggle AND the specific journey instance
+    // (seed), so restarting the same struggle never collides with a prior
+    // attempt's reflections. Never includes the reflection text itself.
+    function reflectClientId(day) { return 'journeyReflection:' + active.id + ':' + (active._seed || 0) + ':day' + day; }
+
+    let reflectSaving = false;
+    let reflectError = false;
+    let reflectDebounceT = null;
+
+    function reflectHasText() {
+      const ta = $('reflectText');
+      return !!(ta && ta.value && ta.value.replace(/^\s+|\s+$/g, '').length);
+    }
+
+    // Live per-keystroke toggle only (cheap: one disabled/class flip) — the
+    // actual draft write is debounced separately in bindReflect()'s input
+    // listener, so typing itself never triggers a heavier renderStepChrome().
+    function updateReflectButtonLive() {
+      if (curStep() !== 6 || reviewDay || dstate().reflected) return;
+      $('dfComplete').disabled = reflectSaving || !reflectHasText();
+      $('dfFoot').classList.toggle('ready', !$('dfComplete').disabled);
+    }
+
+    // Keeps `reflected` honest against what is actually in the Vault right
+    // now. Without this, editing an already-saved reflection left the UI
+    // claiming "Saved to Vault" (and offering Continue) while the Vault still
+    // held the OLD text — the visible text was not saved anywhere durable and
+    // the user had no way to save it. Editing back to exactly the saved text
+    // returns to the saved state rather than demanding a pointless re-save.
+    // Returns true when the saved/unsaved state actually flipped.
+    function syncReflectSavedState() {
+      const ds = dstate();
+      const ta = $('reflectText');
+      if (!ta || reviewDay) return false;
+      const vaultItem = getItem(reflectClientId(curDay()));
+      const cur = (ta.value || '').replace(/^\s+|\s+$/g, '');
+      const nowSaved = !!(vaultItem && cur === (vaultItem.text || ''));
+      if (ds.reflected === nowSaved) return false;
+      ds.reflected = nowSaved;
+      return true;
+    }
+
+    function setReflectStatus(kind) {
+      const el = $('reflectStatus'); if (!el) return;
+      const copy = {
+        draftSaved: { ic: true, t: esL() ? 'Borrador guardado' : 'Draft saved', s: esL() ? 'Estamos manteniendo tu reflexión segura mientras escribes.' : 'We’re keeping your reflection safe while you write.' },
+        draftRestored: { ic: true, t: esL() ? 'Borrador restaurado' : 'Draft restored', s: esL() ? 'Restauramos lo que estabas escribiendo.' : 'We restored what you were writing.' },
+        savedVault: { ic: true, t: esL() ? 'Guardado en la Bóveda' : 'Saved to Vault', s: esL() ? 'Puedes volver a esta reflexión cuando quieras en tu Bóveda.' : 'You can revisit this reflection anytime in Vault.' },
+      }[kind];
+      if (!copy) { el.textContent = ''; el.classList.remove('show'); return; }
+      el.innerHTML = '<span class="rs-ic">' + (copy.ic ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>' : '') + '</span>'
+        + '<span class="rs-tx"><span class="rs-t">' + copy.t + '</span><span class="rs-s">' + copy.s + '</span></span>';
+      el.classList.add('show');
+    }
+
+    // Only a genuinely newer AND different local draft than what's saved in
+    // Vault counts as a conflict — equal or older timestamps, or identical
+    // content, resolve silently (see renderReflectBlock()). This is the one
+    // exact rule requested: draft.ts strictly greater than the saved item's
+    // updatedTs (falling back to ts for an item saved before this field
+    // existed), and the text must actually differ.
+    function checkReflectConflict(ds, vaultItem) {
+      if (!vaultItem || ds.reflectDraft == null || ds.reflectDraft === '') return false;
+      const savedAt = (vaultItem.updatedTs != null ? vaultItem.updatedTs : vaultItem.ts) || 0;
+      return ds.reflectDraftTs > savedAt && ds.reflectDraft !== vaultItem.text;
+    }
+
+    function renderReflectBlock() {
+      const reviewing = !!reviewDay, day = curDay(), ds = dstate();
+      const vaultItem = getItem(reflectClientId(day));
+      const editWrap = $('reflectEditWrap'), reviewBox = $('reflectReviewBox'),
+        conflictBox = $('reflectConflict'), ta = $('reflectText'), errBox = $('reflectErrorBox');
+      if (!ta) return;
+
+      if (reviewing) {
+        // Completed-day review: read-only, no textarea, no autosave, no
+        // Save Reflection, no draft restore, no state mutation — matches
+        // every other read-only treatment in review mode.
+        editWrap.style.display = 'none';
+        conflictBox.style.display = 'none';
+        reviewBox.style.display = 'block';
+        if (vaultItem && vaultItem.text) {
+          reviewBox.innerHTML = '<div class="reflect-saved-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+            + '<span><b>' + (esL() ? 'Guardado en la Bóveda' : 'Saved to Vault') + '</b><br>' + (esL() ? 'Puedes volver a esta reflexión cuando quieras en tu Bóveda.' : 'You can revisit this reflection anytime in Vault.') + '</span></div>'
+            + '<div class="reflect-readback" id="reflectReadback"></div>';
+          $('reflectReadback').textContent = vaultItem.text; // textContent, never innerHTML, for user-authored text
+        } else {
+          reviewBox.innerHTML = '<div class="reflect-empty">' + (esL() ? 'No se guardó ninguna reflexión para este día.' : 'No reflection was saved for this day.') + '</div>';
+        }
+        return;
+      }
+
+      reviewBox.style.display = 'none';
+      editWrap.style.display = 'block';
+      errBox.style.display = 'none';
+      ta.readOnly = false;
+
+      if (checkReflectConflict(ds, vaultItem)) {
+        conflictBox.style.display = 'block';
+        ta.readOnly = true;
+        ta.value = vaultItem.text || '';
+        ds.reflected = true;
+        setReflectStatus('savedVault');
+      } else {
+        conflictBox.style.display = 'none';
+        if (vaultItem) {
+          // Vault always wins once there's no genuine conflict, whether or
+          // not a stale local draft also exists (e.g. a newer copy synced
+          // down from another signed-in device) — clear the now-superseded
+          // draft rather than let it linger and re-compare forever.
+          ta.value = vaultItem.text || '';
+          ds.reflected = true;
+          ds.reflectDraft = null; ds.reflectDraftTs = null;
+          setReflectStatus('savedVault');
+        } else if (ds.reflectDraft) {
+          ta.value = ds.reflectDraft;
+          ds.reflected = false;
+          setReflectStatus('draftRestored');
+        } else {
+          ta.value = '';
+          ds.reflected = false;
+          setReflectStatus(null);
+        }
+      }
+      saveInstance();
+      updateReflectButtonLive();
+    }
+
+    function saveReflection() {
+      if (reflectSaving || reviewDay) return;
+      const ta = $('reflectText');
+      const text = (ta.value || '').replace(/^\s+|\s+$/g, ''); // trim ends only; internal line breaks are the user's own
+      if (!text) return; // defensive — the button is already disabled when empty
+      // Disabling a focused button (for the "Saving..." state) blurs it to
+      // <body> in every browser, and nothing focuses it back — a keyboard user
+      // who saved would silently lose their place and have to tab in from the
+      // top again. Remember whether the button owned focus, and restore it once
+      // the button is interactive again (see restoreSaveFocus() below).
+      const hadFocus = document.activeElement === $('dfComplete');
+      reflectSaving = true;
+      reflectError = false;
+      $('reflectErrorBox').style.display = 'none';
+      renderStepChrome(); // shows the "Saving..." state
+      // The local write itself is synchronous/instant; a short deliberate
+      // pause keeps "Saving..." legible as its own real, visible step in the
+      // approved flow rather than an imperceptible flash.
+      setTimeout(function () {
+        const day = curDay();
+        const d = PLAN[day - 1];
+        const saved = upsertItem({
+          id: reflectClientId(day), type: 'journeyReflection', text: text,
+          struggle: active.id, day: day, journeyTitle: cFrom() + ' → ' + cTo(),
+          prompt: (d && d.reflect) || '', route: '/journey',
+        });
+        reflectSaving = false;
+        if (!saved) {
+          // Real, if rare, local-write failure (quota exceeded / private-mode
+          // storage disabled) — the draft and the reflection text are both
+          // still intact; nothing is claimed saved. The footer button becomes
+          // "Try Again" and reuses this exact same click path — a retry is
+          // just another saveReflection() call, not a separate control.
+          reflectError = true;
+          $('reflectErrorBox').style.display = 'flex';
+          renderStepChrome();
+          restoreSaveFocus(hadFocus); // the button is now "Try Again" — keep it reachable
+          return;
+        }
+        const ds = dstate();
+        ds.reflected = true;
+        ds.reflectDraft = null; ds.reflectDraftTs = null; // the draft is now committed — nothing left to restore
+        setReflectStatus('savedVault');
+        saveInstance();
+        renderStepChrome();
+        restoreSaveFocus(hadFocus); // the button is now "Continue" — keep the keyboard user's place
+      }, 300);
+    }
+
+    // Only reclaims focus if the save itself is what lost it (the button was
+    // focused before, and focus has since fallen to <body>/nowhere). Never
+    // steals focus from wherever the user has deliberately moved it — e.g.
+    // back into the textarea to keep editing while the save was in flight.
+    function restoreSaveFocus(hadFocus) {
+      if (!hadFocus) return;
+      const ae = document.activeElement;
+      if (ae && ae !== document.body && ae !== document.documentElement) return;
+      const btn = $('dfComplete');
+      if (btn && !btn.disabled) { try { btn.focus(); } catch (e) {} }
+    }
+
+    function bindReflect() {
+      const ta = $('reflectText'); if (!ta) return;
+      renderReflectBlock();
+
+      ta.addEventListener('input', function () {
+        if (ta.readOnly) return; // conflict not yet resolved
+        if (reflectError) { reflectError = false; $('reflectErrorBox').style.display = 'none'; renderStepChrome(); }
+        // Editing away from (or back to) the saved text flips the gate, so the
+        // footer never offers Continue over text that isn't actually in the
+        // Vault. Only re-renders the chrome on a real state change.
+        if (syncReflectSavedState()) { setReflectStatus(dstate().reflected ? 'savedVault' : null); renderStepChrome(); }
+        updateReflectButtonLive();
+        clearTimeout(reflectDebounceT);
+        reflectDebounceT = setTimeout(function () {
+          const ds = dstate();
+          ds.reflectDraft = ta.value;
+          ds.reflectDraftTs = Date.now();
+          saveInstance();
+          // Once already saved to Vault, keep showing "Saved to Vault" rather
+          // than flashing "Draft saved" under a reflection that's already
+          // safely stored — a further unsaved edit is protected by the
+          // draft-vs-vault conflict check the next time this day is opened,
+          // not by a second status message competing with the first.
+          if (!ds.reflected) setReflectStatus('draftSaved');
+        }, 650); // 500-800ms band: writes settle after a pause, never per keystroke
+      });
+
+      const restoreBtn = $('reflectRestoreDraft');
+      const useSavedBtn = $('reflectUseSaved');
+      if (restoreBtn) restoreBtn.addEventListener('click', function () {
+        const ds = dstate();
+        $('reflectConflict').style.display = 'none';
+        ta.readOnly = false;
+        ta.value = ds.reflectDraft || '';
+        ds.reflected = false;
+        setReflectStatus('draftRestored');
+        updateReflectButtonLive();
+        renderStepChrome();
+        try { ta.focus(); } catch (e) {}
+      });
+      if (useSavedBtn) useSavedBtn.addEventListener('click', function () {
+        const day = curDay(), ds = dstate();
+        const vaultItem = getItem(reflectClientId(day));
+        ds.reflectDraft = null; ds.reflectDraftTs = null;
+        ds.reflected = !!vaultItem;
+        saveInstance();
+        $('reflectConflict').style.display = 'none';
+        ta.readOnly = false;
+        ta.value = (vaultItem && vaultItem.text) || '';
+        setReflectStatus('savedVault');
+        updateReflectButtonLive();
+        renderStepChrome();
+      });
+    }
+
     // gate: each of steps 3/4/5 gates its OWN Continue action now (see
     // stepReady()); step 7's Complete Day keeps the original three-part
     // check as a defensive safety net. renderStepChrome() (defined above,
@@ -1045,6 +1349,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     function closeDayFlow() {
       if (breathInst) { try { breathInst.stop(); } catch (_) {} breathInst = null; }
+      // Flush a pending (debounced, not-yet-written) reflection draft
+      // immediately rather than trust the ~650ms timer to still fire after
+      // the ritual is gone — closing mid-sentence must never lose the last
+      // few keystrokes.
+      if (reflectDebounceT) {
+        clearTimeout(reflectDebounceT); reflectDebounceT = null;
+        const ta = $('reflectText');
+        if (ta && !reviewDay && !ta.readOnly) {
+          const ds = dstate();
+          ds.reflectDraft = ta.value; ds.reflectDraftTs = Date.now();
+          saveInstance();
+        }
+      }
       reviewDay = null;
       $('dayflow').classList.remove('open', 'reviewing');
       $('dayflow').setAttribute('aria-hidden', 'true');
@@ -1066,6 +1383,11 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     $('dfStepNext').addEventListener('click', nextStep); // review mode only — see renderStepChrome()
     $('dfComplete').addEventListener('click', function () {
       if (reviewDay) { closeDayFlow(); return; }
+      // Step 6 is gated by a successful Save Reflection (B3.3) — the shared
+      // primary button becomes the Save/Saving/Try-Again action itself while
+      // unsaved, and only behaves like every other step's Continue once
+      // dstate().reflected is true.
+      if (curStep() === 6 && !dstate().reflected) { saveReflection(); return; }
       if (curStep() < TOTAL_STEPS) { nextStep(); return; }
       // step 7, real completion — unchanged from before B3.2
       const completing = state.day;
@@ -2084,6 +2406,51 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 13px 14px; line-height: 1.55; }
     .journey .block.reflect textarea::placeholder { color: var(--soft); }
     .journey .block.reflect textarea:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .journey .block.reflect textarea[readonly] { opacity: .6; cursor: not-allowed; }
+
+    /* B3.3 — Step 6 draft/save status, error, conflict, and review states.
+       --sage/--rust are the two semantic colors this addition needs; both
+       reuse hex values already established elsewhere in this codebase
+       (vault.astro's prayer tag / delete-hover accent) rather than inventing
+       a new palette. Scoped to the whole ritual shell (.dayflow), not just
+       the reflect block, since the error state also re-colors the shared
+       footer button (#dfComplete lives in .df-foot, a sibling of the reflect
+       block, not a descendant of it -- a custom property scoped narrower
+       than that would resolve to nothing for the button). */
+    .journey .dayflow { --sage: #9BD0A8; --rust: #E89B7E; }
+    .journey .reflect-status { display: none; align-items: flex-start; gap: 9px; margin-top: 11px; font-size: 12.5px; line-height: 1.5; }
+    .journey .reflect-status.show { display: flex; }
+    .journey .reflect-status .rs-ic { flex: 0 0 auto; color: var(--sage); margin-top: 1px; }
+    .journey .reflect-status .rs-ic svg { width: 15px; height: 15px; }
+    .journey .reflect-status .rs-t { display: block; font-weight: 600; color: var(--text2); }
+    .journey .reflect-status .rs-s { display: block; color: var(--muted); margin-top: 1px; }
+
+    .journey .reflect-error { display: none; flex-direction: column; margin-top: 13px; padding: 13px 14px; border-radius: 12px;
+      background: color-mix(in srgb, var(--rust) 14%, transparent); border: 1px solid color-mix(in srgb, var(--rust) 40%, transparent); }
+    .journey .reflect-error .re-t { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .journey .reflect-error .re-s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    /* Four classes (.journey .df-foot .btn.df-btn-error) so this reliably
+       beats .journey .df-foot .btn's same-family box-shadow rule regardless
+       of source order, rather than relying on a specificity tie. */
+    .journey .df-foot .btn.df-btn-error { background: var(--rust); box-shadow: 0 14px 34px -12px rgba(232, 155, 126, .55); }
+
+    .journey .reflect-conflict { display: none; margin-top: 13px; padding: 18px 16px; border-radius: 14px;
+      background: var(--field); border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent); }
+    .journey .reflect-conflict .rc-h { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text); }
+    .journey .reflect-conflict p { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    .journey .reflect-conflict .rc-opt { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--line2); font-family: inherit; transition: .18s; min-height: 44px; }
+    .journey .reflect-conflict .rc-opt:hover { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+    .journey .reflect-conflict .rc-opt b { display: block; font-size: 13.5px; color: var(--text); font-weight: 600; }
+    .journey .reflect-conflict .rc-opt span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .journey .reflect-saved-badge { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 13px 14px; border-radius: 12px;
+      background: color-mix(in srgb, var(--sage) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sage) 38%, transparent); font-size: 12.5px; }
+    .journey .reflect-saved-badge svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--sage); margin-top: 2px; }
+    .journey .reflect-saved-badge b { color: var(--text); font-size: 13px; }
+    .journey .reflect-saved-badge span { color: var(--muted); }
+    .journey .reflect-readback { margin-top: 13px; font-size: 14.5px; line-height: 1.62; color: var(--text2); white-space: pre-wrap; }
+    .journey .reflect-empty { margin-top: 13px; font-size: 13.5px; color: var(--muted); line-height: 1.6; text-align: center; padding: 18px 10px; }
 
     .journey .block .lab .step { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
       background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--goldd); font-size: 9.5px; font-weight: 700; margin-right: 7px; vertical-align: 1px; }
@@ -2171,7 +2538,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .journey .dayflow.reviewing .breath-skip-link,
     .journey .dayflow.reviewing .rd-again { display: none; }
     .journey .dayflow.reviewing .act-check { pointer-events: none; }
-    .journey .dayflow.reviewing .reflect textarea { opacity: .7; }
     .journey .df-step-next { display: none; width: 100%; max-width: 420px; margin: 10px auto 0; background: none; border: 0; color: var(--goldd); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 10px; min-height: 44px; text-align: center; }
     .journey .df-step-next:hover { color: var(--gold); }
 

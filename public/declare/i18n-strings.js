@@ -228,6 +228,7 @@ window.__I18N_STRINGS = {
     'vault.tScripture': 'Escritura',
     'vault.tDeclaration': 'Declaración',
     'vault.tPrayer': 'Oración',
+    'vault.tReflection': 'Reflexión de camino',
     'vault.yesterday': 'Ayer',
     'vault.nothingYet': 'Nada aquí todavía, agrega verdades a medida que las guardas.',
     'vault.yours': 'Tuya',
