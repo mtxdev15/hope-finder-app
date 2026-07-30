@@ -245,8 +245,43 @@ Each layer is classified separately, because they have genuinely different confi
 | Local-first save while signed in | **Inferred, not verified.** The code path is identical to the guest path (`upsertItem()` writes locally before any auth check), and the guest path is fully verified. No signed-in session was exercised |
 | Convex payload generation | **Inspected, not executed.** `toPayload()` was read and confirmed to whitelist the five new fields and to drop `null`/`undefined`. It was not observed producing a real payload |
 | Deployed schema acceptance | **VERIFIED — deployed 2026-07-30 to `dev:good-dotterel-906`.** See §6a below for the probe method and results |
-| Remote mirror | **Unblocked, but still not executed.** The deployment now accepts the payload; an actual signed-in mirror has not been observed |
+| Remote mirror | **VERIFIED end-to-end.** See §6b |
+| Remote update-in-place (no duplicate) | **VERIFIED end-to-end.** See §6b |
 | Cross-device retrieval | **Not verified.** Requires two signed-in sessions |
+
+### 6b. Signed-in save and remote update — verified end-to-end
+
+Performed by Jeff in his own signed-in browser (my Playwright instance is sessionless, and the MCP
+browser's Chrome Canary profile was lock-held by an unrelated day-old process). Rows were then read
+directly off the deployment with admin CLI access.
+
+**First save** (from Step 6 of the ritual, signed in):
+
+| Field | Value |
+|---|---|
+| `clientId` | `journeyReflection:fear:2386977904:day1` |
+| `userId` | scoped to the signed-in account |
+| `day` / `journeyTitle` | `1` / `Fear → Courage` |
+| `prompt` / `route` / `struggle` | real generated prompt / `/journey` / `fear` |
+| `ts` vs `updatedTs` | identical — correct for a first save |
+
+All five new optional fields persisted remotely, so the deployed validator accepted a real payload.
+
+**Then edited from the Vault and re-saved.** Same document, patched:
+
+| Field | Before | After | Verdict |
+|---|---|---|---|
+| Row count | 1 | 1 | No duplicate |
+| `_id` | `j97be394…` | `j97be394…` | Same document |
+| `_creationTime` | `1785443929215.4026` | `1785443929215.4026` | **Patched, not re-inserted** |
+| `text` | original | edited | Updated |
+| `ts` | `1785443928845` | `1785443928845` | Preserved |
+| `updatedTs` | `1785443928845` | `1785445757058` | Advanced |
+| `day` / `journeyTitle` / `prompt` / `route` | — | intact | Metadata survived |
+
+The unchanged `_creationTime` is the decisive evidence: Convex stamps it at insert, so an identical
+value proves `ctx.db.patch()` ran against the existing row rather than a second row being created.
+This closes the remote half of duplicate-prevention, which local testing could only infer.
 
 ### 6a. Deployment verification (post-`npx convex dev`)
 
