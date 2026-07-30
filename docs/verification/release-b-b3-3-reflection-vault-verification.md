@@ -205,9 +205,49 @@ Each layer is classified separately, because they have genuinely different confi
 |---|---|
 | Local-first save while signed in | **Inferred, not verified.** The code path is identical to the guest path (`upsertItem()` writes locally before any auth check), and the guest path is fully verified. No signed-in session was exercised |
 | Convex payload generation | **Inspected, not executed.** `toPayload()` was read and confirmed to whitelist the five new fields and to drop `null`/`undefined`. It was not observed producing a real payload |
-| Deployed schema acceptance | **Not verified — and expected to REJECT until deployed.** Convex argument validators are strict: the currently-deployed `vault.save` does not declare `day`, `updatedTs`, `journeyTitle`, `prompt`, or `route`, so a reflection payload should be rejected as an argument-validation error until `convex/` is deployed |
-| Remote mirror | **Blocked until deployment.** `mirror()` catches and retries once, then gives up silently, so the expected rejection above degrades to a no-op: the reflection stays device-local, nothing is lost, and no false success is shown |
-| Cross-device retrieval | **Not verified.** Requires deployment plus two signed-in sessions |
+| Deployed schema acceptance | **VERIFIED — deployed 2026-07-30 to `dev:good-dotterel-906`.** See §6a below for the probe method and results |
+| Remote mirror | **Unblocked, but still not executed.** The deployment now accepts the payload; an actual signed-in mirror has not been observed |
+| Cross-device retrieval | **Not verified.** Requires two signed-in sessions |
+
+### 6a. Deployment verification (post-`npx convex dev`)
+
+Verified without credentials by exploiting the fact that **Convex runs argument validation before the
+handler**. `vault.save` calls `requireUserId()`, which throws for an unauthenticated caller — so the
+*kind* of error distinguishes the two cases decisively, and no write can occur either way:
+
+- An **`ArgumentValidationError`** means the field is not on the deployed validator.
+- **`Not authenticated`** means validation passed and execution reached the handler.
+
+| Probe | Result | Meaning |
+|---|---|---|
+| Payload with all five B3.3 fields | `Not authenticated` | Validation **passed** — fields are deployed |
+| Control: payload with a deliberately bogus field | `ArgumentValidationError: ... extra field` | Validator **is** strict, so the pass above is meaningful, not a false positive |
+
+The control probe's error also dumps the full deployed validator, which was parsed to confirm each
+field individually:
+
+```
+day           v.optional(v.float64())
+updatedTs     v.optional(v.float64())
+journeyTitle  v.optional(v.string())
+prompt        v.optional(v.string())
+route         v.optional(v.string())
+```
+
+All five present, all optional. (`v.float64()` is Convex's internal representation of `v.number()`.)
+
+**Backward-compatibility regression probe** — every pre-existing item type still passes argument
+validation against the deployed mutation, confirming the additive change broke nothing:
+
+| Type | Result |
+|---|---|
+| `verse` | args OK (reached handler) |
+| `word` (verses + declarations + prayer) | args OK |
+| `declaration` (with `bg*` card fields) | args OK |
+| `journeyReflection` (new) | args OK |
+
+**Still not verified:** an actual signed-in save, the resulting remote row, and cross-device
+retrieval. Those need real Better Auth credentials in a browser session — see §8.
 
 **Nothing in this milestone claims remote Convex success.** The user-facing copy says "Saved to
 Vault" because Vault is the product destination and the local write genuinely succeeded; no copy
@@ -215,9 +255,48 @@ anywhere promises cross-device availability.
 
 ## 7. Other inferred items
 
-- **Spanish rendering.** Every new string follows the file's established `esL() ? 'es' : 'en'`
-  ternary and was read in source, but the UI was not live-toggled to Spanish and screenshotted this
-  pass. The Spanish copy is flagged for native-speaker editorial review in the implementation doc.
+- **Spanish rendering.** **Now verified live — see §7a.** (The Spanish *wording* is still flagged
+  for native es-LA editorial review in the implementation doc; that is a copy-quality question, not
+  a rendering one.)
+### 7a. Spanish rendering — verified live
+
+Run with the `declare-lang=es` cookie set before first paint (the i18n engine is cookie-driven);
+`window.I18N.lang()` confirmed `"es"`. Every B3.3 surface was walked and the **actually rendered**
+strings were read back from the DOM, not asserted from source:
+
+| Surface | Rendered |
+|---|---|
+| Step label | `Reflexiona` |
+| Textarea placeholder | `Escribe con libertad. Esto es entre tú y Dios.` |
+| Textarea `aria-label` | `Tu reflexión` |
+| Button, empty / typed | `Guardar reflexión` |
+| Button, saving | `Guardando...` (three literal periods) |
+| Button, saved | `Continuar` |
+| Button, edited after save | `Guardar reflexión` (re-gate works in es) |
+| Button, error | `Intentar de nuevo` |
+| Status, draft | `Borrador guardado` / `Estamos manteniendo tu reflexión segura mientras escribes.` |
+| Status, saved | `Guardado en la Bóveda` / `Puedes volver a esta reflexión cuando quieras en tu Bóveda.` |
+| Error panel | `No pudimos guardar esta reflexión en la Bóveda.` / `Tu borrador sigue seguro.` |
+| Conflict heading | `Encontramos un borrador más reciente.` |
+| Conflict body | `Tienes un borrador más reciente que la reflexión guardada. ¿Qué te gustaría hacer?` |
+| Conflict options | `Restaurar borrador` / `Usar reflexión guardada` (both with Spanish sublabels) |
+| Conflict region `aria-label` | `Conflicto de borrador` |
+| Review badge | `Repasando un día completado · Solo lectura` |
+| Review empty state | `No se guardó ninguna reflexión para este día.` |
+| Vault shelf | `Guardado recientemente` |
+| Vault card name | `Reflexiones de camino` |
+| Vault type tag | `Reflexión de camino` |
+| Vault detail metadata | `Día 1 de 5 · Ansiedad → Paz` |
+
+No page errors. Screenshots: `light/es-01..04-*`, `conflict/04-es-conflict-prompt.png`,
+`review/03-es-no-reflection.png`, `vault/07-es-detail.png`.
+
+**Behavioral note worth recording:** `journeyTitle` is captured from the localized `cFrom()`/`cTo()`
+labels **at save time**, so a reflection saved in Spanish stores `"Ansiedad → Paz"` and one saved in
+English stores `"Anxiety → Peace"`. A user who later switches language will still see the original
+language on that stored item. This matches how other stored Vault content already behaves and was
+not changed; flagged so it is a known, deliberate property rather than a surprise.
+
 - **Draft loss window on hard refresh.** A refresh within the 650ms debounce window loses the last
   keystrokes. This is inherent to debounced autosave and is mitigated by the explicit flush on
   close; no `pagehide`/`visibilitychange` flush was added, since that was not requested and adds
@@ -227,13 +306,13 @@ anywhere promises cross-device availability.
 
 ## 8. Not testable in this environment
 
-- **Signed-in / cross-device behavior.** Requires real Better Auth credentials against the dev
-  Convex deployment. See §6 for the layer-by-layer classification.
-- **Convex schema deploy.** `npx convex dev` / `deploy` was deliberately **not run** in either the
-  implementation or the review pass — it pushes a real schema change to the dev deployment
-  (`good-dotterel-906`). Because every Convex call fails soft, the feature works completely today
-  for guests and for local-first saves; only the remote mirror of the reflection-specific fields
-  waits on that deploy. **Deployment is the dedicated next milestone, not part of this commit.**
+- **Signed-in save, remote row, and cross-device retrieval.** Requires real Better Auth credentials
+  in a browser session. The deployment now *accepts* the payload (§6a), but an actual signed-in
+  mirror has not been observed. See §6 for the layer-by-layer classification.
+- **Convex schema deploy.** Was **not run** during the implementation or review passes (both ended
+  with it pending). Jeff ran `npx convex dev` afterwards; the resulting deployment was then verified
+  independently — see §6a. **This report's §6a was written after that deploy; every other section
+  predates it and describes local-first behavior only.**
 - **TypeScript typecheck of `convex/`.** `typescript` is not installed in this project and
   `npx tsc` refuses to run without it. Installing it would add a dependency, which this milestone's
   engineering constraints forbid. The Convex changes were reviewed by reading, and are additive
