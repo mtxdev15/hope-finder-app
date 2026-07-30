@@ -61,7 +61,7 @@ body.rt-larger-text .shell, body.rt-larger-text .vault-demo{ transform:scale(1.1
 .theme-preview-ctl{ position:fixed; top:10px; right:10px; z-index:61; display:flex; align-items:center; gap:2px; background:var(--surface); border:1px solid var(--line2); border-radius:100px; padding:4px; box-shadow:var(--chip-shadow); }
 [data-hide-badge] .theme-preview-ctl{ display:none; }
 .theme-preview-ctl .tpc-label{ font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:0 8px; }
-.theme-preview-ctl button{ font-family:'DM Sans',sans-serif; font-size:11.5px; font-weight:600; border:0; background:none; color:var(--muted); padding:0 14px; min-height:36px; border-radius:100px; cursor:pointer; }
+.theme-preview-ctl button{ font-family:'DM Sans',sans-serif; font-size:11.5px; font-weight:600; border:0; background:none; color:var(--muted); padding:0 14px; min-height:44px; border-radius:100px; cursor:pointer; }
 .theme-preview-ctl button[aria-pressed="true"]{ background:var(--cta); color:var(--ctatext); }
 .theme-preview-ctl button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
 
@@ -405,6 +405,10 @@ textarea.reflect-input::placeholder{ color:var(--soft); }
 /* ============ accessibility helpers ============ */
 .zoom-200 .shell, .zoom-200 .vault-demo{ transform:scale(2); transform-origin:top center; }
 :focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+/* Visually hidden but announced — carries full "Day N of 5, Step S of 7"
+   orientation for screen readers now that the visible header only shows
+   "Day N of 5" (the dot rail itself stays aria-hidden, unchanged). */
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 /* ============ responsive polish ============ */
 @media (min-width:768px){

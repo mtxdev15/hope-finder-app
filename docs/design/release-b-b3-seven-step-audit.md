@@ -15,9 +15,12 @@ step-to-step "Continue" action, and no per-step "Back." The user opens `#dayflow
 through all seven blocks in one continuous, top-to-bottom document.
 
 Everything else in this audit should be read in that light: the B3 mockups propose a **paginated,
-one-step-at-a-time ritual shell** (`Day N of 5 · Step N of 7`, per-step Back/Continue, a 7-dot progress
-rail). That is a genuine, not-yet-built product direction, not a re-skin of something that already
-works this way. The design-only prototype in Phase 2 recreates the *proposed* paginated experience
+one-step-at-a-time ritual shell** (a `Day N of 5` context header, per-step Back/Continue, a 7-dot progress
+rail; the header originally also spelled out `· Step N of 7` in visible text, corrected later in spec.md
+to a quieter `Day N of 5` with the full step count preserved for screen readers only, see spec.md's
+"Progress treatment" section). That is a genuine, not-yet-built product direction, not a re-skin of
+something that already works this way. The design-only prototype in Phase 2 recreates the *proposed*
+paginated experience
 using real content and mechanics; this audit documents the *current* single-scroll reality so the gap
 is explicit before any production implementation is planned.
 

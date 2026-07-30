@@ -11,8 +11,10 @@ content shown is Day 1 of the authored `shame` journey, "No Condemnation," pulle
 both light and dark themes, and the real fonts (Cormorant Garamond plus DM Sans via Google Fonts, same CDN
 link `DeclareLayout.astro` uses).
 
-It proposes a **paginated, one-step-at-a-time** ritual shell (`Day N of 5 · Step N of 7`, per-step
-Back/Continue, a 7-dot progress rail). Per `docs/design/release-b-b3-seven-step-audit.md` §0, this is a
+It proposes a **paginated, one-step-at-a-time** ritual shell (`Day N of 5`, per-step Back/Continue, a
+7-dot progress rail; see "Top bar, content head, and button correction" below for why the header no
+longer also spells out `Step N of 7` in visible text). Per `docs/design/release-b-b3-seven-step-audit.md`
+§0, this is a
 genuine product-direction proposal, not a recreation of how the real Journey works today. The real
 `renderDayFlow()` shows all seven steps as one continuously-scrolling page with a single "Complete Day
 N" action, not seven separate screens. That gap is intentional and documented, not an oversight.
@@ -29,6 +31,26 @@ wrong:
    Full detail in `docs/design/release-b-b3-seven-step-spec.md`.
 2. **The prototype originally described itself as dark-theme-only.** It now supports both the real light
    and real dark themes from `declare.css`, switchable live, with all state preserved across the switch.
+
+### Top bar, content head, and button correction
+
+A third, later live-review pass corrected three more elements that read as colder or busier than the rest
+of the ritual's contemplative tone, without losing any information:
+
+- **The top bar no longer spells out `Step N of 7` visibly.** It now shows only `Day N of 5`. The 7-dot
+  progress rail (already `aria-hidden`) still carries step position visually for sighted users; a new
+  visually-hidden `#rTopCtxSR` span carries the full `Day N of 5, Step N of 7` string for screen readers,
+  so the accessible information is unchanged, only what's printed on screen changed.
+- **The leaf glyph above every step's title was removed.** All seven steps' `.rhead` blocks now contain
+  only the step title and its supporting line.
+- **Step 6's primary action reads "Continue" instead of "Continue to Step 7"** once a reflection is saved
+  (and in every other state that offers it: guidance response, guidance error, crisis route), matching how
+  "Continue" is phrased everywhere else in the ritual rather than singling out Step 6 with an explicit
+  step-number callout.
+
+Full rationale (including the contemplative-app comparisons that motivated it) is in
+`docs/design/release-b-b3-seven-step-spec.md`'s "Progress treatment" and "Top bar and content head
+correction" sections.
 
 ### Draft vs. Vault, in the prototype
 
@@ -64,7 +86,7 @@ Reachable only from the Saved-to-Vault state via the secondary "Receive Guidance
   line disclosing that the response was AI-assisted and is not God speaking directly.
 - `setReflectState('ai-error-unavailable')` and `setReflectState('ai-error-connection')` show the two
   required failure states. Both reassure the user their reflection is still safely saved in Vault and
-  offer "Try Again" and "Continue to Step 7."
+  offer "Try Again" and "Continue."
 - **No real network call is ever made.** Nothing here reaches `hope-finder-worker.thinktoro.workers.dev`
   or any AI endpoint. See spec.md's "AI Guidance Integration Reality" for what the real Worker can and
   cannot support today.
@@ -134,9 +156,9 @@ theme), so no second image set was generated solely because a theme was added.
 - `prototype.js`: a state machine exposing `window.__proto` for scripted, reproducible screenshotting and
   interactive click-through review (see below). All state is in-memory only; nothing is written to
   `localStorage` or any other persistence layer.
-- `assets/backgrounds/`: the 5 generated `shame` day backgrounds. Real assets elsewhere (the leaf glyph
-  paths, `dayopen-bg.jpg`, etc.) are referenced by relative path directly into the real `public/declare/`
-  directory, so the prototype always reflects the actual current repository assets rather than stale
+- `assets/backgrounds/`: the 5 generated `shame` day backgrounds. Real assets elsewhere (`dayopen-bg.jpg`
+  and the support/crisis icons, etc.) are referenced by relative path directly into the real
+  `public/declare/` directory, so the prototype always reflects the actual current repository assets rather than stale
   copies.
 
 ## Simulated state, labeled explicitly

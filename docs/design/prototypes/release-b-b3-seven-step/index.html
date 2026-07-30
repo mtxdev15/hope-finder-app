@@ -57,7 +57,7 @@
   <div class="oc-card">
     <div class="oc-eyebrow">Continue Your Journey</div>
     <div class="oc-title">Day 1 of 5</div>
-    <p class="oc-sub">Step 3 of 7 &middot; where you left off</p>
+    <p class="oc-sub">Cast Off the Lie &middot; where you left off</p>
     <div class="oc-progress-bar"><div class="oc-progress-fill" style="width:28.5%"></div></div>
     <div class="oc-actions">
       <button class="rbtn-primary" id="resumeBtn">Resume Day 1</button>
@@ -240,7 +240,8 @@
 
     <div class="rtop">
       <div class="rtop-ctx">
-        <div class="rtop-day" id="rTopCtx">Day 1 of 5 &middot; Step 1 of 7</div>
+        <div class="rtop-day" id="rTopCtx" aria-hidden="true">Day 1 of 5</div>
+        <span class="sr-only" id="rTopCtxSR">Day 1 of 5, Step 1 of 7</span>
       </div>
       <button class="rhelp" id="rHelpBtn" aria-label="Need help? Talk to someone now">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
@@ -261,7 +262,6 @@
       <!-- STEP 1 — RECEIVE -->
       <div class="step-body active" data-step="1">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle" id="rTitle">Receive</h2>
           <p class="rsub">Open your heart to what God is saying to you today.</p>
         </div>
@@ -278,7 +278,6 @@
       <!-- STEP 2 — PRAY -->
       <div class="step-body" data-step="2">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Pray</h2>
           <p class="rsub">Invite God into this moment before you go further.</p>
         </div>
@@ -291,7 +290,6 @@
       <!-- STEP 3 — CAST OFF THE LIE -->
       <div class="step-body" data-step="3">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Cast Off the Lie</h2>
           <p class="rsub">Read it once, out loud, and name it for what it is. Then release it.</p>
         </div>
@@ -315,7 +313,6 @@
       <!-- STEP 4 — REPENT AND BREATHE -->
       <div class="step-body" data-step="4">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Repent &amp; Breathe</h2>
           <p class="rsub">Turn and breathe. Receive grace and begin again.</p>
         </div>
@@ -344,7 +341,6 @@
       <!-- STEP 5 — DECLARE THE TRUTH ALOUD -->
       <div class="step-body" data-step="5">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Declare the Truth Aloud</h2>
           <p class="rsub">Say it out loud, then mark it here.</p>
         </div>
@@ -366,7 +362,6 @@
            optional AI guidance — never conflated in copy or UI. -->
       <div class="step-body" data-step="6">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Reflect</h2>
           <p class="rsub">Write freely. This is between you and God.</p>
         </div>
@@ -392,7 +387,7 @@
         <div class="reflect-view" id="reflectViewSaving" style="display:none">
           <div class="reflect-async-card">
             <span class="reflect-spinner" aria-hidden="true"></span>
-            <span>Saving your reflection to Vault&hellip;</span>
+            <span>Saving your reflection to Vault...</span>
           </div>
         </div>
 
@@ -416,7 +411,7 @@
         <div class="reflect-view" id="reflectViewAILoading" style="display:none">
           <div class="reflect-async-card ai-loading-card">
             <span class="reflect-spinner" aria-hidden="true"></span>
-            <span>Preparing your guidance&hellip;</span>
+            <span>Preparing your guidance...</span>
             <button class="ai-loading-cancel" id="aiLoadingCancelBtn" type="button">Cancel</button>
           </div>
         </div>
@@ -471,7 +466,6 @@
       <!-- STEP 7 — TAKE IT INTO YOUR DAY -->
       <div class="step-body" data-step="7">
         <div class="rhead">
-          <span class="rleaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
           <h2 class="rtitle">Take It Into Your Day</h2>
           <p class="rsub">Live it out with intention and watch God work.</p>
         </div>

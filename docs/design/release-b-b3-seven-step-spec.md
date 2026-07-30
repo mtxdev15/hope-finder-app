@@ -10,14 +10,15 @@ does not describe production `journey.astro` today.*
 
 Every step uses one shell (`.ritual`, containing `.ritual-back` plus `.shell`):
 
-1. **Top bar** (`.rtop`): left side shows `Day N of 5 · Step N of 7` context text. Right side shows Help
-   (heart icon, opens the support drawer) and Close (X). No back arrow here; back lives in the footer
-   (see below).
+1. **Top bar** (`.rtop`): left side shows `Day N of 5` context text (**corrected, see "Top bar and content
+   head correction" below**, previously `Day N of 5 · Step N of 7`). Right side shows Help (heart icon,
+   opens the support drawer) and Close (X). No back arrow here; back lives in the footer (see below).
 2. **7-dot progress rail** (`.rprog`): quiet, small (12×4px dots, current dot widens to 18px), gold for
    done/current, low-opacity neutral for upcoming. Never a percentage, never a number count beyond the
    text context line above it.
-3. **Content head** (`.rhead`): existing leaf glyph (exact SVG path already used in `journey.astro`'s
-   `.jo-leaf` and Day-Opening), step title (Cormorant Garamond), one supporting instruction line.
+3. **Content head** (`.rhead`): step title (Cormorant Garamond), one supporting instruction line. **No
+   longer includes a leaf glyph** (**corrected, see below**; previously the exact SVG path used in
+   `journey.astro`'s `.jo-leaf` and Day-Opening).
 4. **Main content**, which varies per step (Scripture card, prayer card, lie/truth contrast, breath ring,
    declaration card, reflection field, action card). Always one visual "block," never a dense stack of
    equally-weighted cards.
@@ -82,9 +83,42 @@ CTA screens (`pillowtalk`, `Ahead`, `stoic.` via Mobbin) rather than guessed at:
 
 ## Progress treatment
 
-`Day N of 5` and `Step N of 7` are communicated as **text**, not solely via the dot rail (the dots are
-`aria-hidden`). This is the accessible source of truth. No percentage. No "X of Y completed" badge
-styling that could read as gamified progress.
+**Corrected during live design review.** The visible top-bar text now reads only `Day N of 5`; it no
+longer spells out `Step N of 7`. The full `Day N of 5, Step N of 7` string still exists, but as a visually
+hidden (`.sr-only`) span read by screen readers only, so the dot rail's still-`aria-hidden` visual position
+information keeps a real textual equivalent for assistive tech, exactly as the original "text is the
+accessible source of truth" rule required; only what sighted users see changed, not what is actually
+communicated. No percentage anywhere. No "X of Y completed" badge styling that could read as gamified
+progress.
+
+**Why:** live review of the rendered mockups found `Day N of 5 · Step N of 7` read like a checkout-wizard
+or form-progress indicator, at odds with the unhurried, contemplative tone the rest of this design
+(and B2.2 before it) establishes. Contemplative reference apps were checked directly: Headspace and Calm
+show session progress ambiently (a thin bar or remaining time, no literal "step X of Y" text); Duolingo-
+style explicit step-counters belong to gamified learning flows, not reflection. The dot rail already
+carried step position quietly for sighted users; the redundant text label was the part actually causing
+the checklist feeling, so it was removed rather than the dots themselves.
+
+## Top bar and content head correction
+
+Two related corrections made in the same live review pass, both about removing UI elements that were
+communicating information in a colder register than the rest of the ritual, without losing any of that
+information for anyone:
+
+- **Step-count text removed from the visible top bar** (see "Progress treatment" above for the full
+  rationale and the accessibility-preserving `.sr-only` mechanism).
+- **The leaf glyph above every step's title was removed entirely**, from all seven steps. In live review
+  it read as an unexplained decorative mark rather than a meaningful indicator; unlike the leaf glyph's
+  other real uses in the app (`journey.astro`'s `.jo-leaf`, the Day-Opening screen, and the Vine imagery
+  it echoes, all of which carry actual growth/progress meaning tied to visible plant artwork elsewhere on
+  those screens), a small isolated leaf floating above a step title here had no connection to anything else
+  on screen and added visual noise without adding meaning. The step title (Cormorant Garamond) and
+  supporting instruction line now form the entire content head on their own.
+
+Both corrections are implemented in the prototype (`index.html`'s `.rhead` no longer contains a `.rleaf`
+span on any of the 7 steps; `prototype.js`'s `renderTop()` writes the short label to the visible
+`#rTopCtx` and the full label to the new `#rTopCtxSR` `.sr-only` span) and reflected in every mockup
+re-rendered after this correction.
 
 ## Support placement
 
@@ -106,7 +140,7 @@ the user remains on the exact same step underneath (the drawer is an overlay, no
 > unpersisted textarea) is unaffected and remains accurate.
 
 Empty, then Typing (draft protection), then Draft saved, then Save Reflection, then Saved to Vault, then
-optional gentle guidance, then Consent, then Loading, then Response or Error, then Continue to Step 7.
+optional gentle guidance, then Consent, then Loading, then Response or Error, then Continue.
 Full detail, exact copy, button states, and the underlying Vault/AI architecture reality are specified in
 the sections below.
 
@@ -125,7 +159,7 @@ Three distinct concepts, never conflated in copy, state, or UI:
    typing, not on save, only on an explicit "Receive Guidance" tap followed by explicit consent.
 
 **Approved flow:** Open Reflect, begin typing, local draft autosaves ("Draft saved"), Save Reflection,
-reflection saved to Vault, optional "Receive Guidance," consent, loading, response, Continue to Step 7. A
+reflection saved to Vault, optional "Receive Guidance," consent, loading, response, Continue. A
 user may also move directly from the saved-to-Vault state to Step 7 without ever touching guidance. This is
 a first-class path, not a "decline," and there is deliberately no "Continue Without AI" button anywhere
 (that wording was explicitly rejected; the interface never frames guidance as a required choice the user
@@ -136,33 +170,33 @@ must actively decline).
 | Reflect state | Primary (`.rbtn-primary`) | Secondary (`.rbtn-secondary`) |
 |---|---|---|
 | Empty / Typing / Draft restored | Save Reflection | none |
-| Saving to Vault | Saving… (disabled) | none |
-| Saved to Vault | **Continue to Step 7** | Receive Guidance |
+| Saving to Vault | Saving... (disabled) | none |
+| Saved to Vault | **Continue** | Receive Guidance |
 | Consent sheet open | Yes, Receive Guidance | Cancel (returns to Saved to Vault) |
-| Preparing guidance | Preparing guidance… (disabled) | Cancel (small text link inside the loading card, not the footer) |
-| Guidance response | **Continue to Step 7** | Reflect More (returns to Saved to Vault, reflection untouched) |
-| Guidance unavailable / connection failed | **Continue to Step 7** | Try Again |
-| Crisis-language route (underlying Step 6 footer, dimmed beneath the support sheet) | Continue to Step 7 | none |
+| Preparing guidance | Preparing guidance... (disabled) | Cancel (small text link inside the loading card, not the footer) |
+| Guidance response | **Continue** | Reflect More (returns to Saved to Vault, reflection untouched) |
+| Guidance unavailable / connection failed | **Continue** | Try Again |
+| Crisis-language route (underlying Step 6 footer, dimmed beneath the support sheet) | Continue | none |
 
-Continue to Step 7 is always the visually stronger, filled pill in every state above it. Guidance-related
+Continue is always the visually stronger, filled pill in every state above it. Guidance-related
 actions are always the outlined, quieter secondary, so guidance feels available, never required.
 
-**Correction (final B3.1A review):** the crisis-route row above was originally presented as if "Continue to
-Step 7" were the primary control a user sees and acts on in that state, the same as every other row in
-this table. That was misleading. The crisis route is a **two-layer** state, not a single screen:
+**Correction (final B3.1A review):** the crisis-route row above was originally presented as if simply
+tapping "Continue" were the primary control a user sees and acts on in that state, the same as every other
+row in this table. That was misleading. The crisis route is a **two-layer** state, not a single screen:
 
-1. **Background layer.** The Step 6 shell underneath still technically shows "Continue to Step 7" as its
+1. **Background layer.** The Step 6 shell underneath still technically shows "Continue" as its
    footer button, dimmed by the support sheet's scrim, exactly as it would be for any other open overlay
    in this design (matching the existing `.support-scrim`/`.support-sheet` pattern used everywhere else).
 2. **Foreground layer, and the one that actually matters in this state.** The real support sheet opens
    automatically on top and becomes the active, focus-trapped surface: Call 988, Text 988, Call 911, and
    Email our care team, each a genuinely distinct tappable control, plus the sheet's own Close button.
-   These, not "Continue to Step 7," are the controls a user in this state actually sees and can reach
-   first. "Continue to Step 7" is not reachable at all until the user closes the support sheet.
+   These, not "Continue," are the controls a user in this state actually sees and can reach
+   first. "Continue" is not reachable at all until the user closes the support sheet.
 
 The corrected framing: **in the crisis-language route, ordinary continuation never visually competes with,
 or is presented as equivalent to, urgent support.** The support sheet's real resources are the dominant,
-immediate controls; "Continue to Step 7" only becomes active again after the user closes support and
+immediate controls; "Continue" only becomes active again after the user closes support and
 returns to the same Step 6 state, reflection intact. See "Crisis-Language Behavior" above for the full
 five-step sequencing this table row summarizes.
 
@@ -225,7 +259,7 @@ carries over here.
   feel).
 - UI copy: **"Draft saved"** while active; supporting copy where space allows: "We're keeping your
   reflection safe while you write." Before the debounce lands (mid-keystroke), the status area shows the
-  same protective copy without yet claiming "saved." Never a bare "Saving…" spinner in the persistent
+  same protective copy without yet claiming "saved." Never a bare "Saving..." spinner in the persistent
   status row (that reads as a network operation, which this design-only draft mechanism is not intended to
   be).
 - Never says "Saved to Vault." Never says "Saved locally on this device" as if that were the final state.
@@ -245,7 +279,7 @@ carries over here.
 - Triggered only by the explicit **"Save Reflection"** primary action. Never automatically, never on
   blur, never on navigation away.
 - Saving is a brief, visible async state (a simple centered card: spinner plus "Saving your reflection to
-  Vault…") rather than an instant, unexplained jump, consistent with this being a real write, not a local
+  Vault...") rather than an instant, unexplained jump, consistent with this being a real write, not a local
   debounce.
 - On success: **"Saved to Vault"** with supporting copy **"You can revisit this reflection anytime in
   Vault."** and a "View in Vault" link demonstrating the real entry point into the existing Vault surface.
@@ -271,10 +305,10 @@ carries over here.
   in control. See exact copy in "AI Consent and Privacy" below.
 - Only on explicit **"Yes, Receive Guidance"** does any reflection content leave the device for processing.
   **"Cancel"** returns to the Saved-to-Vault state with zero side effects.
-- Loading is a distinct, visible state ("Preparing your guidance…") with its own small "Cancel" action.
+- Loading is a distinct, visible state ("Preparing your guidance...") with its own small "Cancel" action.
   Cancelling returns to Saved-to-Vault, reflection untouched, no partial/broken state left behind.
 - The response is clearly labeled, hierarchically structured (see "AI Guidance Content Rules"), and always
-  offers **"Continue to Step 7"** as the visually primary action, with **"Reflect More"** as a secondary
+  offers **"Continue"** as the visually primary action, with **"Reflect More"** as a secondary
   that returns to the existing saved reflection. It never deletes or overwrites it.
 - **On terminology:** the original working label for this feature was "AI Guidance," used as a literal
   UI badge on the response card. That label was corrected mid-review to **"Gentle Guidance,"** warmer,
@@ -415,8 +449,8 @@ reflection text that reads as crisis/self-harm language, in strict order:
 
 | Condition | Heading | Body | Actions |
 |---|---|---|---|
-| Guidance service unavailable | "Guidance isn't available right now." | "Your reflection is safely saved in Vault." | Try Again, Continue to Step 7 |
-| Connection failure | "We couldn't connect." | "Your reflection is still saved in Vault." | Try Again, Continue to Step 7 |
+| Guidance service unavailable | "Guidance isn't available right now." | "Your reflection is safely saved in Vault." | Try Again, Continue |
+| Connection failure | "We couldn't connect." | "Your reflection is still saved in Vault." | Try Again, Continue |
 | Request cancelled (mid-loading) | *(no error screen, silently returns)* | none | Returns directly to Saved-to-Vault; reflection untouched |
 
 Every failure path reiterates that the reflection itself is safe. It never implies data loss, never asks
@@ -451,7 +485,7 @@ architecture audit above did not confirm that it will be.
   visible but subtle (small text plus icon, never a banner); the primary action remains reachable without
   obscuring the field when the keyboard is open (verified in the mobile keyboard-open mockup); AI consent
   uses the same bottom-sheet pattern as the support drawer.
-  Continue to Step 7 is always reachable by scrolling. `justify-content: safe center` never traps content
+  Continue is always reachable by scrolling. `justify-content: safe center` never traps content
   off-screen.
 - **Tablet:** the ritual uses the same centered card as every other step (not a stretched phone layout);
   the reflect field and the guidance response both get a comfortable, contained reading width; portrait and
@@ -511,11 +545,16 @@ language brand rule and was not used anywhere in this design.
 
 ## Resume behavior
 
-A card (not a full takeover) stating the current day, the exact step being resumed, and a visual progress
-bar, with "Resume Day N" as the one primary action and a plain "Close" secondary. Reflection content, if
-any was saved on the target step, restores automatically (no separate resume-specific reflection UI). No
-"start over" action exists anywhere in this design. The real product has no such feature to represent, and
-none should be invented.
+A card (not a full takeover) stating the current day, the step being resumed by name (not a numeric
+fraction, e.g. "Cast Off the Lie · where you left off," not "Step 3 of 7 · where you left off"), and a
+visual progress bar (a plain fill, no percentage text), with "Resume Day N" as the one primary action and
+a plain "Close" secondary. **Corrected in the same live review as the top-bar/leaf/button pass:** this card
+originally showed the literal `Step N of 7` fraction, missed in the first correction pass because it lives
+in a separate overlay component, not the shared `.rtop` header; the same rationale applies here, so it was
+brought into line rather than left as an inconsistent exception. Reflection content, if any was saved on
+the target step, restores automatically (no separate resume-specific reflection UI). No "start over" action
+exists anywhere in this design. The real product has no such feature to represent, and none should be
+invented.
 
 ## Review-only behavior
 
@@ -621,9 +660,11 @@ delays the primary action's availability.
 ## Use of existing repository assets
 
 - **Icons:** every icon in this design is an exact, inline SVG copy of an icon already used in this
-  codebase: the leaf glyph (`journey.astro`'s `.jo-leaf`), the crisis heart icon and its resource-row
-  icons (`src/pages/crisis.astro`), the checkmark, the close (X), the arrow. Nothing was drawn from
-  scratch.
+  codebase: the crisis heart icon and its resource-row icons (`src/pages/crisis.astro`), the checkmark,
+  the close (X), the arrow. Nothing was drawn from scratch. (The leaf glyph, `journey.astro`'s `.jo-leaf`,
+  was used in the original B3.1 pass but removed in this correction, see "Top bar and content head
+  correction" above; it remains a real, reusable repository asset for other contexts, it was simply judged
+  not to earn its place floating above every Step 6 title with no connection to anything else on screen.)
 - **Typography:** Cormorant Garamond plus DM Sans, the exact Google Fonts CDN link already used in
   `DeclareLayout.astro`.
 - **Color tokens:** the exact hex values from `declare.css`'s `:root` (light) and `html[data-theme="dark"]`
@@ -731,7 +772,7 @@ Guidance "next step" line should ship as plain text (its original, simpler form)
 half-built link.
 
 **Added during this review**, prompted by a direct question about the Gentle Guidance response's "next
-step" line ("Read Psalm 34 tonight…"): today that line is plain text with no way to act on it. The
+step" line ("Read Psalm 34 tonight, slowly."): today that line is plain text with no way to act on it. The
 proposed direction, if separately approved, is to make it a real, tappable link into the existing Bible
 reader, plus a lightweight way to pick the reading back up from the Journey Dashboard if the user does not
 finish it in the moment.

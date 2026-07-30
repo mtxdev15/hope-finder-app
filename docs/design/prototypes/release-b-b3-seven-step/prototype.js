@@ -30,7 +30,12 @@
     reflectState: 'empty',
     reducedMotion: false,
     largerText: false,
-    theme: 'dark'
+    theme: 'dark',
+    // top-label experiment (design review, not yet decided): 'full' = current
+    // "Day N of 5 · Step S of 7"; 'dots-only' = drop the step-count text and
+    // let the dot rail alone carry step position; 'contextual' = "Day N of 5"
+    // normally, with a quiet "Almost there" appended only on the last two steps.
+    topLabelStyle: 'dots-only'
   };
 
   function renderProgress() {
@@ -46,7 +51,22 @@
 
   function renderTop() {
     var s = currentStep();
-    $('rTopCtx').textContent = 'Day ' + state.day + ' of 5 · Step ' + s + ' of 7';
+    var dayText = 'Day ' + state.day + ' of 5';
+    var label = dayText; // 'dots-only' — the default as of this review; the dot
+    // rail carries visible step position, the number is no longer spelled out
+    // in text for sighted users (see spec.md "Progress treatment" correction).
+    if (state.topLabelStyle === 'full') {
+      label = dayText + ' · Step ' + s + ' of 7';
+    } else if (state.topLabelStyle === 'contextual') {
+      label = s >= 6 ? dayText + ' · Almost there' : dayText;
+    }
+    $('rTopCtx').textContent = label;
+    // Screen readers always get full step orientation regardless of the
+    // visible style — the dots are aria-hidden, so this sr-only span is the
+    // one accessible source of truth for position, matching the original
+    // "text is the accessible source of truth" rule even after the visible
+    // text was simplified.
+    $('rTopCtxSR').textContent = dayText + ', Step ' + s + ' of 7';
   }
 
   function renderStepBody() {
@@ -103,39 +123,39 @@
       return;
     }
     if (rs === 'saving') {
-      primaryBtn.textContent = 'Saving…';
+      primaryBtn.textContent = 'Saving...';
       primaryBtn.disabled = true;
       return;
     }
     if (rs === 'saved') {
-      primaryBtn.textContent = 'Continue to Step 7';
+      primaryBtn.textContent = 'Continue';
       secondaryBtn.style.display = 'block';
       secondaryBtn.textContent = 'Receive Guidance';
       secondaryBtn.className = 'rbtn-secondary';
       return;
     }
     if (rs === 'ai-loading') {
-      primaryBtn.textContent = 'Preparing guidance…';
+      primaryBtn.textContent = 'Preparing guidance...';
       primaryBtn.disabled = true;
       backLink.style.display = 'none';
       return;
     }
     if (rs === 'ai-response') {
-      primaryBtn.textContent = 'Continue to Step 7';
+      primaryBtn.textContent = 'Continue';
       secondaryBtn.style.display = 'block';
       secondaryBtn.textContent = 'Reflect More';
       secondaryBtn.className = 'rbtn-secondary';
       return;
     }
     if (rs === 'ai-error-unavailable' || rs === 'ai-error-connection') {
-      primaryBtn.textContent = 'Continue to Step 7';
+      primaryBtn.textContent = 'Continue';
       secondaryBtn.style.display = 'block';
       secondaryBtn.textContent = 'Try Again';
       secondaryBtn.className = 'rbtn-secondary';
       return;
     }
     if (rs === 'crisis') {
-      primaryBtn.textContent = 'Continue to Step 7';
+      primaryBtn.textContent = 'Continue';
       return;
     }
   }
@@ -196,6 +216,12 @@
   document.querySelectorAll('.theme-preview-ctl button[data-mode]').forEach(function (b) {
     b.addEventListener('click', function () { setTheme(b.getAttribute('data-mode')); });
   });
+
+  // ---- top-label style experiment (design review only, see state.topLabelStyle) ----
+  function setTopLabelStyle(mode) {
+    state.topLabelStyle = mode === 'dots-only' || mode === 'contextual' ? mode : 'full';
+    renderTop();
+  }
 
   // ---- gates ----
   function setGate(key, val) {
@@ -588,7 +614,7 @@
     showResume: showResume, hideResume: hideResume,
     showDayOpeningTransition: showDayOpeningTransition, hideDayOpeningTransition: hideDayOpeningTransition,
     setReducedMotion: setReducedMotion, setLargerText: setLargerText, setZoom: setZoom,
-    setTheme: setTheme,
+    setTheme: setTheme, setTopLabelStyle: setTopLabelStyle,
     hideSimBadge: hideSimBadge, showSimBadge: showSimBadge,
     state: state
   };
