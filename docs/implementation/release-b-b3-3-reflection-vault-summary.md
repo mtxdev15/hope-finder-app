@@ -215,21 +215,39 @@ conveyed by color alone — every state pairs its color with an icon and explici
 
 ---
 
-## 13. Vault editing decision (deliberate divergence from the concept mockup)
+## 13. Vault editing (added after review — supersedes the earlier deferral)
 
-The concept mockup's Vault detail screen shows an **"Edit Reflection"** action. It is
-**intentionally not implemented in B3.3.** The approved product behavior is:
+This was initially scoped out, then **added at Jeff's direction** once a real gap surfaced in
+testing: he saved a reflection, completed the day, and then could not edit it *anywhere*. Three
+individually-correct rules combined into a dead end —
 
-- **Vault reflection items are view and delete.** No editing surface exists in `/vault`.
-- **An active, unfinished Journey's reflection is edited in Step 6**, where the draft, save,
-  conflict and gate logic all live.
-- **Completed-day review stays read-only**, preserving exactly what was saved that day.
-- **Editing a completed day's reflection is out of scope for B3.3.**
+- Vault was view-and-delete,
+- a completed day's review is read-only (a hard requirement),
+- and the next day is locked by the one-day-per-calendar-day pacing.
 
-Rationale: a second editing surface in the Vault would directly contradict the read-only guarantee
-of completed-day review, and would need its own conflict story against the Step 6 draft. That is a
-scoped product decision, not an oversight. Flagged here rather than silently dropped, and no
-document in this milestone promises an Edit Reflection button.
+Net effect: **once a day was completed, its reflection could never be changed again.** Since a
+reflection is something a person keeps adding to (and may want to copy out), that was wrong.
+
+**Now implemented in the Vault detail view, for `journeyReflection` items only:**
+
+- **Edit** — swaps the body for an inline textarea with *Save changes* / *Cancel*. Saving writes
+  through `upsertItem()` with the **same `clientId`**, so it updates the one item for that Journey
+  day and re-mirrors to Convex. Cancel writes nothing. An empty/whitespace-only reflection is
+  refused with a toast rather than silently wiping the entry. A no-op edit (text unchanged) skips
+  the write entirely.
+- **Copy** — copies the reflection as plain text. Uses the async Clipboard API in a secure context,
+  with a `execCommand` fallback so it still works on a plain-http dev/LAN origin.
+- **Share stays hidden** — the Card Studio flow is built for verses and declarations, not personal
+  journal entries.
+- **Delete** — unchanged, via the pre-existing generic path.
+
+**The Step 6 conflict rule needed no changes.** A Vault edit bumps `updatedTs`, so it is newer than
+any lingering Step 6 draft; the existing `draftTs > (updatedTs ?? ts)` test therefore resolves in
+the Vault's favour, silently, and clears the superseded draft. Verified live: no spurious conflict
+prompt, textarea shows the Vault text, status reads "Saved to Vault", still exactly one item.
+
+**Still read-only:** completed-day review. It shows whatever is currently saved, but is not an
+editing surface — editing happens in Step 6 (active day) or the Vault (any time).
 
 ---
 
