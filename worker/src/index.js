@@ -674,6 +674,139 @@ async function handleBillingPortal(request, env) {
   return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
 }
 
+/* ===== Plus subscription webhook (Release C1 Phase 3) ==============================
+   POST /billing/webhook
+
+   Deliberately SEPARATE from /give/webhook. Donations and Plus subscriptions are
+   different products with different Stripe endpoints, different signing secrets and
+   different Convex tables. Sharing one handler would mean a change to either product
+   risks the other, and one leaked signing secret would compromise both.
+
+   This handler verifies the Stripe signature (reusing verifyStripeSignature above:
+   HMAC-SHA256, constant-time compare, 5-minute replay window), extracts only the
+   subscription fields Convex needs, and forwards them over a shared secret. It
+   deliberately does NOT decide anything about entitlement — idempotency, ordering
+   and account resolution all live in the Convex mutation, which is the only place
+   that can see existing state.
+   ================================================================================= */
+
+// Events that carry subscription lifecycle. Anything else is acknowledged and
+// ignored, so Stripe stops retrying without us acting on noise.
+const BILLING_EVENTS = new Set([
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.paid',
+  'invoice.payment_failed',
+  'invoice.payment_action_required',
+  'checkout.session.expired',
+]);
+
+async function fetchStripeSubscription(subId, env) {
+  try {
+    const r = await fetch('https://api.stripe.com/v1/subscriptions/' + subId, {
+      headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
+    });
+    return r.ok ? await r.json() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function handleBillingWebhook(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+  if (!env.STRIPE_BILLING_WEBHOOK_SECRET || !env.CONVEX_SITE_URL || !env.BILLING_WEBHOOK_SECRET) {
+    return new Response('Webhook not configured', { status: 500 });
+  }
+
+  const payload = await request.text();
+  const ok = await verifyStripeSignature(
+    payload,
+    request.headers.get('Stripe-Signature'),
+    env.STRIPE_BILLING_WEBHOOK_SECRET,
+  );
+  if (!ok) return new Response('Invalid signature', { status: 400 });
+
+  let event;
+  try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
+
+  const type = event && event.type;
+  // Acknowledge anything we do not act on. Returning 200 here is correct: the
+  // event was received and verified, we simply have no state change to make.
+  if (!BILLING_EVENTS.has(type)) return new Response('ok', { status: 200 });
+
+  const obj = (event.data && event.data.object) || {};
+  let sub = null;
+  let customerId = null;
+  let subscriptionId = null;
+
+  if (type.startsWith('customer.subscription.')) {
+    sub = obj;
+    subscriptionId = obj.id || null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : (obj.customer && obj.customer.id) || null;
+  } else if (type.startsWith('checkout.session.')) {
+    // Only subscription-mode sessions matter here. A donation session (mode
+    // 'payment', or a recurring GIFT) must never be treated as a Plus purchase.
+    if (obj.mode !== 'subscription') return new Response('ok', { status: 200 });
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : null;
+    // The session alone does not carry period/status, so read the subscription.
+    if (subscriptionId) sub = await fetchStripeSubscription(subscriptionId, env);
+  } else if (type.startsWith('invoice.')) {
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : null;
+    if (!subscriptionId) return new Response('ok', { status: 200 });
+    sub = await fetchStripeSubscription(subscriptionId, env);
+  }
+
+  if (!sub || !subscriptionId || !customerId) {
+    // Nothing actionable (e.g. an expired session that never became a
+    // subscription). Acknowledge so Stripe stops retrying.
+    return new Response('ok', { status: 200 });
+  }
+
+  const item = (sub.items && sub.items.data && sub.items.data[0]) || null;
+  const price = item && item.price;
+
+  const body = {
+    eventId: event.id,
+    eventType: type,
+    eventCreated: event.created,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    status: sub.status,
+    stripePriceId: (price && price.id) || undefined,
+    billingInterval: (price && price.recurring && price.recurring.interval) || undefined,
+    currentPeriodStart: sub.current_period_start,
+    currentPeriodEnd: sub.current_period_end,
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    canceledAt: sub.canceled_at || undefined,
+    trialEnd: sub.trial_end || undefined,
+    latestInvoiceId: typeof sub.latest_invoice === 'string' ? sub.latest_invoice : undefined,
+    // Only the value WE set at Checkout for an authenticated user. Never a
+    // browser-supplied id.
+    metadataUserId: (sub.metadata && sub.metadata.userId) || (obj.metadata && obj.metadata.userId) || undefined,
+  };
+
+  try {
+    const r = await fetch(env.CONVEX_SITE_URL + '/billing/subscription-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-billing-secret': env.BILLING_WEBHOOK_SECRET },
+      body: JSON.stringify(body),
+    });
+    // Log status only — never the payload. It carries customer and subscription
+    // ids that have no business sitting in logs.
+    console.log('[billing/webhook] type=' + type + ' convex=' + r.status);
+    if (!r.ok) return new Response('Downstream error', { status: 500 }); // let Stripe retry
+  } catch (e) {
+    return new Response('Downstream error', { status: 500 });
+  }
+  return new Response('ok', { status: 200 });
+}
+
 export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
@@ -698,6 +831,11 @@ export default {
     }
     if (pathname === '/give/portal') {
       return handleBillingPortal(request, env);
+    }
+    // Plus subscriptions. Separate route, separate signing secret, separate
+    // Convex tables — the donation routes above are untouched by it.
+    if (pathname === '/billing/webhook') {
+      return handleBillingWebhook(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====
