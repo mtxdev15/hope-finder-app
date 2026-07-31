@@ -122,4 +122,75 @@ export default defineSchema({
   giftEvents: defineTable({
     sessionId: v.string(),
   }).index("by_session", ["sessionId"]),
+
+  /* ===== Plus subscriptions (Release C1 Phase 3) ==============================
+     Deliberately SEPARATE from the gift tables above. A donation and a Plus
+     subscription are different products: a recurring gift's `subscriptionId`
+     is NOT a Plus subscription, and a donor is a Free user unless they
+     subscribe separately. Nothing here ever reads gift history to grant Plus.
+
+     Trust boundary: rows are written ONLY by internal mutations, reachable
+     only through the shared-secret httpAction the Worker calls after it has
+     verified the Stripe signature. No signed-in browser can write this table,
+     and plan state deliberately does NOT live in `userData` (userdata.set
+     accepts arbitrary key/value from any authed browser, so anything stored
+     there is forgeable in one console line).
+
+     Stripe remains the source of truth; this table mirrors verified webhook
+     state so the app can answer "what is this account entitled to" without a
+     live Stripe call on every request. Phase 3 stores lifecycle only — the
+     entitlement resolver that reads it arrives in Phase 4. ================== */
+  subscriptions: defineTable({
+    // Better Auth user _id, derived server-side. Never client-supplied.
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    stripePriceId: v.optional(v.string()),
+    // 'plus' | 'free' — a coarse mirror of Stripe lifecycle. Phase 4's resolver
+    // owns the real entitlement decision (including the past_due grace rule).
+    tier: v.string(),
+    billingInterval: v.optional(v.string()), // 'month' | 'year'
+    // Raw Stripe status, stored verbatim rather than collapsed, so Phase 4 can
+    // distinguish past_due from unpaid from canceled without re-querying.
+    status: v.string(),
+    currentPeriodStart: v.optional(v.number()),
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    canceledAt: v.optional(v.number()),
+    // Present only if legacy/manual Stripe state ever produces a trial. No
+    // trial is configured or advertised.
+    trialEnd: v.optional(v.number()),
+    latestInvoiceId: v.optional(v.string()),
+    // Ordering guards: Stripe delivers webhooks out of order, so an older event
+    // must never overwrite newer state. See subscriptions.applyWebhook.
+    lastWebhookEventId: v.optional(v.string()),
+    lastWebhookCreated: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_subscription", ["stripeSubscriptionId"])
+    .index("by_customer", ["stripeCustomerId"]),
+
+  // The account -> Stripe customer mapping, kept separate from `subscriptions`
+  // because it must survive a subscription being deleted: a returning customer
+  // has to land on their existing Stripe customer rather than a fresh one, or
+  // their billing history fragments across duplicate customers.
+  billingCustomers: defineTable({
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_customer", ["stripeCustomerId"]),
+
+  // Webhook idempotency for SUBSCRIPTION events. Deliberately not giftEvents:
+  // that table is keyed by Checkout session and belongs to the donation
+  // archive, and mixing the two would let one product's replay suppress the
+  // other's legitimate event.
+  billingEvents: defineTable({
+    eventId: v.string(), // Stripe evt_...
+    type: v.string(),
+    processedAt: v.number(),
+  }).index("by_event", ["eventId"]),
 });
