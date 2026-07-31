@@ -9,10 +9,12 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as email from "../email.js";
 import type * as gifts from "../gifts.js";
 import type * as http from "../http.js";
 import type * as reviews from "../reviews.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as userdata from "../userdata.js";
 import type * as vault from "../vault.js";
 
@@ -24,10 +26,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  billing: typeof billing;
   email: typeof email;
   gifts: typeof gifts;
   http: typeof http;
   reviews: typeof reviews;
+  subscriptions: typeof subscriptions;
   userdata: typeof userdata;
   vault: typeof vault;
 }>;
