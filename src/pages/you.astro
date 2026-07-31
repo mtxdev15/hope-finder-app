@@ -99,10 +99,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               <div class="yh-t" data-i18n="you.help">Help &amp; support</div>
               <div class="yh-d" data-i18n="you.helpD">Answers, contact, and help when you need it</div>
             </a>
-            <a class="yhubcard" href="/give" data-i18n-href="/es/dar">
+            <a class="yhubcard" href="/pricing">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
-              <div class="yh-t" data-i18n="you.support">Support Declare</div>
-              <div class="yh-d" data-i18n="you.supportD">Help keep it free for all</div>
+              <div class="yh-t" data-i18n="you.plans">Plans</div>
+              <div class="yh-d" data-i18n="you.plansD">What&rsquo;s free, and what Plus adds</div>
             </a>
             <button class="yhubcard" id="yRateCard">
               <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></div>
@@ -125,14 +125,18 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <div class="yg-hd">
               <div class="yg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
               <div class="yg-head">
-                <div class="yg-ttl" data-i18n="you.yourGiving">Your giving</div>
+                <div class="yg-ttl" data-i18n="you.yourGiving">Your past giving</div>
                 <div class="yg-tot" id="ygTotal"></div>
               </div>
             </div>
             <div class="yg-next" id="ygNext" hidden></div>
             <ul class="yg-list" id="ygList"></ul>
-            <a class="yg-again" href="/give" data-i18n-href="/es/dar" data-i18n="you.giveAgain">Give again</a>
-            <a class="yg-manage" id="ygManage" href="/give" data-i18n-href="/es/dar" hidden data-i18n="you.manageGiving">Manage giving</a>
+            <!-- Read-only archive. "Give again" is gone with the donation product,
+                 but "Manage giving" MUST stay: an existing recurring donor has to be
+                 able to update a card or cancel, and now that /give redirects away
+                 this card is the only place left to do it. -->
+            <div class="yg-note" data-i18n="you.givingArchiveNote">This history reflects the records available in Declare &amp; Believe and may not include every recurring renewal.</div>
+            <a class="yg-manage" id="ygManage" href="/you" hidden data-i18n="you.manageGiving">Manage giving</a>
             <div class="yg-fine" id="ygFine" hidden><span data-i18n="you.manageGivingHint">Opens Stripe&rsquo;s secure portal &mdash; update your card, change your amount, or cancel anytime.</span> <a href="mailto:support@declareandbelieve.com" data-i18n="you.manageGivingSupport">Need help? Email support@declareandbelieve.com</a></div>
           </div>
 
@@ -1415,8 +1419,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yg-badge { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--goldd);
       border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; padding: 2px 8px; }
     .you .yg-date { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
-    .you .yg-again { display: inline-block; margin-top: 15px; font-size: 13px; font-weight: 600; color: var(--goldd); text-decoration: none; }
-    .you .yg-again:hover { color: var(--gold); text-decoration: underline; }
+    /* .yg-again retired with the donation product — the archive is read-only. */
+    .you .yg-note { margin-top: 14px; font-size: 11.5px; line-height: 1.55; color: var(--muted); }
     .you .yg-manage { display: inline-block; margin: 15px 0 0 18px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; }
     .you .yg-manage[hidden] { display: none; }
     .you .yg-manage:hover { color: var(--text); text-decoration: underline; }

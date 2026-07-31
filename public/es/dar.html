@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
+<!-- Donaciones retiradas: las visitas normales a /es/dar van a /pricing.
+     PERO esta página sigue siendo el destino posterior al pago. Stripe devuelve
+     al donante a /es/dar?status=success&amt=… y give.js muestra el agradecimiento
+     aquí mismo; no existe una ruta de recibo aparte. Un redirect sin condición
+     borraría ese acuse, así que solo redirigimos cuando falta `status`.
+     /pricing es bilingüe (cookie declare-lang), por eso no hay URL /es/precios. -->
+<script>(function(){try{var s=new URLSearchParams(location.search).get('status');if(!s)location.replace('/pricing');}catch(e){}})();</script>
 <script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
 <!-- Google Tag Manager -->
@@ -48,7 +55,7 @@
     <nav class="navlinks" aria-label="Principal">
       <a href="/es/bienvenido#seq">Cómo funciona</a>
       <a href="/es/bienvenido#why">Por qué Declare</a>
-      <a href="/es/dar">Dar</a>
+      <a href="/pricing?lang=es">Planes</a>
     </nav>
     <a class="brand" href="/es/bienvenido"><span class="bdot" aria-hidden="true"></span><span class="wm">Declare</span></a>
     <div class="navcta">
@@ -81,7 +88,7 @@
       <h5>Compañía</h5>
       <a href="/es/acerca">Nuestra misión</a>
       <a href="/es/ayuda">Ayuda y soporte</a>
-      <a href="/es/dar">Dar</a>
+      <a href="/pricing?lang=es">Planes</a>
       <a href="/crisis?lang=es">Encuentra ayuda</a>
     </div>
     <div>
@@ -169,7 +176,7 @@
           </button>
           <div class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Ofrenda segura · cifrada de extremo a extremo</div>
           <div class="give-fine">Las ofrendas apoyan la misión y no son deducibles de impuestos. <a href="/es/terminos-de-donacion">Términos de donación</a>
-        <a href="/es/cookies">Cookies</a> &middot; <a href="/es/dar" data-manage-giving>Administrar donación</a></div>
+        <a href="/es/cookies">Cookies</a> &middot; <a href="/you?lang=es" data-manage-giving>Administrar donación</a></div>
         </div>
 
       </div>
@@ -261,7 +268,7 @@
       <button class="c-done" id="cDone">Listo</button>
     </div>
     <a class="c-account" id="cAccount" href="/signin?lang=es" hidden>Mantén tu generosidad en un solo lugar. <b>Crea una cuenta gratis</b></a>
-    <a class="c-manage" id="cManage" href="/es/dar" data-manage-giving hidden>Administrar tu generosidad</a>
+    <a class="c-manage" id="cManage" href="/you?lang=es" data-manage-giving hidden>Administrar tu generosidad</a>
   </div>
 
 </div>
@@ -284,7 +291,7 @@
         <h4>Compañía</h4>
         <a href="/es/acerca">Acerca de</a>
         <a href="/es/ayuda">Ayuda y soporte</a>
-        <a href="/es/dar">Da tu diezmo</a>
+        <a href="/pricing?lang=es">Planes</a>
         <a href="/crisis?lang=es">Encuentra ayuda</a>
         <a href="/you?rate=footer&amp;lang=es">Califica Declare</a>
         <a href="/you?whatsnew=1&amp;lang=es">Novedades</a>

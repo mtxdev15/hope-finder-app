@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+<!-- Donations are retired: ordinary visits to /give now go to /pricing.
+     BUT this page is still the post-payment landing. Stripe returns donors to
+     /give?status=success&amt=… (worker/src/index.js mints that URL) and the
+     thank-you screen is rendered in place by give.js — there is no separate
+     receipt route. A blanket redirect would strip every returning donor of
+     their acknowledgement, so we bounce only when `status` is absent.
+     Runs first, before any paint, so an ordinary visitor never sees the old
+     giving page flash by. replace() keeps /give out of the back-button chain. -->
+<script>(function(){try{var s=new URLSearchParams(location.search).get('status');if(!s)location.replace('/pricing');}catch(e){}})();</script>
 <script>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
 <!-- Google Tag Manager -->
@@ -47,7 +56,7 @@
     <nav class="navlinks" aria-label="Primary">
       <a href="/welcome#seq">How it works</a>
       <a href="/welcome#why">Why Declare</a>
-      <a href="/give">Give</a>
+      <a href="/pricing">Plans</a>
     </nav>
     <a class="brand" href="/welcome"><span class="bdot" aria-hidden="true"></span><span class="wm">Declare</span></a>
     <div class="navcta">
@@ -81,7 +90,7 @@
       <h5>Company</h5>
       <a href="/about">Our mission</a>
       <a href="/help">Help &amp; support</a>
-      <a href="/give">Give</a>
+      <a href="/pricing">Plans</a>
       <a href="/crisis">Find help now</a>
       <a href="/you?rate=menu">Rate Declare</a>
     </div>
@@ -170,7 +179,7 @@
           </button>
           <div class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure giving · encrypted end-to-end</div>
           <div class="give-fine">Gifts support the mission and are not tax-deductible. <a href="/give-terms">Giving terms</a>
-        <a href="/cookies">Cookies</a> &middot; <a href="/give" data-manage-giving>Manage giving</a></div>
+        <a href="/cookies">Cookies</a> &middot; <a href="/you" data-manage-giving>Manage giving</a></div>
         </div>
 
       </div>
@@ -262,7 +271,7 @@
       <button class="c-done" id="cDone">Done</button>
     </div>
     <a class="c-account" id="cAccount" href="/signin" hidden>Keep your giving in one place. <b>Create a free account</b></a>
-    <a class="c-manage" id="cManage" href="/give" data-manage-giving hidden>Manage your giving</a>
+    <a class="c-manage" id="cManage" href="/you" data-manage-giving hidden>Manage your giving</a>
   </div>
 
 </div>
@@ -285,7 +294,7 @@
         <h4>Company</h4>
         <a href="/about">About</a>
         <a href="/help">Help &amp; support</a>
-        <a href="/give">Give</a>
+        <a href="/pricing">Plans</a>
         <a href="/crisis">Find help now</a>
         <a href="/you?rate=footer">Rate Declare</a>
         <a href="/you?whatsnew=1">What&rsquo;s new</a>

@@ -47,23 +47,15 @@
   </url>
 
   <!-- Support / help / answers -->
+  <!-- /give and /es/dar are delisted: donations are retired and both now redirect
+       to /pricing on an ordinary visit. They stay on the server (and out of this
+       sitemap) purely as the post-payment landing for returning donors. /pricing
+       is a single bilingual route, so it has one entry with no hreflang pair. -->
   <url>
-    <loc>https://declareandbelieve.com/give</loc>
-    <lastmod>2026-06-25</lastmod>
+    <loc>https://declareandbelieve.com/pricing</loc>
+    <lastmod>2026-07-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
-  </url>
-  <url>
-    <loc>https://declareandbelieve.com/es/dar</loc>
-    <lastmod>2026-06-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/ayuda</loc>

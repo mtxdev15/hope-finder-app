@@ -133,13 +133,9 @@ export const myGifts = query({
   },
 });
 
-// INTERNAL admin/test helper: wipe the counter + dedupe rows back to zero.
-// Run with `npx convex run gifts:clearStats --prod`.
-export const clearStats = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    for (const r of await ctx.db.query("giftStats").take(100)) await ctx.db.delete(r._id);
-    for (const r of await ctx.db.query("giftEvents").take(2000)) await ctx.db.delete(r._id);
-    return null;
-  },
-});
+// `clearStats` was removed here when donations were retired. It was an admin
+// helper that wiped giftStats AND giftEvents (the idempotency ledger) in one
+// CLI call, with no callers anywhere in the repo. Giving records are now a
+// permanent financial archive that past donors can still see, so a one-command
+// destructive wipe is the wrong tool to leave lying next to it. Recreate it
+// deliberately, scoped and guarded, if a real need ever appears.
