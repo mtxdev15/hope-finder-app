@@ -64,6 +64,10 @@ async function runMutation(fn, args) {
   try { const c = await authed(); return c ? await c.mutation(fn, args || {}) : null; }
   catch (e) { return null; }
 }
+async function runAction(fn, args) {
+  try { const c = await authed(); return c ? await c.action(fn, args || {}) : null; }
+  catch (e) { return null; }
+}
 
 /* ── Vault ── */
 export async function vaultList() { return (await ensure()) ? runQuery(apiRef.vault.list, {}) : null; }
@@ -97,3 +101,16 @@ export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.
 
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
+
+/* ── Plus billing (Release C1 Phase 3) ──
+   Note what is NOT passed: no user id, no email, no Stripe customer or price
+   id. The server derives every one of those from the authenticated session,
+   and the actions reject those arguments outright. `plan` is a bounded alias
+   the server maps to a trusted Price id.
+
+   Returns null on a transport failure (same soft-fail contract as the rest of
+   this module); the actions themselves return { error } for business states
+   like already-subscribed, so callers must distinguish the two. */
+export async function mySubscription() { return (await ensure()) ? runQuery(apiRef.subscriptions.mySubscription, {}) : null; }
+export async function billingCheckout(plan, lang) { return (await ensure()) ? runAction(apiRef.billing.createCheckoutSession, { plan, ...(lang === 'es' ? { lang: 'es' } : {}) }) : null; }
+export async function billingPortal(lang) { return (await ensure()) ? runAction(apiRef.billing.createPortalSession, lang === 'es' ? { lang: 'es' } : {}) : null; }

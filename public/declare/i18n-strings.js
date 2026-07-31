@@ -299,6 +299,36 @@ window.__I18N_STRINGS = {
     'pricing.foot': 'Pagar cambia lo que la app permite, no lo que Dios da. Todo lo esencial sigue siendo gratis.',
     'pricing.pastGiving': 'Términos de donación anteriores',
 
+    /* ---- /checkout/success + /checkout/cancelled (Release C1 Phase 3) ----
+       NEEDS NATIVE es-LA EDITORIAL REVIEW before the coordinated launch.
+       Billing copy has to be unambiguous about money, and "no te cobramos" in
+       particular must read as reassurance rather than as a refusal. Tone rule
+       for the cancelled state: no guilt, no urgency, nothing implying they lost
+       standing by not paying. */
+    'checkout.pendingH': 'Confirmando tu plan',
+    'checkout.pendingP': 'Tu pago se realizó. Estamos esperando la confirmación — esto suele tardar unos segundos.',
+    'checkout.doneH': 'Ya tienes Plus',
+    'checkout.doneP': 'Gracias. Tu suscripción está activa.',
+    'checkout.doneCta': 'Ir a Declare',
+    'checkout.account': 'Tu cuenta',
+    'checkout.slowH': 'Esto está tardando más de lo normal',
+    'checkout.slowP': 'Tu pago está seguro. La confirmación puede tardar unos minutos. Puedes seguir usando Declare — tu plan aparecerá en tu cuenta apenas llegue.',
+    'checkout.slowFine': '¿Sigue sin aparecer después de unos minutos? Escribe a support@declareandbelieve.com y lo resolvemos.',
+    'checkout.authH': 'Inicia sesión para ver tu plan',
+    'checkout.authP': 'Solo podemos mostrar una suscripción a la cuenta a la que pertenece.',
+    'checkout.signin': 'Iniciar sesión',
+    'checkout.cancelH': 'No se inició ninguna suscripción',
+    'checkout.cancelP': 'No se te cobró nada. Todo lo que tenías sigue exactamente donde lo dejaste.',
+    'checkout.cancelBack': 'Volver a los planes',
+    /* Billing states surfaced from server error codes (see billing-copy.js). */
+    'billing.alreadySubscribed': 'Ya tienes una suscripción activa. Adminístrala desde tu cuenta.',
+    'billing.pastDue': 'Tu pago necesita atención. Actualiza tu método de pago para conservar Plus.',
+    'billing.endingSoon': 'Tu suscripción termina el',
+    'billing.manage': 'Administrar facturación',
+    'billing.unavailable': 'La facturación no está disponible en este momento. Inténtalo de nuevo en un momento.',
+    'billing.noSubscription': 'No encontramos una suscripción activa en esta cuenta.',
+    'billing.signinRequired': 'Inicia sesión para administrar tu facturación.',
+
     /* ---- /crisis (US numbers/orgs kept; verse in RVR1909) ---- */
     'crisis.back': 'Atrás',
     'crisis.ttl': 'Encuentra ayuda ahora',

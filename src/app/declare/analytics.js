@@ -21,6 +21,24 @@ const ALLOWED = {
   rate_started: ['source'],             // source: toast | profile | footer | menu
   rate_submitted: ['rating', 'shared'], // rating: overall 1-5; shared: boolean
   rate_dismissed: [],
+  /* pass 3 — Plus billing (Release C1 Phase 3).
+     Defined now so the surfaces built in later phases have somewhere to report,
+     and allowlisted because this map fails closed — an unlisted event is
+     silently dropped, which is how signin_completed went uncounted for months.
+
+     NOTHING Stripe-shaped is allowed through. No customer id, no subscription
+     id, no invoice id, no amount, no card detail, no email. `plan` is only ever
+     the bounded alias (plus-monthly | plus-annual) the user picked, which is a
+     product choice rather than a payment identifier. Anything not listed here
+     is stripped by track() even if a caller passes it. */
+  pricing_plan_selected: ['plan'],
+  checkout_started: ['plan'],
+  checkout_cancelled: ['plan'],
+  checkout_returned: ['result'],            // result: confirmed | pending | slow
+  subscription_confirmed: ['plan'],
+  billing_portal_opened: [],
+  subscription_cancellation_scheduled: [],
+  subscription_reactivated: [],
   // later passes add: word_received, verse_saved, declaration_saved,
   // prayer_saved, journey_started, journey_day_completed,
   // struggle_page_cta_clicked

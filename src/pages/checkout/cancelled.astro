@@ -1,0 +1,60 @@
+---
+// /checkout/cancelled — Stripe returns here when someone backs out of Checkout.
+//
+// Tone matters more than mechanics on this page. Someone who just decided not
+// to pay should meet no guilt, no urgency, no countdown, and nothing implying
+// they have lost standing. They keep everything they had, because Free is a
+// real plan and not a punishment. The only job here is to say plainly that
+// nothing was charged and leave the door open.
+//
+// This page creates no plan state and no usage state. It reads the `plan`
+// parameter purely to carry their earlier choice back to pricing so they do
+// not have to pick again.
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+---
+<DeclareLayout title="Declare — No subscription started" description="No subscription was started and nothing was charged." noindex>
+  <main class="ckout ckout-cancel">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+      <section class="ck-state">
+        <h1 data-i18n="checkout.cancelH">No subscription started</h1>
+        <p data-i18n="checkout.cancelP">Nothing was charged. Everything you had is exactly where you left it.</p>
+        <div class="ck-cta">
+          <a class="btn btn-primary" id="ckBack" href="/pricing" data-i18n="checkout.cancelBack">Back to plans</a>
+          <a class="btn btn-ghost" href="/today" data-i18n="checkout.doneCta">Go to Declare</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // Carry the plan they had selected back to pricing so the choice is not
+    // lost. Bounded to the two known aliases: this value reaches an href, and
+    // an unvalidated query param on a link is how an open redirect starts.
+    const ALLOWED = ['plus-monthly', 'plus-annual'];
+    const q = new URLSearchParams(location.search);
+    const plan = q.get('plan') || '';
+    const lang = q.get('lang') === 'es' ? 'es' : '';
+    const parts = [];
+    if (ALLOWED.includes(plan)) parts.push('plan=' + encodeURIComponent(plan));
+    if (lang) parts.push('lang=es');
+    if (parts.length) {
+      const a = document.getElementById('ckBack');
+      if (a) a.setAttribute('href', '/pricing?' + parts.join('&'));
+    }
+  </script>
+
+  <style is:global>
+    /* Astro scopes each page's bundle, so these repeat the shared shell from
+       checkout/success.astro rather than importing it. Kept to the few rules
+       this page actually uses. */
+    .ckout { position: relative; min-height: 100dvh; }
+    .ckout .in { position: relative; z-index: 1; min-height: 100dvh; display: flex; align-items: center;
+      justify-content: center; padding: 40px 24px 120px; }
+    .ckout .ck-state { text-align: center; max-width: 44ch; }
+    .ckout h1 { font-family: 'Cormorant Garamond', serif; font-size: 30px; line-height: 1.2; color: var(--text); font-weight: 500; }
+    .ckout p { font-size: 14px; line-height: 1.65; color: var(--muted); margin-top: 12px; }
+    .ckout .ck-cta { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    @media (min-width: 480px) { .ckout .ck-cta { flex-direction: row; justify-content: center; } }
+  </style>
+</DeclareLayout>

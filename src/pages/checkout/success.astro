@@ -1,0 +1,122 @@
+---
+// /checkout/success — where Stripe returns after a completed Plus Checkout.
+//
+// THE LOAD-BEARING RULE: landing here does not mean the person has Plus.
+// The redirect is attacker-controllable (anyone can type this URL, with any
+// session_id), and even for a genuine payer the webhook that establishes truth
+// may not have arrived yet. So this page NEVER grants anything. It polls the
+// server-authoritative subscription record and only reports Plus once Convex
+// says so. The session_id in the URL is a correlation hint for support, never
+// proof — it is read but never trusted, and never sent anywhere.
+//
+// Phase 3 ships this as a backend-ready route. The pricing CTA stays
+// non-transactional until the coordinated release, so nothing links here yet.
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+---
+<DeclareLayout title="Declare — Confirming your plan" description="Confirming your Declare Plus subscription." noindex>
+  <main class="ckout">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+      <!-- waiting on webhook-backed truth -->
+      <section class="ck-state" id="ckPending">
+        <div class="ck-spin" aria-hidden="true"></div>
+        <h1 data-i18n="checkout.pendingH">Confirming your plan</h1>
+        <p data-i18n="checkout.pendingP">Your payment went through. We&rsquo;re waiting for the confirmation to reach us &mdash; this usually takes a few seconds.</p>
+      </section>
+
+      <!-- confirmed by the server, not by the redirect -->
+      <section class="ck-state" id="ckDone" hidden>
+        <div class="ck-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <h1 data-i18n="checkout.doneH">You&rsquo;re on Plus</h1>
+        <p data-i18n="checkout.doneP">Thank you. Your subscription is active.</p>
+        <div class="ck-cta">
+          <a class="btn btn-primary" href="/today" data-i18n="checkout.doneCta">Go to Declare</a>
+          <a class="btn btn-ghost" href="/you" data-i18n="checkout.account">Your account</a>
+        </div>
+      </section>
+
+      <!-- webhook slower than our patience: reassure, never claim failure -->
+      <section class="ck-state" id="ckSlow" hidden>
+        <h1 data-i18n="checkout.slowH">This is taking longer than usual</h1>
+        <p data-i18n="checkout.slowP">Your payment is safe. Confirmation can take a few minutes. You can keep using Declare &mdash; your plan will appear on your account page as soon as it lands.</p>
+        <div class="ck-cta">
+          <a class="btn btn-primary" href="/you" data-i18n="checkout.account">Your account</a>
+          <a class="btn btn-ghost" href="/today" data-i18n="checkout.doneCta">Go to Declare</a>
+        </div>
+        <p class="ck-fine" data-i18n="checkout.slowFine">Still not showing after a few minutes? Email support@declareandbelieve.com and we will sort it out.</p>
+      </section>
+
+      <!-- signed out, or a session that is not this account's -->
+      <section class="ck-state" id="ckAuth" hidden>
+        <h1 data-i18n="checkout.authH">Sign in to see your plan</h1>
+        <p data-i18n="checkout.authP">We can only show a subscription to the account it belongs to.</p>
+        <div class="ck-cta">
+          <a class="btn btn-primary" href="/signin?return=/checkout/success" data-i18n="checkout.signin">Sign in</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    import { initAuth, isConfigured, isSignedIn } from '../../app/declare/auth-store.js';
+    import { mySubscription } from '../../app/declare/convex-data.js';
+
+    const show = (id) => {
+      document.querySelectorAll('.ck-state').forEach((el) => { el.hidden = el.id !== id; });
+    };
+
+    // Statuses that mean "this account currently holds Plus". past_due is
+    // deliberately included: the paid period has not necessarily lapsed, and
+    // Phase 4's resolver owns the grace rule. This page only reports, it does
+    // not decide entitlement.
+    const HOLDS_PLUS = new Set(['active', 'trialing', 'past_due']);
+
+    // Poll with a widening gap rather than a tight loop: a webhook that has not
+    // arrived in 400ms will not have arrived in another 400ms either, and
+    // hammering the backend during a payment spike is exactly wrong.
+    const DELAYS = [0, 1000, 2000, 3000, 5000, 8000, 12000];
+
+    async function run() {
+      await initAuth();
+      if (!isConfigured() || !isSignedIn()) { show('ckAuth'); return; }
+
+      for (const wait of DELAYS) {
+        if (wait) await new Promise((r) => setTimeout(r, wait));
+        // Returns only THIS account's row. A session_id belonging to someone
+        // else can never surface here, because we never query by it.
+        const sub = await mySubscription();
+        if (sub && HOLDS_PLUS.has(sub.status)) { show('ckDone'); return; }
+      }
+      // Never claim failure. The payment is real; only our confirmation is late.
+      show('ckSlow');
+    }
+
+    show('ckPending');
+    run();
+  </script>
+
+  <style is:global>
+    .ckout { position: relative; min-height: 100dvh; }
+    .ckout .in { position: relative; z-index: 1; min-height: 100dvh; display: flex; align-items: center;
+      justify-content: center; padding: 40px 24px 120px; }
+    .ckout .ck-state { text-align: center; max-width: 44ch; }
+    .ckout .ck-state[hidden] { display: none; }
+    .ckout h1 { font-family: 'Cormorant Garamond', serif; font-size: 30px; line-height: 1.2; color: var(--text); font-weight: 500; }
+    .ckout p { font-size: 14px; line-height: 1.65; color: var(--muted); margin-top: 12px; }
+    .ckout .ck-fine { font-size: 12px; margin-top: 18px; }
+    .ckout .ck-cta { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    @media (min-width: 480px) { .ckout .ck-cta { flex-direction: row; justify-content: center; } }
+    .ckout .ck-mark { width: 54px; height: 54px; margin: 0 auto 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(201,168,76,.14); color: var(--gold); }
+    .ckout .ck-mark svg { width: 26px; height: 26px; }
+    .ckout .ck-spin { width: 30px; height: 30px; margin: 0 auto 20px; border-radius: 50%;
+      border: 2px solid var(--line2); border-top-color: var(--gold); animation: ckspin 900ms linear infinite; }
+    @keyframes ckspin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .ckout .ck-spin { animation: none; border-top-color: var(--gold); opacity: .7; }
+    }
+  </style>
+</DeclareLayout>
