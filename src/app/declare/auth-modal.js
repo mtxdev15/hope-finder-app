@@ -364,8 +364,19 @@ async function submit(e) {
     return;
   }
   closeAuthModal();
-  // A brand-new account goes straight into /today to start declaring.
-  if (signupMode) { window.location.href = '/today'; return; }
+  // A brand-new account goes straight into /today to start declaring — UNLESS the
+  // caller expressed an intent to come back to (e.g. "choose Plus -> create account
+  // -> return to the selected plan"). The Google path already honours returnTo via
+  // signInWithProvider(); before this, the email path discarded both onSuccess and
+  // returnTo and hard-redirected, so the same journey behaved differently depending
+  // on which button you pressed. Order: explicit callback, then returnTo, then the
+  // unchanged /today default.
+  if (signupMode) {
+    const cbNew = state.onSuccess;
+    if (cbNew) { try { cbNew(); } catch (err) {} return; }
+    window.location.href = state.returnTo || '/today';
+    return;
+  }
   const cb = state.onSuccess;
   if (cb) { try { cb(); } catch (err) {} }
 }
