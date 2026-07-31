@@ -40,7 +40,11 @@ function mount() {
   el.innerHTML = '<span class="gt-m"></span><button class="gt-go" type="button">Sign in</button>';
   el.querySelector('.gt-go').addEventListener('click', () => {
     el.classList.remove('show');
-    openAuthModal({ mode: 'signup', message: lastMsg });
+    // Keep the person where they were. A gate fires mid-task (saving a verse,
+    // building a collection, opening Day 2), so sending them to /today after
+    // signup loses the very thing they were reaching for. Captured at click
+    // time, not mount time, since one mounted toast serves every gate on the page.
+    openAuthModal({ mode: 'signup', message: lastMsg, returnTo: location.pathname + location.search });
   });
   document.body.appendChild(el);
 }

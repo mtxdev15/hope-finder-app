@@ -22,8 +22,13 @@ const MODE = 'signin';
     import { initAuth, isConfigured, isSignedIn } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
 
+    // `return` is the canonical param. `next` is accepted as a legacy alias so a
+    // link minted by older code (give.js used ?next=) still lands where it meant
+    // to instead of silently defaulting to /you. Both stay open-redirect safe:
+    // must be a site-relative path, never protocol-relative.
     function returnTo() {
-      const r = new URLSearchParams(location.search).get('return') || '';
+      const q = new URLSearchParams(location.search);
+      const r = q.get('return') || q.get('next') || '';
       return (r.startsWith('/') && !r.startsWith('//')) ? r : '/you';
     }
 
