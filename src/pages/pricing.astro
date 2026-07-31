@@ -1,0 +1,221 @@
+---
+// /pricing — the destination every retired donation link now points to.
+//
+// Phase 2 scope: a real, honest page so no repointed link lands on a 404.
+// Deliberately NOT the finished sales experience (that is Phase 10) and
+// deliberately NOT wired to checkout — Plus cannot open publicly until the
+// whole release train is verified end to end, so the CTA states that plainly
+// rather than presenting a button that takes money nowhere.
+//
+// Copy rule for this page: Plus advertises ONLY capability that exists in the
+// code today (unlimited Gentle Guidance, unlimited active Journeys). Anything
+// unshipped belongs in the clearly-separate "Coming to Plus" block, which
+// carries no payment promise.
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+
+// One place to change a number. Annual is shown as a concrete dollar saving
+// rather than only a percentage, because "$27.89" is easier to weigh than "26%".
+const PLUS_M = 8.99, PLUS_Y = 79.99;
+const FAM_M = 14.99, FAM_Y = 149.99;
+const plusSave = (PLUS_M * 12 - PLUS_Y).toFixed(2);
+const plusPerMo = (PLUS_Y / 12).toFixed(2);
+---
+<DeclareLayout
+  title="Declare — Plans"
+  description="Declare is free to use. Plus removes the daily limits for those who want more."
+  activeTab=""
+>
+  <main class="pricing">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+      <div class="sub-top">
+        <a class="iconbtn" href="/today" aria-label="Back" data-i18n-aria="pricing.back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+        <span class="ttl" data-i18n="pricing.ttl">Plans</span>
+        <span class="iconbtn" style="visibility:hidden"></span>
+      </div>
+
+      <div class="pscroll">
+        <div class="phero rise d1">
+          <h1 data-i18n="pricing.h1">Declare stays free</h1>
+          <div class="psub" data-i18n="pricing.psub">The Word, your declarations, your Journey and your Vault cost nothing and always will. Plus simply lifts the daily limits for people who want more room.</div>
+        </div>
+
+        <!-- monthly / annual -->
+        <div class="pcycle rise d2" role="group" aria-label="Billing cycle" data-i18n-aria="pricing.cycleAria">
+          <button type="button" class="pcy on" data-cycle="m" data-i18n="pricing.monthly">Monthly</button>
+          <button type="button" class="pcy" data-cycle="y" data-i18n="pricing.annual">Annual</button>
+        </div>
+
+        <div class="pcards" data-m-stagger>
+          <!-- Free -->
+          <section class="pcard m-rise">
+            <div class="pc-hd">
+              <div class="pc-nm" data-i18n="pricing.freeNm">Free</div>
+              <div class="pc-pr"><span class="pc-amt">$0</span></div>
+              <div class="pc-note" data-i18n="pricing.freeNote">No card. No trial that quietly ends.</div>
+            </div>
+            <ul class="pc-list">
+              <li data-i18n="pricing.freeF1">Unlimited Scripture, declarations and prayer</li>
+              <li data-i18n="pricing.freeF2">2 active Journeys at a time</li>
+              <li data-i18n="pricing.freeF3">3 Gentle Guidance responses a day</li>
+              <li data-i18n="pricing.freeF4">Unlimited saved verses, collections and verse images</li>
+            </ul>
+            <div class="pc-cta">
+              <a class="btn btn-ghost" href="/create-account" data-i18n="pricing.freeCta">Create a free account</a>
+            </div>
+          </section>
+
+          <!-- Plus -->
+          <section class="pcard pc-plus m-rise">
+            <div class="pc-tag" data-i18n="pricing.plusTag">Plus</div>
+            <div class="pc-hd">
+              <div class="pc-nm" data-i18n="pricing.plusNm">Plus</div>
+              <div class="pc-pr">
+                <span class="pc-amt" data-price-m={'$' + PLUS_M} data-price-y={'$' + plusPerMo}>{'$' + PLUS_M}</span>
+                <span class="pc-per" data-i18n="pricing.perMonth">/ month</span>
+              </div>
+              <div class="pc-note pc-save" hidden data-i18n="pricing.plusSave">{'$' + PLUS_Y} billed yearly &mdash; you keep {'$' + plusSave}</div>
+              <div class="pc-note pc-mnote" data-i18n="pricing.plusMNote">Billed monthly. Cancel any time.</div>
+            </div>
+            <div class="pc-chain" data-i18n="pricing.plusChain">Everything in Free, plus:</div>
+            <ul class="pc-list">
+              <li data-i18n="pricing.plusF1">Unlimited Gentle Guidance</li>
+              <li data-i18n="pricing.plusF2">Unlimited active Journeys</li>
+            </ul>
+            <div class="pc-cta">
+              <button type="button" class="btn btn-primary" disabled data-i18n="pricing.plusCta">Opening soon</button>
+              <div class="pc-fine" data-i18n="pricing.plusFine">Plus is not open yet. Nothing here charges you.</div>
+            </div>
+          </section>
+        </div>
+
+        <!-- unshipped, kept visibly separate from anything purchasable -->
+        <div class="lbl m-rise" data-i18n="pricing.comingLbl">Coming to Plus</div>
+        <div class="pcoming m-rise">
+          <p data-i18n="pricing.comingBody">We are building Scripture memory, a weekly reflection, a Journey timeline and exports. They are not part of Plus today, and we will not charge for them before they exist.</p>
+        </div>
+
+        <!-- Family / Church -->
+        <div class="lbl m-rise" data-i18n="pricing.moreLbl">For families and churches</div>
+        <div class="prows" data-m-stagger>
+          <div class="prow m-rise">
+            <div class="pr-m">
+              <div class="pr-t" data-i18n="pricing.famNm">Family</div>
+              <div class="pr-d" data-i18n="pricing.famD">Plus for everyone under one roof.</div>
+            </div>
+            <div class="pr-r">
+              <div class="pr-p"><span data-price-m={'$' + FAM_M} data-price-y={'$' + (FAM_Y / 12).toFixed(2)}>{'$' + FAM_M}</span><span class="pr-per" data-i18n="pricing.perMonthShort">/mo</span></div>
+              <div class="pr-s" data-i18n="pricing.comingSoon">Coming soon</div>
+            </div>
+          </div>
+          <div class="prow m-rise">
+            <div class="pr-m">
+              <div class="pr-t" data-i18n="pricing.churchNm">Church</div>
+              <div class="pr-d" data-i18n="pricing.churchD">For congregations walking through this together.</div>
+            </div>
+            <div class="pr-r">
+              <a class="pr-link" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20church" data-i18n="pricing.churchCta">Contact us</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="pfoot m-rise">
+          <p data-i18n="pricing.foot">Paying changes what the app allows, not what God gives. Everything essential stays free.</p>
+          <p class="pfoot-l">
+            <a href="/give-terms" data-i18n-href="/es/terminos-de-donacion" data-i18n="pricing.pastGiving">Past giving terms</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Monthly <-> annual. Swaps only the displayed number (each price element
+    // carries both), so there is one source of truth in the frontmatter and no
+    // second copy of the pricing table to drift.
+    const page = document.querySelector('.pricing');
+    const btns = page.querySelectorAll('.pcy');
+    function setCycle(c) {
+      btns.forEach((b) => b.classList.toggle('on', b.dataset.cycle === c));
+      page.querySelectorAll('[data-price-m]').forEach((el) => {
+        el.textContent = c === 'y' ? el.dataset.priceY : el.dataset.priceM;
+      });
+      // The annual saving and the monthly reassurance are mutually exclusive.
+      page.querySelectorAll('.pc-save').forEach((el) => { el.hidden = c !== 'y'; });
+      page.querySelectorAll('.pc-mnote').forEach((el) => { el.hidden = c === 'y'; });
+    }
+    btns.forEach((b) => b.addEventListener('click', () => setCycle(b.dataset.cycle)));
+  </script>
+
+  <style is:global>
+    .pricing { position: relative; min-height: 100dvh; }
+    .pricing .in { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 0 20px 120px; }
+    /* .sub-top / .iconbtn are per-page in this codebase (see crisis.astro), not global. */
+    .pricing .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
+    .pricing .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .pricing .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pricing .iconbtn svg { width: 20px; height: 20px; }
+    .pricing .pscroll { padding-top: 8px; }
+
+    .pricing .phero { text-align: center; padding: 18px 0 26px; }
+    .pricing .phero h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.15; color: var(--text); font-weight: 500; }
+    .pricing .psub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 46ch; }
+
+    /* billing cycle */
+    .pricing .pcycle { display: flex; gap: 4px; padding: 4px; margin: 0 auto 22px; width: max-content;
+      background: var(--field); border: 1px solid var(--line); border-radius: 100px; }
+    .pricing .pcy { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted);
+      background: none; border: 0; border-radius: 100px; padding: 9px 20px; cursor: pointer; transition: color .25s, background .25s; }
+    .pricing .pcy.on { color: var(--ctatext); background: var(--cta); }
+
+    /* cards */
+    .pricing .pcards { display: grid; gap: 14px; }
+    @media (min-width: 720px) { .pricing .pcards { grid-template-columns: 1fr 1fr; align-items: start; } }
+    .pricing .pcard { position: relative; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 18px; padding: 22px 20px; }
+    .pricing .pc-plus { border-color: var(--gold); }
+    .pricing .pc-tag { position: absolute; top: -10px; left: 20px; font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: #13211A; background: var(--gold);
+      padding: 4px 10px; border-radius: 100px; }
+    .pricing .pc-nm { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .pricing .pc-pr { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; }
+    .pricing .pc-amt { font-family: 'Cormorant Garamond', serif; font-size: 42px; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+    .pricing .pc-per { font-size: 13px; color: var(--muted); }
+    .pricing .pc-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
+    .pricing .pc-note[hidden] { display: none; }
+    .pricing .pc-save { color: var(--goldd); }
+    .pricing .pc-chain { font-size: 13px; font-weight: 600; color: var(--text2); margin-top: 18px; }
+    .pricing .pc-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+    .pricing .pc-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.5; color: var(--text2); }
+    .pricing .pc-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px;
+      border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
+    .pricing .pc-cta { margin-top: 20px; }
+    .pricing .pc-cta .btn { width: 100%; }
+    .pricing .pc-cta .btn[disabled] { opacity: .55; cursor: not-allowed; }
+    .pricing .pc-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; margin-top: 9px; }
+
+    /* coming soon block — visually quieter than anything purchasable */
+    .pricing .lbl { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin: 34px 0 12px; }
+    .pricing .pcoming { border: 1px dashed var(--line2); border-radius: 16px; padding: 16px 18px; }
+    .pricing .pcoming p { font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+
+    /* family / church */
+    .pricing .prows { display: grid; gap: 10px; }
+    .pricing .prow { display: flex; align-items: center; gap: 14px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .pricing .pr-m { flex: 1; min-width: 0; }
+    .pricing .pr-t { font-size: 15px; font-weight: 600; color: var(--text); }
+    .pricing .pr-d { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 3px; }
+    .pricing .pr-r { flex: 0 0 auto; text-align: right; }
+    .pricing .pr-p { font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+    .pricing .pr-per { font-size: 12px; color: var(--muted); }
+    .pricing .pr-s { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); margin-top: 3px; }
+    .pricing .pr-link { font-size: 13.5px; font-weight: 600; color: var(--goldd); }
+
+    .pricing .pfoot { margin-top: 34px; text-align: center; }
+    .pricing .pfoot p { font-size: 12.5px; line-height: 1.6; color: var(--muted); max-width: 42ch; margin: 0 auto; }
+    .pricing .pfoot-l { margin-top: 12px; }
+    .pricing .pfoot-l a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  </style>
+</DeclareLayout>
