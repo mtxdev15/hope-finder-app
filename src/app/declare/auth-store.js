@@ -198,6 +198,10 @@ export async function signIn({ email, password }) {
     return { ok: false, error: nice(e) };
   }
   await refreshSession(); fire();
+  // Mirrors signup_completed on the email path. Without this only Google
+  // sign-ins were ever counted, so the allowlisted method values would have
+  // read google-only and made email look unused rather than untracked.
+  track('signin_completed', { method: 'email' });
   return { ok: true };
 }
 
