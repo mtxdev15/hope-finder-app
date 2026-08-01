@@ -3,11 +3,12 @@
  * component and the SAME plan data, so the two languages cannot drift.
  * Everything is server-rendered at build time — no client i18n, no
  * ?lang= parameter, and therefore no untranslated flash. */
-import { COPY, PRICES, plusAnnualPerMonth, familyAnnualPerMonth, ROUTES, type Lang } from '../data/plans';
+import { COPY, AMOUNTS, ROUTES, type Lang } from '../data/plans';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props as Props;
 const t = COPY[lang];
+const $ = AMOUNTS[lang];
 const plusHref = ROUTES.plus[lang];
 ---
 <main class="pricing">
@@ -25,9 +26,9 @@ const plusHref = ROUTES.plus[lang];
         <div class="psub">{t.sub}</div>
       </div>
 
-      <div class="pcycle rise d2" role="group" aria-label={t.cycleAria}>
-        <button type="button" class="pcy on" data-cycle="m">{t.monthly}</button>
-        <button type="button" class="pcy" data-cycle="y">{t.annual}</button>
+      <div class="pcycle rise d2" role="radiogroup" aria-label={t.cycleAria}>
+        <button type="button" class="pcy on" role="radio" aria-checked="true" data-cycle="m">{t.monthly}</button>
+        <button type="button" class="pcy" role="radio" aria-checked="false" tabindex="-1" data-cycle="y">{t.annual}</button>
       </div>
 
       <div class="pcards" data-m-stagger>
@@ -45,14 +46,26 @@ const plusHref = ROUTES.plus[lang];
 
         <section class="pcard pc-plus m-rise">
           <div class="pc-tag">{t.plusName}</div>
+            <div class="pc-best" hidden>{t.bestValue}</div>
           <div class="pc-hd">
             <div class="pc-nm">{t.plusName}</div>
+            <div class="pc-found">{t.foundingLabel}</div>
             <div class="pc-pr">
-              <span class="pc-amt" data-price-m={'$' + PRICES.plusMonthly} data-price-y={'$' + plusAnnualPerMonth}>{'$' + PRICES.plusMonthly}</span>
-              <span class="pc-per">{t.perMonth}</span>
+              <span class="pc-amt" data-price-m={$.plus.monthly} data-price-y={$.plus.annual}>{$.plus.monthly}</span>
+              <span class="pc-per" data-per-m={t.perMonth} data-per-y={t.perYear}>{t.perMonth}</span>
             </div>
-            <div class="pc-note pc-save" hidden>{t.plusSave}</div>
+            <!-- Annual detail. Savings are computed against 12 x the MONTHLY
+                 price, never against the future standard price, so the figure
+                 reflects a discount that actually exists. -->
+            <div class="pc-annual" hidden>
+              <div class="pc-eq">{t.perMonthBilledAnnually}</div>
+              <div class="pc-save-amt">{t.saveVsMonthly}</div>
+              <div class="pc-save-pct">{t.saveApprox}</div>
+            </div>
             <div class="pc-note pc-mnote">{t.plusMonthlyNote}</div>
+            <!-- Forward-looking, and labelled as such. This price has never been
+                 charged, so presenting it as "was" would be a false discount. -->
+            <div class="pc-future" data-future-m={t.futureStandardLabel} data-future-y={t.futureStandardLabelAnnual}>{t.futureStandardLabel}</div>
           </div>
           <div class="pc-chain">{t.plusChain}</div>
           <ul class="pc-list">{t.plusFeatures.map((f) => <li>{f}</li>)}</ul>
@@ -75,9 +88,9 @@ const plusHref = ROUTES.plus[lang];
           <div class="pr-m">
             <div class="pr-t">{t.familyName}</div>
             <div class="pr-d">{t.familyDesc}</div>
+            <div class="pr-planned">{t.familyPlanned}</div>
           </div>
           <div class="pr-r">
-            <div class="pr-p"><span data-price-m={'$' + PRICES.familyMonthly} data-price-y={'$' + familyAnnualPerMonth}>{'$' + PRICES.familyMonthly}</span><span class="pr-per">{t.perMonthShort}</span></div>
             <div class="pr-s">{t.comingSoon}</div>
           </div>
         </div>
@@ -94,6 +107,7 @@ const plusHref = ROUTES.plus[lang];
 
       <div class="pfoot m-rise">
         <p>{t.foot}</p>
+        <p class="pfoot-store">{t.storefrontNote}</p>
         <p class="pfoot-l"><a href={plusHref}>{t.termsLink}</a></p>
       </div>
     </div>
@@ -101,19 +115,52 @@ const plusHref = ROUTES.plus[lang];
 </main>
 
 <script>
-  // Swaps only the rendered number; both values live on each element, so there
-  // is one source of truth in plans.ts and no second pricing table to drift.
+  /* Billing-interval toggle.
+     Swaps only PRESENTATION. Every figure was computed at build time from
+     src/data/pricing.ts, so nothing here divides or formats a price — the page
+     cannot disagree with the source.
+
+     Accessibility: the two controls are a radiogroup, so a screen reader
+     announces which interval is selected rather than leaving it to colour
+     alone. Arrow keys move between them, matching the radio pattern.
+
+     It never initiates checkout. Selecting an interval is a display change. */
   const page = document.querySelector('.pricing');
-  const btns = page.querySelectorAll('.pcy');
-  function setCycle(c) {
-    btns.forEach((b) => b.classList.toggle('on', b.dataset.cycle === c));
+  const btns = [...page.querySelectorAll('.pcy')];
+
+  function setCycle(c, focus) {
+    btns.forEach((b) => {
+      const on = b.dataset.cycle === c;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      if (on && focus) b.focus();
+    });
     page.querySelectorAll('[data-price-m]').forEach((el) => {
       el.textContent = c === 'y' ? el.dataset.priceY : el.dataset.priceM;
     });
-    page.querySelectorAll('.pc-save').forEach((el) => { el.hidden = c !== 'y'; });
+    page.querySelectorAll('[data-per-m]').forEach((el) => {
+      el.textContent = c === 'y' ? el.dataset.perY : el.dataset.perM;
+    });
+    page.querySelectorAll('[data-future-m]').forEach((el) => {
+      el.textContent = c === 'y' ? el.dataset.futureY : el.dataset.futureM;
+    });
+    // Annual-only detail: monthly equivalent and the two savings lines.
+    page.querySelectorAll('.pc-annual').forEach((el) => { el.hidden = c !== 'y'; });
+    page.querySelectorAll('.pc-best').forEach((el) => { el.hidden = c !== 'y'; });
     page.querySelectorAll('.pc-mnote').forEach((el) => { el.hidden = c === 'y'; });
   }
-  btns.forEach((b) => b.addEventListener('click', () => setCycle(b.dataset.cycle)));
+
+  btns.forEach((b, i) => {
+    b.addEventListener('click', () => setCycle(b.dataset.cycle));
+    b.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = btns[(i + (e.key === 'ArrowRight' ? 1 : btns.length - 1)) % btns.length];
+      setCycle(next.dataset.cycle, true);
+    });
+  });
+  setCycle('m');
 </script>
 
 <style is:global>
@@ -128,7 +175,9 @@ const plusHref = ROUTES.plus[lang];
   .pricing .phero h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.15; color: var(--text); font-weight: 500; }
   .pricing .psub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 46ch; }
   .pricing .pcycle { display: flex; gap: 4px; padding: 4px; margin: 0 auto 22px; width: max-content; background: var(--field); border: 1px solid var(--line); border-radius: 100px; }
-  .pricing .pcy { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); background: none; border: 0; border-radius: 100px; padding: 9px 20px; cursor: pointer; transition: color .25s, background .25s; }
+  /* 44px minimum touch target (WCAG 2.5.5). padding alone left it ~36px. */
+  .pricing .pcy { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); background: none; border: 0; border-radius: 100px; padding: 0 20px; min-height: 44px; min-width: 44px; cursor: pointer; transition: color .25s, background .25s; }
+  .pricing .pcy:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .pricing .pcy.on { color: var(--ctatext); background: var(--cta); }
   .pricing .pcards { display: grid; gap: 14px; }
   @media (min-width: 720px) { .pricing .pcards { grid-template-columns: 1fr 1fr; align-items: start; } }

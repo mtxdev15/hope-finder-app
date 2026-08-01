@@ -31,7 +31,16 @@ const ALLOWED = {
      the bounded alias (plus-monthly | plus-annual) the user picked, which is a
      product choice rather than a payment identifier. Anything not listed here
      is stripped by track() even if a caller passes it. */
-  pricing_plan_selected: ['plan'],
+  /* Pricing-page interest. Checkout is INACTIVE, so these must never imply a
+     purchase was attempted. checkout_started stays reserved for a real Stripe
+     session — emitting it from a disabled CTA would corrupt the funnel with
+     conversions that never existed. `plan` and `interval` are product choices,
+     not payment identifiers. */
+  pricing_viewed: ['storefront'],              // storefront: web | ios
+  billing_interval_changed: ['interval'],      // interval: monthly | annual
+  pricing_plan_selected: ['plan', 'interval'],
+  family_interest_selected: [],
+  church_contact_selected: [],
   checkout_started: ['plan'],
   checkout_cancelled: ['plan'],
   checkout_returned: ['result'],            // result: confirmed | pending | slow
