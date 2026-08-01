@@ -193,4 +193,81 @@ export default defineSchema({
     type: v.string(),
     processedAt: v.number(),
   }).index("by_event", ["eventId"]),
+
+  /* ===== Entitlements & usage (Release C1 Phase 4) ============================
+     Every table here is server-authoritative. None is written by a public
+     mutation that takes a user id, and none lives in `userData` — that table's
+     `set({key, value})` is a PUBLIC mutation accepting an arbitrary key and
+     value, so anything stored there is forgeable by any signed-in browser in
+     one console call. Verified: calling it with key "db_journey_lock" fails on
+     authentication, not on validation. ======================================= */
+
+  // Trusted per-account settings. Currently only the IANA timezone used to
+  // compute the account day. Deliberately NOT in userData for the reason above:
+  // a forgeable timezone is a forgeable daily allowance.
+  accountSettings: defineTable({
+    userId: v.string(),
+    timezone: v.optional(v.string()), // IANA, e.g. "America/New_York". UTC when absent.
+    timezoneUpdatedAt: v.optional(v.number()),
+    // Monotonic guard: the highest account day this user has ever reached.
+    // The day key may never move backwards, so hopping to a timezone where it
+    // is "yesterday" cannot hand back a spent allowance.
+    lastAccountDay: v.optional(v.string()), // YYYY-MM-DD
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // One row per (user, feature, accountDay). `used` counts only SUCCESSFUL
+  // responses; `reserved` holds in-flight requests so concurrent calls cannot
+  // oversubscribe the allowance between check and finalize.
+  usageCounters: defineTable({
+    userId: v.string(),
+    feature: v.string(), // 'gentleGuidance'
+    accountDay: v.string(), // YYYY-MM-DD in the account's timezone
+    used: v.number(),
+    reserved: v.number(),
+    successful: v.number(),
+    failed: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_feature_day", ["userId", "feature", "accountDay"])
+    .index("by_user", ["userId"]),
+
+  // In-flight reservations. A row exists only between reserve and
+  // finalize/release. `expiresAt` lets a crashed process's hold be reclaimed
+  // instead of permanently consuming an allowance.
+  usageReservations: defineTable({
+    userId: v.string(),
+    feature: v.string(),
+    accountDay: v.string(),
+    // Caller-supplied idempotency key, scoped per user. Reserving twice with
+    // the same key returns the same reservation rather than taking two slots.
+    requestId: v.string(),
+    status: v.string(), // 'reserved' | 'finalized' | 'released'
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_user_request", ["userId", "requestId"])
+    .index("by_user_feature_day", ["userId", "feature", "accountDay"])
+    .index("by_status_expiry", ["status", "expiresAt"]),
+
+  /* Server-authoritative record of a user's ACTIVE Journeys.
+     Journey progress itself lives in localStorage mirrored to userData, which
+     is forgeable, so entitlement must never count it. This table is the only
+     thing `canStartJourney` reads. It is written solely by authenticated
+     mutations that derive the user from context. */
+  journeySlots: defineTable({
+    userId: v.string(),
+    journeyId: v.string(), // the client's own journey id, scoped per user
+    status: v.string(), // 'active' | 'completed' | 'archived'
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+    // True for rows backfilled for users who already exceeded the limit before
+    // it existed. They keep every Journey; they simply cannot start another
+    // until they are back at or under the cap.
+    grandfathered: v.optional(v.boolean()),
+  })
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_journey", ["userId", "journeyId"]),
 });
