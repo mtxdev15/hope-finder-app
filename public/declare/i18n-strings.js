@@ -292,10 +292,12 @@ window.__I18N_STRINGS = {
     'pricing.freeF4': 'Versículos, colecciones e imágenes guardadas sin límite',
     'pricing.freeCta': 'Crea una cuenta gratis',
     'pricing.plusTag': 'Plus',
+    /* pricing.plusSave was removed: it hardcoded '$79.99 ... $27.89' in
+       Spanish, duplicating figures that src/data/pricing.ts computes. The
+       localized sales routes are server-rendered from that source. */
     'pricing.plusNm': 'Plus',
     'pricing.perMonth': '/ mes',
     'pricing.perMonthShort': '/mes',
-    'pricing.plusSave': '$79.99 cobrados al año — te quedas con $27.89',
     'pricing.plusMNote': 'Cobro mensual. Cancela cuando quieras.',
     'pricing.plusChain': 'Todo lo de Gratis, más:',
     'pricing.plusF1': 'Guía Suave sin límite',
