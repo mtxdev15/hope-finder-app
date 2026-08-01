@@ -48,24 +48,6 @@
 
   <!-- Support / help / answers -->
   <url>
-    <loc>https://declareandbelieve.com/give</loc>
-    <lastmod>2026-06-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
-  </url>
-  <url>
-    <loc>https://declareandbelieve.com/es/dar</loc>
-    <lastmod>2026-06-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/dar" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give" />
-  </url>
-  <url>
     <loc>https://declareandbelieve.com/es/ayuda</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
@@ -534,23 +516,14 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/terms" />
   </url>
-  <url>
-    <loc>https://declareandbelieve.com/give-terms</loc>
-    <lastmod>2026-06-27</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give-terms" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos-de-donacion" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give-terms" />
-  </url>
-  <url>
-    <loc>https://declareandbelieve.com/es/terminos-de-donacion</loc>
-    <lastmod>2026-06-27</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give-terms" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos-de-donacion" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give-terms" />
-  </url>
 
+  <!-- Plans. The giving URLs were removed with the donation product and 301
+       to this page. /pricing is one bilingual route on this branch
+       (?lang=es); localized /es/precios ships with the coordinated release. -->
+  <url>
+    <loc>https://declareandbelieve.com/pricing</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>
