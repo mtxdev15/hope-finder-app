@@ -4,7 +4,25 @@
 /bienvenido /es/bienvenido 301
 /ayuda /es/ayuda 301
 /luchas /es/luchas 301
-/dar /es/dar 301
+/dar /pricing?lang=es 301
 /acerca /es/acerca 301
 /privacidad /es/privacidad 301
 /terminos /es/terminos 301
+
+# ── Live giving retired (hotfix) ─────────────────────────────────────────────
+# The donation product is gone. The Worker already returns 410 for every
+# /give/* payment endpoint, so these pages were inert; this removes them from
+# view. One hop each, no chains.
+#
+# Cloudflare Pages does not match query strings, so the old success/cancelled
+# variants (/give?status=success etc.) land on /pricing through the same rule.
+# That is intended: no receipt compatibility is required, and there is no
+# donor history to acknowledge.
+#
+# Spanish uses ?lang=es because this branch is cut from the deployed main,
+# which has no /es/precios route. The localized sales routes ship with the
+# coordinated release.
+/give                      /pricing           301
+/es/dar                    /pricing?lang=es   301
+/give-terms                /pricing           301
+/es/terminos-de-donacion   /pricing?lang=es   301

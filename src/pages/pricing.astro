@@ -1,0 +1,123 @@
+---
+// /pricing — HOTFIX destination for the retired giving links.
+//
+// Deliberately minimal and self-contained. This branch is cut from the deployed
+// main, so it must not pull in the release branch's shared pricing system,
+// plan-data module or localized-route architecture — none of which exist here,
+// and all of which drag in unrelated work. The full sales experience ships with
+// the coordinated release; this page exists so no retired /give link lands on a
+// 404, and so the page it lands on is honest.
+//
+// NON-TRANSACTIONAL BY CONSTRUCTION: there is no Checkout call, no Stripe
+// reference, and no enabled purchase control anywhere on this page.
+//
+// Spanish uses main's existing runtime convention (data-i18n + i18n-strings.js
+// with the declare-lang cookie), reached as /pricing?lang=es. The localized
+// /es/precios route belongs to the release branch and is not ported here.
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+---
+<DeclareLayout
+  title="Declare — Plans"
+  description="Declare is free to use. Plus is an optional subscription opening soon."
+>
+  <main class="pricing">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+      <div class="sub-top">
+        <a class="iconbtn" href="/today" aria-label="Back" data-i18n-aria="pricing.back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+        <span class="ttl" data-i18n="pricing.ttl">Plans</span>
+        <span class="iconbtn" style="visibility:hidden"></span>
+      </div>
+
+      <div class="pscroll">
+        <div class="phero rise d1">
+          <h1 data-i18n="pricing.h1">Declare stays free</h1>
+          <div class="psub" data-i18n="pricing.psub">The Word, your declarations, your Journey and your Vault cost nothing and always will.</div>
+        </div>
+
+        <section class="pcard rise d2">
+          <div class="pc-nm" data-i18n="pricing.freeNm">Free</div>
+          <div class="pc-pr"><span class="pc-amt">$0</span></div>
+          <div class="pc-note" data-i18n="pricing.freeNote">No card. No trial that quietly ends.</div>
+          <ul class="pc-list">
+            <li data-i18n="pricing.freeF1">The full Bible and the Declare experience</li>
+            <li data-i18n="pricing.freeF2">Save what God gives you with a free account</li>
+            <li data-i18n="pricing.freeF3">Your Journey, reflections and Vault</li>
+            <li data-i18n="pricing.freeF4">Crisis and support resources, always free</li>
+          </ul>
+          <div class="pc-cta"><a class="btn btn-ghost" href="/create-account" data-i18n="pricing.freeCta">Create a free account</a></div>
+        </section>
+
+        <section class="pcard pc-plus rise d3">
+          <div class="pc-tag" data-i18n="pricing.plusNm">Plus</div>
+          <div class="pc-nm" data-i18n="pricing.plusNm2">Plus</div>
+          <div class="pc-pr"><span class="pc-amt">$8.99</span><span class="pc-per" data-i18n="pricing.perMonth">/ month</span></div>
+          <div class="pc-note" data-i18n="pricing.plusYear">or $79.99 a year</div>
+          <div class="pc-cta">
+            <!-- Disabled by construction. No handler, no href, no network call. -->
+            <button type="button" class="btn btn-primary" disabled data-i18n="pricing.plusCta">Opening soon</button>
+            <div class="pc-fine" data-i18n="pricing.plusFine">Plus is not open yet. Nothing here charges you.</div>
+          </div>
+        </section>
+
+        <div class="prows">
+          <div class="prow rise d4">
+            <div class="pr-m">
+              <div class="pr-t" data-i18n="pricing.famNm">Family</div>
+              <div class="pr-d" data-i18n="pricing.famD">Plus for everyone under one roof.</div>
+            </div>
+            <div class="pr-s" data-i18n="pricing.comingSoon">Coming soon</div>
+          </div>
+          <div class="prow rise d4">
+            <div class="pr-m">
+              <div class="pr-t" data-i18n="pricing.churchNm">Church and groups</div>
+              <div class="pr-d" data-i18n="pricing.churchD">For congregations walking through this together.</div>
+            </div>
+            <a class="pr-link" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20church" data-i18n="pricing.churchCta">Contact us</a>
+          </div>
+        </div>
+
+        <div class="pfoot rise d4">
+          <p data-i18n="pricing.foot">Paying changes what the app allows, not what God gives. Everything essential stays free.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <style is:global>
+    .pricing { position: relative; min-height: 100dvh; }
+    .pricing .in { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 0 20px 120px; }
+    .pricing .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
+    .pricing .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+    .pricing .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pricing .iconbtn svg { width: 20px; height: 20px; }
+    .pricing .pscroll { padding-top: 8px; }
+    .pricing .phero { text-align: center; padding: 18px 0 24px; }
+    .pricing .phero h1 { font-family: 'Cormorant Garamond', serif; font-size: 32px; line-height: 1.15; color: var(--text); font-weight: 500; }
+    .pricing .psub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 44ch; }
+    .pricing .pcard { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 20px; margin-bottom: 14px; }
+    .pricing .pc-plus { border-color: var(--gold); }
+    .pricing .pc-tag { position: absolute; top: -10px; left: 20px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #13211A; background: var(--gold); padding: 4px 10px; border-radius: 100px; }
+    .pricing .pc-nm { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .pricing .pc-pr { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; }
+    .pricing .pc-amt { font-family: 'Cormorant Garamond', serif; font-size: 40px; line-height: 1; color: var(--text); }
+    .pricing .pc-per { font-size: 13px; color: var(--muted); }
+    .pricing .pc-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
+    .pricing .pc-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+    .pricing .pc-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.5; color: var(--text2); }
+    .pricing .pc-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px; border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
+    .pricing .pc-cta { margin-top: 20px; }
+    .pricing .pc-cta .btn { width: 100%; }
+    .pricing .pc-cta .btn[disabled] { opacity: .55; cursor: not-allowed; }
+    .pricing .pc-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; margin-top: 9px; }
+    .pricing .prows { display: grid; gap: 10px; margin-top: 20px; }
+    .pricing .prow { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .pricing .pr-m { flex: 1; min-width: 0; }
+    .pricing .pr-t { font-size: 15px; font-weight: 600; color: var(--text); }
+    .pricing .pr-d { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 3px; }
+    .pricing .pr-s { flex: 0 0 auto; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); }
+    .pricing .pr-link { flex: 0 0 auto; font-size: 13.5px; font-weight: 600; color: var(--goldd); }
+    .pricing .pfoot { margin-top: 28px; text-align: center; }
+    .pricing .pfoot p { font-size: 12.5px; line-height: 1.6; color: var(--muted); max-width: 42ch; margin: 0 auto; }
+  </style>
+</DeclareLayout>
