@@ -3,7 +3,9 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 
 # Convex httpAction base URL (the .site domain). Public, not a secret.
-# The giving webhook posts the counter increment to CONVEX_SITE_URL + /give/record.
+# The Plus subscription webhook posts verified state to
+# CONVEX_SITE_URL + /billing/subscription-event. (The old giving webhook and its
+# /give/record ingress were retired with the donation product.)
 [vars]
 CONVEX_SITE_URL = "https://keen-hamster-650.convex.site"
 

@@ -551,32 +551,36 @@ export default {
     if (pathname === '/bible') {
       return handleBible(request, env);
     }
-    /* ===== Retired donation endpoints ==============================================
-       These three routes all trusted the browser for identity, which the Worker
-       cannot verify. They are retired rather than patched, because the donation
-       product itself is retired and there is no safe version of "tell me who you
-       are" available at this layer.
+    /* ===== Donation endpoints: fully retired =======================================
+       All FOUR /give/* routes are permanently gone.
 
          /give/checkout      took body.userId as the gift's owner -> a gift could be
-                             attributed to another account. New donations are no
-                             longer offered, so creation is simply gone.
+                             attributed to another account.
          /give/portal        took body.userId AND fell back to searching Stripe by a
                              SUBMITTED EMAIL -> submitting anyone's address opened
                              their billing portal. Full IDOR.
-         /give/subscription  took body.subscriptionId with no ownership check ->
-                             any sub_... id disclosed its status and period end.
+         /give/subscription  took body.subscriptionId with no ownership check -> any
+                             sub_... id disclosed its status and period end.
+         /give/webhook       retired with the product itself. Production giftHistory
+                             held ZERO rows, so no user was ever linked to a gift and
+                             there is nothing left to record. Retiring it does NOT
+                             stop a Stripe charge — only cancelling in Stripe does.
 
-       Replaced by authenticated Convex actions (convex/giving.ts) that resolve
-       identity via authComponent.safeGetAuthUser and read the Stripe ids from the
-       caller's OWN gift history. Existing recurring donors keep a working
-       cancellation path; nobody can reach another account's.
+       The first three trusted the browser for identity, which this Worker cannot
+       verify, so they were retired rather than patched: there is no safe version of
+       "tell me who you are" available at this layer. Their handlers are deleted, not
+       merely unrouted.
 
-       410 Gone is deliberate: these endpoints are permanently retired, not
-       temporarily broken, and a caller should not retry. The body carries a
-       stable code rather than English prose so the client localizes it.
+       Nothing replaces them. The giving product is gone: no acknowledgement route,
+       no Giving History, no recurring-gift management.
 
-       /give/webhook is UNCHANGED. It is Stripe-signed, takes no browser input,
-       and still records historical gifts. ============================================ */
+       410 Gone rather than 404: these endpoints existed and are permanently retired,
+       so a caller should not retry. Stripe treats 4xx as delivered-and-rejected and
+       stops retrying. The body carries a stable code, not English prose, so the
+       client localizes it.
+
+       RETAINED above: timingSafeEqualHex + verifyStripeSignature, which the Plus
+       subscription webhook depends on. ============================================ */
     if (
       pathname === '/give/checkout' ||
       pathname === '/give/portal' ||

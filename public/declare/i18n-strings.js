@@ -24,7 +24,7 @@ window.__I18N_STRINGS = {
     'nav.help': 'Ayuda y soporte',
     'nav.privacy': 'Privacidad',
     'nav.terms': 'Términos',
-    'nav.giveTerms': 'Términos de donación',
+    'nav.subTerms': 'Términos de suscripción',
     'nav.cookies': 'Cookies',
     'nav.rate': 'Califica Declare',
     'nav.crisis': 'Encuentra ayuda',
@@ -158,14 +158,9 @@ window.__I18N_STRINGS = {
     'you.rateD': 'Cuéntanos cómo te ha encontrado',
     'you.whatsNew': 'Novedades',
     'you.whatsNewD': 'Actualizaciones, mejoras y correcciones',
-    'you.yourGiving': 'Tus donaciones anteriores',
-    'you.givingArchiveNote': 'Este historial refleja los registros disponibles en Declare & Believe y puede no incluir cada renovación recurrente.',
-    'you.manageGiving': 'Administrar donaciones',
-    'you.manageGivingOpening': 'Abriendo tu portal de donaciones…',
-    'you.manageGivingHint': 'Abre el portal seguro de Stripe — actualiza tu tarjeta, cambia tu monto o cancela cuando quieras.',
-    'you.manageGivingSupport': '¿Necesitas ayuda? Escribe a support@declareandbelieve.com',
-    'you.manageGivingErrNoGift': 'No encontramos una donación recurrente activa en esta cuenta. Escríbenos a support@declareandbelieve.com si esto no es correcto.',
-    'you.manageGivingErrGeneric': 'Algo salió mal al abrir tu portal. Inténtalo de nuevo o escríbenos a support@declareandbelieve.com.',
+    /* The you.yourGiving / you.manageGiving* strings were removed with the
+       Giving History card. Leaving orphaned donation copy in the dictionary
+       invites it back into a future surface by autocomplete. */
     'you.yourReview': 'Tu reseña',
     'you.photoAria': 'Agrega o cambia tu foto',
     'you.roleSignedIn': 'Sesión iniciada',
