@@ -112,5 +112,14 @@ export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gift
    this module); the actions themselves return { error } for business states
    like already-subscribed, so callers must distinguish the two. */
 export async function mySubscription() { return (await ensure()) ? runQuery(apiRef.subscriptions.mySubscription, {}) : null; }
+
+/* ── legacy donation account operations (secured) ──
+   These replace three Worker routes that trusted browser-supplied identity.
+   Note again what is NOT passed: no user id, no email, no Stripe customer id,
+   no subscription id. The server resolves all of it from the caller's own gift
+   history. Kept separate from the Plus helpers above because a donation is not
+   a subscription and its portal must never become the Plus portal. */
+export async function donationPortalSession(lang) { return (await ensure()) ? runAction(apiRef.giving.donationPortalSession, lang === 'es' ? { lang: 'es' } : {}) : null; }
+export async function myRecurringGiftStatus() { return (await ensure()) ? runAction(apiRef.giving.myRecurringGiftStatus, {}) : null; }
 export async function billingCheckout(plan, lang) { return (await ensure()) ? runAction(apiRef.billing.createCheckoutSession, { plan, ...(lang === 'es' ? { lang: 'es' } : {}) }) : null; }
 export async function billingPortal(lang) { return (await ensure()) ? runAction(apiRef.billing.createPortalSession, lang === 'es' ? { lang: 'es' } : {}) : null; }

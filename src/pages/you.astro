@@ -237,7 +237,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { noteSubmitted } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit, reviewsMine, myGifts } from '../app/declare/convex-data.js';
+    import { reviewsSubmit, reviewsMine, myGifts, donationPortalSession, myRecurringGiftStatus } from '../app/declare/convex-data.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const $ = (id) => document.getElementById(id);
@@ -626,34 +626,23 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
 
     /* ---------- Your giving: a signed-in user's own gift history (newest first) ---------- */
-    const YG_WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
-    // Mirrors getGiverId() in public/declare/give.js — same localStorage session shape,
-    // read directly rather than widening auth-store.js's currentUser() (which only
-    // exposes email/firstName) just for this one Worker call.
-    function ygGiverId() {
-      try {
-        const d = localStorage.getItem('better-auth_session_data');
-        if (!d) return null;
-        const u = (JSON.parse(d) || {}).user;
-        return (u && (u._id || u.id)) || null;
-      } catch (e) { return null; }
-    }
-    // "Manage giving" — opens a real Stripe billing-portal session server-side (the
-    // Worker resolves the Stripe customer via Convex), so this redirects straight into
-    // Stripe with no "type your email, wait for a magic link" step.
+    // The Worker URL and ygGiverId() were both removed here. Reading a user id out
+    // of localStorage to hand to a server is exactly the pattern that made the old
+    // donation endpoints spoofable; identity is now resolved server-side inside
+    // authenticated Convex actions, and this card no longer calls the Worker at all.
+    // "Manage giving" — opens a Stripe billing-portal session for the caller's OWN
+    // recurring gift. Now an authenticated Convex action: it takes no arguments
+    // beyond language, resolves identity server-side, and reads the Stripe customer
+    // from this user's own gift history. The old Worker route sent userId AND email,
+    // and the Worker searched Stripe by that email — submitting anyone's address
+    // opened their billing portal. That route is retired (410) and the code deleted.
     function openBillingPortal(el) {
-      const uid = ygGiverId();
-      if (!uid) return; // this card only renders when signed in; guard anyway
       const original = el.textContent;
       el.textContent = tY('you.manageGivingOpening', 'Opening your giving portal…');
       el.setAttribute('aria-busy', 'true');
-      const u = currentUser();
-      fetch(YG_WORKER + '/give/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, email: (u && u.email) || null, path: location.pathname }),
-      }).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).then(({ ok, d }) => {
-        if (ok && d && d.url) { location.href = d.url; return; }
+      donationPortalSession(esY() ? 'es' : null).then((d) => {
+        const ok = !!(d && d.url);
+        if (ok) { location.href = d.url; return; }
         el.textContent = original;
         el.removeAttribute('aria-busy');
         showGivingError(d && d.error === 'no-recurring-gift'
@@ -713,10 +702,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           var rec = null;
           for (var i = 0; i < gifts.length; i++) { if (gifts[i].recurring && gifts[i].subscriptionId) { rec = gifts[i]; break; } }
           if (rec) {
-            fetch(YG_WORKER + '/give/subscription', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subscriptionId: rec.subscriptionId }),
-            }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            // Authenticated action: sends NO subscription id. The server reads it
+            // from this user's own gift history, so a submitted sub_... can no
+            // longer disclose another person's billing. The old Worker route took
+            // the id straight from the browser with no ownership check at all.
+            myRecurringGiftStatus().then(function (d) {
               if (!d || d.status !== 'active' || !d.currentPeriodEnd) return;
               var freq = rec.frequency === 'semimonthly' ? 'Twice a month' : 'Monthly';
               var when = ygDate(d.currentPeriodEnd * 1000);

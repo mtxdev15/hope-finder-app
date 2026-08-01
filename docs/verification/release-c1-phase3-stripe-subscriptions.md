@@ -140,8 +140,12 @@ node --check public/declare/i18n-strings.js → valid
 npx convex dev --once  → "Convex functions ready" (typecheck passed)
 ```
 
-Worker diff is **additive only**: 138 insertions, 0 deletions. All four `/give`
-routes present and unchanged.
+Worker diff at the end of the **four original Phase 3 commits** was additive
+only: 138 insertions, 0 deletions, all four `/give` routes unchanged.
+
+The **security follow-up** then deliberately removed code: 48 insertions,
+**236 deletions**, retiring three unsafe `/give/*` routes and deleting their
+handlers. `/give/webhook` remains unchanged. See section 8.
 
 ---
 
@@ -184,16 +188,87 @@ at the Worker's `/billing/webhook`, then re-run with a signed-in test account.
 
 ---
 
-## 8. Known state left in the dev deployment
+## 8. Security follow-up — legacy donation routes (executed)
 
-Synthetic test rows remain in **dev only**, under `user_TEST1` and `user_E2E`.
-They cannot affect a real account: `mySubscription` looks up by the authenticated
-Better Auth user `_id`, which never equals those strings. They are useful
-fixtures for Phase 4 resolver work (a `canceled`/`free` subscription). Delete
-them from the Convex dashboard if a clean slate is preferred.
+Audit of **every** `/give/*` route for browser-supplied identity:
 
-`BILLING_WEBHOOK_SECRET` was set on the **dev** deployment for this testing. It
-must be regenerated independently for production.
+| Route | Accepted from browser | Disposition |
+|---|---|---|
+| `/give/checkout` | `userId`, amount, `path` | **Retired 410**, `handleCheckout` deleted |
+| `/give/portal` | `userId`, **`email`** | **Retired 410**, `handleBillingPortal` deleted incl. email search |
+| `/give/subscription` | **`subscriptionId`** (no ownership check) | **Retired 410**, `handleSubscription` deleted |
+| `/give/webhook` | nothing (Stripe-signed) | **Unchanged** — still records historical gifts |
+
+Handlers were **deleted, not merely unrouted**: leaving a working IDOR one route
+line away from being reachable again is not a fix. Worker diff: 48 insertions,
+**236 deletions**.
+
+Replaced by authenticated Convex actions in `convex/giving.ts`.
+
+| # | Test | Result |
+|---|---|---|
+| 8.1 | `donationPortalSession` unauthenticated | **PASS** — `not-authenticated` |
+| 8.2 | `donationPortalSession {email}` | **PASS** — ArgumentValidationError |
+| 8.3 | `donationPortalSession {customerId}` | **PASS** — ArgumentValidationError |
+| 8.4 | `donationPortalSession {stripeCustomerId}` | **PASS** — ArgumentValidationError |
+| 8.5 | `donationPortalSession {userId}` | **PASS** — ArgumentValidationError |
+| 8.6 | `myRecurringGiftStatus` unauthenticated | **PASS** — `not-authenticated` |
+| 8.7 | `myRecurringGiftStatus {subscriptionId}` | **PASS** — ArgumentValidationError |
+| 8.8 | `myRecurringGiftStatus {userId}` | **PASS** — ArgumentValidationError |
+| 8.9 | `POST /give/checkout {userId:"victim_user"}` | **PASS** — 410, nothing created |
+| 8.10 | `POST /give/portal {userId,email}` | **PASS** — 410 |
+| 8.11 | `POST /give/subscription {subscriptionId}` | **PASS** — 410 |
+| 8.12 | `/give/webhook` still routed | **PASS** — 400 (signature check running) |
+| 8.13 | `/billing/webhook` still routed | **PASS** — 400 |
+| 8.14 | Historical receipt `/give?status=success` | **PASS** — renders, no redirect |
+| 8.15 | Historical receipt `/es/dar?status=success` | **PASS** — renders |
+| 8.16 | Ordinary `/give` and `/es/dar` visits | **PASS** — redirect to `/pricing` |
+| 8.17 | No gift history → archive hidden | **PASS** |
+| 8.18 | `/you` makes **no** call to retired routes | **PASS** — 0 requests |
+| 8.19 | Pricing CTA still non-transactional | **PASS** |
+| 8.20 | Forged `session_id` grants nothing | **PASS** |
+
+`grep` confirms `v1/customers?email`, executable `body.userId`, `body.email` and
+`body.subscriptionId` no longer appear in `worker/src/index.js` (remaining
+matches are prose inside the retirement comment).
+
+**No gift record was modified.** `giftHistory`/`giftStats`/`giftEvents` schema and
+queries are untouched by this follow-up; the dev deployment holds 0 gift rows
+(real history is in prod, which was not touched).
+
+**No Plus entitlement was created.** **No production Stripe call was made** — the
+Worker ran locally with a placeholder key, and no `--prod` command was issued.
+
+---
+
+## 9. Dev fixtures — removed
+
+The synthetic rows under `user_TEST1` and `user_E2E` have been **deleted** from
+dev (2 subscription rows, 2 customer mappings, 6 event rows) using a temporary
+`internalMutation` scoped to those exact ids, which was then deleted from disk
+and from the deployment. Verified afterwards: `subscriptions` 0 rows,
+`billingEvents` 0 rows, `_devcleanup` absent from the function spec.
+
+They were not required for repeatable testing — fixtures are reproducible by
+replaying signed webhooks, which section 3 demonstrates.
+
+**Absent from production, verified read-only:** `npx convex function-spec --prod`
+lists 23 functions, **none** of them `subscriptions:*`, `billing:*` or `giving:*`.
+The tables do not exist in prod, so the fixtures could not have existed there.
+No real record was deleted.
+
+### Development webhook secret
+
+`BILLING_WEBHOOK_SECRET` on `dev:good-dotterel-906` is **development-only**.
+
+- It must **not** be reused in production.
+- Production must receive an **independently generated** secret.
+- Its value is not printed here, not in any committed file, and not in any doc.
+- Not rotated, since the current dev test environment still uses it.
+
+The same applies to `STRIPE_BILLING_WEBHOOK_SECRET`, which was generated locally
+for the Worker test rig in a gitignored `worker/.dev.vars` that has since been
+deleted.
 
 ---
 

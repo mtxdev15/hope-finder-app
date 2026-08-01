@@ -4,9 +4,20 @@ Scope: Plus subscription creation, webhook provisioning, subscription storage
 and billing management. Written against the code as implemented, with the
 verification evidence that each control actually holds.
 
-**Two donation-era vulnerabilities are the reason this document exists.** Both
-are real, both are in production today for donations, and neither is carried
-forward.
+**Two donation-era vulnerabilities are the reason this document exists**, and a
+**third was found while closing them**. All three were real and live in the
+donation Worker. None is carried forward into Plus, and — as of the Phase 3
+security follow-up — **all three are now closed for donations too**, by retiring
+the unsafe routes and deleting their handlers rather than patching them.
+
+| # | Vulnerability | Plus | Donations |
+|---|---|---|---|
+| T1 | Browser-provided user id | never present | **closed** — route retired, handler deleted |
+| T2 | Portal IDOR via submitted email | never present | **closed** — route retired, email search deleted |
+| T15 | Subscription-status disclosure via unowned id | never present | **closed** — route retired, handler deleted |
+
+T15 was **not** in the original Phase 3 model. It surfaced only when the
+follow-up audited *every* `/give/*` route instead of the two already known.
 
 ---
 
@@ -28,10 +39,14 @@ createCheckoutSession {plan:"plus-monthly", userId:"victim_user_id"}
   → ArgumentValidationError: Object contains extra field `userId`
     that is not in the validator.
 ```
-**Residual risk:** none for this path. The argument does not exist. The legacy
-donation route still has the flaw and is out of scope for Phase 3 — it is
-recorded in the Phase 4 dependency list because the same Worker will need
-identity for Gentle Guidance metering.
+**Residual risk:** none. The argument does not exist on either the Plus or the
+donation path.
+
+**Legacy donation path — CLOSED (security follow-up).** `/give/checkout` is
+retired (410) and `handleCheckout` deleted. New donations are no longer offered,
+so there was no safe version of this endpoint worth keeping. Verified:
+`POST /give/checkout {"amount":50,"userId":"victim_user"}` → `410
+{"error":"donations-retired"}`, and nothing is created.
 
 ---
 
@@ -53,6 +68,18 @@ createPortalSession {email:"victim@example.com"}  → ArgumentValidationError
 createPortalSession {customerId:"cus_VICTIM"}     → ArgumentValidationError
 createPortalSession {} (unauthenticated)          → { error: "not-authenticated" }
 ```
+**Legacy donation portal — CLOSED (security follow-up).** `/give/portal` is
+retired (410) and `handleBillingPortal` **deleted**, including the
+`GET /v1/customers?email=…` search. It is replaced by
+`convex/giving.ts:donationPortalSession`, an authenticated action that takes no
+identity arguments and resolves the Stripe customer from the caller's own gift
+history. Existing recurring donors keep a working cancellation path; nobody can
+reach another account's.
+
+The code was removed rather than merely unrouted — leaving a working IDOR one
+route line away from being reachable again is not a fix. Verified: the email
+search string no longer appears anywhere in `worker/src/index.js`.
+
 **Residual risk:** an attacker who fully compromises a session gets that user's
 own portal — inherent to being signed in, not an IDOR.
 
@@ -263,6 +290,45 @@ name another customer.
 
 ---
 
+## T15 — Donation subscription-status disclosure (found during follow-up)
+
+**Threat.** `/give/subscription` (`worker/src/index.js:541-561`, now deleted)
+accepted a browser-supplied `subscriptionId` and returned that subscription's
+`status`, `currentPeriodEnd` and `cancelAtPeriodEnd` with **no ownership check
+whatsoever**. Its comment claimed "the subscription id comes from the caller's
+own authed gift history" — nothing enforced that. Any valid `sub_...` id
+disclosed another person's billing state, and ids are guessable in bulk from any
+leaked Stripe reference.
+
+**This was not in the original Phase 3 threat model.** It surfaced only when the
+follow-up audited *every* `/give/*` route rather than the two already known.
+
+**Control.** Route retired (410), handler deleted, replaced by
+`giving.myRecurringGiftStatus` — an authenticated action taking **no arguments
+at all**, which resolves the subscription id from the caller's own gift history.
+
+**Verified.**
+```
+myRecurringGiftStatus {subscriptionId:"sub_VICTIM"} → ArgumentValidationError
+myRecurringGiftStatus {userId:"victim_user"}        → ArgumentValidationError
+myRecurringGiftStatus {} unauthenticated            → { error: "not-authenticated" }
+POST /give/subscription {"subscriptionId":"sub_VICTIM"} → 410 donations-retired
+```
+
+---
+
+## Donation vs Plus portal separation
+
+A donation portal must never become the Plus portal. They resolve customers from
+**different sources**: `giving.donationPortalSession` reads `giftHistory`;
+`billing.createPortalSession` reads `billingCustomers` and deliberately does not
+consult gift history. A past donor with no Plus subscription gets
+`no-subscription` from the Plus portal, and a Plus subscriber with no gifts gets
+`no-recurring-gift` from the donation portal. Neither can substitute for the
+other.
+
+---
+
 ## Open items before public launch
 
 1. **Set and verify test-mode env vars**, then repeat the authenticated tests
@@ -270,5 +336,9 @@ name another customer.
 2. **Approve the `past_due` grace window** (recommended 3 days).
 3. **Native es-LA editorial review** of the billing strings.
 4. **Reconciliation query** for donors who later subscribe.
-5. **Donation-era T1/T2 remain live for donations.** Out of scope here, but the
-   Worker will need identity for Phase 4 metering — fix them then.
+5. ~~Donation-era T1/T2 remain live for donations.~~ **Closed in the Phase 3
+   security follow-up**, along with T15 which that audit discovered. All three
+   unsafe `/give/*` routes are retired and their handlers deleted. The Worker
+   now holds **no** account-specific donation endpoint and **no** browser-identity
+   code path; the only donation route left is the Stripe-signed gift webhook,
+   which takes no browser input.

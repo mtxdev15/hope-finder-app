@@ -514,8 +514,16 @@
       portalMsg(el, T.portalErrGeneric);
     });
   }
+  /* Manage giving now lives on /you, behind an authenticated Convex action.
+     This button previously POSTed a userId AND an email to the Worker, which
+     searched Stripe by that email — submitting anyone's address opened their
+     billing portal. That endpoint is retired (410) and its code is deleted, so
+     the button must not call it. Stripping the attribute lets the link simply
+     follow its href to /you, where identity is resolved server-side.
+     openBillingPortal() below is now unreachable and left only so this file's
+     diff stays reviewable; it will go with the rest of the donation UI. */
   $$('[data-manage-giving]').forEach(function (el) {
-    el.addEventListener('click', function (e) { e.preventDefault(); openBillingPortal(el); });
+    el.removeAttribute('data-manage-giving');
   });
 
   // show the Thank-you screen for a gift (used on the success return from Stripe)

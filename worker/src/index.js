@@ -358,97 +358,20 @@ async function handleUnsplash(request, env, pathname) {
   return jsonResponse({ query: q, results }, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
-/* ===== Stripe Checkout — the Give flow ============================================
-   POST /give/checkout  { amount, currency, recurring, frequency, path }
-   Creates a Stripe Checkout Session and returns { url } for the browser to redirect to.
-   The secret key lives in env.STRIPE_SECRET_KEY (test now, live later); the browser never
-   sees it. Apple Pay / Google Pay / card all appear automatically on Stripe's hosted page.
-   ================================================================================= */
-const FREQ_INTERVAL = {
-  semimonthly: { interval: 'week',  interval_count: 2 }, // "twice a month" → every 2 weeks (Stripe has no 1st-&-15th)
-  monthly:     { interval: 'month', interval_count: 1 },
-};
+/* The donation Checkout, Subscription-status and Billing-Portal handlers were
+   REMOVED here, not merely unrouted. All three trusted browser-supplied identity
+   (body.userId, a submitted email searched against Stripe customers, and an
+   unowned subscriptionId). Leaving that code in the file would leave a working
+   IDOR one route line away from being reachable again.
 
-async function handleCheckout(request, env) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  }
-  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  if (checkRateLimit(ip)) {
-    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
-  }
-  if (!env.STRIPE_SECRET_KEY) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
+   Their secure replacements are authenticated Convex actions in convex/giving.ts,
+   which resolve identity server-side and read Stripe ids from the caller's own
+   gift history. See docs/security/release-c1-phase3-billing-threat-model.md.
 
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
+   verifyStripeSignature / timingSafeEqualHex / handleWebhook are RETAINED below:
+   the gift webhook is Stripe-signed, takes no browser input, and still records
+   historical giving. */
 
-  const amount = Number(body && body.amount);
-  if (!isFinite(amount) || amount < 1 || amount > 100000) {
-    return jsonResponse({ error: 'Please choose an amount between $1 and $100,000.' }, 400, CORS_HEADERS);
-  }
-  const recurring = !!(body && body.recurring);
-  const freqKey = String((body && body.frequency) || 'monthly');
-  const unitAmount = Math.round(amount * 100); // cents, USD for v1
-
-  // Build return URLs from an allowlisted origin so /es/dar comes back to /es/dar, etc.
-  const origin = request.headers.get('Origin') || '';
-  const okOrigin =
-    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
-    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
-    /^http:\/\/localhost(:\d+)?$/i.test(origin);
-  const base = okOrigin ? origin : 'https://declareandbelieve.com';
-  const rawPath = String((body && body.path) || '/give');
-  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
-  const successQ = 'status=success&amt=' + encodeURIComponent(amount) + (recurring ? '&rec=1&freq=' + encodeURIComponent(freqKey) : '');
-  const successUrl = base + path + '?' + successQ;
-  const cancelUrl = base + path + '?status=cancel';
-
-  const p = new URLSearchParams();
-  p.set('mode', recurring ? 'subscription' : 'payment');
-  p.set('success_url', successUrl);
-  p.set('cancel_url', cancelUrl);
-  p.set('line_items[0][quantity]', '1');
-  p.set('line_items[0][price_data][currency]', 'usd');
-  p.set('line_items[0][price_data][unit_amount]', String(unitAmount));
-  p.set('line_items[0][price_data][product_data][name]', recurring ? 'Recurring gift — Declare & Believe' : 'Gift — Declare & Believe');
-  if (recurring) {
-    const iv = FREQ_INTERVAL[freqKey] || FREQ_INTERVAL.monthly;
-    p.set('line_items[0][price_data][recurring][interval]', iv.interval);
-    p.set('line_items[0][price_data][recurring][interval_count]', String(iv.interval_count));
-  } else {
-    p.set('submit_type', 'donate');
-  }
-
-  // metadata the webhook reads to record the gift (counter + per-user history)
-  p.set('metadata[recurring]', recurring ? '1' : '0');
-  p.set('metadata[frequency]', freqKey);
-  if (body && body.userId) p.set('metadata[userId]', String(body.userId));
-
-  let res, data;
-  try {
-    res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: p.toString(),
-    });
-    data = await res.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
-  }
-  if (!res.ok || !data || !data.url) {
-    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
-    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
-  }
-  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
-}
 
 /* ===== Stripe webhook → Convex counter =============================================
    Stripe POSTs here on a completed gift. We verify the signature, then tell Convex
@@ -535,144 +458,6 @@ async function handleWebhook(request, env) {
   });
 }
 
-// Live subscription status for the "Your giving" card: looks up a recurring gift's
-// next charge date + status straight from Stripe, so a canceled gift never shows a
-// phantom date. The subscription id comes from the caller's own authed gift history.
-async function handleSubscription(request, env) {
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
-  if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  if (!env.STRIPE_SECRET_KEY) return jsonResponse({ error: 'not configured' }, 500, CORS_HEADERS);
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'bad request' }, 400, CORS_HEADERS); }
-  const id = String((body && body.subscriptionId) || '');
-  if (!/^sub_[A-Za-z0-9]+$/.test(id)) return jsonResponse({ error: 'bad id' }, 400, CORS_HEADERS);
-  const r = await fetch('https://api.stripe.com/v1/subscriptions/' + id, {
-    headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-  });
-  if (!r.ok) return jsonResponse({ error: 'not found' }, 404, CORS_HEADERS);
-  const sub = await r.json();
-  const item = sub.items && sub.items.data && sub.items.data[0];
-  const periodEnd = sub.current_period_end || (item && item.current_period_end) || null;
-  return jsonResponse({
-    status: sub.status,
-    currentPeriodEnd: periodEnd,
-    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
-  }, 200, CORS_HEADERS);
-}
-
-/* ===== Stripe Billing Portal — real "Manage giving" session, no email step ==========
-   POST /give/portal  { userId, path }
-   Replaces the old static Stripe hosted "Customer Portal login page" link (type your
-   email, wait for a magic-link email that may never arrive). For a signed-in giver we
-   already know who they are, so we resolve their Stripe customer id server-side and
-   open a real portal session — the browser redirects straight in.
-   ================================================================================= */
-async function handleBillingPortal(request, env) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  }
-  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  if (checkRateLimit(ip)) {
-    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
-  }
-  if (!env.STRIPE_SECRET_KEY) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
-  if (!env.CONVEX_SITE_URL || !env.GIFT_WEBHOOK_SECRET) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
-
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
-  const userId = String((body && body.userId) || '');
-  if (!userId) return jsonResponse({ error: 'not-signed-in' }, 401, CORS_HEADERS);
-  const email = String((body && body.email) || '').trim();
-
-  // Same allowlisted-origin return URL as /give/checkout, so /es/dar comes back to /es/dar.
-  const origin = request.headers.get('Origin') || '';
-  const okOrigin =
-    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
-    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
-    /^http:\/\/localhost(:\d+)?$/i.test(origin);
-  const base = okOrigin ? origin : 'https://declareandbelieve.com';
-  const rawPath = String((body && body.path) || '/give');
-  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
-  const returnUrl = base + path;
-
-  // Resolve which Stripe customer this account's giving belongs to, three ways,
-  // cheapest/most-authoritative first:
-  //  1. customerId already stored on their most recent recurring gift (fast path,
-  //     every gift going forward has this — no extra Stripe call needed).
-  //  2. subscriptionId on that gift, but recorded before customerId capture shipped —
-  //     resolve live, same fetch pattern as /give/subscription.
-  //  3. No usable history at all in our own records (e.g. they gave signed out, or
-  //     before per-user history existed) — search Stripe directly by account email.
-  //     This is the path that makes "Manage giving" actually work for givers who
-  //     predate this fix, not just gifts made after it ships.
-  let lookup = null;
-  try {
-    const lr = await fetch(env.CONVEX_SITE_URL + '/give/customer-lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
-      body: JSON.stringify({ userId }),
-    });
-    lookup = lr.ok ? await lr.json() : null;
-  } catch (e) { /* fall through — email search below still has a shot */ }
-
-  let customerId = (lookup && lookup.customerId) || null;
-  if (!customerId && lookup && lookup.subscriptionId) {
-    try {
-      const sr = await fetch('https://api.stripe.com/v1/subscriptions/' + lookup.subscriptionId, {
-        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-      });
-      if (sr.ok) {
-        const sub = await sr.json();
-        customerId = sub.customer || null;
-      }
-    } catch (e) { /* fall through to the email search below */ }
-  }
-  if (!customerId && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    try {
-      const cr = await fetch('https://api.stripe.com/v1/customers?email=' + encodeURIComponent(email) + '&limit=1', {
-        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-      });
-      if (cr.ok) {
-        const cd = await cr.json();
-        const found = cd && cd.data && cd.data[0];
-        if (found && found.id) customerId = found.id;
-      }
-    } catch (e) { /* no match — fall through to the error below */ }
-  }
-  if (!customerId) {
-    return jsonResponse({ error: 'no-recurring-gift' }, 404, CORS_HEADERS);
-  }
-
-  let res, data;
-  try {
-    const p = new URLSearchParams();
-    p.set('customer', customerId);
-    p.set('return_url', returnUrl);
-    res = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: p.toString(),
-    });
-    data = await res.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
-  }
-  if (!res.ok || !data || !data.url) {
-    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
-    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
-  }
-  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
-}
 
 /* ===== Plus subscription webhook (Release C1 Phase 3) ==============================
    POST /billing/webhook
@@ -820,17 +605,44 @@ export default {
     if (pathname === '/bible') {
       return handleBible(request, env);
     }
-    if (pathname === '/give/checkout') {
-      return handleCheckout(request, env);
+    /* ===== Retired donation endpoints ==============================================
+       These three routes all trusted the browser for identity, which the Worker
+       cannot verify. They are retired rather than patched, because the donation
+       product itself is retired and there is no safe version of "tell me who you
+       are" available at this layer.
+
+         /give/checkout      took body.userId as the gift's owner -> a gift could be
+                             attributed to another account. New donations are no
+                             longer offered, so creation is simply gone.
+         /give/portal        took body.userId AND fell back to searching Stripe by a
+                             SUBMITTED EMAIL -> submitting anyone's address opened
+                             their billing portal. Full IDOR.
+         /give/subscription  took body.subscriptionId with no ownership check ->
+                             any sub_... id disclosed its status and period end.
+
+       Replaced by authenticated Convex actions (convex/giving.ts) that resolve
+       identity via authComponent.safeGetAuthUser and read the Stripe ids from the
+       caller's OWN gift history. Existing recurring donors keep a working
+       cancellation path; nobody can reach another account's.
+
+       410 Gone is deliberate: these endpoints are permanently retired, not
+       temporarily broken, and a caller should not retry. The body carries a
+       stable code rather than English prose so the client localizes it.
+
+       /give/webhook is UNCHANGED. It is Stripe-signed, takes no browser input,
+       and still records historical gifts. ============================================ */
+    if (
+      pathname === '/give/checkout' ||
+      pathname === '/give/portal' ||
+      pathname === '/give/subscription'
+    ) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: CORS_HEADERS });
+      }
+      return jsonResponse({ error: 'donations-retired' }, 410, CORS_HEADERS);
     }
     if (pathname === '/give/webhook') {
       return handleWebhook(request, env);
-    }
-    if (pathname === '/give/subscription') {
-      return handleSubscription(request, env);
-    }
-    if (pathname === '/give/portal') {
-      return handleBillingPortal(request, env);
     }
     // Plus subscriptions. Separate route, separate signing secret, separate
     // Convex tables — the donation routes above are untouched by it.
