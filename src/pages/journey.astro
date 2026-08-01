@@ -422,6 +422,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
+    import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
     // so signing in/up can never pull stale account state over local progress
@@ -1565,6 +1566,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       // the vine has rooted: record it for real (grid + zero-state nod), and
       // release the active slot so a fresh visit lands on the chooser honestly
       active.status = 'done'; markDone(active.id); clearActiveSaved(); clearLock();
+      slotRelease('completed'); // frees the slot for the next Journey
       $('journeyComplete').classList.add('show'); $('journeyComplete').setAttribute('aria-hidden', 'false');
     }
 
@@ -1677,10 +1679,29 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     // Preview's "Begin Day 1" commit, this is the exact seed Preview already
     // resolved its plan from (see resolveJourneyPlan()/startPlan() above), so
     // the committed journey is byte-identical to what was previewed.
+    /* Server-authoritative active-Journey slots.
+       The slot id carries the SEED as well as the catalog id, because
+       restarting a completed Journey is a genuinely new run and must get a new
+       identity — reusing the bare catalog id would silently re-open the old
+       slot instead. Mirrors reflectClientId()'s convention.
+
+       Every call is fire-and-forget. Journey progress lives locally and is the
+       user's real work; a sync failure must never block or lose it. The visible
+       limit sheet stays off until this integration is verified end to end, so a
+       refusal is recorded but not yet enforced in the UI. */
+    function slotId() {
+      if (!active) return null;
+      return active.id + ':' + (active._seed || 0);
+    }
+    function slotStart() { const id = slotId(); if (id) { try { journeyStart(id); } catch (e) {} } }
+    function slotEnsure() { const id = slotId(); if (id) { try { journeyEnsure(id); } catch (e) {} } }
+    function slotRelease(status) { const id = slotId(); if (id) { try { journeyRelease(id, status); } catch (e) {} } }
+
     function beginJourney(id, openDay, silent, seed) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
       CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
       active = c; active.status = 'active'; startPlan(seed);
+      slotStart(); // new run: claims a slot (limit enforced server-side)
       state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; activeStep = 1; clearLock(); clearInstance(); saveActive();
       closeSheets(); showActiveUI();
       if (!silent) toast((esL() ? 'Una vid nueva ha sido plantada — ' : 'A fresh vine is planted — ') + cFrom(c) + ' → ' + cTo(c));
@@ -2048,7 +2069,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           // through /today's "Start a 5-Day Journey" card the day after Day 1 and
           // were losing everything (lock, instance, reflections) to a fresh Day 1.
           const sc = CATALOG.find(function (x) { return x.id === already.id; });
-          if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
+          if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); slotEnsure(); }
           state.day = already.day || state.day; state.returned = already.returned || state.returned;
           restoreProgress();
           showActiveUI();
@@ -2074,7 +2095,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const saved = loadActiveSaved();
       if (saved) {
         const sc = CATALOG.find(function (x) { return x.id === saved.id; });
-        if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
+        if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); slotEnsure(); }
         state.day = saved.day || state.day; state.returned = saved.returned || state.returned;
         restoreProgress();
         showActiveUI();
