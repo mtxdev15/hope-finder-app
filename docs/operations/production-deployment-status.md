@@ -1,6 +1,12 @@
 # Production Deployment Status
 
-**Last updated:** 2026-08-01, after the donation-frontend hotfix (`1855a81`).
+**Last updated:** 2026-08-01, after reconciling production `main` into
+`release-c1-monetization` (merge `e09f410`).
+
+**Reconciliation status:** the production frontend hotfix and this document now
+also live on `release-c1-monetization`, so that branch is a superset of what is
+deployed. The warning below still applies, because `main` itself has not
+changed — it still carries the pre-retirement backend source.
 
 ---
 
@@ -49,6 +55,15 @@ triggered by those merges.
 
 **Not safe:** `npx convex deploy`, `wrangler deploy`, or
 `wrangler pages deploy dist` from `main`.
+
+---
+
+## Reconciliation already done
+
+`release-c1-monetization` has merged `main` (commit `e09f410`), so the release
+branch contains the deployed hotfix history. Nothing further is needed in that
+direction. What remains is the *other* direction: merging the release branch
+into `main`.
 
 ---
 
