@@ -14,8 +14,6 @@ import type * as billing from "../billing.js";
 import type * as email from "../email.js";
 import type * as entitlementCatalog from "../entitlementCatalog.js";
 import type * as entitlements from "../entitlements.js";
-import type * as gifts from "../gifts.js";
-import type * as giving from "../giving.js";
 import type * as http from "../http.js";
 import type * as journeySlots from "../journeySlots.js";
 import type * as reviews from "../reviews.js";
@@ -37,8 +35,6 @@ declare const fullApi: ApiFromModules<{
   email: typeof email;
   entitlementCatalog: typeof entitlementCatalog;
   entitlements: typeof entitlements;
-  gifts: typeof gifts;
-  giving: typeof giving;
   http: typeof http;
   journeySlots: typeof journeySlots;
   reviews: typeof reviews;

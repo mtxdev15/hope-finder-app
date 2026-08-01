@@ -358,25 +358,22 @@ async function handleUnsplash(request, env, pathname) {
   return jsonResponse({ query: q, results }, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
-/* The donation Checkout, Subscription-status and Billing-Portal handlers were
-   REMOVED here, not merely unrouted. All three trusted browser-supplied identity
-   (body.userId, a submitted email searched against Stripe customers, and an
-   unowned subscriptionId). Leaving that code in the file would leave a working
-   IDOR one route line away from being reachable again.
+/* The donation Checkout, Subscription-status, Billing-Portal AND gift-webhook
+   handlers were all REMOVED here, not merely unrouted. The first three trusted
+   browser-supplied identity (body.userId, an email searched against Stripe
+   customers, and an unowned subscriptionId); leaving that code in the file
+   would leave a working IDOR one route line from reachable again.
 
-   Their secure replacements are authenticated Convex actions in convex/giving.ts,
-   which resolve identity server-side and read Stripe ids from the caller's own
-   gift history. See docs/security/release-c1-phase3-billing-threat-model.md.
+   The gift webhook went with them once the giving product was retired:
+   production giftHistory held ZERO rows, so no user was ever linked to a gift
+   and there is nothing left to record. Retirement criteria and the one
+   outstanding item are in
+   docs/architecture/release-c1-legacy-giving-retention.md.
 
-   verifyStripeSignature / timingSafeEqualHex / handleWebhook are RETAINED below:
-   the gift webhook is Stripe-signed, takes no browser input, and still records
-   historical giving. */
+   What is RETAINED below is the shared Stripe signature verification
+   (timingSafeEqualHex + verifyStripeSignature): HMAC-SHA256, constant-time
+   compare, 5-minute replay window. The Plus SUBSCRIPTION webhook depends on it. */
 
-
-/* ===== Stripe webhook → Convex counter =============================================
-   Stripe POSTs here on a completed gift. We verify the signature, then tell Convex
-   to increment the public counter (and record per-user history when the giver was
-   signed in). The Convex side is idempotent, so retries are safe. ================== */
 function timingSafeEqualHex(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
   let r = 0;
@@ -407,57 +404,6 @@ async function verifyStripeSignature(payload, sigHeader, secret) {
   const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
   return v1.some((sig) => timingSafeEqualHex(sig, expected));
 }
-
-async function handleWebhook(request, env) {
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  if (!env.STRIPE_WEBHOOK_SECRET) {
-    return new Response('Webhook not configured', { status: 500 });
-  }
-  const payload = await request.text();
-  const ok = await verifyStripeSignature(payload, request.headers.get('Stripe-Signature'), env.STRIPE_WEBHOOK_SECRET);
-  console.log('[give/webhook] sig ok=' + ok);
-  if (!ok) return new Response('Invalid signature', { status: 400 });
-
-  let event;
-  try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
-  console.log('[give/webhook] event type=' + (event && event.type));
-
-  if (event && event.type === 'checkout.session.completed') {
-    const s = (event.data && event.data.object) || {};
-    const amountCents = Number(s.amount_total);
-    const md = s.metadata || {};
-    console.log('[give/webhook] amount_total=' + s.amount_total + ' mode=' + s.mode + ' id=' + s.id + ' convexUrl=' + (env.CONVEX_SITE_URL || 'MISSING') + ' giftSecret=' + (env.GIFT_WEBHOOK_SECRET ? 'set' : 'MISSING'));
-    if (Number.isFinite(amountCents) && amountCents > 0 && env.CONVEX_SITE_URL && env.GIFT_WEBHOOK_SECRET) {
-      const recordBody = {
-        sessionId: s.id,
-        amountCents: amountCents,
-        currency: s.currency || 'usd',
-        recurring: md.recurring === '1' || s.mode === 'subscription',
-      };
-      if (md.frequency) recordBody.frequency = md.frequency;
-      if (md.userId) recordBody.userId = md.userId;
-      if (s.subscription) recordBody.subscriptionId = s.subscription;
-      if (s.customer) recordBody.customerId = s.customer;
-      const r = await fetch(env.CONVEX_SITE_URL + '/give/record', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
-        body: JSON.stringify(recordBody),
-      });
-      const rt = await r.text();
-      console.log('[give/webhook] convex record status=' + r.status + ' body=' + rt.slice(0, 120));
-      // If Convex rejects, return 500 so Stripe retries (Convex is idempotent).
-      if (!r.ok) return new Response('record failed', { status: 500 });
-    } else {
-      console.log('[give/webhook] SKIPPED record (amount not positive or config missing)');
-    }
-  }
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200, headers: { 'Content-Type': 'application/json' },
-  });
-}
-
 
 /* ===== Plus subscription webhook (Release C1 Phase 3) ==============================
    POST /billing/webhook
@@ -634,15 +580,13 @@ export default {
     if (
       pathname === '/give/checkout' ||
       pathname === '/give/portal' ||
-      pathname === '/give/subscription'
+      pathname === '/give/subscription' ||
+      pathname === '/give/webhook'
     ) {
       if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: CORS_HEADERS });
       }
       return jsonResponse({ error: 'donations-retired' }, 410, CORS_HEADERS);
-    }
-    if (pathname === '/give/webhook') {
-      return handleWebhook(request, env);
     }
     // Plus subscriptions. Separate route, separate signing secret, separate
     // Convex tables — the donation routes above are untouched by it.

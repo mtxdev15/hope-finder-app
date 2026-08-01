@@ -90,38 +90,15 @@ export default defineSchema({
     // For the future testimonial wall: approved + public, newest first.
     .index("by_status_public", ["status", "isPublic", "createdAt"]),
 
-  // Public giving counter — a single denormalized "total" row (Convex has no
-  // count operator). Incremented by the Stripe webhook on each completed gift.
-  giftStats: defineTable({
-    key: v.string(), // always "total"
-    totalCents: v.number(),
-    giftCount: v.number(),
-  }).index("by_key", ["key"]),
+  /* The giving tables (giftStats, giftHistory, giftEvents) were removed with the
+     donation product. Production giftHistory held ZERO rows — no gift was ever
+     linked to a user — and the only donation was the owner's own signed-out
+     test. Stripe keeps the payment records; this schema no longer models them.
 
-  // Per-user giving history (only when the giver was signed in). userId is the
-  // Better Auth user _id, attached via Stripe metadata at checkout.
-  giftHistory: defineTable({
-    userId: v.string(),
-    amountCents: v.number(),
-    currency: v.string(),
-    recurring: v.boolean(),
-    frequency: v.optional(v.string()),
-    sessionId: v.string(),
-    giftedAt: v.number(),
-    subscriptionId: v.optional(v.string()),
-    // Stripe Customer id (cus_...), captured at webhook time so the billing
-    // portal can open a session without an extra live Stripe lookup.
-    customerId: v.optional(v.string()),
-  })
-    .index("by_user", ["userId"])
-    // For the billing-portal lookup: most recent recurring gift for a user.
-    .index("by_user_and_recurring", ["userId", "recurring"]),
-
-  // Idempotency: one row per processed Stripe Checkout session, so webhook
-  // retries never double-count.
-  giftEvents: defineTable({
-    sessionId: v.string(),
-  }).index("by_session", ["sessionId"]),
+     DEPLOY ORDER MATTERS: the three production rows must be deleted BEFORE this
+     schema change reaches production, or the deploy fails validation against
+     documents in tables the schema no longer declares. See
+     docs/architecture/release-c1-legacy-giving-retention.md. */
 
   /* ===== Plus subscriptions (Release C1 Phase 3) ==============================
      Deliberately SEPARATE from the gift tables above. A donation and a Plus

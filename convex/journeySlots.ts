@@ -98,6 +98,43 @@ export const registerJourneyStartInternal = internalMutation({
     doStart(ctx, args.userId, { journeyId: args.journeyId }),
 });
 
+/* Record a slot for a Journey the user ALREADY has open, without enforcing the
+ * limit. This is the resume/backfill path and it is deliberately separate from
+ * registerJourneyStart.
+ *
+ * Why it must not enforce: a grandfathered user over the cap has to be able to
+ * resume their existing Journeys. Running the limit check here would refuse to
+ * record a Journey they are already in, which both loses the slot and blocks
+ * legitimate work. The limit belongs on STARTING something new, and nowhere
+ * else. Idempotent, so resuming repeatedly never duplicates. */
+export const ensureJourneySlot = mutation({
+  args: { journeyId: v.string() },
+  handler: async (ctx, args): Promise<{ ok: boolean; reason?: string }> => {
+    const userId = await requireUserId(ctx);
+    if (!args.journeyId || args.journeyId.length > 128) {
+      return { ok: false, reason: "invalid-journey-id" };
+    }
+    const existing = await ctx.db
+      .query("journeySlots")
+      .withIndex("by_user_journey", (q) => q.eq("userId", userId).eq("journeyId", args.journeyId))
+      .first();
+    if (existing) {
+      if (existing.status !== "active") {
+        await ctx.db.patch(existing._id, { status: "active", endedAt: undefined });
+      }
+      return { ok: true };
+    }
+    await ctx.db.insert("journeySlots", {
+      userId,
+      journeyId: args.journeyId,
+      status: "active",
+      startedAt: Date.now(),
+      grandfathered: true, // pre-existed the limit
+    });
+    return { ok: true };
+  },
+});
+
 /* Release a slot by completing or archiving. Never deletes Journey content —
  * this only changes what the entitlement counter sees. */
 async function doRelease(

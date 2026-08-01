@@ -99,9 +99,6 @@ export async function reviewsSubmit(payload) { return (await ensure()) ? runMuta
 export async function reviewsListApprovedPublic() { return (await ensure()) ? runQuery(apiRef.reviews.listApprovedPublic, {}) : null; }
 export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.reviews.myReview, {}) : null; }
 
-/* ── giving history (signed-in user's own gifts, newest first) ── */
-export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
-
 /* ── Plus billing (Release C1 Phase 3) ──
    Note what is NOT passed: no user id, no email, no Stripe customer or price
    id. The server derives every one of those from the authenticated session,
@@ -113,13 +110,17 @@ export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gift
    like already-subscribed, so callers must distinguish the two. */
 export async function mySubscription() { return (await ensure()) ? runQuery(apiRef.subscriptions.mySubscription, {}) : null; }
 
-/* ── legacy donation account operations (secured) ──
-   These replace three Worker routes that trusted browser-supplied identity.
-   Note again what is NOT passed: no user id, no email, no Stripe customer id,
-   no subscription id. The server resolves all of it from the caller's own gift
-   history. Kept separate from the Plus helpers above because a donation is not
-   a subscription and its portal must never become the Plus portal. */
-export async function donationPortalSession(lang) { return (await ensure()) ? runAction(apiRef.giving.donationPortalSession, lang === 'es' ? { lang: 'es' } : {}) : null; }
-export async function myRecurringGiftStatus() { return (await ensure()) ? runAction(apiRef.giving.myRecurringGiftStatus, {}) : null; }
 export async function billingCheckout(plan, lang) { return (await ensure()) ? runAction(apiRef.billing.createCheckoutSession, { plan, ...(lang === 'es' ? { lang: 'es' } : {}) }) : null; }
 export async function billingPortal(lang) { return (await ensure()) ? runAction(apiRef.billing.createPortalSession, lang === 'es' ? { lang: 'es' } : {}) : null; }
+
+/* ── active-Journey slots (Release C1 Phase 4) ──
+   Server-authoritative count of open Journeys. The Journey UI mirrors its
+   lifecycle here; entitlement reads ONLY this, never the localStorage/userData
+   copy, which any signed-in browser can rewrite.
+
+   All three fail soft (null) like everything else in this module: a sync
+   failure must never block or lose Journey progress, which lives locally and
+   is the user's actual work. */
+export async function journeyStart(journeyId) { return (await ensure()) ? runMutation(apiRef.journeySlots.registerJourneyStart, { journeyId }) : null; }
+export async function journeyEnsure(journeyId) { return (await ensure()) ? runMutation(apiRef.journeySlots.ensureJourneySlot, { journeyId }) : null; }
+export async function journeyRelease(journeyId, status) { return (await ensure()) ? runMutation(apiRef.journeySlots.releaseJourneySlot, { journeyId, status }) : null; }
