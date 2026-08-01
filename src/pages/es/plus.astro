@@ -1,0 +1,20 @@
+---
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+import PlusBody from '../../components/PlusBody.astro';
+import { COPY, ROUTES } from '../../data/plans';
+const t = COPY.es;
+const alternates = [
+  { hreflang: 'en', path: ROUTES.plus.en },
+  { hreflang: 'es', path: ROUTES.plus.es },
+  { hreflang: 'x-default', path: ROUTES.plus.en },
+];
+---
+<DeclareLayout title={t.plusTitle} description={t.plusDescription} lang="es" alternates={alternates}>
+  <Fragment slot="head">
+    <script is:inline>
+      try { document.cookie = 'declare-lang=es;path=/;max-age=31536000;samesite=lax'; } catch (e) {}
+      try { localStorage.setItem('declare-lang', 'es'); } catch (e) {}
+    </script>
+  </Fragment>
+  <PlusBody lang="es" />
+</DeclareLayout>

@@ -1,0 +1,28 @@
+---
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+import PlusBody from '../components/PlusBody.astro';
+import { COPY, ROUTES } from '../data/plans';
+const t = COPY.en;
+const alternates = [
+  { hreflang: 'en', path: ROUTES.plus.en },
+  { hreflang: 'es', path: ROUTES.plus.es },
+  { hreflang: 'x-default', path: ROUTES.plus.en },
+];
+---
+<DeclareLayout title={t.plusTitle} description={t.plusDescription} lang="en" alternates={alternates}>
+  <Fragment slot="head">
+    <script is:inline>
+      /* These four sales routes are LANGUAGE-PINNED BY URL: /pricing and /plus
+         are the English ones, /es/precios and /es/plus the Spanish ones, and
+         each declares itself before the i18n engine reads the cookie. Without
+         this an English URL visited with a Spanish cookie renders English body
+         copy under lang="es" with Spanish chrome — incoherent for a reader and
+         wrong for hreflang, which promises these URLs ARE their language.
+         Symmetric with the Spanish routes, and consistent with the app's
+         existing ?lang= behaviour, where a URL may set the language. */
+      try { document.cookie = 'declare-lang=en;path=/;max-age=31536000;samesite=lax'; } catch (e) {}
+      try { localStorage.setItem('declare-lang', 'en'); } catch (e) {}
+    </script>
+  </Fragment>
+  <PlusBody lang="en" />
+</DeclareLayout>

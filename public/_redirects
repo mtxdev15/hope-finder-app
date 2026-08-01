@@ -4,7 +4,23 @@
 /bienvenido /es/bienvenido 301
 /ayuda /es/ayuda 301
 /luchas /es/luchas 301
-/dar /es/dar 301
+/dar /es/precios 301
 /acerca /es/acerca 301
 /privacidad /es/privacidad 301
 /terminos /es/terminos 301
+
+# ── Donation retirement (Release C1) ─────────────────────────────────────────
+# The giving product is removed. These are permanent, ONE HOP each — /es/dar
+# goes straight to the Spanish page rather than via /pricing?lang=es, which
+# would be a chain and would leak a query-string URL into the crawl graph.
+# Query strings are not matched by Cloudflare Pages, so old links such as
+# /give?status=success land on /pricing through the same rule. That is
+# intentional: there is no public donor history to acknowledge.
+/give        /pricing      301
+/es/dar      /es/precios   301
+# Historical giving terms. No public donation was ever taken, so no party
+# relies on these; they are retired rather than rewritten as subscription
+# terms, which would misrepresent a different transaction. Plus has its own
+# terms on /plus.
+/give-terms                  /pricing     301
+/es/terminos-de-donacion     /es/precios  301

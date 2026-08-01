@@ -47,15 +47,46 @@
   </url>
 
   <!-- Support / help / answers -->
-  <!-- /give and /es/dar are delisted: donations are retired and both now redirect
-       to /pricing on an ordinary visit. They stay on the server (and out of this
-       sitemap) purely as the post-payment landing for returning donors. /pricing
-       is a single bilingual route, so it has one entry with no hreflang pair. -->
+  <!-- Subscription sales pages. The giving URLs (/give, /es/dar, /give-terms,
+       /es/terminos-de-donacion) are gone from the product and from this sitemap;
+       they 301 in one hop to their subscription equivalents. No query-string
+       language variant appears here — /es/precios and /es/plus are the real
+       Spanish URLs, not /pricing?lang=es. -->
   <url>
     <loc>https://declareandbelieve.com/pricing</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/pricing" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/precios" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/pricing" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/precios</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/pricing" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/precios" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/pricing" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/plus</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/plus" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/plus" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/plus" />
+  </url>
+  <url>
+    <loc>https://declareandbelieve.com/es/plus</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/plus" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/plus" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/plus" />
   </url>
   <url>
     <loc>https://declareandbelieve.com/es/ayuda</loc>
@@ -525,24 +556,6 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/terms" />
     <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/terms" />
-  </url>
-  <url>
-    <loc>https://declareandbelieve.com/give-terms</loc>
-    <lastmod>2026-06-27</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give-terms" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos-de-donacion" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give-terms" />
-  </url>
-  <url>
-    <loc>https://declareandbelieve.com/es/terminos-de-donacion</loc>
-    <lastmod>2026-06-27</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://declareandbelieve.com/give-terms" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://declareandbelieve.com/es/terminos-de-donacion" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://declareandbelieve.com/give-terms" />
   </url>
 
 </urlset>

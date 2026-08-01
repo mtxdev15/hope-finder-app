@@ -1,0 +1,24 @@
+---
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+import PricingBody from '../../components/PricingBody.astro';
+import { COPY, ROUTES } from '../../data/plans';
+const t = COPY.es;
+const alternates = [
+  { hreflang: 'en', path: ROUTES.pricing.en },
+  { hreflang: 'es', path: ROUTES.pricing.es },
+  { hreflang: 'x-default', path: ROUTES.pricing.en },
+];
+---
+<DeclareLayout title={t.pricingTitle} description={t.pricingDescription} lang="es" alternates={alternates}>
+  <Fragment slot="head">
+    <script is:inline>
+      /* This URL IS the Spanish route, so the app should be Spanish everywhere
+         on it — not just in the server-rendered body. Setting the cookie before
+         the i18n engine loads makes the shared chrome (nav, tab bar, menu) agree
+         with the page instead of reverting it to English. */
+      try { document.cookie = 'declare-lang=es;path=/;max-age=31536000;samesite=lax'; } catch (e) {}
+      try { localStorage.setItem('declare-lang', 'es'); } catch (e) {}
+    </script>
+  </Fragment>
+  <PricingBody lang="es" />
+</DeclareLayout>

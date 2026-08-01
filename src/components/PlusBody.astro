@@ -1,0 +1,64 @@
+---
+/* Shared /plus body — the subscription detail page, rendered by /plus and
+ * /es/plus from one component.
+ *
+ * This page also carries the PLUS SUBSCRIPTION TERMS. They are written here
+ * from scratch as subscription terms; the historical donation terms are NOT
+ * renamed or reused, because a gift and a paid plan are different transactions
+ * and describing one as the other would misrepresent both. */
+import { COPY, ROUTES, type Lang } from '../data/plans';
+interface Props { lang: Lang }
+const { lang } = Astro.props as Props;
+const t = COPY[lang];
+---
+<main class="plusp">
+  <div class="topglow" aria-hidden="true"></div>
+  <div class="in">
+    <div class="sub-top">
+      <a class="iconbtn" href={ROUTES.pricing[lang]} aria-label={t.back}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+      <span class="ttl">{t.plusName}</span>
+      <span class="iconbtn" style="visibility:hidden"></span>
+    </div>
+    <div class="pxscroll">
+      <div class="pxhero rise d1">
+        <h1>{t.plusH1}</h1>
+        <p class="pxlede">{t.plusLede}</p>
+      </div>
+      <h2 class="pxh2 m-rise">{t.plusWhatTitle}</h2>
+      <div class="pxwhat" data-m-stagger>
+        {t.plusWhat.map((w) => (
+          <div class="pxw m-rise">
+            <div class="pxw-t">{w.title}</div>
+            <div class="pxw-b">{w.body}</div>
+          </div>
+        ))}
+      </div>
+      <h2 class="pxh2 m-rise">{t.plusBillingTitle}</h2>
+      <ul class="pxterms m-rise">{t.plusBilling.map((b) => <li>{b}</li>)}</ul>
+      <div class="pxcta m-rise">
+        <a class="btn btn-ghost" href={ROUTES.pricing[lang]}>{t.plusSeePlans}</a>
+      </div>
+    </div>
+  </div>
+</main>
+<style is:global>
+  .plusp { position: relative; min-height: 100dvh; }
+  .plusp .in { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 0 20px 120px; }
+  .plusp .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
+  .plusp .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+  .plusp .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .plusp .iconbtn svg { width: 20px; height: 20px; }
+  .plusp .pxscroll { padding-top: 8px; }
+  .plusp .pxhero { text-align: center; padding: 18px 0 8px; }
+  .plusp h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.15; color: var(--text); font-weight: 500; }
+  .plusp .pxlede { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 46ch; }
+  .plusp .pxh2 { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 34px 0 12px; }
+  .plusp .pxwhat { display: grid; gap: 10px; }
+  .plusp .pxw { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .plusp .pxw-t { font-size: 15px; font-weight: 600; color: var(--text); }
+  .plusp .pxw-b { font-size: 13px; line-height: 1.6; color: var(--muted); margin-top: 4px; }
+  .plusp .pxterms { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .plusp .pxterms li { position: relative; padding-left: 18px; font-size: 13.5px; line-height: 1.65; color: var(--text2); }
+  .plusp .pxterms li::before { content: ''; position: absolute; left: 2px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+  .plusp .pxcta { margin-top: 30px; text-align: center; }
+</style>

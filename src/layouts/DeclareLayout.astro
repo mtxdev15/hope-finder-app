@@ -14,25 +14,36 @@ const {
   // Utility screens (/you, /vault, /signin) opt out of the index — thin JS tool
   // shells with no search value that otherwise churn as "crawled, not indexed".
   noindex = false,
+  // Localized sales routes set these. `lang` drives <html lang>; `alternates`
+  // emits reciprocal hreflang so Google can pair /pricing with /es/precios
+  // instead of treating them as duplicates. `canonicalPath` overrides the
+  // self-referencing default only when a route needs to point elsewhere.
+  lang = 'en',
+  alternates = null,
+  canonicalPath = null,
 } = Astro.props;
 
 // Self-referencing canonical: trailing-slash path, parameters dropped — folds the
 // many linked variants (?struggle=…, ?lang=es, ?rate=…) into ONE URL per page so
 // Google consolidates signals instead of crawling each variant as a thin page.
 const _path = Astro.url.pathname;
-const canonical = 'https://declareandbelieve.com' + (_path.endsWith('/') ? _path : _path + '/');
+const _canonPath = canonicalPath || _path;
+const canonical = 'https://declareandbelieve.com' + (_canonPath.endsWith('/') ? _canonPath : _canonPath + '/');
 
 // Google Tag Manager container id (loads GA4 via GTM). Renders nothing if unset.
 const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 ---
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang={lang} data-theme="dark">
 <head>
 <!-- swallow benign "Transition was skipped" rejections from cross-document View Transitions -->
 <script is:inline>(function(){function swallow(t){if(t){try{t.finished&&t.finished.catch(function(){});}catch(e){}try{t.ready&&t.ready.catch(function(){});}catch(e){}try{t.updateCallbackDone&&t.updateCallbackDone.catch(function(){});}catch(e){}}}addEventListener("pagereveal",function(e){swallow(e.viewTransition);});addEventListener("pageswap",function(e){swallow(e.viewTransition);});addEventListener("unhandledrejection",function(e){var r=e&&e.reason,m=(r&&(r.message||r.name))||(typeof r==="string"?r:"");if(/transition was skipped/i.test(m))e.preventDefault();});})();</script>
 <meta charset="UTF-8" />
 <link rel="canonical" href={canonical} />
 {noindex && <meta name="robots" content="noindex" />}
+{alternates && alternates.map((a) => (
+  <link rel="alternate" hreflang={a.hreflang} href={'https://declareandbelieve.com' + (a.path.endsWith('/') ? a.path : a.path + '/')} />
+))}
 {GTM_ID && (
 <script is:inline define:vars={{ GTM_ID }}>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM_ID);</script>
 )}
@@ -108,6 +119,11 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
 
   <!-- shared vanilla runtime — plain external scripts, emitted verbatim so each
        module's currentScript.src (e.g. route-loader's asset BASE) resolves correctly -->
+  <!-- Runs BEFORE the i18n engine. The engine derives language from a cookie and
+       overwrites <html lang>, and it consumes ?lang= and strips it via
+       replaceState. A server-rendered localized route therefore has to state its
+       language here, ahead of both, or the engine silently reverts it. -->
+  <slot name="head" />
   <script is:inline src="/declare/i18n-strings.js?v=3.20.0"></script>
   <script is:inline src="/declare/i18n.js?v=3.16.4"></script>
   <script is:inline src="/declare/lang-banner.js?v=3.16.2" defer></script>
