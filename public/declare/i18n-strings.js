@@ -91,8 +91,17 @@ window.__I18N_STRINGS = {
     'today.share': 'Compartir',
     'today.sjTag': 'Sé trasplantado',
     'today.sjH': 'No solo lo declares hoy',
-    'today.sjP1': 'Arráigate en ella. Empieza un camino de 5 días y deja que esta verdad se haga real donde ',
-    'today.sjP2': ' ha estado, una declaración a la vez.',
+    /* sjP1/sjP2 were STALE: their Spanish translated an earlier version of this
+       paragraph, so a Spanish reader saw different content than an English one.
+       Retranslated against the current English, and sjP3 added — the three are
+       one sentence split around two interpolated spans, so they only read
+       correctly together. NEEDS NATIVE es-LA EDITORIAL REVIEW. */
+    'today.sjP1': 'Una Palabra puede sostenerte ',
+    'today.sjP2': '. Pero el cambio real rara vez viene de entender una verdad una sola vez. Viene de encontrarte con Dios en ella una y otra vez, hasta que crees lo que declaras en lugar de solo decirlo. Este Camino de 5 días te lleva más adentro de ',
+    'today.sjP3': ', no para manejarlo, sino para reemplazar lo que hay debajo: lo que crees sobre ti mismo y lo que crees sobre Dios.',
+    /* Interpolated into sjP1 above, so the phrase reads 'sostenerte esta noche'. */
+    'today.tonight': 'esta noche',
+    'today.today': 'hoy',
     'today.startJourney': 'Empieza un Camino de 5 días',
     'today.carry': 'Llévalo contigo',
     'today.nsReadT': 'Lee el pasaje completo',
@@ -110,6 +119,17 @@ window.__I18N_STRINGS = {
     'today.savedVault': 'Guardado en tu Bóveda.',
     'today.removedVault': 'Quitado de tu Bóveda.',
     'today.saveSignin': 'Crea una cuenta gratis para guardar esta palabra en tu Bóveda.',
+    /* Right rail + reader states. These were referenced by today.astro but never
+       defined, so Spanish readers saw English here. NEEDS NATIVE es-LA REVIEW. */
+    'today.inThisWord': 'En esta Palabra',
+    'today.recentWords': 'Tus palabras recientes',
+    'today.translation': 'Traducción',
+    'today.breakdown': 'Desglose',
+    'today.noBreakdown': 'No hay un análisis más profundo de este versículo para esta palabra.',
+    'today.transFailed': 'No pudimos cambiar la traducción. Inténtalo de nuevo.',
+    'today.tapRevisit': 'toca para volver',
+    'today.justNow': 'ahora mismo',
+    'today.yesterday': 'ayer',
 
     /* ---- /word (The Word). Spanish locks the reader to RVR1909 (only + default). ---- */
     'word.library': 'La biblioteca',
