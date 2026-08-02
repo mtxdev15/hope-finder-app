@@ -73,6 +73,8 @@ wrong by a cent on a page about money.
 | Disabled CTA does not take focus | **PASS** |
 | Savings stated in words, not colour alone | **PASS** |
 | Exactly one `<h1>` | **FAIL — pre-existing, see below** |
+| FAQ summary ≥ 44px, Enter opens | **PASS** |
+| Compare table scrolls in its own container | **PASS** |
 
 **The one failure is not this work.** `public/declare/route-loader.js:48` injects
 `<h1>Searching the Word…</h1>` at runtime on **every** page — `/today` and
@@ -117,7 +119,38 @@ build; `/give` and `/es/dar` redirects unchanged; no donation copy returned.
 
 ---
 
-## 7. Not verified here
+## 7. Approved-copy implementation
+
+48 checks across both languages, all passing: hero, kicker, Free heading/CTA/note,
+Plus heading and chain, Family heading and planned-feature list, Church heading
+and custom-pricing label, compare table (7 rows, scoped col and row headers),
+no-trial section, 8 FAQ items, commitment statement, and the computed 26% on the
+annual toggle.
+
+Conditional rules verified: **no waitlist button** (none exists) and Contact Us
+resolving to a real `mailto:` path.
+
+### Errors caught by rendering rather than reading the diff
+
+1. **Hero kicker landed below the supporting paragraph**, not above it.
+2. **Old Family and Church descriptions survived** alongside their replacements,
+   duplicating the message.
+3. **The entire new CSS block silently no-oped** — several string replacements
+   assumed 4-space indentation where the file uses 2. The sections rendered
+   *unstyled* while content assertions still passed. Caught only by asserting
+   **computed styles** (FAQ summary height, `overflow-x` on the table wrapper),
+   not markup presence.
+
+That third one is the durable lesson: a content test can pass against a page
+that looks broken. Style assertions are not optional.
+
+Two apparent failures were harness artifacts, not defects: `text-transform:
+uppercase` means `innerText` returns "NO TRIAL COUNTDOWN" and "PRÓXIMAMENTE",
+so exact-case regexes missed them. Re-verified case-insensitively.
+
+---
+
+## 8. Not verified here
 
 - Real Stripe Checkout (no Product, Price or key configured — by design)
 - StoreKit pricing (no product exists; iOS must render StoreKit-localized prices

@@ -105,6 +105,34 @@ promises.
 
 ---
 
+## Page structure (approved copy, implemented)
+
+| Section | Content |
+|---|---|
+| Hero | "Start free. Go deeper when you're ready." + kicker + supporting paragraph |
+| Toggle | Monthly · **Annual — Save about 26%** (percentage computed) |
+| Free | "Begin with Scripture" · $0 · Included-with-Free list · **Continue Free** · "No payment method required." |
+| Plus | "Keep going without limits" · founding price · future standard · annual detail · **Opening Soon** (disabled) |
+| Family | "Grow together, privately" · Coming Soon · planned pricing · planned-feature list · **no waitlist button** |
+| Church & Groups | "Support spiritual formation together" · Custom pricing · **Contact Us** (real mailto) |
+| Compare plans | 7-row table, Free vs Plus |
+| No trial countdown | "Free does not expire" |
+| FAQ | 8 questions |
+| Our commitment | Plus changes capacity, not worth or God's nearness |
+
+**Two conditional rules were honoured, not assumed.** Family has **no waitlist
+button** because no waitlist exists — a button collecting nothing is worse than
+no button. Church shows **Contact Us** only because a real mailto path exists.
+
+The cross-platform FAQ answer is written in the conditional — *"once mobile
+purchase synchronization is available"* — because iOS sync is not implemented,
+and presenting it as live would be a promise we cannot keep.
+
+Every number on the page is derived: Free's limits read from the server's
+entitlement catalog, and all prices and savings from `src/data/pricing.ts`.
+
+---
+
 ## Cross-platform entitlement
 
 One entitlement system, platform-specific storefront prices. A verified purchase
