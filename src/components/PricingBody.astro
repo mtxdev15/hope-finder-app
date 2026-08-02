@@ -23,24 +23,29 @@ const plusHref = ROUTES.plus[lang];
     <div class="pscroll">
       <div class="phero rise d1">
         <h1>{t.h1}</h1>
+        <div class="pkick">{t.heroKicker}</div>
         <div class="psub">{t.sub}</div>
       </div>
 
       <div class="pcycle rise d2" role="radiogroup" aria-label={t.cycleAria}>
         <button type="button" class="pcy on" role="radio" aria-checked="true" data-cycle="m">{t.monthly}</button>
-        <button type="button" class="pcy" role="radio" aria-checked="false" tabindex="-1" data-cycle="y">{t.annual}</button>
+        <button type="button" class="pcy" role="radio" aria-checked="false" tabindex="-1" data-cycle="y">{t.annual} — {t.saveApprox}</button>
       </div>
 
       <div class="pcards" data-m-stagger>
         <section class="pcard m-rise">
           <div class="pc-hd">
             <div class="pc-nm">{t.freeName}</div>
+            <div class="pc-head2">{t.freeHeading}</div>
             <div class="pc-pr"><span class="pc-amt">$0</span></div>
-            <div class="pc-note">{t.freeNote}</div>
+            <div class="pc-note">{t.freeSub}</div>
           </div>
+          <div class="pc-inc">{t.freeIncludedLabel}</div>
           <ul class="pc-list">{t.freeFeatures.map((f) => <li>{f}</li>)}</ul>
+          
           <div class="pc-cta">
             <a class="btn btn-ghost" href="/create-account">{t.freeCta}</a>
+            <div class="pc-fine">{t.freeNote2}</div>
           </div>
         </section>
 
@@ -49,6 +54,7 @@ const plusHref = ROUTES.plus[lang];
             <div class="pc-best" hidden>{t.bestValue}</div>
           <div class="pc-hd">
             <div class="pc-nm">{t.plusName}</div>
+            <div class="pc-head2">{t.plusHeading}</div>
             <div class="pc-found">{t.foundingLabel}</div>
             <div class="pc-pr">
               <span class="pc-amt" data-price-m={$.plus.monthly} data-price-y={$.plus.annual}>{$.plus.monthly}</span>
@@ -74,6 +80,7 @@ const plusHref = ROUTES.plus[lang];
                  button that took money nowhere would be worse than an honest one. -->
             <button type="button" class="btn btn-primary" disabled>{t.plusCta}</button>
             <div class="pc-fine">{t.plusFine}</div>
+            <div class="pc-fine">{t.plusNote2}</div>
             <a class="pc-more" href={plusHref}>{t.plusSeePlans}</a>
           </div>
         </section>
@@ -87,8 +94,11 @@ const plusHref = ROUTES.plus[lang];
         <div class="prow m-rise">
           <div class="pr-m">
             <div class="pr-t">{t.familyName}</div>
-            <div class="pr-d">{t.familyDesc}</div>
-            <div class="pr-planned">{t.familyPlanned}</div>
+            <div class="pr-h2">{t.familyHeading}</div>
+            <div class="pr-planned pr-plannedprice"><span>{t.familyPlannedLabel}</span> {t.familyPlanned}</div>
+            <div class="pr-planned">{t.familyIntro}</div>
+            <div class="pr-inc">{t.familyPlannedLabel2}</div>
+            <ul class="pr-list">{t.familyFeatures.map((f) => <li>{f}</li>)}</ul>
           </div>
           <div class="pr-r">
             <div class="pr-s">{t.comingSoon}</div>
@@ -97,13 +107,66 @@ const plusHref = ROUTES.plus[lang];
         <div class="prow m-rise">
           <div class="pr-m">
             <div class="pr-t">{t.churchName}</div>
-            <div class="pr-d">{t.churchDesc}</div>
+            <div class="pr-h2">{t.churchHeading}</div>
+            <div class="pr-d">{t.churchIntro}</div>
+            <div class="pr-planned pr-plannedprice">{t.churchPriceLabel}</div>
           </div>
           <div class="pr-r">
             <a class="pr-link" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20church">{t.churchCta}</a>
           </div>
         </div>
       </div>
+
+      <!-- Compare plans. A real <table> with scope'd headers so a screen reader
+           announces which plan a cell belongs to; it scrolls inside its own
+           container so the page body never scrolls sideways on a phone. -->
+      <h2 class="psec-h m-rise">{t.compareTitle}</h2>
+      <p class="psec-lede m-rise">{t.compareLede}</p>
+      <div class="ptable-wrap m-rise">
+        <table class="ptable">
+          <thead>
+            <tr>
+              <th scope="col">{t.compareCols.experience}</th>
+              <th scope="col">{t.compareCols.free}</th>
+              <th scope="col">{t.compareCols.plus}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.compareRows.map((r) => (
+              <tr>
+                <th scope="row">{r.label}</th>
+                <td>{r.free}</td>
+                <td>{r.plus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- No trial. Stated plainly because "free trial" is the thing people
+           brace for, and the honest answer is the reassuring one. -->
+      <section class="pnotrial m-rise">
+        <div class="pnt-k">{t.noTrialTitle}</div>
+        <h2 class="pnt-h">{t.noTrialLede}</h2>
+        <p class="pnt-b">{t.noTrialBody}</p>
+      </section>
+
+      <!-- FAQ as native details/summary: keyboard operable and screen-reader
+           announced without a line of JavaScript. -->
+      <h2 class="psec-h m-rise">{t.faqTitle}</h2>
+      <div class="pfaq m-rise">
+        {t.faq.map((item) => (
+          <details class="pfaq-i">
+            <summary>{item.q}</summary>
+            <div class="pfaq-a">{item.a.map((para) => <p>{para}</p>)}</div>
+          </details>
+        ))}
+      </div>
+
+      <section class="pcommit m-rise">
+        <h2 class="pcom-h">{t.commitTitle}</h2>
+        {t.commitBody.map((para) => <p>{para}</p>)}
+      </section>
 
       <div class="pfoot m-rise">
         <p>{t.foot}</p>
@@ -217,4 +280,66 @@ const plusHref = ROUTES.plus[lang];
   .pricing .pfoot p { font-size: 12.5px; line-height: 1.6; color: var(--muted); max-width: 42ch; margin: 0 auto; }
   .pricing .pfoot-l { margin-top: 12px; }
   .pricing .pfoot-l a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ── founding-pricing presentation ── */
+  .pricing .pc-found { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); margin-top: 10px; }
+  .pricing .pc-future { font-size: 11.5px; line-height: 1.5; color: var(--muted); margin-top: 10px; }
+  .pricing .pc-annual[hidden], .pricing .pc-best[hidden], .pricing .pc-mnote[hidden] { display: none; }
+  .pricing .pc-annual { margin-top: 10px; display: grid; gap: 3px; }
+  .pricing .pc-eq { font-size: 12.5px; color: var(--text2); }
+  /* Savings are stated in words, never signalled by colour alone. */
+  .pricing .pc-save-amt, .pricing .pc-save-pct { font-size: 12.5px; color: var(--goldd); }
+  .pricing .pc-best { position: absolute; top: -10px; right: 20px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text); background: var(--field); border: 1px solid var(--gold); padding: 3px 9px; border-radius: 100px; }
+  .pricing .pfoot-store { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+  /* A disabled control must read as unavailable, not merely look faded. */
+  .pricing .pc-cta .btn[disabled] { pointer-events: none; }
+
+  /* ── hero + card headings ── */
+  .pricing .pkick { font-size: 13.5px; line-height: 1.6; color: var(--text2); margin: 10px auto 0; max-width: 44ch; }
+  .pricing .pc-head2 { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.2; color: var(--text); margin-top: 6px; }
+  .pricing .pc-inc { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 18px; }
+  .pricing .pr-h2 { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--text); margin-top: 2px; }
+  .pricing .pr-planned { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin-top: 6px; }
+  .pricing .pr-plannedprice { color: var(--text2); }
+  .pricing .pr-inc { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 12px; }
+  .pricing .pr-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 7px; }
+  .pricing .pr-list li { position: relative; padding-left: 20px; font-size: 13px; line-height: 1.5; color: var(--text2); }
+  .pricing .pr-list li::before { content: ''; position: absolute; left: 3px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--soft); }
+  /* Family/Church rows stack now that they carry a heading and a feature list. */
+  .pricing .prow { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .pricing .pr-r { text-align: left; }
+
+  /* ── section headings ── */
+  .pricing .psec-h { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--text); font-weight: 500; margin: 40px 0 6px; text-align: center; }
+  .pricing .psec-lede { font-size: 13.5px; line-height: 1.6; color: var(--muted); text-align: center; max-width: 40ch; margin: 0 auto 16px; }
+
+  /* ── compare table: scrolls inside its own container so the page body never
+        scrolls sideways on a phone ── */
+  .pricing .ptable-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .pricing .ptable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 340px; }
+  .pricing .ptable th, .pricing .ptable td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  .pricing .ptable thead th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .pricing .ptable thead th:not(:first-child), .pricing .ptable td { text-align: right; }
+  .pricing .ptable tbody th { font-weight: 500; color: var(--text2); }
+  .pricing .ptable td { color: var(--text); }
+  .pricing .ptable tbody tr:last-child th, .pricing .ptable tbody tr:last-child td { border-bottom: 0; }
+
+  /* ── no-trial + commitment ── */
+  .pricing .pnotrial, .pricing .pcommit { margin-top: 40px; padding: 22px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: center; }
+  .pricing .pnt-k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--goldd); }
+  .pricing .pnt-h, .pricing .pcom-h { font-family: 'Cormorant Garamond', serif; font-size: 24px; color: var(--text); font-weight: 500; margin-top: 8px; }
+  .pricing .pnt-b, .pricing .pcommit p { font-size: 13.5px; line-height: 1.7; color: var(--muted); margin-top: 10px; max-width: 46ch; margin-left: auto; margin-right: auto; }
+
+  /* ── FAQ: native details/summary — keyboard operable with no JavaScript ── */
+  .pricing .pfaq { display: grid; gap: 8px; }
+  .pricing .pfaq-i { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .pricing .pfaq-i summary { list-style: none; cursor: pointer; padding: 13px 16px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; line-height: 1.4; font-weight: 600; color: var(--text); }
+  .pricing .pfaq-i summary::-webkit-details-marker { display: none; }
+  .pricing .pfaq-i summary::after { content: ''; flex: 0 0 auto; width: 8px; height: 8px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted); transform: rotate(45deg); transition: transform .25s ease; }
+  .pricing .pfaq-i[open] summary::after { transform: rotate(-135deg); }
+  .pricing .pfaq-i summary:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 12px; }
+  .pricing .pfaq-a { padding: 0 16px 14px; }
+  .pricing .pfaq-a p { font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+  .pricing .pfaq-a p + p { margin-top: 8px; }
+  @media (prefers-reduced-motion: reduce) { .pricing .pfaq-i summary::after { transition: none; } }
 </style>
