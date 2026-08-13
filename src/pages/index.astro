@@ -294,7 +294,9 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
   /* Hero-specific (verbatim from design-source Hero.html) */
   .hero{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 28px 30px; }
   .hero .kicker{ margin-bottom:22px; max-width:24ch; line-height:1.7; }
-  .hero .word{ font-size:clamp(58px,17vw,72px); line-height:.98; font-weight:600; color:var(--text); letter-spacing:.01em; text-shadow:0 0 60px rgba(222,190,100,.35); }
+  /* margin:0 cancels the UA heading margin — .word became an h1 so the hero has
+     a real page heading; every other declaration here is unchanged. */
+  .hero .word{ margin:0; font-size:clamp(58px,17vw,72px); line-height:.98; font-weight:600; color:var(--text); letter-spacing:.01em; text-shadow:0 0 60px rgba(222,190,100,.35); }
   .hero .sub{ font-size:21px; font-style:italic; color:var(--soft); margin-top:22px; max-width:18ch; line-height:1.45; }
   .hero .markwrap{ width:96px; height:96px; margin:0 auto 24px; display:flex; align-items:center; justify-content:center;
     filter:drop-shadow(0 6px 18px rgba(0,0,0,.4)) drop-shadow(0 0 24px rgba(222,190,100,.26)); }
@@ -378,7 +380,12 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
       <div class="hero">
         <div class="markwrap rise d1"><img class="mk-dark" src="/declare/brand/logo-dark-tight.png" alt="Declare &amp; Believe" /><img class="mk-light" src="/declare/brand/logo-light-tight.png" alt="" aria-hidden="true" /></div>
         <div class="lbl kicker rise d2" id="heroKicker" data-i18n="home.kicker">Scripture, for the weight you carry</div>
-        <div class="serif word rise d3">Declare</div>
+        {/* The page's real heading. This is the visible hero title, promoted from
+            a div rather than adding a hidden one: the word on screen and the word
+            announced should be the same. Styling is unchanged; .hero .word now
+            also sets margin:0 to cancel the UA heading margin. Intentionally not
+            translated, because it is the product name. */}
+        <h1 class="serif word rise d3">Declare</h1>
         <div class="serif sub rise d4" id="heroSub" data-i18n="home.sub">Name what&rsquo;s heavy. Receive His Word for this moment.</div>
       </div>
 
@@ -426,26 +433,30 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 <noscript>
 <div style="max-width:720px;margin:0 auto;padding:2rem 1rem;font-family:Georgia,serif;color:#1a1a1a;line-height:1.7;">
 
-<h1 style="font-size:1.75rem;margin:0 0 1rem;">Declare and Believe — Scripture for Every Mindset Battle</h1>
+<!-- Demoted from h1 to h2. The hero heading above is static server-rendered
+     markup, so it is present whether or not scripts run; leaving an h1 here too
+     would give JS-disabled readers two page-level headings. Every heading below
+     dropped one level with it, so the outline stays logical. -->
+<h2 style="font-size:1.75rem;margin:0 0 1rem;">Declare and Believe — Scripture for Every Mindset Battle</h2>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">What Declare and Believe Is</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">What Declare and Believe Is</h3>
 <p style="margin:0 0 1rem;">Declare and Believe is a free Christian web tool built for the moments when your mind feels stuck — fear, shame, doubt, loneliness, or any battle in between. You describe what you're carrying, and the app instantly responds with Scripture written for that exact struggle.</p>
 <p style="margin:0 0 1rem;">Every response includes up to 3 relevant Bible verses, a short faith-based explanation, a personalized prayer you can speak aloud, and an "I am" declaration rooted in God's Word. No ads. No content to scroll through. No fluff. Just God's Word, applied to your situation.</p>
 <p style="margin:0 0 1rem;">Built on Romans 12:2 — "Be transformed by the renewing of your mind" — Declare and Believe exists to help believers shift from broken identity into their true identity in Christ.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Who Declare and Believe Is For</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Who Declare and Believe Is For</h3>
 <p style="margin:0 0 1rem;"><strong>The Silently Struggling Christian</strong> — functional on the outside, fighting a quiet inner war. Doesn't have the strength to call a pastor or friend at 3am, but will open an app or a browser on their phone to find an answer. Needs Scripture for the questions they're too ashamed to ask out loud.</p>
 <p style="margin:0 0 1rem;"><strong>The Burned-Out Believer</strong> — has been through something hard. Still believes but feels disconnected from God. Needs Scripture without condemnation. Needs the Word to feel real again.</p>
 <p style="margin:0 0 1rem;"><strong>The Young Adult Adrift</strong> — grew up in church, drifted. Loneliest generation in recorded history. Needs a non-judgmental voice without church culture baggage.</p>
 <p style="margin:0 0 1rem;"><strong>The Nighttime Crisis Visitor</strong> — arrived through a desperate search. May not identify as Christian. Needs compassion first, Scripture second, crisis resources if needed.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">How Declare and Believe Works</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">How Declare and Believe Works</h3>
 <p style="margin:0 0 1rem;"><strong>Step 1</strong> — Tap what you're carrying from the list of struggles, or describe it in your own words.</p>
 <p style="margin:0 0 1rem;"><strong>Step 2</strong> — Choose your translation: NKJV, NLT, or NIV.</p>
 <p style="margin:0 0 1rem;"><strong>Step 3</strong> — Receive Scripture chosen for your exact struggle, a faith-filled explanation, a prayer you can speak, and an "I am" declaration rooted in God's Word.</p>
 <p style="margin:0 0 1rem;"><strong>Step 4</strong> — Speak the declaration aloud. Save it. Share it. Come back as often as you need.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Scripture for Every Mindset Battle</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Scripture for Every Mindset Battle</h3>
 <p style="margin:0 0 1rem;"><strong>Fear and Anxiety</strong> — 2 Timothy 1:7 says God has not given us a spirit of fear, but of power, love, and a sound mind. When anxiety overwhelms, Scripture reminds you that fear is not your portion. God's perfect love casts out fear.</p>
 <p style="margin:0 0 1rem;"><strong>Shame and Guilt</strong> — Romans 8:1 declares there is no condemnation for those in Christ Jesus. Shame was broken at the cross. Through Jesus, you receive forgiveness, righteousness, and a new identity — fully accepted, fully loved by God.</p>
 <p style="margin:0 0 1rem;"><strong>Feeling Like a Failure</strong> — Philippians 1:6 promises that God who began a good work in you will complete it. Failure does not define you. God's grace and faithfulness do. You are still His workmanship, still being made into who He created you to be.</p>
@@ -456,11 +467,11 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
 <p style="margin:0 0 1rem;"><strong>Depression and Hopelessness</strong> — Psalm 42:11 asks the soul why it is downcast and answers — hope in God. Scripture acknowledges deep sorrow while pointing to God as the lifter of your head. You are seen. You are not alone. Hope is not lost.</p>
 <p style="margin:0 0 1rem;"><strong>Feeling Unworthy</strong> — Ephesians 2:10 says you are God's workmanship. Psalm 139:14 declares you are fearfully and wonderfully made. Your worth is not earned — it is given. You are loved, chosen, and called by the Creator of the universe.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Why Scripture-Based Mind Renewal Works</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">Why Scripture-Based Mind Renewal Works</h3>
 <p style="margin:0 0 1rem;">Romans 12:2 calls believers to be transformed by the renewing of the mind. This is not motivation. It is not self-help. It is the spiritual discipline of replacing lies with God's Word until your thought patterns align with truth.</p>
 <p style="margin:0 0 1rem;">The mind renewed by Scripture is the mind freed from fear, shame, doubt, and despair. This is the work Declare and Believe was built to support — one struggle, one moment, one declaration at a time.</p>
 
-<h2 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">About JC Kingdom Ventures</h2>
+<h3 style="font-size:1.25rem;margin:2rem 0 0.5rem;border-bottom:1px solid #ccc;padding-bottom:0.25rem;">About JC Kingdom Ventures</h3>
 <p style="margin:0 0 1rem;">Declare and Believe is built by JC Kingdom Ventures, a Kingdom-minded company committed to creating tools that help believers walk in their true identity in Christ. No matter your situation or struggle, God made no mistake when it came to you. Your life has purpose, your words have power, and your thoughts shape the direction of your future.</p>
 
 </div>
