@@ -11,25 +11,33 @@ Done items move to the bottom or get deleted.
       what the mast avatar actually links to/does on each page today vs. the You tab, then decide
       remove vs. repurpose. Sitewide change (not Journey-specific) — deserves its own pass, not a
       same-turn patch.
-- [ ] **Journey day content doesn't always match the active language (found during Release B / B2.2,
-      2026-07-29).** With Spanish active, the Day-Opening screen (and identically, the pre-existing
-      "Today's Journey" card on `/journey` — confirmed both show the exact same English title/verse
-      in the same test) can show English day title/verse/encouragement while the surrounding UI chrome
-      is correctly Spanish. Root cause: that content only gets rewritten in Spanish by the Journey
-      Worker's AI call (`ensureDay()` in `journey.astro` → `journey-engine.js`); if that call fails or
-      hasn't resolved yet, it silently falls back to the English authored bank regardless of active
-      language (by design — no error surfaced). Confirmed pre-existing, not introduced by B2.2. Not
-      touched here — the original Release B brief explicitly protects `journey-engine.js`/the Worker
-      from changes without separate approval. Needs investigation into why the AI call isn't
-      completing (at minimum in local dev — unclear yet if this also happens in production).
-- [ ] **"Preview tomorrow" shouldn't be a live production button (found during Release B / B2.2,
-      2026-07-29).** The Journey lock-note's `#lnPreview` button (`src/pages/journey.astro`) lets any
-      user tap past the one-day-per-day pacing lock (`db_journey_lock`) and unlock the next day
-      early — undercutting the "faithfulness, not speed" design intent. The original Release B
-      Journey prompt explicitly called for this to be "a development/testing affordance, not a
-      normal production CTA," but it currently renders unconditionally with no gating. Fix: hide it
-      from production (dev-console-only, or a `?debug=1`-style flag) and keep `previewTomorrow()`
-      reachable for QA.
+- [ ] **Journey day content doesn't always match the active language — AUDITED 2026-08-13, still
+      unresolved.** Full root cause in `docs/investigation/spanish-journey-content-fallback.md`.
+      **The original guess was wrong: the locale IS being sent correctly** (`journey.astro:510-512`
+      passes `language`, and `journey-engine.js:565` emits a fully Spanish prompt). The real cause is
+      that `PLAN[]` is seeded from the English-only authored bank in `journey-data.js` and three
+      surfaces render it synchronously without ever awaiting generation: Day-Opening
+      (`renderDayOpening()`, no `ensureDay()` call at all, and it opens 380ms after committing a
+      journey), Journey Preview (never generates), and the Fruit Log. Also found: the instance cache
+      key has no language in it, the language guard is skipped entirely for instances written before
+      the `lang` field existed, and no `declare-lang` listener invalidates `PLAN`, so switching
+      language mid-journey leaves stale English mounted permanently. **Most serious finding, and it
+      is not the rendering bug:** `journey-engine.js:548` stamps `ver = 'RVR1909'` unconditionally
+      without validating the returned text, while `:575` hands the model English ESV text to recall
+      from — so English text can be presented labelled as RVR1909. Needs its own reviewed phase with
+      visible prototypes; no schema change or server migration required (Convex stores no Journey
+      content).
+- [x] **"Preview tomorrow" shouldn't be a live production button (found during Release B / B2.2,
+      2026-07-29; gated 2026-08-13).** ~~The Journey lock-note's `#lnPreview` button lets any user tap
+      past the one-day-per-day pacing lock and unlock the next day early.~~ Gated at build time on
+      `PUBLIC_JOURNEY_DEV_TOOLS`. Two guards: the markup is not emitted without the flag, and the
+      unlock body sits inside an `import.meta.env` branch that Vite folds to `false` so esbuild drops
+      it, meaning the production bundle contains no unlock function and no `'2000-01-01'` sentinel at
+      all. Worse than first thought on two counts: it was a permanent unlock rather than a preview,
+      and `saveLock()` mirrored it to Convex so the bypass followed the account across devices. See
+      `docs/implementation/journey-preview-gating.md` and
+      `docs/verification/journey-preview-gating.md`. **Pacing itself is still unenforced** — see the
+      server-authoritative pacing phase under Next features.
 - [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
       2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
       flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
@@ -69,6 +77,26 @@ Done items move to the bottom or get deleted.
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
+- [ ] **Server-authoritative Journey pacing (filed 2026-08-13).** Pacing is currently a client-side
+      honor system in the web app: `db_journey_lock` is `localStorage`, compared against a
+      device-local unpadded date string (`journey.astro:522`), and mirrored to Convex through the
+      public arbitrary-key `userdata.set` mutation. Gating the "Preview tomorrow" button removed the
+      one-tap bypass but changed nothing about enforcement — editing browser storage or moving the
+      device clock forward still works. There is no server-side Journey state to guard today:
+      `convex/schema.ts` has no `journeys` table, no `currentDay`, no unlock logic. Note
+      `convex/accountDay.ts:3-7` already disowns `journey.astro`'s `todayStr()` as unusable for
+      anything that counts, and `journeySlots` is the natural home for a `lastCompletedDay` /
+      `dayUnlocksAfter` field. This phase must define: unlock timestamps, account-timezone behavior
+      (including DST), offline/disconnected browser behavior, resume and review rules (both must stay
+      always-allowed), migration for existing local locks, and trusted server-side enforcement. Not
+      an iOS issue — there is no iOS app today.
+- [ ] **Spanish Journey content fix (filed 2026-08-13).** Audit complete, see
+      `docs/investigation/spanish-journey-content-fallback.md` and the In-progress entry above. Ship
+      with visible prototypes/screenshots for: Spanish Day-Opening while loading, Spanish Journey
+      Preview, Spanish Fruit Log, language switching during an active Journey, and generation-failure
+      fallback. Sequence the RVR1909 mislabeling fix alongside the rendering fix. Constraints: never
+      overwrite saved reflections, never silently regenerate completed days, never mix English and
+      Spanish inside one day.
 - [ ] **Split the app onto app.declareandbelieve.com (studied Psalmlog's app.psalmlog.com
       structure as the reference).** Full architecture + phase breakdown lives in
       `.claude/plans/please-use-the-skills-shimmying-wombat.md` — plan approved 2026-07-16,
