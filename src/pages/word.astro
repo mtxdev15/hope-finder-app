@@ -23,6 +23,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
   activeTab="word"
 >
   <main class="word">
+    {/* The page's real heading. /word previously had none — the only h1 in the
+        document came from the route loader's overlay, which is a status message,
+        not a title. Visually hidden because the visible "The Word" title belongs
+        to the library view and disappears in the reader overlay, so it cannot
+        serve as the page heading. Reuses the existing word.title string rather
+        than adding a second key that would have to be kept in sync. sr-only, so
+        it stays in the server-rendered HTML and in the accessibility tree. */}
+    <h1 class="sr-only" data-i18n="word.title">The Word</h1>
     <div class="topglow" aria-hidden="true"></div>
     {/* global brightness dim — driven by the Reading-preferences slider; sits below the sheet */}
     <div class="appdim" id="appDim" aria-hidden="true"></div>
@@ -1014,6 +1022,11 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
   </script>
 
   <style is:global>
+    /* Accessible visually-hidden, same declaration as .journey .sr-only in
+       journey.astro. Scoped under .word on purpose: this block is is:global,
+       and an unscoped .sr-only would become a sitewide utility by accident. */
+    .word .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
     /* ──────────────────────────────────────────────────────────────────
        /word page styles — ported from TheWord.html's page-local <style>,
        namespaced (.word library / .w-reader overlay). Tokens + base

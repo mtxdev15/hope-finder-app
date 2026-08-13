@@ -16,6 +16,15 @@ import RateReview from '../components/RateReview.astro';
   activeTab="declare"
 >
   <main class="today">
+    {/* The page's real heading. /today previously had none at all — the only h1
+        in the document came from the route loader's overlay, which is a status
+        message, not a title. It is visually hidden because the visible lead line
+        below ("What's weighing on your heart?") is styled type rather than a
+        heading, and a second visible title would crowd a screen built for
+        someone reading at 3am. Hidden the accessible way: sr-only keeps it in
+        the server-rendered HTML and in the accessibility tree, unlike
+        display:none, visibility:hidden or aria-hidden. */}
+    <h1 class="sr-only" data-i18n="today.pageTitle">Today</h1>
     <div class="topglow" aria-hidden="true"></div>
 
     {/* ============ ENTRY (design: Today.html) ============ */}
@@ -931,6 +940,11 @@ import RateReview from '../components/RateReview.astro';
   </script>
 
   <style is:global>
+    /* Accessible visually-hidden, same declaration as .journey .sr-only in
+       journey.astro. Scoped under .today on purpose: this block is is:global,
+       and an unscoped .sr-only would become a sitewide utility by accident. */
+    .today .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
     /* ──────────────────────────────────────────────────────────────────
        /today page styles, brought over from the design source page-local
        <style> blocks (Today.html + Results.html). Base components (.input,

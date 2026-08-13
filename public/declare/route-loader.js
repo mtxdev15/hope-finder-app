@@ -45,7 +45,13 @@
         '<div class="rl-stack r"><span class="rl-lines"></span></div>' +
         '<div class="rl-spine"></div>' + leaves +
       '</div></div>' +
-    '<div class="rl-copy"><h1>' + (rlES() ? 'Buscando en la Palabra' : 'Searching the Word') + '<i>.</i><i>.</i><i>.</i></h1>' +
+    // Deliberately a div, not an h1. This overlay is appended to <body> once at
+    // script load and never removed (only hidden), so a heading here would sit
+    // in every page's document outline permanently and compete with the page's
+    // real h1. The overlay itself already carries role="status" + aria-live
+    // above, which is what actually announces this text — a second live region
+    // nested inside it would announce twice.
+    '<div class="rl-copy"><div class="rl-title">' + (rlES() ? 'Buscando en la Palabra' : 'Searching the Word') + '<i>.</i><i>.</i><i>.</i></div>' +
       '<div class="rl-verse"></div></div>' +
     '<div class="rl-seek" aria-hidden="true"></div>';
 
