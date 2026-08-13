@@ -113,10 +113,14 @@ html[data-theme="light"] .rl-shadow{ background:radial-gradient(ellipse, rgba(60
 .rl-copy{ position:relative; z-index:2; margin-top:54px; text-align:center;
   animation:rl-copyin 1s cubic-bezier(.2,.7,.2,1) .4s both; }
 @keyframes rl-copyin{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
-.rl-copy h1{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:26px; letter-spacing:.01em; white-space:nowrap; margin:0; }
-.rl-copy h1 i{ font-style:normal; opacity:.25; animation:rl-blink 1.5s infinite; }
-.rl-copy h1 i:nth-of-type(2){ animation-delay:.22s; }
-.rl-copy h1 i:nth-of-type(3){ animation-delay:.44s; }
+/* .rl-title was an h1 until the duplicate-heading fix; the overlay is permanent
+   in the DOM, so a heading here polluted every page's outline. Styling is
+   unchanged — margin:0 still matters because a div has no UA margin to reset
+   but the declaration is harmless and keeps this rule identical to before. */
+.rl-copy .rl-title{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:26px; letter-spacing:.01em; white-space:nowrap; margin:0; }
+.rl-copy .rl-title i{ font-style:normal; opacity:.25; animation:rl-blink 1.5s infinite; }
+.rl-copy .rl-title i:nth-of-type(2){ animation-delay:.22s; }
+.rl-copy .rl-title i:nth-of-type(3){ animation-delay:.44s; }
 @keyframes rl-blink{ 0%,80%,100%{ opacity:.25;} 40%{ opacity:1;} }
 
 .rl-verse{ height:20px; margin-top:13px; position:relative; }
@@ -132,7 +136,7 @@ html[data-theme="light"] .rl-shadow{ background:radial-gradient(ellipse, rgba(60
 @keyframes rl-seekx{ 0%{ transform:translateX(-120%);} 100%{ transform:translateX(330%);} }
 
 @media (prefers-reduced-motion: reduce){
-  .rl-overlay::before,.rl-leaf,.rl-copy h1 i,.rl-seek::before,.rl-mark,.rl-book,.rl-scene,.rl-shadow,.rl-copy,.rl-seek,.rl-shade{ animation:none !important; }
+  .rl-overlay::before,.rl-leaf,.rl-copy .rl-title i,.rl-seek::before,.rl-mark,.rl-book,.rl-scene,.rl-shadow,.rl-copy,.rl-seek,.rl-shade{ animation:none !important; }
   .rl-mark,.rl-book,.rl-copy,.rl-seek{ opacity:1; transform:none; }
   .rl-leaf{ opacity:0; } .rl-leaf:nth-child(3){ opacity:1; transform:rotateY(-95deg); }
   .rl-verse span:first-child{ opacity:1; transform:none; }

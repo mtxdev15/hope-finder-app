@@ -65,6 +65,9 @@ window.__I18N_STRINGS = {
     'chip.griefLoss': 'Duelo y pérdida',
 
     /* ---- /today ---- */
+    /* Visually-hidden page-level h1. Short on purpose: it names the page, it is
+       not the visible lead line (that stays today.heading). */
+    'today.pageTitle': 'Hoy',
     'today.heading': '¿Qué pesa en tu corazón?',
     'today.sub': 'Nómbralo, y recibe Su Palabra para este momento.',
     'today.placeholder': 'O escribe lo que hay en tu corazón…',
