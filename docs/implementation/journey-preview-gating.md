@@ -50,8 +50,14 @@ real users took it.
 `src/pages/journey.astro` frontmatter:
 
 ```js
-const JOURNEY_DEV_TOOLS = import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
+const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
 ```
+
+The `import.meta.env.DEV` term is the load-bearing half. The env var alone is
+not a sufficient guard, because a stray `PUBLIC_JOURNEY_DEV_TOOLS=1` in a
+Cloudflare Pages build setting, a CI environment, or a `.env.local` would ship
+the bypass. `DEV` is false in every `astro build`, so a production build cannot
+contain the control even when the flag is deliberately set.
 
 The button is wrapped in an Astro template conditional, so without the flag the
 markup is never emitted. There is no hidden element to unhide, no `disabled`
@@ -63,7 +69,7 @@ The standalone `previewTomorrow()` function was deleted. Its body now lives only
 inside a build-time branch next to the listener:
 
 ```js
-if (import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1') {
+if (import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1') {
   const lnPreviewBtn = $('lnPreview');
   if (lnPreviewBtn) lnPreviewBtn.addEventListener('click', function () {
     const m = loadLock();
@@ -98,13 +104,23 @@ sufficient: the button was right there on screen.
 
 | Environment | Flag | Control |
 |---|---|---|
-| Production (Cloudflare Pages) | absent | **not built** |
-| Local development | `PUBLIC_JOURNEY_DEV_TOOLS=1` in `.env.local` | present, labelled `Internal:` |
-| Internal review build | same flag, set explicitly for that build | present, labelled `Internal:` |
+| Production (`astro build`) | absent | **not built** |
+| Production (`astro build`) | **`=1`, set by mistake** | **still not built** (`DEV` is false) |
+| Local development | `PUBLIC_JOURNEY_DEV_TOOLS=1 npm run dev` | present, labelled `Internal:` |
+| Local development | same flag in `.env.development.local` | present, labelled `Internal:` |
 
-`.env.local` and `.env.production` are gitignored, so the flag is off in
-production purely by absence. No file in the repository turns it on. It must not
-be added to Cloudflare Pages build settings.
+Enable it locally with an inline variable:
+
+```bash
+PUBLIC_JOURNEY_DEV_TOOLS=1 npm run dev
+```
+
+or in `.env.development.local`, which Vite loads **only** in dev mode.
+
+**Do not use `.env.local`.** Vite loads that file in every mode, production
+builds included, so a flag left there could otherwise ship. Do not add the
+variable to Cloudflare Pages build settings either. The `DEV` term means neither
+mistake can actually ship the control, but neither should be relied on.
 
 The `journey.previewTomorrow` i18n string is retained, because the internal build
 still renders the button in both languages. The `Internal:` prefix is plain

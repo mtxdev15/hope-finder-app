@@ -57,7 +57,25 @@ behavior.
 
 ---
 
-## 3. Internal build (`PUBLIC_JOURNEY_DEV_TOOLS=1`)
+## 2b. Production build with the flag deliberately set
+
+The guard is `import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1'`.
+The env var alone would not be enough, because a stray value in a Cloudflare
+Pages build setting, a CI environment, or a `.env.local` (which Vite loads in
+every mode) would ship the bypass. Tested the failure case explicitly by running
+a production build **with** the flag set:
+
+| Check | `PUBLIC_JOURNEY_DEV_TOOLS=1 npm run build` |
+|---|---|
+| `lnPreview` in `dist/journey/index.html` | **0** |
+| `previewTomorrow` in journey bundle | **0** |
+| `2000-01-01` in journey bundle | **0** |
+| `lnPreview` in journey bundle | **0** |
+
+`import.meta.env.DEV` is false in every `astro build`, so the branch folds to
+`false` and esbuild drops it regardless of the variable.
+
+## 3. Dev mode (`PUBLIC_JOURNEY_DEV_TOOLS=1 npm run dev`)
 
 | Check | Result |
 |---|---|
