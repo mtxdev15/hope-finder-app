@@ -5,6 +5,18 @@
 // vault-store saves, the Worker-backed JourneyEngine (authored bank fallback),
 // device-local pacing lock + active-journey persistence, DeclareShare stack.
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+
+// Internal QA affordance. "Preview tomorrow" permanently defeats the one-day
+// pacing lock (it stamps the lock date with a sentinel that can never equal
+// today), so it must never reach a real user. This is a BUILD-TIME flag: when
+// PUBLIC_JOURNEY_DEV_TOOLS is absent, the button's markup is not emitted at
+// all, so there is no control to unhide and no listener to trigger. It is
+// deliberately not a runtime check, a CSS rule, or a disabled attribute —
+// each of those still ships the control. Set it only in a local .env.local,
+// never in Cloudflare Pages build settings. Matches the PUBLIC_AUTH_PROVIDERS
+// convention in src/app/declare/auth-modal.js, which likewise decides at build
+// time which controls exist.
+const JOURNEY_DEV_TOOLS = import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
 ---
 <DeclareLayout
   title="Declare — Journey"
@@ -95,7 +107,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
               <input type="time" id="lnTimeInput" value="07:00" />
               <button class="btn btn-primary" id="lnTimeSave" style="flex:1; padding:9px;" data-i18n="journey.saveReminder">Save reminder</button>
             </div>
-            <button class="ln-preview" id="lnPreview"><span data-i18n="journey.previewTomorrow">Preview tomorrow</span> &rarr;</button>
+            {JOURNEY_DEV_TOOLS && (
+              <button class="ln-preview" id="lnPreview">Internal: <span data-i18n="journey.previewTomorrow">Preview tomorrow</span> &rarr;</button>
+            )}
           </div>
         </section>
 
@@ -564,7 +578,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     function clearInstance() { try { localStorage.removeItem(instKey()); } catch (e) {} }
     function setReminderOnly(time) { const m = loadLock(); const prev = m[active.id] || { date: todayStr() }; prev.time = time; m[active.id] = prev; saveLock(m); }
-    function previewTomorrow() { const m = loadLock(); if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); } }
+    // previewTomorrow() used to live here, unguarded. It is now defined only
+    // inside the internal-build branch further down, so the production bundle
+    // contains no function that can defeat the pacing lock.
     function isLocked() { const l = lockFor(); return !!(l && l.date === todayStr() && state.day <= TOTAL); }
     function fmtTime(t) { if (!t) return ''; const p = t.split(':'); let h = parseInt(p[0], 10); const m = p[1] || '00'; const ap = h < 12 ? (esL() ? 'a. m.' : 'AM') : (esL() ? 'p. m.' : 'PM'); let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + m + ' ' + ap; }
     function untilTomorrow() { const now = new Date(); const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0); const ms = mid - now; const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000); return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'); }
@@ -655,7 +671,26 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
     $('lnEdit').addEventListener('click', function () { const b = $('lnEditBox'); b.style.display = b.style.display === 'none' ? 'flex' : 'none'; });
     $('lnTimeSave').addEventListener('click', function () { const t = $('lnTimeInput').value || '07:00'; setReminderOnly(t); renderLockNote(); toast((esL() ? 'Recordatorio a las ' : 'Reminder set for ') + fmtTime(t)); });
-    $('lnPreview').addEventListener('click', function () { previewTomorrow(); renderHome(); toast(esL() ? ('Mañana ha llegado — el Día ' + state.day + ' está abierto') : ('Tomorrow has come — Day ' + state.day + ' is open')); });
+    // Internal QA only — the one control that can defeat the one-day pacing lock.
+    //
+    // The condition is read straight from import.meta.env rather than through a
+    // variable, on purpose: Vite substitutes the literal at build time, so with
+    // the flag unset this folds to `if (false)` and esbuild drops the whole
+    // branch. The production bundle therefore ships no unlock function and no
+    // sentinel date, not merely a hidden button. Verified by grepping dist/.
+    //
+    // The null check is also load-bearing: #lnPreview is absent in a production
+    // build, and an unguarded addEventListener on null would throw here and abort
+    // the rest of init(), taking the whole Journey page down.
+    if (import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1') {
+      const lnPreviewBtn = $('lnPreview');
+      if (lnPreviewBtn) lnPreviewBtn.addEventListener('click', function () {
+        const m = loadLock();
+        if (m[active.id]) { m[active.id].date = '2000-01-01'; saveLock(m); }
+        renderHome();
+        toast(esL() ? ('Mañana ha llegado — el Día ' + state.day + ' está abierto') : ('Tomorrow has come — Day ' + state.day + ' is open'));
+      });
+    }
 
     // Reads the (untouched, not-mirrored) per-journey instance cache left behind
     // by a completed Journey — read-only, no write, no shape change. Returns a
