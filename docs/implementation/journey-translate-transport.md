@@ -295,10 +295,12 @@ objects; every forbidden key including case variants; size limits at and over th
 between browser and server across six samples; and dedup identity, including the check that **identical
 content under two different accounts produces different keys**.
 
-**Honest scope note.** `npx convex codegen` uploads functions to the **dev** deployment
-(`dev:good-dotterel-906`) as part of typechecking — that is how it validates. Production
-(`keen-hamster-650`) was not touched, and no `--prod` flag was used. If dev should also stay untouched,
-say so and I will avoid codegen in future.
+**Correction to an earlier note.** I previously wrote that `npx convex codegen` "uploads functions to
+the dev deployment". That overstated it: codegen uploads a bundle for TYPECHECKING but does not publish
+callable functions — `npx convex run journeyTranslate:claimInternal` against dev failed with
+"Could not find function" until an explicit `npx convex dev --once`. Dev was therefore less affected
+than I first reported. The dev push that DID publish functions was deliberate, for the boundary tests
+below, which is where you asked those tests to live.
 
 **Not verified locally, because it needs a live deployment:** the reservation lifecycle against real
 Convex documents, the Worker secret check, concurrency behaviour under genuine parallel requests, and
@@ -312,7 +314,7 @@ the model call itself. Those are section 12.
 |---|---|---|
 | Secret mismatch | every translation returns `translation-unavailable`; Worker logs 403s | Re-set both sides to the same value. No data written, no quota consumed. |
 | Worker route bad | 502s | Roll back the Worker: `wrangler rollback` or redeploy the previous commit. The route is additive, so removing it restores exactly the prior behaviour. |
-| Convex action bad | action errors | `npx convex deploy` from the previous commit. |
+| Convex action bad | action errors | `npx convex deploy` from the previous commit (interactive, needs a TTY). |
 | Quota too tight | users see `translation-in-progress` or limit reasons | Constants are in one file; raise and redeploy Convex only. |
 | Model output poor | Spanish quality complaints | No rollback needed — nothing is wired to a surface yet. |
 
@@ -349,8 +351,12 @@ npx convex env set JOURNEY_TRANSLATE_SECRET "SECRET" --prod
 npx convex env set JOURNEY_TRANSLATE_URL \
   "https://hope-finder-worker.thinktoro.workers.dev/internal/journey/translate" --prod
 
-# 6. Deploy Convex FROM release-c1-monetization, never from main
-npx convex deploy --prod
+# 6. Deploy Convex FROM release-c1-monetization, never from main.
+#    NOTE: `convex deploy` has NO --prod flag (that flag exists for env/run/data).
+#    With CONVEX_DEPLOYMENT set, plain `convex deploy` targets the project's
+#    PRODUCTION deployment. It prompts for confirmation and needs a real TTY,
+#    so run it yourself:  ! npx convex deploy
+npx convex deploy
 
 # 7. Authenticated production verification with a DEDICATED TEST ACCOUNT
 # 8. Confirm no Journey surface calls the action. Stop before Steps 5-9.
