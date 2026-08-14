@@ -1,7 +1,8 @@
 # Spanish Journey Phase — Technical Plan
 
-**Status:** plan and prototypes complete, awaiting review. **No production
-Journey code has been changed.** `journey.astro`, `journey-engine.js`, cache
+**Status:** prototypes reviewed and **approved with required revisions, now
+incorporated.** Production implementation is the next phase and has not begun.
+**No production Journey code has been changed.** `journey.astro`, `journey-engine.js`, cache
 behaviour, prompts and schema are untouched; no Convex or Worker deploy was
 performed.
 
@@ -39,13 +40,19 @@ Today: `instKey()` is `'db_journey_inst:' + active.id` (`journey.astro:538`).
 One record per journey, no language, with a soft `lang` field that is skipped
 entirely when absent.
 
-**Proposed:**
+**Proposed — versioned locale identity:**
 
 ```
-db_journey_inst:<journeyId>:<lang>      // en | es
+db_journey_locale:<instance>:day<day>:<sourceLocale>:<displayLocale>:<sourceHash>:v1
 ```
 
-One record per journey **per language**. A Spanish reader and an English reader
+Keying only by journey, day and language is not enough: an old Spanish
+translation would survive after the original content changed, or after the
+translation rules changed. The **source-content hash** invalidates a copy when
+the English it was derived from changes, and the **schema version** invalidates
+every copy at once when the translation contract changes.
+
+One record per journey **per day per locale pair**. A Spanish reader and an English reader
 of the same journey never share a record, so there is no path by which one
 language's content can be served to the other. This replaces the soft guard
 rather than patching it: the guard failed open, a key cannot.
@@ -93,7 +100,7 @@ So a Spanish view of a completed English day must be a **Spanish rendering of
 that same day**, not a different day:
 
 ```
-db_journey_day:<journeyId>:<dayIndex>:<lang>    // display copy
+db_journey_locale:<instance>:day<day>:<sourceLocale>:<displayLocale>:<sourceHash>:v1
 ```
 
 - The `en` copy is whatever they originally walked. Immutable. Never written
@@ -104,6 +111,30 @@ db_journey_day:<journeyId>:<dayIndex>:<lang>    // display copy
   That would be a lie about their own history.
 - Switching back to English reads the `en` copy and restores the original
   exactly, because it was never mutated.
+
+### Translation is a faithful transformation, not a generation
+
+The operation must preserve the original meaning, paragraph and section
+boundaries, and Scripture references. It must add no new pastoral advice and no
+theology, remove no warning or support language, return structured fields, run
+at low-variance settings, and never rewrite the original English record.
+
+### Dedicated transport, not the `/today` allowance
+
+Completed-day translation must **not** share the 10 requests/IP/minute limit
+used by `/today`. On a shared network that would let unrelated features block
+each other. Required:
+
+- a dedicated translation operation or quota
+- authenticated user-level limiting where possible
+- one translation request at a time
+- single-flight deduplication, so repeated taps cannot create duplicates
+- on demand, one completed day at a time, **no eager five-day backfill**
+- successful translations cached
+- retry backoff after failure
+
+**Only Journey-authored content may be sent.** The person's reflection, prayer
+entry and any other user-written text are never sent to the translation service.
 
 **Only prose is translated.** `title`, `fruitTruth`, prayer, declaration,
 commentary, encouragement, reflection prompts.
@@ -208,8 +239,10 @@ skeleton and fill in, rather than open on stale content.
 
 Three distinct states, all authored in Spanish, none falling back to English:
 
-1. **Loading** — the existing skeleton copy, "Jesús está preparando el camino
-   para hoy."
+1. **Loading** — "Estamos preparando el camino de hoy con cuidado."
+   (The existing skeleton copy said "Jesús está preparando el camino para hoy";
+   that is retired, because the content is AI-assisted and the system must not
+   speak as Jesus.)
 2. **Failed** — a real Spanish error with a retry affordance. Something plain and
    pastoral, not a stack trace, and not an apology that implies God is absent.
    Copy to be approved with the prototypes.
@@ -241,6 +274,12 @@ invalidation:
 2. Load `db_journey_inst:<id>:<newLang>` if present.
 3. Otherwise show the skeleton and produce the locale copy.
 4. Re-render whatever surface is currently open, including an open `#dayflow`.
+
+**State that must survive the switch:** the same Journey, the same day, the same
+ritual step, completion and pacing. The content surface is replaced **atomically**
+so no mixed-language intermediate frame can appear. Focus returns to the
+corresponding section after loading, scroll context is preserved where practical,
+and switching back renders the original English record exactly.
 
 Switching is then symmetric: `es → en` restores the untouched original English,
 `en → es` shows the Spanish copy. No reload required, and no partially-swapped
@@ -302,18 +341,27 @@ Plus the final Spanish failure, retry and waiting copy, and an annotation legend
 
 | State | Copy |
 |---|---|
-| Preparing | Jesús está preparando el camino para hoy. |
-| Preparing (card) | Personalizando tu camino… |
-| Generation failed | **No pudimos preparar este día.** Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo. |
-| Scripture failed | **No pudimos traer el versículo.** Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa precisión. |
+| Preparing | Estamos preparando el camino de hoy con cuidado. |
+| Preparing (card) | Preparando tu camino de hoy… |
+| Generation failed | **No pudimos preparar este día.** Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo. |
+| Scripture unavailable | **No pudimos verificar el versículo en este momento.** Preferimos esperar antes que mostrar un texto no confirmado. La Palabra merece esa precisión. |
 | Retry | Intentar de nuevo |
-| Continue later | Seguir más tarde |
+| Continue later | Volver más tarde |
 | Back to current Journey | Volver al camino de hoy |
 
-Tone rule: name the technical failure plainly, never imply God is absent or that
-the person did something wrong. "Tu camino sigue guardado" answers the real fear
-at a failure screen, which is losing progress. The Scripture failure states *why*
-the verse is withheld, which turns a limitation into the product's integrity.
+**Tone rules.** Name the technical failure plainly; never imply God is absent or
+that the person did something wrong.
+
+**The system never speaks as Jesus.** The earlier draft read "Jesús está
+preparando el camino para hoy." The content is AI-assisted, so that wording
+would attribute authorship to Jesus. "Estamos preparando el camino de hoy con
+cuidado" keeps the pastoral register while saying who is actually doing the
+work. This is a standing constraint on all Spanish and English Journey copy, not
+a one-off edit.
+
+"Tu camino sigue guardado" answers the real fear at a failure screen, which is
+losing progress. The Scripture state says *why* we wait, which turns a
+limitation into the product's integrity rather than an apology.
 
 ---
 
@@ -336,6 +384,19 @@ The rest is plumbing that stops English leaking through.
 
 ---
 
+## 10b. Persistence limitation, stated plainly
+
+Journey content is **not** stored in Convex. The first implementation therefore
+creates locale copies in **browser storage only**. That means:
+
+- Spanish display copies are **device-local**
+- another browser may need to prepare the translation again
+- progress and completion remain account-level where currently supported
+- **cross-device synchronisation of locale copies is deferred**
+
+Nothing in the product or its copy may imply that translated completed days sync
+across devices until that actually exists.
+
 ## 11. Unresolved technical dependencies
 
 Each of these must be closed before or during implementation. None blocks the
@@ -343,10 +404,10 @@ prototypes, which are complete.
 
 | # | Dependency | Blocks | Needs |
 |---|---|---|---|
-| 1 | **RVR1909 source identifier is unverified.** `worker/src/index.js:28` says to confirm it against `GET /v1/bibles?language=spa` before deploying. | All Spanish Scripture rendering | API check, then a **Worker deploy** — its own approval. Explicitly *not* a prototype blocker, and no deploy should happen merely to finish visuals. |
-| 2 | **No single-verse endpoint.** The Worker proxies chapters (`/bible?translation=&book=&chapter=`) and search. A verse must be extracted from a chapter payload. | `fetchVerse()` | Decide: extract client-side from the chapter (no Worker change), or add a verse route (Worker change + deploy). Extraction is preferred, since it avoids a deploy. |
+| 1 | ~~RVR1909 source identifier unverified~~ **RESOLVED.** Verified against the live API through the already-deployed Worker, read-only, **no deploy performed**. Returns `translation: "RVR1909"`, localized book names (`Salmos`, `San Juan`, `Isaías`), no copyright/FUMS field, and `400 {"error":"Invalid chapter."}` on a bad chapter. Confirmed across Psalms, John and Isaiah. | nothing | Remaining: attach the returned `translation` value as provenance rather than hardcoding a label. Update the stale "CONFIRM this id" comment at `worker/src/index.js:28` when the Worker is next touched. |
+| 2 | **No single-verse endpoint.** The Worker returns whole chapters as `{reference, translation, book, chapter, verses:[{n,t}]}`. Verified shape. | shared extractor | **Decided: extract client-side**, no Worker change and no deploy. Put it in one shared, tested utility — validating book, chapter, verse and optional ranges — rather than duplicating logic inside `journey.astro`. |
 | 3 | **Reference → USFM mapping for Spanish input.** `src/data/usfm.js` is keyed by English book names; the Journey's references are English, so this works, but it needs the same `BOOK_ALIASES` normalisation already used by `passageLink()`. | `fetchVerse()` | Reuse existing maps; no new data. |
-| 4 | **Translation transport is unspecified.** Translating completed-day prose needs a model call. The existing Worker proxy is a blind pass-through with a 10 req/IP/min limit shared with `/today`. | Completed-day locale copies | Decide whether translation reuses that path and how the rate limit is handled for a 5-day backfill. |
+| 4 | **Translation needs a dedicated transport.** It must not share the 10 req/IP/min `/today` allowance, or unrelated features block each other on a shared network. | Completed-day locale copies | Design a dedicated operation/quota with user-level limiting, one-at-a-time, single-flight dedup, caching and backoff. Likely a Worker change, so its own approval. |
 | 5 | **`BRIEF_ES` / `ARC_ES` do not exist.** ~250 lines of pastoral Spanish; the current Spanish prompt is bilingual because it injects English `BRIEF`/`ARC`. | Quality of Spanish generation | Content authoring, plus native es-LA review. |
 | 6 | **`max_tokens: 1500` truncates Spanish**, which runs ~20-25% longer. Truncation currently returns null and silently fell back to English. | Generation reliability | Raise for `es`, check `stop_reason`. |
 | 7 | **No test runner.** `package.json` has four scripts; there is no lint, test, typecheck or E2E. | Repeatable Test A / Test B | Either accept scripted browser passes, or add a runner as its own decision. |

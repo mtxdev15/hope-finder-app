@@ -121,11 +121,15 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
   appear anywhere in this document.</p>
 
   <div class="warn">
-    <b>Scripture shown here is a clearly-marked sample.</b> The RVR1909 source identifier in
-    <code>worker/src/index.js</code> has never been confirmed against the live API, and confirming it
-    requires a Worker deploy. That is a <b>production implementation blocker, not a prototype
-    blocker</b>. Every verse below is tagged <span class="chip sample" style="display:inline-block">Muestra</span>
-    to make clear the live Bible integration is <b>not</b> complete. No sample text is labelled RVR1909.
+    <b>The RVR1909 source identifier is now verified.</b> It was confirmed against the live API
+    through the <b>already-deployed</b> Worker, read-only, with <b>no deploy performed</b>: it returns
+    <code>translation: "RVR1909"</code>, localized book names, no copyright/FUMS field, and a clean
+    <code>400 {"error":"Invalid chapter."}</code>. Spanish verses below are the <b>real fetched
+    text</b>, tagged <span class="chip verified" style="display:inline-block">Verificado</span>.
+    <br /><br />
+    <b>The integration itself is still not built.</b> There is no shared verse-extraction utility and
+    nothing in the Journey fetches Scripture yet. A verified <i>source</i> is not a finished
+    <i>feature</i>, and nothing here should be read as evidence that it is.
   </div>
 
   <div class="toolbar">
@@ -149,7 +153,7 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
           <div class="sk l2"></div><div class="sk l2"></div><div class="sk l3"></div>
         </div>
         <div class="sk blk"></div>
-        <p class="skmsg">Jesús está preparando el camino para hoy.</p>
+        <p class="skmsg">Estamos preparando el camino de hoy con cuidado.</p>
       </div>
       <div class="foot"><button class="cta" disabled>Preparando…</button></div>
     </div>
@@ -159,7 +163,7 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
         <dt>Estado</dt><dd><b>Cargando.</b> The screen opens on the skeleton and fills in. It never opens on stale content.</dd>
         <dt>Display locale</dt><dd><code>es</code></dd>
         <dt>Source locale</dt><dd>not yet known — nothing is rendered until the <code>es</code> copy exists</dd>
-        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code> — miss</dd>
+        <dt>Cache key</dt><dd><code>db_journey_locale:&lt;instance&gt;:day1:es:es:&lt;sourceHash&gt;:v1</code> — miss</dd>
         <dt>English bank</dt><dd><b>Never display content when locale is <code>es</code>.</b> This is the single rule that removes the reported bug.</dd>
         <dt>Why</dt><dd>Today Day-Opening calls no generator and opens 380&nbsp;ms after commit, so a Spanish reader sees the English bank on the first screen of Day&nbsp;1.</dd>
         <dt>Motion</dt><dd>Shimmer is suppressed under <code>prefers-reduced-motion</code>; the skeleton stays as flat blocks.</dd>
@@ -180,11 +184,10 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
         <div class="dtitle serif">Nombra el temor</div>
         <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
         <div class="card">
-          <div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
-          <p class="verse">“En el día que temo, yo en ti confío.”</p>
+          <div class="vref">Salmos 56:3 · RVR1909</div>
+          <p class="verse">“En el día que temo, Yo en ti confío.”</p>
           <div class="chips">
-            <span class="chip sample">Muestra · sin verificar</span>
-            <span class="chip">Versión: pendiente</span>
+            <span class="chip verified">Fuente verificada</span>
           </div>
         </div>
         <p class="prose">La voz interior dice: “no te muevas”. Eso no es sabiduría, es una jaula.
@@ -198,8 +201,8 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <dl>
         <dt>Display locale</dt><dd><code>es</code></dd>
         <dt>Source locale</dt><dd><code>es</code> — generated in Spanish, not translated</dd>
-        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code> — hit</dd>
-        <dt>Scripture provenance</dt><dd>In production: fetched from the verified Bible source, and the version label is set <b>only</b> from that response. Here it is a sample, so the label reads <b>“pendiente”</b>, never RVR1909.</dd>
+        <dt>Cache key</dt><dd><code>db_journey_locale:&lt;instance&gt;:day1:es:es:&lt;sourceHash&gt;:v1</code> — hit</dd>
+        <dt>Scripture provenance</dt><dd>The version label is set <b>only</b> from the source response. This text was fetched live from the verified source. <b>No provenance, no version label</b> — and no quotation at all.</dd>
         <dt>Prose provenance</dt><dd><code>generated:es</code></dd>
         <dt>Hard rule</dt><dd>No fetch, no quotation. An unverified verse is never rendered and never labelled.</dd>
         <dt>Version display</dt><dd>The version sits beside the reference so a reader always knows which translation they are reading.</dd>
@@ -235,7 +238,7 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
           <div class="vref" style="margin-top:14px">La jornada de hoy</div>
           <div class="sk l2" style="margin-top:8px"></div>
           <div class="sk l3"></div>
-          <p class="skmsg" style="margin-top:6px;font-size:12px">Personalizando tu camino…</p>
+          <p class="skmsg" style="margin-top:6px;font-size:12px">Preparando tu camino de hoy…</p>
           <div class="dots"><i class="done"></i><i class="cur"></i><i></i><i></i><i></i></div>
         </div>
       </div>
@@ -248,7 +251,7 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
         <dt>Preview hoy</dt><dd>Renders the English bank for all five days and <b>never</b> generates. Here, days without an <code>es</code> copy show the skeleton instead.</dd>
         <dt>Today card hoy</dt><dd>Shows English text under a Spanish shimmer, then swaps. On failure the English is left as the final state. Here the content area stays a skeleton until the <code>es</code> copy is ready.</dd>
         <dt>Display locale</dt><dd><code>es</code> on both surfaces</dd>
-        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code>; per-day copies at <code>db_journey_day:&lt;journeyId&gt;:&lt;dayIndex&gt;:es</code></dd>
+        <dt>Cache key</dt><dd><code>db_journey_locale:&lt;instance&gt;:day&lt;day&gt;:&lt;src&gt;:es:&lt;sourceHash&gt;:v1</code> — versioned, so a stale copy cannot survive a content or rules change</dd>
         <dt>Partial state</dt><dd>Days already prepared render; the rest hold the skeleton. A partially-ready Journey is honest, a half-English one is not.</dd>
         <dt>CTA</dt><dd>Disabled while content is unresolved, so the ritual is never entered on missing content.</dd>
       </dl>
@@ -264,19 +267,15 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
     <div class="screen">
       <div class="mast"><span class="bk">‹</span><span class="eyebrow">Repasando · Día 1 de 5</span></div>
       <div class="body">
-        <div class="chips" style="margin:0 0 12px">
-          <span class="chip locale">Original: inglés</span>
-          <span class="chip locale">Viendo: español</span>
-          <span class="chip">Solo lectura</span>
-        </div>
+        <p style="margin:0 0 14px;font-size:11.5px;line-height:1.5;color:var(--muted)">
+          Traducción al español del contenido original en inglés · Solo lectura</p>
         <div class="dtitle serif" style="font-size:25px">Nombra el temor</div>
         <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
         <div class="card">
-          <div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
-          <p class="verse">“En el día que temo, yo en ti confío.”</p>
+          <div class="vref">Salmos 56:3 · RVR1909</div>
+          <p class="verse">“En el día que temo, Yo en ti confío.”</p>
           <div class="chips">
-            <span class="chip sample">Muestra · sin verificar</span>
-            <span class="chip verified">Misma referencia que el original</span>
+            <span class="chip verified">Fuente verificada · misma referencia que el original</span>
           </div>
         </div>
         <div class="card">
@@ -284,12 +283,12 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
           <p class="prose" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15.5px">
             Padre, estoy cansado de fingir que no tengo miedo. Te lo traigo ahora, todo, y te pido que
             me encuentres aquí.</p>
-          <div class="chips"><span class="chip">Traducido del original</span></div>
+          
         </div>
         <div class="card">
           <div class="vref">Tu reflexión</div>
           <p class="prose">I kept saying I was fine. I wasn't.</p>
-          <div class="chips"><span class="chip">Tus palabras · sin traducir</span></div>
+          <div class="chips"><span class="chip">Tus palabras · Sin traducir</span></div>
         </div>
       </div>
       <div class="foot">
@@ -302,11 +301,15 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <dl>
         <dt>Source locale</dt><dd><code>en</code> — this day was walked in English and that never changes</dd>
         <dt>Display locale</dt><dd><code>es</code></dd>
-        <dt>Immutable original</dt><dd><code>db_journey_day:&lt;journeyId&gt;:0:en</code> — written once, never rewritten</dd>
-        <dt>Locale display copy</dt><dd><code>db_journey_day:&lt;journeyId&gt;:0:es</code> — a separate record</dd>
+        <dt>Immutable original</dt><dd><code>db_journey_locale:&lt;instance&gt;:day1:en:en:&lt;sourceHash&gt;:v1</code> — written once, never rewritten</dd>
+        <dt>Locale display copy</dt><dd><code>db_journey_locale:&lt;instance&gt;:day1:en:es:&lt;sourceHash&gt;:v1</code> — a separate record; the <code>en:es</code> pair and the source hash are both in the key</dd>
         <dt>Translation provenance</dt><dd><code>translatedFrom: en</code>. The prose is <b>translated</b>, never regenerated: a regenerated day would show content the person never walked, under a “Repasando” badge.</dd>
         <dt>Scripture provenance</dt><dd>The reference is preserved exactly. The Spanish verse is <b>fetched</b>, never model-translated. In production the label comes only from that response.</dd>
         <dt>Reflection</dt><dd>The user’s own words, shown as written, never translated, never regenerated, never overwritten. Rendered here in English on a Spanish screen on purpose.</dd>
+        <dt>Translation contract</dt><dd><b>Faithful transformation, not generation.</b> Preserves meaning, paragraph and section boundaries, and Scripture references. Adds no pastoral advice and no theology. Removes no warning or support language. Returns structured fields, runs at low variance, and never rewrites the English record.</dd>
+        <dt>Never sent</dt><dd>Only Journey-authored content is translated. The person’s reflection, prayer entry and any other user-written text are <b>never sent to the translation service</b>.</dd>
+        <dt>On demand</dt><dd>One completed day at a time, on a dedicated quota, single-flight deduplicated so repeated taps cannot create duplicates. No eager five-day backfill.</dd>
+        <dt>Device-local</dt><dd>Journey content is not stored in Convex, so this copy lives in browser storage. Another browser prepares it again. Progress and completion stay account-level where supported; cross-device sync of locale copies is <b>deferred</b>.</dd>
         <dt>Switch back</dt><dd>“Ver el original en inglés” reads the untouched <code>:en</code> record, so the original returns exactly.</dd>
         <dt>Language-neutral</dt><dd>Day number, reference, progress, returned count and completion are identical in both locales.</dd>
       </dl>
@@ -349,9 +352,9 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <div class="body">
         <div class="dtitle serif" style="font-size:23px">Name the fear</div>
         <div class="shift">Fear <span style="color:var(--goldd)">→</span> Courage</div>
-        <div class="card"><div class="vref">Psalm 56:3 · <span style="color:var(--clay)">sample</span></div>
+        <div class="card"><div class="vref">Psalm 56:3 · ESV</div>
           <p class="verse">“When I am afraid, I put my trust in you.”</p></div>
-        <div class="chips"><span class="chip locale">Display: en</span><span class="chip locale">Cache: …:en</span></div>
+        <div class="chips"><span class="chip locale">Display: en</span><span class="chip locale">Cache: …:en:en:…:v1</span></div>
       </div>
     </div>
     <div class="screen" style="min-height:430px">
@@ -368,9 +371,9 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <div class="body">
         <div class="dtitle serif" style="font-size:23px">Nombra el temor</div>
         <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
-        <div class="card"><div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
-          <p class="verse">“En el día que temo, yo en ti confío.”</p></div>
-        <div class="chips"><span class="chip locale">Display: es</span><span class="chip locale">Cache: …:es</span></div>
+        <div class="card"><div class="vref">Salmos 56:3 · RVR1909</div>
+          <p class="verse">“En el día que temo, Yo en ti confío.”</p></div>
+        <div class="chips"><span class="chip locale">Display: es</span><span class="chip locale">Cache: …:en:es:…:v1</span></div>
       </div>
     </div>
   </div>
@@ -380,10 +383,14 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
     <dl>
       <dt>Trigger</dt><dd><code>declare-lang</code>, already dispatched by the i18n engine. Journey currently subscribes in two places and both re-render the same unchanged content.</dd>
       <dt>After</dt><dd>One listener treats a language change as a <b>content invalidation</b>: drop in-memory content, load <code>…:&lt;newLang&gt;</code>, otherwise show the skeleton and prepare the copy, then re-render whatever surface is open, including an open ritual.</dd>
-      <dt>Cache behaviour</dt><dd>Separate records per locale mean a switch is a lookup, not a rewrite. Nothing is overwritten in either direction.</dd>
+      <dt>Cache behaviour</dt><dd>Separate versioned records per locale pair mean a switch is a lookup, not a rewrite. Nothing is overwritten in either direction.</dd>
       <dt>Symmetry</dt><dd><code>es → en</code> restores the untouched original. <code>en → es</code> shows the Spanish copy.</dd>
       <dt>No mixed screen</dt><dd>The transition state replaces content wholesale. There is no frame in which chrome and content disagree.</dd>
-      <dt>Language-neutral</dt><dd>Day, step, completion, returned count, slot, reflections and pacing do not move.</dd>
+      <dt>State preserved</dt><dd>The same Journey, the same day, the <b>same ritual step</b>, completion and pacing all survive the switch untouched.</dd>
+      <dt>Atomic swap</dt><dd>The entire content surface is replaced at once. There is no intermediate frame in which chrome and content disagree.</dd>
+      <dt>Focus</dt><dd>Focus returns to the corresponding section after loading, so a keyboard or screen-reader user is not dropped back to the top.</dd>
+      <dt>Scroll</dt><dd>Scroll context is preserved where practical.</dd>
+      <dt>Exact restore</dt><dd>Switching back renders the original English record byte-for-byte, because it was never mutated.</dd>
     </dl>
   </div>
 </section>
@@ -399,12 +406,12 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
         <div class="fail">
           <div class="ico">✻</div>
           <h3>No pudimos preparar este día</h3>
-          <p>Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo.</p>
+          <p>Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.</p>
         </div>
       </div>
       <div class="foot">
         <button class="cta">Intentar de nuevo</button>
-        <button class="cta ghost">Seguir más tarde</button>
+        <button class="cta ghost">Volver más tarde</button>
       </div>
     </div>
     <div class="screen" style="min-height:380px">
@@ -412,9 +419,9 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <div class="body">
         <div class="fail">
           <div class="ico">✻</div>
-          <h3>No pudimos traer el versículo</h3>
-          <p>Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa
-          precisión.</p>
+          <h3>No pudimos verificar el versículo</h3>
+          <p>No pudimos verificar el versículo en este momento. Preferimos esperar antes que mostrar
+          un texto no confirmado. La Palabra merece esa precisión.</p>
         </div>
       </div>
       <div class="foot">
@@ -427,19 +434,21 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
       <div class="tablewrap">
       <table>
         <tr><th>Estado</th><th>Español</th></tr>
-        <tr><td>Preparándose</td><td>Jesús está preparando el camino para hoy.</td></tr>
-        <tr><td>Preparándose (tarjeta)</td><td>Personalizando tu camino…</td></tr>
-        <tr><td>Falló la preparación</td><td><b>No pudimos preparar este día.</b> Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo.</td></tr>
-        <tr><td>Falló la Escritura</td><td><b>No pudimos traer el versículo.</b> Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa precisión.</td></tr>
+        <tr><td>Preparándose</td><td>Estamos preparando el camino de hoy con cuidado.</td></tr>
+        <tr><td>Preparándose (tarjeta)</td><td>Preparando tu camino de hoy…</td></tr>
+        <tr><td>Falló la preparación</td><td><b>No pudimos preparar este día.</b> Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.</td></tr>
+        <tr><td>Escritura sin verificar</td><td><b>No pudimos verificar el versículo en este momento.</b> Preferimos esperar antes que mostrar un texto no confirmado. La Palabra merece esa precisión.</td></tr>
         <tr><td>Reintentar</td><td>Intentar de nuevo</td></tr>
-        <tr><td>Continuar después</td><td>Seguir más tarde</td></tr>
+        <tr><td>Continuar después</td><td>Volver más tarde</td></tr>
         <tr><td>Volver al camino actual</td><td>Volver al camino de hoy</td></tr>
       </table>
       </div>
-      <p style="margin:14px 0 0;font-size:12.5px;color:var(--text2)">Tone rule: the copy names the
+      <p style="margin:14px 0 0;font-size:12.5px;color:var(--text2)">Tone rules. The copy names the
       technical failure plainly and never implies God is absent or that the person did something wrong.
-      “Tu camino sigue guardado” is doing real work — the most likely fear at a failure screen is losing
-      progress. The Scripture failure states <i>why</i> we withhold the verse, which turns a limitation
+      <b>The system never speaks as Jesus:</b> “Estamos preparando” says who is actually doing the
+      work, because the content is AI-assisted and wording it as Jesus preparing the day would
+      misattribute authorship. “Tu camino sigue guardado” answers the real fear at a failure screen,
+      which is losing progress. The Scripture state says <i>why</i> we wait, which turns a limitation
       into the product’s integrity.</p>
     </div>
   </div>
@@ -452,8 +461,9 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
   <div class="tablewrap">
   <table>
     <tr><th>Term</th><th>Meaning</th><th>Shape</th></tr>
-    <tr><td>Cache key</td><td>One content record per Journey <b>per language</b>. A key cannot fail open the way a soft field can.</td><td><code>db_journey_inst:&lt;journeyId&gt;:&lt;lang&gt;</code></td></tr>
-    <tr><td>Per-day copy</td><td>Display copy of one day in one locale.</td><td><code>db_journey_day:&lt;journeyId&gt;:&lt;dayIndex&gt;:&lt;lang&gt;</code></td></tr>
+    <tr><td>Locale cache identity</td><td><b>Versioned.</b> Keying only by journey, day and language would let an old Spanish translation survive after the original content or the translation rules changed. The source-content hash and schema version make that impossible.</td><td><code>db_journey_locale:&lt;instance&gt;:day&lt;day&gt;:&lt;src&gt;:&lt;dst&gt;:&lt;sourceHash&gt;:v1</code></td></tr>
+    <tr><td>Source hash</td><td>Hash of the original content the translation was derived from. Changes invalidate the copy.</td><td><code>&lt;sourceHash&gt;</code></td></tr>
+    <tr><td>Schema version</td><td>Bumped when translation rules change, invalidating every prior copy.</td><td><code>v1</code></td></tr>
     <tr><td>Source locale</td><td>The language a day was originally produced in. Never changes.</td><td><code>sourceLocale: en | es</code></td></tr>
     <tr><td>Display locale</td><td>The language currently being shown. Changes freely.</td><td><code>displayLocale: en | es</code></td></tr>
     <tr><td>Translation provenance</td><td>Marks prose derived from another locale’s record.</td><td><code>translatedFrom: en</code></td></tr>
@@ -464,6 +474,9 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
     <tr><td>Retry state</td><td>Visible Spanish failure with a retry action. Never silent degradation to English.</td><td>—</td></tr>
     <tr><td>Language-switch event</td><td>Treated as content invalidation, not a re-render.</td><td><code>declare-lang</code></td></tr>
     <tr><td>Legacy adoption</td><td>A record predating the locale field is adopted as English and marked as such — never silently claimed as Spanish.</td><td><code>sourceLocale: en</code> + <code>localeStatus: legacy-adopted</code></td></tr>
+    <tr><td>Translation transport</td><td><b>Dedicated quota, not the <code>/today</code> allowance.</b> One request at a time, single-flight deduplicated, on demand for one day only, cached on success, backoff after failure. Only Journey-authored content is ever sent.</td><td>—</td></tr>
+    <tr><td>Never translated</td><td>The person’s reflection, prayer entry and any other user-written text are never sent to the translation service.</td><td>—</td></tr>
+    <tr><td>Persistence limit</td><td><b>Locale copies are device-local.</b> Journey content is not stored in Convex, so another browser prepares the translation again. Progress and completion remain account-level where supported. Cross-device sync of locale copies is deferred.</td><td>—</td></tr>
   </table>
   </div>
 </section>
