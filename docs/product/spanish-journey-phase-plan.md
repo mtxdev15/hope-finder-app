@@ -386,16 +386,25 @@ The rest is plumbing that stops English leaking through.
 
 ## 10b. Persistence limitation, stated plainly
 
-Journey content is **not** stored in Convex. The first implementation therefore
-creates locale copies in **browser storage only**. That means:
+**Corrected after the transport was built.** The earlier statement here said
+locale copies are device-local, full stop. The `journeyTranslations` table makes
+that only half true, so it is restated rather than left to drift:
 
-- Spanish display copies are **device-local**
-- another browser may need to prepare the translation again
-- progress and completion remain account-level where currently supported
-- **cross-device synchronisation of locale copies is deferred**
+- **Guest locale copies remain device-local.** Guest translation is deferred, so
+  a signed-out reader has no server-side copy at all.
+- **For authenticated users, completed Journey-prose translations may be cached
+  server-side and restored across signed-in browsers.** When the
+  server-computed identity matches, a second device reuses the cached result
+  with no further model call.
+- **The original English completed content remains immutable**, is stored
+  separately, and is never placed in the translation cache.
+- **Reflections and prayer entries remain separate and untranslated**, and never
+  reach the server cache or the model.
+- **Progress and completion remain language-neutral.**
 
-Nothing in the product or its copy may imply that translated completed days sync
-across devices until that actually exists.
+This is a real improvement — someone who reads on a phone and a laptop prepares
+a translation once — but the product copy must describe it accurately and must
+not imply that anything beyond the translated display copy syncs.
 
 ## 10c. Guest audit — is completed-day review supported without an account?
 

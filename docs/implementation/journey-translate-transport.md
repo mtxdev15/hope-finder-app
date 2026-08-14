@@ -51,6 +51,78 @@ No other table was added. The reservation lifecycle reuses the existing `usageCo
 `usageReservations`, isolated by `feature: "journeyTranslate"`, so Gentle Guidance counters are never
 touched and `convex/usage.ts` needed no change.
 
+### 2a. Persistence: this changes the device-local claim
+
+The earlier plan said locale copies are device-local. With this table that is no longer the whole
+truth, and the documentation is corrected rather than left to drift:
+
+- **Guest locale copies remain device-local.** Guest translation is deferred, so a signed-out reader
+  has no server-side copy at all.
+- **For authenticated users, completed Journey-prose translations may be cached server-side and
+  restored across signed-in browsers.** When the server-computed identity matches, a second device
+  reuses the cached result with no further model call.
+- **The original English completed content remains immutable** and is never stored here.
+- **Reflections and prayer entries remain separate, untranslated, and are never stored here.**
+- **Progress and completion remain language-neutral** and live in their existing keys and tables.
+
+This is a genuine improvement — a person who reads on their phone and their laptop prepares a
+translation once — but it must be described honestly rather than presented as still device-local.
+
+### 2b. Atomic leadership
+
+Leadership acquisition and the pending-row insert happen inside **one** `internalMutation`,
+`claimInternal`, which is a single Convex transaction:
+
+```
+claimInternal(userId, serverKey)
+  -> db.query("journeyTranslations").withIndex("by_user_key", userId + serverKey).first()
+  -> if absent: db.insert({ status: "pending" })      <- same transaction as the read
+```
+
+Convex mutations are transactional with optimistic concurrency control. If two callers read "no row"
+concurrently, only one commit succeeds; the other is detected as a write conflict, retried, and on
+retry it observes the committed row and becomes a **joiner**. Two leaders are therefore not
+representable. The read and the insert are never split across two mutations, which is the mistake that
+would make this a race.
+
+Index used: `by_user_key` on `["userId", "serverKey"]` — the same index the cache-hit read uses, so
+lookup and claim contend on the same document range.
+
+The Node harness proves the *algorithm*; the production checklist exercises the real transaction path
+with three genuinely concurrent requests.
+
+### 2c. Row lifecycle and retention
+
+| State | Meaning | Reclaim / retention |
+|---|---|---|
+| `pending`, fresh | a leader is working | joiners wait; no second model call |
+| `pending`, 3 min or older | leader crashed or was abandoned | next caller **takes over** as leader; `cleanupInternal` also deletes it |
+| deleted after failure | leader failed | `abandonInternal` removes the row so the next attempt is a fresh leader, not a stuck joiner |
+| `done` | authenticated server cache | served as a cache hit; costs no quota; retained until superseded |
+| stale **source hash** | English content changed | key no longer matches, so it is never read; removable via `cleanupInternal` with `keepKeys` |
+| stale **schema version** | translation contract changed | key suffix no longer matches, so it is never read; removed by `cleanupInternal` |
+
+Quota reservations have their own independent expiry: `TRANSLATE_RESERVATION_TTL_MS` (2 minutes), with
+expired holds reclaimed lazily on the next reserve, and the counter's `reserved` tally decremented too.
+
+**Cleanup policy.** `cleanupInternal(userId, keepKeys?, dryRun?)` is ops-invoked rather than scheduled;
+there is no cron in this project, and a translation cache is small enough that lazy plus manual cleanup
+is honest and sufficient. Its scope is deliberately narrow: it queries and deletes **only**
+`journeyTranslations` rows for one account. It never touches Journey progress, reflections, Vault data,
+original completed content, active-Journey slots, usage counters or reservations — those tables are not
+referenced in the function at all. It supports `dryRun` so a sweep can be inspected before it deletes.
+
+### 2d. Server cache privacy
+
+The `journeyTranslations` row contains app-authored translated prose and nothing else. It must not, and
+by construction does not, contain: reflections, user prayer entries, Vault content, crisis disclosures,
+account email, display name, the browser cache key, any authentication token, or Bible quotation text.
+
+The stored columns are `userId`, `serverKey`, `status`, `createdAt`, `fields` (allowlisted translated
+copy), `model`, `translatedAt`. `userId` is the internal authenticated account identifier, used for
+ownership and indexes only — **it is never sent to the model**. The Worker receives no identifier at
+all and rejects a body that carries one.
+
 ---
 
 ## 3. Authentication path
@@ -97,6 +169,20 @@ the reservation and never reaches the reader.
 
 The Worker additionally rejects a body carrying `userId`, `accountId` or `email` at the top level, and
 refuses when the secret is unset rather than allowing all.
+
+**Worker model boundaries**, all server-owned:
+
+| Boundary | How |
+|---|---|
+| Fixed system instruction | `JT_SYSTEM`, a server constant. There is no field through which a browser could supply or influence a prompt. |
+| No browser-supplied prompt | `prompt`, `systemPrompt`, `instructions` and `messages` are in the forbidden-key set and rejected with 400. |
+| Structured JSON only | the model is told to return only a JSON object keyed exactly as given; output is parsed and then re-validated against the allowlist. |
+| Input size ceiling | 4,000 chars per field, 12,000 total. |
+| **Output size ceiling** | `JT_MAX_RESPONSE_CHARS` = 64,000 on the RAW provider response, refused before parsing. A runaway generation cannot be parsed at all. |
+| **Request timeout** | `JT_TIMEOUT_MS` = 45s via `AbortSignal.timeout`. Without it a stalled provider would pin an account's single concurrent slot until the 2-minute reservation TTL reclaimed it. Returns `504 provider-timeout`. |
+| Locale validation | only `en -> es`; anything else is 400. |
+| No provider body in errors | every failure returns a bare reason code. No provider response, prompt, translated prose, stack trace or secret is ever echoed. |
+| Logs | counts and model name only. |
 
 ---
 
@@ -243,26 +329,36 @@ Dropping it is optional and safe.
 **Do not run these yet.** Listed for approval.
 
 ```bash
-# 1. Generate the shared secret once
-openssl rand -hex 32                     # -> SECRET
+# 0. Branch must be release-c1-monetization, clean, synchronized, containing main
+git branch --show-current && git status --short && git merge-base --is-ancestor origin/main HEAD
 
-# 2. Worker secret (interactive; paste SECRET)
+# 1. Generate a secret used ONLY for Journey translation
+openssl rand -hex 32                     # -> SECRET (never logged, never committed)
+
+# 2. Worker secret FIRST
 cd worker && npx wrangler secret put JOURNEY_TRANSLATE_SECRET
 
-# 3. Convex production env
+# 3. Deploy the Worker route
+npx wrangler deploy
+
+# 4. VERIFY the Worker before Convex knows about it:
+#    no secret -> 403, wrong secret -> 403, right secret + bad body -> 400
+
+# 5. Convex production configuration
 npx convex env set JOURNEY_TRANSLATE_SECRET "SECRET" --prod
 npx convex env set JOURNEY_TRANSLATE_URL \
   "https://hope-finder-worker.thinktoro.workers.dev/internal/journey/translate" --prod
 
-# 4. Deploy the Worker (adds the route)
-cd worker && npx wrangler deploy
-
-# 5. Deploy Convex FROM release-c1-monetization, never from main
+# 6. Deploy Convex FROM release-c1-monetization, never from main
 npx convex deploy --prod
+
+# 7. Authenticated production verification with a DEDICATED TEST ACCOUNT
+# 8. Confirm no Journey surface calls the action. Stop before Steps 5-9.
 ```
 
-**Order matters.** Secrets before code: if the Worker route deploys before its secret exists it returns
-403, which is safe but noisy. Convex last, because it is the caller.
+**Order matters.** The Worker goes first and is verified in isolation: the route existing before Convex
+knows about it is safe, because it rejects everything without the secret. Convex goes last because it is
+the caller — deploying it first would point an action at a route that has not landed.
 
 **The standing rule still applies:** production Convex and the Worker are ahead of `main`, so both
 deploys must run from `release-c1-monetization`.

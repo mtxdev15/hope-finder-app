@@ -563,6 +563,14 @@ const JT_FORBIDDEN_KEYS = new Set([
 ]);
 const JT_MAX_FIELD_CHARS = 4000;
 const JT_MAX_TOTAL_CHARS = 12000;
+/* Hard ceiling on the RAW provider response before parsing. A translation of a
+ * 12k-char payload cannot legitimately exceed this; anything larger is a
+ * runaway generation and is refused rather than parsed. */
+const JT_MAX_RESPONSE_CHARS = 64000;
+/* The Convex action holds a reservation for the duration of this call, so it
+ * must not hang. Without a timeout a stalled provider would pin an account's
+ * single concurrent slot until the 2-minute reservation TTL reclaimed it. */
+const JT_TIMEOUT_MS = 45000;
 
 function jtValidateFields(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, reason: 'fields-not-object' };
@@ -649,6 +657,7 @@ async function handleJourneyTranslate(request, env) {
   try {
     res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: AbortSignal.timeout(JT_TIMEOUT_MS),
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': env.ANTHROPIC_API_KEY,
@@ -663,9 +672,11 @@ async function handleJourneyTranslate(request, env) {
         messages: [{ role: 'user', content: JSON.stringify(validated.fields) }],
       }),
     });
-  } catch {
-    return new Response(JSON.stringify({ ok: false, reason: 'provider-unreachable' }), {
-      status: 502, headers: { 'Content-Type': 'application/json' },
+  } catch (e) {
+    // Reason codes only. No provider body, no prompt, no stack trace.
+    const timedOut = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+    return new Response(JSON.stringify({ ok: false, reason: timedOut ? 'provider-timeout' : 'provider-unreachable' }), {
+      status: timedOut ? 504 : 502, headers: { 'Content-Type': 'application/json' },
     });
   }
   if (!res.ok) {
@@ -678,7 +689,9 @@ async function handleJourneyTranslate(request, env) {
 
   let out;
   try {
-    const json = await res.json();
+    const raw = await res.text();
+    if (raw.length > JT_MAX_RESPONSE_CHARS) throw new Error('response-too-large');
+    const json = JSON.parse(raw);
     const text = (json.content || []).map((b) => (b && b.type === 'text' ? b.text : '')).join('');
     const sliced = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     out = JSON.parse(sliced);

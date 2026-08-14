@@ -298,6 +298,53 @@ export const abandonInternal = internalMutation({
   },
 });
 
+/* Cleanup for superseded rows. Ops-invoked, not scheduled: there is no cron in
+ * this project and a translation cache is small enough that lazy plus manual
+ * cleanup is honest and sufficient.
+ *
+ * SCOPE IS DELIBERATELY NARROW. It reads and deletes ONLY journeyTranslations
+ * rows for one account. It cannot touch Journey progress, reflections, Vault
+ * data, original completed content, active-Journey slots, usage counters or
+ * reservations — those tables are never queried here.
+ *
+ *   - stale schema version : key does not end in the current version -> delete
+ *   - superseded source hash: key not in `keepKeys` -> delete (caller supplies
+ *     the keys still reachable from current content)
+ *   - abandoned pending    : older than the stale window -> delete, so a retry
+ *                            becomes a fresh leader rather than a stuck joiner
+ *   - done rows in use     : never deleted unless explicitly superseded
+ */
+export const cleanupInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    // Keys still reachable from current content. Omit to prune only by version
+    // and abandonment, which is the safe default.
+    keepKeys: v.optional(v.array(v.string())),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const suffix = "|v" + LOCALE_SCHEMA_VERSION;
+    const keep = args.keepKeys ? new Set(args.keepKeys) : null;
+    const rows = await ctx.db
+      .query("journeyTranslations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const removed: string[] = [];
+    for (const row of rows) {
+      const staleVersion = !row.serverKey.endsWith(suffix);
+      const superseded = keep !== null && !keep.has(row.serverKey);
+      const abandoned = row.status === "pending" && now - row.createdAt >= PENDING_STALE_MS;
+      if (staleVersion || superseded || abandoned) {
+        removed.push(staleVersion ? "stale-version" : abandoned ? "abandoned-pending" : "superseded-hash");
+        if (!args.dryRun) await ctx.db.delete(row._id);
+      }
+    }
+    return { scanned: rows.length, removed: removed.length, reasons: removed, dryRun: !!args.dryRun };
+  },
+});
+
 export const readInternal = internalQuery({
   args: { userId: v.string(), serverKey: v.string() },
   handler: async (ctx, args) =>
