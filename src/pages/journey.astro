@@ -1545,21 +1545,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     /* ============ SHEETS (viewport-fixed) ============ */
     .journey .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: var(--screen); border-radius: 24px 24px 0 0;
-      border-top: 1px solid var(--line2); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); transform: translateY(102%);
-      /* visibility, not just the transform, is what actually takes a closed
-         sheet out of the paint. translateY(102%) only moves the BOX offscreen;
-         the shadow above is cast UPWARD (-24px offset, 60px blur), so it still
-         reached ~84px back into the viewport and landed on the day-flow footer.
-         Five sheets are mounted at once, so they stacked into a heavy black
-         smear under the CTA — very visible on the light theme's cream surface,
-         merely invisible on the dark one. Transitioning visibility alongside
-         the transform keeps the slide-out animation intact: visibility stays
-         `visible` for the whole duration when closing, and flips immediately
-         when opening. This also takes closed sheets out of the tab order. */
-      visibility: hidden;
-      transition: transform .42s cubic-bezier(.22, 1, .36, 1), visibility .42s cubic-bezier(.22, 1, .36, 1); padding: 0 22px max(24px, env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; scrollbar-width: none; }
+      border-top: 1px solid var(--line2); transform: translateY(102%);
+      transition: transform .42s cubic-bezier(.22, 1, .36, 1); padding: 0 22px max(24px, env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; scrollbar-width: none; }
     .journey .sheet::-webkit-scrollbar { display: none; }
-    .journey .sheet.open { transform: translateY(0); visibility: visible; }
+    /* box-shadow only while open: a closed sheet sits translateY(102%) off-
+       canvas, just below the viewport — its shadow is cast upward from its
+       own (transformed) box regardless of that offset, so an always-on
+       shadow here painted straight through the day-flow footer and the mobile
+       tab bar, visible as a dark band even with every sheet closed. Five
+       sheets are mounted at once, so they stacked. Same fix and same rationale
+       as release-c1-monetization, kept identical so the branches do not
+       diverge on this rule. */
+    .journey .sheet.open { transform: translateY(0); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); }
     .journey .grabber { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 12px auto 8px; }
     .journey .sheet h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); margin-top: 8px; }
     .journey .sheet p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 9px; }
