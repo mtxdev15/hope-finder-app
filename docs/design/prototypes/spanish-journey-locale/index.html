@@ -342,6 +342,49 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
   </div>
 </section>
 
+<!-- ══════════ 4b ══════════ -->
+<section class="proto">
+  <h2>4b · Signed-out reader, Spanish interface</h2>
+  <p class="sub">Guest translation is deferred for the first release. Access to the original is never blocked, and nothing is silently machine-translated.</p>
+  <div class="row">
+    <div class="screen">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Repasando · Día 1 de 5</span></div>
+      <div class="body">
+        <p style="margin:0 0 14px;font-size:11.5px;line-height:1.5;color:var(--muted)">
+          Contenido original en inglés · Solo lectura</p>
+        <div class="dtitle serif" style="font-size:25px">Name the fear</div>
+        <div class="shift">Fear <span style="color:var(--goldd)">→</span> Courage</div>
+        <div class="card">
+          <div class="vref">Psalm 56:3 · ESV</div>
+          <p class="verse">“When I am afraid, I put my trust in you.”</p>
+        </div>
+        <div class="card" style="background:transparent;box-shadow:none;border:1px solid var(--line2)">
+          <p class="prose" style="margin:0;color:var(--text)">Este día se completó originalmente en inglés.</p>
+          <p class="prose" style="margin:7px 0 0">Puedes seguir revisando el contenido original. Inicia sesión para
+          preparar una copia en español sin cambiar lo que completaste.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="cta">Continuar en inglés</button>
+        <button class="cta ghost">Iniciar sesión para verlo en español</button>
+        <button class="cta ghost">Volver al camino de hoy</button>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>Anotaciones</h4>
+      <dl>
+        <dt>Decision</dt><dd><b>Guest translation deferred.</b> A signed-out person can complete only Day 1, their content is device-local, and an anonymous model endpoint would need its own abuse controls for a one-day-wide case.</dd>
+        <dt>Access</dt><dd>The original completed day stays <b>fully readable</b>. Sign-in is never required to reach what they already walked.</dd>
+        <dt>Honesty</dt><dd>The notice names the situation instead of hiding it. No silent machine translation, and no pretending the screen is Spanish when the content is not.</dd>
+        <dt>Sign-in framing</dt><dd>Offered as the path to <b>prepare a Spanish copy</b>, and the copy says plainly it will not change what they completed.</dd>
+        <dt>Reflection</dt><dd>Stays untranslated and device-local, exactly as for a signed-in reader.</dd>
+        <dt>Primary action</dt><dd>“Continuar en inglés” is the primary button on purpose: the thing they already have is the default, not the upsell.</dd>
+        <dt>Future</dt><dd>An anonymous IP-limited route is recorded as an option only if guest usage ever shows a real need.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════ 5 ══════════ -->
 <section class="proto">
   <h2>5 · Language switching during an active Journey</h2>
@@ -441,6 +484,8 @@ td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5
         <tr><td>Reintentar</td><td>Intentar de nuevo</td></tr>
         <tr><td>Continuar después</td><td>Volver más tarde</td></tr>
         <tr><td>Volver al camino actual</td><td>Volver al camino de hoy</td></tr>
+        <tr><td>Invitado · día en inglés</td><td><b>Este día se completó originalmente en inglés.</b> Puedes seguir revisando el contenido original. Inicia sesión para preparar una copia en español sin cambiar lo que completaste.</td></tr>
+        <tr><td>Invitado · acciones</td><td>Continuar en inglés · Iniciar sesión para verlo en español · Volver al camino de hoy</td></tr>
       </table>
       </div>
       <p style="margin:14px 0 0;font-size:12.5px;color:var(--text2)">Tone rules. The copy names the

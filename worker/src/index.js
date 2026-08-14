@@ -538,6 +538,186 @@ async function handleBillingWebhook(request, env) {
   return new Response('ok', { status: 200 });
 }
 
+/* ── Journey prose translation (INTERNAL) ──────────────────────────────────
+ * POST /internal/journey/translate
+ *
+ * Translates JOURNEY-AUTHORED copy of a completed day into Spanish. Called only
+ * by the authenticated Convex action, which has already established identity
+ * and reserved a quota slot. This route knows nothing about accounts and must
+ * never be given a user identifier.
+ *
+ * SEPARATE FROM /today ON PURPOSE. Different secret, different quota owner,
+ * different failure surface. A translation must never consume the Gentle
+ * Guidance allowance or be blocked by the /today IP rate limit, and vice versa.
+ *
+ * THIS IS THE SECOND VALIDATION BOUNDARY. The Convex action already validated
+ * the payload; it is validated again here, independently. One shared check
+ * would be one point of failure.
+ */
+const JT_ALLOWED_FIELDS = ['title', 'encouragement', 'commentary', 'prayer', 'declaration', 'reflectionPrompt'];
+const JT_FORBIDDEN_KEYS = new Set([
+  'reflection', 'reflectiontext', 'userprayer', 'usertext', 'usernote',
+  'vault', 'vaultitems', 'crisis', 'supportdisclosure',
+  'userid', 'accountid', 'email', 'sub', 'identity',
+  'verse', 'versetext', 'scripture', 'prompt', 'systemprompt', 'instructions', 'messages',
+]);
+const JT_MAX_FIELD_CHARS = 4000;
+const JT_MAX_TOTAL_CHARS = 12000;
+
+function jtValidateFields(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, reason: 'fields-not-object' };
+  const out = {};
+  let total = 0;
+  for (const [key, value] of Object.entries(raw)) {
+    if (JT_FORBIDDEN_KEYS.has(key.toLowerCase())) return { ok: false, reason: 'forbidden-field' };
+    if (!JT_ALLOWED_FIELDS.includes(key)) return { ok: false, reason: 'unknown-field' };
+    if (typeof value !== 'string') return { ok: false, reason: 'field-not-string' };
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    if (trimmed.length > JT_MAX_FIELD_CHARS) return { ok: false, reason: 'field-too-long' };
+    total += trimmed.length;
+    out[key] = trimmed;
+  }
+  if (!total) return { ok: false, reason: 'empty-request' };
+  if (total > JT_MAX_TOTAL_CHARS) return { ok: false, reason: 'payload-too-long' };
+  return { ok: true, fields: out };
+}
+
+/* Faithful transformation, not generation. The model is given ONLY the authored
+ * fields and is told, explicitly, that it may not add theology or pastoral
+ * advice, may not remove support language, and may not produce Scripture. */
+const JT_SYSTEM = [
+  'You translate devotional copy from English to Latin American Spanish (es-LA), using informal "tú".',
+  'This is a FAITHFUL TRANSLATION, not a rewrite and not new writing.',
+  'Rules, all mandatory:',
+  '- Preserve the meaning of every field exactly.',
+  '- Preserve paragraph and section boundaries within a field.',
+  '- Do NOT add pastoral advice, theology, encouragement or commentary that is not in the source.',
+  '- Do NOT remove or soften any warning, caution or support language.',
+  '- Do NOT include any Bible quotation. If the source names a Scripture reference, keep the reference as-is and translate nothing of the quoted text.',
+  '- Do NOT address the reader by name or invent details.',
+  '- Never speak as God or as Jesus.',
+  'Return ONLY a JSON object whose keys are exactly the keys you were given, each mapped to its Spanish translation. No prose outside the JSON.',
+].join('\n');
+
+async function handleJourneyTranslate(request, env) {
+  // No CORS preflight support: this route is not for browsers.
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ ok: false, reason: 'method-not-allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const expected = env.JOURNEY_TRANSLATE_SECRET || '';
+  const provided = request.headers.get('X-Declare-Internal') || '';
+  // Constant-time compare, and refuse when unconfigured rather than allowing all.
+  if (!expected || !timingSafeEqualHex(provided, expected)) {
+    return new Response(JSON.stringify({ ok: false, reason: 'forbidden' }), {
+      status: 403, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    return new Response(JSON.stringify({ ok: false, reason: 'not-configured' }), {
+      status: 503, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ ok: false, reason: 'bad-json' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (body && ('userId' in body || 'accountId' in body || 'email' in body)) {
+    return new Response(JSON.stringify({ ok: false, reason: 'identity-not-accepted' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!body || body.sourceLocale !== 'en' || body.displayLocale !== 'es') {
+    return new Response(JSON.stringify({ ok: false, reason: 'unsupported-locale-pair' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const validated = jtValidateFields(body.fields);
+  if (!validated.ok) {
+    return new Response(JSON.stringify({ ok: false, reason: validated.reason }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const model = 'claude-sonnet-4-6';
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        // Low variance: this is a translation, not a creative act.
+        temperature: 0.2,
+        system: JT_SYSTEM,
+        messages: [{ role: 'user', content: JSON.stringify(validated.fields) }],
+      }),
+    });
+  } catch {
+    return new Response(JSON.stringify({ ok: false, reason: 'provider-unreachable' }), {
+      status: 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!res.ok) {
+    // Status is echoed so the caller can tell rate limiting from a hard failure,
+    // but no provider body is forwarded.
+    return new Response(JSON.stringify({ ok: false, reason: 'provider-failure' }), {
+      status: res.status === 429 ? 429 : 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let out;
+  try {
+    const json = await res.json();
+    const text = (json.content || []).map((b) => (b && b.type === 'text' ? b.text : '')).join('');
+    const sliced = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    out = JSON.parse(sliced);
+  } catch {
+    return new Response(JSON.stringify({ ok: false, reason: 'unparseable-model-output' }), {
+      status: 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Validate the model's output with the same allowlist, then confirm it did not
+  // invent a section that was never sent.
+  const checked = jtValidateFields(out);
+  if (!checked.ok) {
+    return new Response(JSON.stringify({ ok: false, reason: 'malformed-model-output' }), {
+      status: 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  for (const key of Object.keys(checked.fields)) {
+    if (!(key in validated.fields)) {
+      return new Response(JSON.stringify({ ok: false, reason: 'model-added-field' }), {
+        status: 502, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Privacy-safe log: counts and identifiers of SHAPE only. No content, no
+  // account, no reference — nothing that could reconstruct what was translated.
+  console.log(JSON.stringify({
+    evt: 'journey_translate',
+    fields: Object.keys(checked.fields).length,
+    chars: Object.values(checked.fields).reduce((n, v) => n + v.length, 0),
+    model,
+  }));
+
+  return new Response(JSON.stringify({ ok: true, fields: checked.fields, model }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export default {
   async fetch(request, env) {
     // Bible reader + studio routes — additive; the Anthropic proxy below is unchanged.
@@ -596,6 +776,14 @@ export default {
     // Convex tables — the donation routes above are untouched by it.
     if (pathname === '/billing/webhook') {
       return handleBillingWebhook(request, env);
+    }
+
+    // Journey prose translation. INTERNAL ONLY: called server-to-server by the
+    // authenticated Convex action, never by a browser. No CORS headers are
+    // emitted on this route on purpose — a browser must not be able to read a
+    // response from it even if it somehow guessed the secret.
+    if (pathname === '/internal/journey/translate') {
+      return handleJourneyTranslate(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====

@@ -16,6 +16,8 @@ import type * as entitlementCatalog from "../entitlementCatalog.js";
 import type * as entitlements from "../entitlements.js";
 import type * as http from "../http.js";
 import type * as journeySlots from "../journeySlots.js";
+import type * as journeyTranslate from "../journeyTranslate.js";
+import type * as journeyTranslateCore from "../journeyTranslateCore.js";
 import type * as reviews from "../reviews.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as usage from "../usage.js";
@@ -37,6 +39,8 @@ declare const fullApi: ApiFromModules<{
   entitlements: typeof entitlements;
   http: typeof http;
   journeySlots: typeof journeySlots;
+  journeyTranslate: typeof journeyTranslate;
+  journeyTranslateCore: typeof journeyTranslateCore;
   reviews: typeof reviews;
   subscriptions: typeof subscriptions;
   usage: typeof usage;

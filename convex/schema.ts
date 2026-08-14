@@ -229,6 +229,33 @@ export default defineSchema({
     .index("by_user_feature_day", ["userId", "feature", "accountDay"])
     .index("by_status_expiry", ["status", "expiresAt"]),
 
+  /* Server-side cache and single-flight lock for Journey prose translation.
+     The row IS the lock: the first caller inserts `pending` and becomes the
+     leader, concurrent callers find it and wait instead of making a second
+     model call. A `done` row is a cache hit and costs no quota.
+
+     It holds ONLY Journey-authored translated copy. No reflection, no
+     user-written prayer, no Vault content, no Scripture — those are rejected
+     before anything reaches here, by the Convex action and again by the Worker.
+
+     serverKey is computed SERVER-SIDE from the authenticated account, the
+     locale pair, the normalized allowlisted fields and the schema version. The
+     browser's own cache key is never trusted as identity, which is why the
+     account is inside the key: two accounts with identical content can never
+     share a slot or a result. */
+  journeyTranslations: defineTable({
+    userId: v.string(),
+    serverKey: v.string(),
+    status: v.string(), // 'pending' | 'done'
+    createdAt: v.number(),
+    // Present only once status is 'done'. JSON of the allowlisted fields.
+    fields: v.optional(v.string()),
+    model: v.optional(v.string()),
+    translatedAt: v.optional(v.number()),
+  })
+    .index("by_user_key", ["userId", "serverKey"])
+    .index("by_user", ["userId"]),
+
   /* Server-authoritative record of a user's ACTIVE Journeys.
      Journey progress itself lives in localStorage mirrored to userData, which
      is forgeable, so entitlement must never count it. This table is the only
