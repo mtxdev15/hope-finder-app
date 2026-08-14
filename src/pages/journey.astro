@@ -14,13 +14,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 // not a runtime check, a CSS rule, or a disabled attribute — each of those
 // still ships the control.
 //
+// The `import.meta.env.DEV` term is the load-bearing half. The env var alone
+// is not a sufficient guard: a stray PUBLIC_JOURNEY_DEV_TOOLS=1 in a
+// Cloudflare Pages build setting, a CI environment, or a .env.local (which
+// Vite loads in EVERY mode, production builds included) would otherwise ship
+// the bypass. DEV is false in any `astro build`, so a production build cannot
+// contain this control even when the flag is deliberately set to 1.
+//
 // To enable it locally, pass it inline for a dev run:
 //   PUBLIC_JOURNEY_DEV_TOOLS=1 npm run dev
 // or put it in .env.development.local, which Vite loads ONLY in dev mode.
-// Do NOT use .env.local: that file is loaded in every mode, including a
-// production build, so a flag left there could ship. Do not add it to the
-// Cloudflare Pages build environment.
-const JOURNEY_DEV_TOOLS = import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
+// Do NOT use .env.local, and do not add it to the Cloudflare Pages build
+// environment.
+const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
 ---
 <DeclareLayout
   title="Declare — Journey"
@@ -509,15 +515,19 @@ const JOURNEY_DEV_TOOLS = import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
     // Internal QA only — the one control that can defeat the one-day pacing lock.
     //
     // The condition is read straight from import.meta.env rather than through a
-    // variable, on purpose: Vite substitutes the literal at build time, so with
-    // the flag unset this folds to `if (false)` and esbuild drops the whole
-    // branch. The production bundle therefore ships no unlock function and no
-    // sentinel date, not merely a hidden button.
+    // variable, on purpose: Vite substitutes the literals at build time, so in
+    // any production build this folds to `if (false)` and esbuild drops the
+    // whole branch. The production bundle therefore ships no unlock function and
+    // no sentinel date, not merely a hidden button.
+    //
+    // import.meta.env.DEV is false in every `astro build`, so this stays absent
+    // from production even if PUBLIC_JOURNEY_DEV_TOOLS is accidentally set to 1
+    // in a build environment. Must stay in sync with JOURNEY_DEV_TOOLS above.
     //
     // The null check is also load-bearing: #lnPreview is absent in a production
     // build, and an unguarded addEventListener on null would throw here and abort
     // the rest of init(), taking the whole Journey page down.
-    if (import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1') {
+    if (import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1') {
       const lnPreviewBtn = $('lnPreview');
       if (lnPreviewBtn) lnPreviewBtn.addEventListener('click', function () {
         const m = loadLock();
