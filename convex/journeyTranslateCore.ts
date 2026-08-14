@@ -135,4 +135,3 @@ export function serverTranslationKey(input: {
     "v" + input.schemaVersion,
   ].join("|");
 }
-
