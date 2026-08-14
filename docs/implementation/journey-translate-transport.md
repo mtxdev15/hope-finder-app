@@ -1,8 +1,53 @@
-# Journey translation transport — implementation, awaiting deployment approval
+# Journey translation transport — DEPLOYED AND VERIFIED (Step 4 complete)
 
-**Status: implemented and locally verified. NOT DEPLOYED.** No `npx convex deploy`, no
-`wrangler deploy`, no production environment variable or secret was created or changed. No Journey
-production surface imports or calls this transport.
+**Status: deployed to production and verified. INERT.** No Journey surface imports or calls this
+transport, so nothing is user-visible. Steps 5 through 9 have not begun.
+
+| | |
+|---|---|
+| Worker version | `0b04fae3-570c-4294-af0c-f405831aba57` |
+| Convex production | `keen-hamster-650` — TypeScript passed, schema validated, **no indexes deleted**, `journeyTranslations.by_user` and `.by_user_key` added |
+| Deployed from | `release-c1-monetization` (confirmed to contain `origin/main`) |
+| Env var names | Worker `JOURNEY_TRANSLATE_SECRET`; Convex prod `JOURNEY_TRANSLATE_SECRET`, `JOURNEY_TRANSLATE_URL`. Values never recorded; the local copy of the secret was shredded after use. |
+
+## Production verification evidence
+
+| Check | Result |
+|---|---|
+| Worker authorization | no secret → 403; wrong secret → 403; GET → 405; bad JSON → 400; forbidden field → 400; identity in body → 400; wrong locale → 400; nested object → 400 |
+| Valid translation | 2.05s, structured Spanish, full provenance, `cached: false` |
+| **Real single-flight** | 3 simultaneous identical requests → **1 leader + 2 joiners, one model call**, identical content to all three |
+| Cache reuse | repeat request → `cached: true` |
+| Privacy rejection | 12 of 12 rejected |
+| **Usage accounting** | `used 2 · successful 2 · reserved 0 · failed 0` — the cache hit, both joiners and all 12 rejections cost **nothing** |
+| Gentle Guidance | **no usage row at all** for the account, before or after |
+| Frontend | no surface imports or calls the action (grep across `src/`, `public/`) |
+| Unrelated data | `userData` 41 rows before and after; `journeySlots` and `subscriptions` unchanged |
+
+**A precision correction worth keeping.** Seven of the twelve privacy cases — top-level `reflection`,
+`userPrayer`, `vault`, `crisis`, `userId`, `verseText`, `prompt` — are rejected by **Convex's own
+argument validator before the handler runs**, returning a generic error with no detail leaked. The
+handler's `FORBIDDEN_REQUEST_KEYS` check never fires for those; it is defense-in-depth for the Worker,
+which accepts a raw body. Inside `fields`, the handler does the work: `forbidden-field`,
+`unknown-field`, `field-not-string`.
+
+**Release-after-failure was NOT deliberately induced in production.** There is no payload that Convex
+accepts and the Worker rejects — the two validators are intentionally identical — so forcing it would
+have required temporarily repointing `JOURNEY_TRANSLATE_URL`, a production configuration mutation whose
+risk exceeds the value of the test. The identical release path passed in **development**
+(`used 0 · failed 1` after a release). Production corroborates indirectly: it ended with
+`reserved: 0` and `failed: 0`, so no reservation leaked and nothing was miscounted.
+
+**Who the verification ran as.** The plan called for a dedicated disposable account. In practice the
+signed-in session was the owner's personal production account (`…893bf8`), used with explicit approval
+after the intended test account was not available. All content sent was synthetic; no real Journey
+content, reflection or Vault data was transmitted or stored.
+
+**Cleanup.** The two synthetic `journeyTranslations` rows were deleted via `cleanupInternal`, which is
+scoped to a single account and to that one table. `journeyTranslations` is now empty in production,
+which also confirms those two were the only rows and nothing else could have been removed. Retained by
+decision: the `journeyTranslate` usage counter (`used 2`) and the two finalized reservations, as
+accurate operational history.
 
 ---
 
