@@ -1397,6 +1397,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     .journey .df-foot .btn { display: block; width: 100%; max-width: 420px; margin-inline: auto; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); transition: opacity .3s ease, box-shadow .3s ease; }
     .journey .df-foot .btn[disabled] { opacity: .42; box-shadow: none; cursor: not-allowed; }
+    /* Light theme: the gold glow above is a dark-theme device — on a lit surface
+       it reads as a dirty yellow haze around the button rather than a lift.
+       Swap it for a low-alpha forest shadow, the same family already used by
+       html[data-theme="light"] .journey .tree-mount.tree-live.
+       The :not() guards are deliberate. This selector carries an attribute plus
+       three classes, so without them it would out-specify .btn[disabled] and
+       .btn-cont.locked and put a shadow back on controls that are meant to read
+       as inert. */
+    html[data-theme="light"] .journey .df-foot .btn:not([disabled]),
+    html[data-theme="light"] .journey .btn-cont:not(.locked) {
+      box-shadow: 0 6px 16px -10px rgba(45, 74, 62, .38), 0 1px 3px rgba(45, 74, 62, .08);
+    }
     .journey .df-foot .lockhint { text-align: center; font-size: 11.5px; color: var(--soft); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .3s ease; }
     .journey .df-foot .lockhint svg { width: 13px; height: 13px; }
     .journey .df-foot.ready .lockhint { display: none; }
