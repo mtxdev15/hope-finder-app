@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Spanish Journey locale prototypes (design-only)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<style>
+/* ── Real declare.css tokens, both themes ─────────────────────────────── */
+:root{
+  --text:#22382E; --text2:#465A50; --muted:#7E8E84; --soft:rgba(34,56,46,.78);
+  --gold:#C9A84C; --goldd:#9A7A24; --clay:#B5703F;
+  --bgfield:radial-gradient(140% 92% at 50% -2%, #FFFFFF, #FAF7F2 50%, #F3EDE0 100%);
+  --bg:#FAF7F2; --screen:#FBF8F3; --surface:#FFFFFF;
+  --line:rgba(34,56,46,.08); --line2:rgba(34,56,46,.16); --field:#F4ECDB;
+  --forest:#2D4A3E;
+  --card-shadow:0 16px 40px -12px rgba(34,56,46,.2), 0 5px 14px -8px rgba(34,56,46,.1);
+  --cta-shadow:0 6px 16px -10px rgba(45,74,62,.38), 0 1px 3px rgba(45,74,62,.08);
+}
+:root[data-theme="dark"]{
+  --text:#F3EFE6; --text2:#C7D6CD; --muted:#92A89E; --soft:rgba(244,240,231,.6);
+  --gold:#D8B85F; --goldd:#E2C572; --clay:#D08A5B;
+  --bgfield:radial-gradient(135% 95% at 50% 32%,#1a2a21,#0c130f 72%);
+  --bg:#0E1A14; --screen:#13211A; --surface:#1b2c23;
+  --line:rgba(244,239,230,.09); --line2:rgba(244,239,230,.2); --field:rgba(255,255,255,.05);
+  --forest:#2D4A3E;
+  --card-shadow:0 18px 44px -14px rgba(0,0,0,.6);
+  --cta-shadow:0 14px 34px -12px rgba(216,184,95,.6);
+}
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+.serif{ font-family:'Cormorant Garamond',serif; }
+.lbl{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
+
+/* ── Document chrome (not part of the product) ────────────────────────── */
+.doc{ max-width:1240px; margin:0 auto; padding:34px 20px 100px; }
+.dochead{ border-bottom:1px solid var(--line2); padding-bottom:22px; margin-bottom:30px; }
+.dochead h1{ font-family:'Cormorant Garamond',serif; font-size:clamp(30px,5vw,42px); font-weight:600; margin:8px 0 10px; }
+.dochead p{ color:var(--text2); font-size:14.5px; line-height:1.65; max-width:74ch; margin:0 0 10px; }
+.warn{ border-left:3px solid var(--clay); background:color-mix(in srgb, var(--clay) 8%, transparent); padding:13px 16px; border-radius:0 10px 10px 0; font-size:13.5px; line-height:1.6; color:var(--text2); margin:16px 0; }
+.warn b{ color:var(--text); }
+.toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:18px; }
+.tbtn{ font:inherit; font-size:12.5px; padding:9px 15px; min-height:44px; border-radius:999px; border:1px solid var(--line2); background:var(--surface); color:var(--text); cursor:pointer; }
+.tbtn[aria-pressed="true"]{ background:var(--forest); color:#F4EFE3; border-color:transparent; }
+
+section.proto{ margin:56px 0 0; }
+section.proto > h2{ font-family:'Cormorant Garamond',serif; font-size:27px; font-weight:600; margin:0 0 4px; }
+section.proto > .sub{ color:var(--muted); font-size:13.5px; margin:0 0 20px; }
+.row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:26px; align-items:start; }
+
+/* ── Phone shell ──────────────────────────────────────────────────────── */
+.screen{ position:relative; border-radius:30px; overflow:hidden; background:var(--bgfield); border:1px solid var(--line2);
+  box-shadow:var(--card-shadow); min-height:560px; display:flex; flex-direction:column; }
+.screen .mast{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px 4px; }
+.screen .mast .bk{ width:30px; height:30px; border-radius:50%; border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; }
+.screen .body{ flex:1; padding:16px 20px 20px; }
+.screen .foot{ padding:14px 20px 20px; border-top:1px solid var(--line); background:color-mix(in srgb, var(--screen) 80%, transparent); }
+.cta{ display:block; width:100%; background:var(--forest); color:#F4EFE3; border:0; border-radius:14px; padding:15px; font:inherit; font-size:15.5px; cursor:pointer; box-shadow:var(--cta-shadow); min-height:44px; }
+.cta.ghost{ background:transparent; color:var(--text); border:1px solid var(--line2); box-shadow:none; margin-top:9px; }
+.cta[disabled]{ opacity:.42; box-shadow:none; cursor:not-allowed; }
+.eyebrow{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--goldd); }
+.dtitle{ font-family:'Cormorant Garamond',serif; font-size:29px; line-height:1.12; font-weight:600; margin:7px 0 6px; }
+.shift{ color:var(--muted); font-size:13px; margin-bottom:16px; }
+.card{ background:var(--surface); border-radius:16px; box-shadow:var(--card-shadow); padding:17px 18px; margin-bottom:14px; }
+.verse{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:19px; line-height:1.45; margin:9px 0 0; }
+.vref{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--goldd); }
+.prose{ font-size:14px; line-height:1.66; color:var(--text2); margin:11px 0 0; }
+.dots{ display:flex; gap:6px; margin:14px 0 0; }
+.dots i{ width:22px; height:3px; border-radius:3px; background:var(--line2); }
+.dots i.done{ background:var(--gold); } .dots i.cur{ background:var(--goldd); }
+
+/* provenance + state chips */
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+.chip{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; padding:4px 9px; border-radius:999px; border:1px solid var(--line2); color:var(--muted); background:transparent; }
+.chip.verified{ color:var(--goldd); border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+.chip.sample{ color:var(--clay); border-color:color-mix(in srgb, var(--clay) 55%, transparent); }
+.chip.locale{ color:var(--text2); }
+
+/* skeleton */
+.sk{ border-radius:8px; background:linear-gradient(90deg, var(--field) 25%, color-mix(in srgb, var(--field) 55%, var(--surface)) 50%, var(--field) 75%);
+  background-size:200% 100%; animation:sh 1.7s ease-in-out infinite; }
+@keyframes sh{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+.sk.l1{ height:26px; width:76%; margin:8px 0 12px; } .sk.l2{ height:15px; width:94%; margin:0 0 8px; }
+.sk.l3{ height:15px; width:66%; margin:0 0 18px; } .sk.blk{ height:96px; width:100%; margin:0 0 13px; }
+.skmsg{ text-align:center; color:var(--muted); font-size:13px; margin-top:20px; font-style:italic; font-family:'Cormorant Garamond',serif; }
+
+/* failure state */
+.fail{ text-align:center; padding:22px 6px; }
+.fail .ico{ width:42px; height:42px; border-radius:50%; border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; color:var(--goldd); }
+.fail h3{ font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600; margin:0 0 8px; }
+.fail p{ font-size:13.5px; line-height:1.6; color:var(--text2); margin:0 auto; max-width:32ch; }
+
+/* annotations */
+.notes{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:17px 19px; font-size:13px; line-height:1.62; }
+.notes h4{ margin:0 0 11px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--goldd); }
+.notes dl{ margin:0; display:grid; grid-template-columns:auto 1fr; gap:7px 13px; }
+.notes dt{ font-weight:600; color:var(--text); white-space:nowrap; }
+.notes dd{ margin:0; color:var(--text2); }
+.notes code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--field); padding:1.5px 6px; border-radius:5px; color:var(--text); word-break:break-all; }
+.tablewrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:520px; }
+th,td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+th{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--goldd); font-weight:500; }
+td code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; }
+
+@media (prefers-reduced-motion: reduce){
+  .sk{ animation:none; background:var(--field); }
+  *{ transition:none !important; }
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<header class="dochead">
+  <div class="lbl">Declare &amp; Believe · Spanish Journey phase</div>
+  <h1>Spanish Journey locale prototypes</h1>
+  <p><b>Design-only.</b> Not wired to production. Touches no real Journey storage, no Vault, no Worker,
+  no Convex. Nothing here reads or writes a real record. No production identifiers or record values
+  appear anywhere in this document.</p>
+
+  <div class="warn">
+    <b>Scripture shown here is a clearly-marked sample.</b> The RVR1909 source identifier in
+    <code>worker/src/index.js</code> has never been confirmed against the live API, and confirming it
+    requires a Worker deploy. That is a <b>production implementation blocker, not a prototype
+    blocker</b>. Every verse below is tagged <span class="chip sample" style="display:inline-block">Muestra</span>
+    to make clear the live Bible integration is <b>not</b> complete. No sample text is labelled RVR1909.
+  </div>
+
+  <div class="toolbar">
+    <button class="tbtn" id="themeBtn" aria-pressed="false">Tema: claro</button>
+    <button class="tbtn" id="motionBtn" aria-pressed="false">Simular movimiento reducido</button>
+    <span style="font-size:12px;color:var(--muted)">Both themes and reduced motion are real, not mocked.</span>
+  </div>
+</header>
+
+<!-- ══════════ 1 ══════════ -->
+<section class="proto">
+  <h2>1 · Day-Opening while loading</h2>
+  <p class="sub">Spanish-only loading language. No flash of English authored content at any point.</p>
+  <div class="row">
+    <div class="screen">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Día 1 de 5</span></div>
+      <div class="body">
+        <div class="eyebrow">Comenzando</div>
+        <div class="sk l1"></div>
+        <div class="card">
+          <div class="sk l2"></div><div class="sk l2"></div><div class="sk l3"></div>
+        </div>
+        <div class="sk blk"></div>
+        <p class="skmsg">Jesús está preparando el camino para hoy.</p>
+      </div>
+      <div class="foot"><button class="cta" disabled>Preparando…</button></div>
+    </div>
+    <div class="notes">
+      <h4>Anotaciones</h4>
+      <dl>
+        <dt>Estado</dt><dd><b>Cargando.</b> The screen opens on the skeleton and fills in. It never opens on stale content.</dd>
+        <dt>Display locale</dt><dd><code>es</code></dd>
+        <dt>Source locale</dt><dd>not yet known — nothing is rendered until the <code>es</code> copy exists</dd>
+        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code> — miss</dd>
+        <dt>English bank</dt><dd><b>Never display content when locale is <code>es</code>.</b> This is the single rule that removes the reported bug.</dd>
+        <dt>Why</dt><dd>Today Day-Opening calls no generator and opens 380&nbsp;ms after commit, so a Spanish reader sees the English bank on the first screen of Day&nbsp;1.</dd>
+        <dt>Motion</dt><dd>Shimmer is suppressed under <code>prefers-reduced-motion</code>; the skeleton stays as flat blocks.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 2 ══════════ -->
+<section class="proto">
+  <h2>2 · Day-Opening ready</h2>
+  <p class="sub">Spanish title, encouragement and action. Scripture version presented explicitly.</p>
+  <div class="row">
+    <div class="screen">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Día 1 de 5</span></div>
+      <div class="body">
+        <div class="eyebrow">Comenzando</div>
+        <div class="dtitle serif">Nombra el temor</div>
+        <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
+        <div class="card">
+          <div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
+          <p class="verse">“En el día que temo, yo en ti confío.”</p>
+          <div class="chips">
+            <span class="chip sample">Muestra · sin verificar</span>
+            <span class="chip">Versión: pendiente</span>
+          </div>
+        </div>
+        <p class="prose">La voz interior dice: “no te muevas”. Eso no es sabiduría, es una jaula.
+        David no fingió que no tenía miedo: lo nombró y volvió su rostro a Dios.</p>
+        <div class="dots"><i class="cur"></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="foot"><button class="cta">Comienza el camino de hoy</button></div>
+    </div>
+    <div class="notes">
+      <h4>Anotaciones</h4>
+      <dl>
+        <dt>Display locale</dt><dd><code>es</code></dd>
+        <dt>Source locale</dt><dd><code>es</code> — generated in Spanish, not translated</dd>
+        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code> — hit</dd>
+        <dt>Scripture provenance</dt><dd>In production: fetched from the verified Bible source, and the version label is set <b>only</b> from that response. Here it is a sample, so the label reads <b>“pendiente”</b>, never RVR1909.</dd>
+        <dt>Prose provenance</dt><dd><code>generated:es</code></dd>
+        <dt>Hard rule</dt><dd>No fetch, no quotation. An unverified verse is never rendered and never labelled.</dd>
+        <dt>Version display</dt><dd>The version sits beside the reference so a reader always knows which translation they are reading.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 3 ══════════ -->
+<section class="proto">
+  <h2>3 · Journey Preview and Today card</h2>
+  <p class="sub">Locale-correct content before display. No English fallback. Loading shown where generation is incomplete.</p>
+  <div class="row">
+    <div class="screen">
+      <div class="mast"><span class="eyebrow">Vista previa del camino</span><span class="bk">✕</span></div>
+      <div class="body">
+        <div class="dtitle serif" style="font-size:24px">Cinco días</div>
+        <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
+        <div class="card"><div class="vref">Día 1</div><p class="prose" style="margin-top:5px">Nombra el temor</p></div>
+        <div class="card"><div class="vref">Día 2</div><p class="prose" style="margin-top:5px">Él va delante de ti</p></div>
+        <div class="card"><div class="vref">Día 3</div><div class="sk l2" style="margin:6px 0 0"></div></div>
+        <div class="card" style="opacity:.75"><div class="vref">Día 4</div><div class="sk l3" style="margin:6px 0 0"></div></div>
+      </div>
+      <div class="foot"><button class="cta">Comienza</button></div>
+    </div>
+
+    <div class="screen">
+      <div class="mast"><span class="eyebrow">Tu camino</span><span class="bk">☰</span></div>
+      <div class="body">
+        <div class="card">
+          <div class="eyebrow">Camino activo</div>
+          <div class="dtitle serif" style="font-size:23px;margin-top:6px">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
+          <div class="vref" style="margin-top:14px">La jornada de hoy</div>
+          <div class="sk l2" style="margin-top:8px"></div>
+          <div class="sk l3"></div>
+          <p class="skmsg" style="margin-top:6px;font-size:12px">Personalizando tu camino…</p>
+          <div class="dots"><i class="done"></i><i class="cur"></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="foot"><button class="cta" disabled>Preparando…</button></div>
+    </div>
+
+    <div class="notes">
+      <h4>Anotaciones</h4>
+      <dl>
+        <dt>Preview hoy</dt><dd>Renders the English bank for all five days and <b>never</b> generates. Here, days without an <code>es</code> copy show the skeleton instead.</dd>
+        <dt>Today card hoy</dt><dd>Shows English text under a Spanish shimmer, then swaps. On failure the English is left as the final state. Here the content area stays a skeleton until the <code>es</code> copy is ready.</dd>
+        <dt>Display locale</dt><dd><code>es</code> on both surfaces</dd>
+        <dt>Cache key</dt><dd><code>db_journey_inst:&lt;journeyId&gt;:es</code>; per-day copies at <code>db_journey_day:&lt;journeyId&gt;:&lt;dayIndex&gt;:es</code></dd>
+        <dt>Partial state</dt><dd>Days already prepared render; the rest hold the skeleton. A partially-ready Journey is honest, a half-English one is not.</dd>
+        <dt>CTA</dt><dd>Disabled while content is unresolved, so the ritual is never entered on missing content.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 4 ══════════ -->
+<section class="proto">
+  <h2>4 · Completed-day review and Fruit Log</h2>
+  <p class="sub">An existing English completed day, displayed in Spanish. The English original is preserved untouched.</p>
+  <div class="row">
+    <div class="screen">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Repasando · Día 1 de 5</span></div>
+      <div class="body">
+        <div class="chips" style="margin:0 0 12px">
+          <span class="chip locale">Original: inglés</span>
+          <span class="chip locale">Viendo: español</span>
+          <span class="chip">Solo lectura</span>
+        </div>
+        <div class="dtitle serif" style="font-size:25px">Nombra el temor</div>
+        <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
+        <div class="card">
+          <div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
+          <p class="verse">“En el día que temo, yo en ti confío.”</p>
+          <div class="chips">
+            <span class="chip sample">Muestra · sin verificar</span>
+            <span class="chip verified">Misma referencia que el original</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="vref">Oración</div>
+          <p class="prose" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15.5px">
+            Padre, estoy cansado de fingir que no tengo miedo. Te lo traigo ahora, todo, y te pido que
+            me encuentres aquí.</p>
+          <div class="chips"><span class="chip">Traducido del original</span></div>
+        </div>
+        <div class="card">
+          <div class="vref">Tu reflexión</div>
+          <p class="prose">I kept saying I was fine. I wasn't.</p>
+          <div class="chips"><span class="chip">Tus palabras · sin traducir</span></div>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="cta">Volver a hoy</button>
+        <button class="cta ghost">Ver el original en inglés</button>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>Anotaciones</h4>
+      <dl>
+        <dt>Source locale</dt><dd><code>en</code> — this day was walked in English and that never changes</dd>
+        <dt>Display locale</dt><dd><code>es</code></dd>
+        <dt>Immutable original</dt><dd><code>db_journey_day:&lt;journeyId&gt;:0:en</code> — written once, never rewritten</dd>
+        <dt>Locale display copy</dt><dd><code>db_journey_day:&lt;journeyId&gt;:0:es</code> — a separate record</dd>
+        <dt>Translation provenance</dt><dd><code>translatedFrom: en</code>. The prose is <b>translated</b>, never regenerated: a regenerated day would show content the person never walked, under a “Repasando” badge.</dd>
+        <dt>Scripture provenance</dt><dd>The reference is preserved exactly. The Spanish verse is <b>fetched</b>, never model-translated. In production the label comes only from that response.</dd>
+        <dt>Reflection</dt><dd>The user’s own words, shown as written, never translated, never regenerated, never overwritten. Rendered here in English on a Spanish screen on purpose.</dd>
+        <dt>Switch back</dt><dd>“Ver el original en inglés” reads the untouched <code>:en</code> record, so the original returns exactly.</dd>
+        <dt>Language-neutral</dt><dd>Day number, reference, progress, returned count and completion are identical in both locales.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:26px">
+    <div class="screen" style="min-height:auto">
+      <div class="mast"><span class="eyebrow">Fruto que Dios hace crecer</span><span></span></div>
+      <div class="body">
+        <div class="card"><div class="vref">Día 1</div>
+          <p class="prose" style="margin-top:5px;color:var(--text)">Valentía honesta</p>
+          <p class="prose" style="margin-top:3px">Nombrar el temor le quita su poder escondido.</p>
+          <div class="chips"><span class="chip">Original: inglés · traducido</span></div>
+        </div>
+        <div class="card"><div class="vref">Día 2</div>
+          <p class="prose" style="margin-top:5px;color:var(--text)">Él va delante</p>
+          <div class="chips"><span class="chip">Original: español</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>Fruit Log · anotaciones</h4>
+      <dl>
+        <dt>Hoy</dt><dd>Each completed day is frozen in whatever language it was generated in, so a user who switches on Day 3 gets a permanently bilingual log.</dd>
+        <dt>Después</dt><dd>The log reads the <code>:&lt;lang&gt;</code> day copies, so it is wholly in the display locale.</dd>
+        <dt>Mixed origin</dt><dd>Days may legitimately have different <b>source</b> locales. That is recorded as provenance, never shown as mixed language.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 5 ══════════ -->
+<section class="proto">
+  <h2>5 · Language switching during an active Journey</h2>
+  <p class="sub">English → Spanish, Spanish → English, the transition between, and cache behaviour. No mixed-language screen at any point.</p>
+  <div class="row">
+    <div class="screen" style="min-height:430px">
+      <div class="mast"><span class="eyebrow">1 · Antes · inglés</span><span class="bk">EN</span></div>
+      <div class="body">
+        <div class="dtitle serif" style="font-size:23px">Name the fear</div>
+        <div class="shift">Fear <span style="color:var(--goldd)">→</span> Courage</div>
+        <div class="card"><div class="vref">Psalm 56:3 · <span style="color:var(--clay)">sample</span></div>
+          <p class="verse">“When I am afraid, I put my trust in you.”</p></div>
+        <div class="chips"><span class="chip locale">Display: en</span><span class="chip locale">Cache: …:en</span></div>
+      </div>
+    </div>
+    <div class="screen" style="min-height:430px">
+      <div class="mast"><span class="eyebrow">2 · Transición</span><span class="bk">→</span></div>
+      <div class="body">
+        <div class="sk l1"></div>
+        <div class="card"><div class="sk l2"></div><div class="sk l3"></div></div>
+        <p class="skmsg">Cambiando a español…</p>
+        <div class="chips" style="justify-content:center"><span class="chip">Evento: <code style="font-size:10px">declare-lang</code></span></div>
+      </div>
+    </div>
+    <div class="screen" style="min-height:430px">
+      <div class="mast"><span class="eyebrow">3 · Después · español</span><span class="bk">ES</span></div>
+      <div class="body">
+        <div class="dtitle serif" style="font-size:23px">Nombra el temor</div>
+        <div class="shift">Temor <span style="color:var(--goldd)">→</span> Valentía</div>
+        <div class="card"><div class="vref">Salmo 56:3 · <span style="color:var(--clay)">muestra</span></div>
+          <p class="verse">“En el día que temo, yo en ti confío.”</p></div>
+        <div class="chips"><span class="chip locale">Display: es</span><span class="chip locale">Cache: …:es</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes" style="margin-top:22px">
+    <h4>Language-switch · anotaciones</h4>
+    <dl>
+      <dt>Trigger</dt><dd><code>declare-lang</code>, already dispatched by the i18n engine. Journey currently subscribes in two places and both re-render the same unchanged content.</dd>
+      <dt>After</dt><dd>One listener treats a language change as a <b>content invalidation</b>: drop in-memory content, load <code>…:&lt;newLang&gt;</code>, otherwise show the skeleton and prepare the copy, then re-render whatever surface is open, including an open ritual.</dd>
+      <dt>Cache behaviour</dt><dd>Separate records per locale mean a switch is a lookup, not a rewrite. Nothing is overwritten in either direction.</dd>
+      <dt>Symmetry</dt><dd><code>es → en</code> restores the untouched original. <code>en → es</code> shows the Spanish copy.</dd>
+      <dt>No mixed screen</dt><dd>The transition state replaces content wholesale. There is no frame in which chrome and content disagree.</dd>
+      <dt>Language-neutral</dt><dd>Day, step, completion, returned count, slot, reflections and pacing do not move.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ══════════ COPY ══════════ -->
+<section class="proto">
+  <h2>6 · Spanish failure, retry and waiting copy</h2>
+  <p class="sub">Final copy. The failure experience never falls back to English content.</p>
+  <div class="row">
+    <div class="screen" style="min-height:380px">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Día 1 de 5</span></div>
+      <div class="body">
+        <div class="fail">
+          <div class="ico">✻</div>
+          <h3>No pudimos preparar este día</h3>
+          <p>Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="cta">Intentar de nuevo</button>
+        <button class="cta ghost">Seguir más tarde</button>
+      </div>
+    </div>
+    <div class="screen" style="min-height:380px">
+      <div class="mast"><span class="bk">‹</span><span class="eyebrow">Día 1 de 5</span></div>
+      <div class="body">
+        <div class="fail">
+          <div class="ico">✻</div>
+          <h3>No pudimos traer el versículo</h3>
+          <p>Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa
+          precisión.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="cta">Intentar de nuevo</button>
+        <button class="cta ghost">Volver al camino de hoy</button>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>Copy · final</h4>
+      <div class="tablewrap">
+      <table>
+        <tr><th>Estado</th><th>Español</th></tr>
+        <tr><td>Preparándose</td><td>Jesús está preparando el camino para hoy.</td></tr>
+        <tr><td>Preparándose (tarjeta)</td><td>Personalizando tu camino…</td></tr>
+        <tr><td>Falló la preparación</td><td><b>No pudimos preparar este día.</b> Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo.</td></tr>
+        <tr><td>Falló la Escritura</td><td><b>No pudimos traer el versículo.</b> Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa precisión.</td></tr>
+        <tr><td>Reintentar</td><td>Intentar de nuevo</td></tr>
+        <tr><td>Continuar después</td><td>Seguir más tarde</td></tr>
+        <tr><td>Volver al camino actual</td><td>Volver al camino de hoy</td></tr>
+      </table>
+      </div>
+      <p style="margin:14px 0 0;font-size:12.5px;color:var(--text2)">Tone rule: the copy names the
+      technical failure plainly and never implies God is absent or that the person did something wrong.
+      “Tu camino sigue guardado” is doing real work — the most likely fear at a failure screen is losing
+      progress. The Scripture failure states <i>why</i> we withhold the verse, which turns a limitation
+      into the product’s integrity.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ LEGEND ══════════ -->
+<section class="proto">
+  <h2>7 · Annotation legend</h2>
+  <p class="sub">Every term used above, in one place.</p>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Term</th><th>Meaning</th><th>Shape</th></tr>
+    <tr><td>Cache key</td><td>One content record per Journey <b>per language</b>. A key cannot fail open the way a soft field can.</td><td><code>db_journey_inst:&lt;journeyId&gt;:&lt;lang&gt;</code></td></tr>
+    <tr><td>Per-day copy</td><td>Display copy of one day in one locale.</td><td><code>db_journey_day:&lt;journeyId&gt;:&lt;dayIndex&gt;:&lt;lang&gt;</code></td></tr>
+    <tr><td>Source locale</td><td>The language a day was originally produced in. Never changes.</td><td><code>sourceLocale: en | es</code></td></tr>
+    <tr><td>Display locale</td><td>The language currently being shown. Changes freely.</td><td><code>displayLocale: en | es</code></td></tr>
+    <tr><td>Translation provenance</td><td>Marks prose derived from another locale’s record.</td><td><code>translatedFrom: en</code></td></tr>
+    <tr><td>Scripture provenance</td><td>Proves a verse came from the verified Bible source. Absent means the verse is not rendered.</td><td><code>verseSource: bible-api</code></td></tr>
+    <tr><td>Immutable original</td><td>The completed day as walked. Written once, never rewritten.</td><td><code>…:&lt;dayIndex&gt;:en</code></td></tr>
+    <tr><td>Locale display copy</td><td>Additional record; never replaces the original.</td><td><code>…:&lt;dayIndex&gt;:es</code></td></tr>
+    <tr><td>Loading state</td><td>Spanish skeleton. No English content at any frame.</td><td>—</td></tr>
+    <tr><td>Retry state</td><td>Visible Spanish failure with a retry action. Never silent degradation to English.</td><td>—</td></tr>
+    <tr><td>Language-switch event</td><td>Treated as content invalidation, not a re-render.</td><td><code>declare-lang</code></td></tr>
+    <tr><td>Legacy adoption</td><td>A record predating the locale field is adopted as English and marked as such — never silently claimed as Spanish.</td><td><code>sourceLocale: en</code> + <code>localeStatus: legacy-adopted</code></td></tr>
+  </table>
+  </div>
+</section>
+
+</div>
+<script>
+(function(){
+  var t = document.getElementById('themeBtn');
+  t.addEventListener('click', function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+    t.textContent = 'Tema: ' + (dark ? 'claro' : 'oscuro');
+    t.setAttribute('aria-pressed', String(!dark));
+  });
+  var m = document.getElementById('motionBtn'), style = null;
+  m.addEventListener('click', function(){
+    if (style) { style.remove(); style = null; m.setAttribute('aria-pressed','false'); m.textContent = 'Simular movimiento reducido'; return; }
+    style = document.createElement('style');
+    style.textContent = '.sk{animation:none !important;background:var(--field) !important}*{transition:none !important}';
+    document.head.appendChild(style);
+    m.setAttribute('aria-pressed','true'); m.textContent = 'Movimiento reducido: activo';
+  });
+})();
+</script>
+</body>
+</html>

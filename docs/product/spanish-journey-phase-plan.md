@@ -1,10 +1,20 @@
 # Spanish Journey Phase — Technical Plan
 
-**Status:** plan only. No Journey renderer, cache, prompt, schema or saved
-content has been changed. Prototypes are the next step and must be reviewed
-before any implementation begins.
+**Status:** plan and prototypes complete, awaiting review. **No production
+Journey code has been changed.** `journey.astro`, `journey-engine.js`, cache
+behaviour, prompts and schema are untouched; no Convex or Worker deploy was
+performed.
 
-Root cause and evidence: `docs/investigation/spanish-journey-content-fallback.md`.
+- Root cause and evidence: `docs/investigation/spanish-journey-content-fallback.md`
+- Visible prototypes and final Spanish copy:
+  `docs/design/prototypes/spanish-journey-locale/`
+
+The three architecture decisions below are **approved**, with one refinement
+folded in throughout: for a Spanish view of a completed day, the Bible quotation
+is **never** model-translated. The reference is preserved and the Spanish verse
+is retrieved from the verified Bible source; only Journey-authored prose,
+commentary, prayer, declaration and reflection prompts are translated, and
+provenance is stored for both.
 
 ---
 
@@ -49,11 +59,16 @@ read in. Only *content* is per-locale.
 
 Read-time, lazy, non-destructive. No bulk rewrite, no delete.
 
-| Legacy record | Action |
-|---|---|
-| has `lang: 'es'` | adopt as the `:es` record |
-| has `lang: 'en'` | adopt as the `:en` record |
-| **no `lang` field** | adopt as the **`:en`** record |
+| Legacy record | Action | Marked as |
+|---|---|---|
+| has `lang: 'es'` | adopt as the `:es` record | `sourceLocale: es` |
+| has `lang: 'en'` | adopt as the `:en` record | `sourceLocale: en` |
+| **no `lang` field** | adopt as the **`:en`** record | `sourceLocale: en` + `localeStatus: legacy-adopted` |
+
+`localeStatus: legacy-adopted` is explicit on purpose. It records that the
+locale was *inferred at migration*, not observed at generation, so a later pass
+can tell the difference. A legacy record is never rewritten, and never silently
+marked as though it had originally been generated in Spanish.
 
 The no-`lang` case is the one that matters: those records predate the field, and
 the authored bank they were seeded from is English-only, so `en` is the honest
@@ -90,8 +105,27 @@ db_journey_day:<journeyId>:<dayIndex>:<lang>    // display copy
 - Switching back to English reads the `en` copy and restores the original
   exactly, because it was never mutated.
 
-**Only prose is translated.** `title`, `fruitTruth`, prayer, commentary,
-encouragement. The verse is **never** translated (see §4).
+**Only prose is translated.** `title`, `fruitTruth`, prayer, declaration,
+commentary, encouragement, reflection prompts.
+
+**The Bible quotation is never translated, by the model or otherwise.** For a
+Spanish view of a completed day:
+
+- the Scripture **reference is preserved exactly** (same book, chapter, verse)
+- the Spanish verse **text is retrieved from the verified Bible source**
+- if it cannot be retrieved, no quotation renders and the Spanish retry state
+  shows instead (§6)
+
+Provenance is stored for **both** halves, and they are independent:
+
+```
+prose:     { translatedFrom: 'en', translatedAt, model }
+scripture: { verseSource: 'bible-api', translationId, fetchedAt }
+```
+
+A day may therefore have verified Scripture and translated prose, and the UI
+labels each accordingly. What must never happen is a model-produced or
+model-translated verse carrying a translation name.
 
 **Future days** (not yet walked) are generated in the active language as they
 already are, not translated.
@@ -250,18 +284,36 @@ count unchanged; active-Journey slots unchanged; pacing lock untouched;
 
 ---
 
-## 9. Prototypes required before implementation
+## 9. Prototypes — built, awaiting review
 
-Per the agreed working method, these are built and reviewed **before** the
-2,700-line renderer is touched:
+`docs/design/prototypes/spanish-journey-locale/` — self-contained, real design
+tokens, both themes, responsive, reduced-motion aware, no production identifiers
+or record values.
 
-1. Spanish Day-Opening while content is loading
-2. Spanish Journey Preview
-3. Spanish Fruit Log
-4. Language switching during an active Journey
-5. Generation failure and the Spanish retry state
+1. Spanish Day-Opening while loading
+2. Spanish Day-Opening ready
+3. Spanish Journey Preview and Today card
+4. Spanish completed-day review and Fruit Log
+5. Language switching during an active Journey
 
-Plus the copy for the failure and retry states, which needs approval on tone.
+Plus the final Spanish failure, retry and waiting copy, and an annotation legend.
+
+### Approved Spanish copy
+
+| State | Copy |
+|---|---|
+| Preparing | Jesús está preparando el camino para hoy. |
+| Preparing (card) | Personalizando tu camino… |
+| Generation failed | **No pudimos preparar este día.** Tu camino sigue guardado. Nada se perdió. Intentémoslo de nuevo. |
+| Scripture failed | **No pudimos traer el versículo.** Preferimos no mostrarte un texto que no hemos verificado. La Palabra merece esa precisión. |
+| Retry | Intentar de nuevo |
+| Continue later | Seguir más tarde |
+| Back to current Journey | Volver al camino de hoy |
+
+Tone rule: name the technical failure plainly, never imply God is absent or that
+the person did something wrong. "Tu camino sigue guardado" answers the real fear
+at a failure screen, which is losing progress. The Scripture failure states *why*
+the verse is withheld, which turns a limitation into the product's integrity.
 
 ---
 
@@ -284,7 +336,24 @@ The rest is plumbing that stops English leaking through.
 
 ---
 
-## 11. Explicitly out of scope
+## 11. Unresolved technical dependencies
+
+Each of these must be closed before or during implementation. None blocks the
+prototypes, which are complete.
+
+| # | Dependency | Blocks | Needs |
+|---|---|---|---|
+| 1 | **RVR1909 source identifier is unverified.** `worker/src/index.js:28` says to confirm it against `GET /v1/bibles?language=spa` before deploying. | All Spanish Scripture rendering | API check, then a **Worker deploy** — its own approval. Explicitly *not* a prototype blocker, and no deploy should happen merely to finish visuals. |
+| 2 | **No single-verse endpoint.** The Worker proxies chapters (`/bible?translation=&book=&chapter=`) and search. A verse must be extracted from a chapter payload. | `fetchVerse()` | Decide: extract client-side from the chapter (no Worker change), or add a verse route (Worker change + deploy). Extraction is preferred, since it avoids a deploy. |
+| 3 | **Reference → USFM mapping for Spanish input.** `src/data/usfm.js` is keyed by English book names; the Journey's references are English, so this works, but it needs the same `BOOK_ALIASES` normalisation already used by `passageLink()`. | `fetchVerse()` | Reuse existing maps; no new data. |
+| 4 | **Translation transport is unspecified.** Translating completed-day prose needs a model call. The existing Worker proxy is a blind pass-through with a 10 req/IP/min limit shared with `/today`. | Completed-day locale copies | Decide whether translation reuses that path and how the rate limit is handled for a 5-day backfill. |
+| 5 | **`BRIEF_ES` / `ARC_ES` do not exist.** ~250 lines of pastoral Spanish; the current Spanish prompt is bilingual because it injects English `BRIEF`/`ARC`. | Quality of Spanish generation | Content authoring, plus native es-LA review. |
+| 6 | **`max_tokens: 1500` truncates Spanish**, which runs ~20-25% longer. Truncation currently returns null and silently fell back to English. | Generation reliability | Raise for `es`, check `stop_reason`. |
+| 7 | **No test runner.** `package.json` has four scripts; there is no lint, test, typecheck or E2E. | Repeatable Test A / Test B | Either accept scripted browser passes, or add a runner as its own decision. |
+| 8 | **Native es-LA editorial review** of all new Spanish copy, including the failure states above. | Ship quality | A human reviewer, not a model. |
+| 9 | **Storage growth.** A second locale copy per journey and per day roughly doubles the local content cache. `db_journey_inst:*` is deliberately not synced to Convex, so this is device-local only. | Nothing yet | Confirm the localStorage budget is comfortable before backfilling completed days. |
+
+## 12. Explicitly out of scope
 
 Pricing, subscriptions, entitlements, pacing enforcement, the Release B Journey
 redesign, and the route-loader work. Server-authoritative pacing remains a
