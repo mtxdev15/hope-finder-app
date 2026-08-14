@@ -49,6 +49,35 @@ which also confirms those two were the only rows and nothing else could have bee
 decision: the `journeyTranslate` usage counter (`used 2`) and the two finalized reservations, as
 accurate operational history.
 
+## 0. Post-verification cleanup record
+
+Production verification ran against a personal account rather than a disposable one, so the resulting
+usage records are synthetic testing artefacts, not real operational history, and they consume part of
+that account's invisible daily ceiling. Captured here **before** deletion so the removal is auditable.
+
+Verified before deletion: every row carries `feature: "journeyTranslate"`, and both reservations are
+`finalized` (neither was left holding a slot).
+
+```
+usageCounters      kn75w7n9gex4etr3mkagtzq7vd8cfqrr
+  accountDay 2026-08-14 · used 2 · successful 2 · reserved 0 · failed 0
+
+usageReservations  ks76f2r5s3nhyr6fntjf0ap8bd8cf2n3
+  accountDay 2026-08-14 · status finalized · resolvedAt 1786684942089
+
+usageReservations  ks73fw2k0cdr4p4a9z3peeyzks8ced6p
+  accountDay 2026-08-14 · status finalized · resolvedAt 1786684925983
+```
+
+Deleted through the Convex production dashboard rather than by deploying a cleanup function. A
+one-time production deletion mutation would have been permanent attack surface in exchange for
+removing three known rows, so `purgeVerificationUsageInternal` was written, used to establish the
+exact scope, and then **removed from the branch**. If a recurring need appears it should return as
+reviewed operational tooling with authorization, dry-run, audit logging and deletion limits — not as a
+leftover.
+
+Post-deletion confirmation is recorded in §9.
+
 ---
 
 ## 1. File and schema diff
