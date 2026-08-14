@@ -90,6 +90,15 @@ Done items move to the bottom or get deleted.
       (including DST), offline/disconnected browser behavior, resume and review rules (both must stay
       always-allowed), migration for existing local locks, and trusted server-side enforcement. Not
       an iOS issue — there is no iOS app today.
+- [ ] **/today heading hierarchy skips a level (found 2026-08-13).** With the share sheet open the
+      runtime outline is H1 > H3: the only other heading is `<h3>Share this word</h3>`
+      (`today.astro`), and the page's `<h2>` sits in a hidden SEO block. Pre-existing, minor, and
+      deliberately not folded into the accessibility commit that added the page's `<h1>`.
+- [ ] **feature/es-full-app carries the aligned bottom-sheet shadow fix (2026-08-13).** That branch
+      now matches release-c1-monetization on `.journey .sheet` (box-shadow moved onto `.open` so a
+      closed sheet paints nothing) plus the light-theme button shadow. It will need deliberate
+      reconciliation when that branch is merged — check `.journey .sheet` and the
+      `html[data-theme="light"]` button override do not get duplicated or reverted.
 - [ ] **Spanish Journey content fix (filed 2026-08-13).** Audit complete, see
       `docs/investigation/spanish-journey-content-fallback.md` and the In-progress entry above. Ship
       with visible prototypes/screenshots for: Spanish Day-Opening while loading, Spanish Journey
