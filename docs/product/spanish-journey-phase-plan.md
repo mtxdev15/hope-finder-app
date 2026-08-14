@@ -397,6 +397,36 @@ creates locale copies in **browser storage only**. That means:
 Nothing in the product or its copy may imply that translated completed days sync
 across devices until that actually exists.
 
+## 10c. Guest audit — is completed-day review supported without an account?
+
+Audited before designing any anonymous path, because inventing guest behaviour
+would have been guesswork. Findings, all read-only:
+
+| Question | Answer | Evidence |
+|---|---|---|
+| Is completed-day review gated on sign-in? | **No.** `openReview()` has no auth check. | `journey.astro:1425` |
+| Are day dots tappable for guests? | **Yes**, for any completed day. | `journey.astro:1531-1532` |
+| Is Journey content written for guests? | **Yes.** `saveInstance()` has no auth check. | `journey.astro:564` |
+| Is Journey content synced to the account? | **No, for anyone.** Only `db_active_journey`, `db_journeys_done` and `db_journey_lock` are registered sync keys. Content is device-local even when signed in. | `journey.astro:454-456` |
+| Can a guest accumulate completed days? | **Exactly one.** Day 1 completes freely; Day 2 requires sign-in. | `journey.astro:1367` |
+
+**Conclusion: guest completed-day translation is reachable, but the surface is
+one day per journey.** A signed-out person can complete Day 1, switch to
+Spanish, and review it.
+
+That is small enough to make deferral a legitimate option. Two ways forward, to
+be decided at the transport milestone rather than assumed here:
+
+- **Defer guest translation.** Signed-out review keeps showing the original
+  English with an honest note. Smallest attack surface, no anonymous quota to
+  design, and it affects at most one day per guest.
+- **Tightly limited anonymous path.** Keyed on IP plus request hash, with its own
+  much smaller quota, entirely separate from the authenticated path. The browser
+  must never claim an account identity.
+
+Either way the browser never submits a user id, and identity for signed-in users
+is derived server-side from the trusted authentication integration.
+
 ## 11. Unresolved technical dependencies
 
 Each of these must be closed before or during implementation. None blocks the
