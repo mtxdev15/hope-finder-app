@@ -121,6 +121,17 @@ export async function billingPortal(lang) { return (await ensure()) ? runAction(
    All three fail soft (null) like everything else in this module: a sync
    failure must never block or lose Journey progress, which lives locally and
    is the user's actual work. */
+/* Journey prose translation. Journey-authored fields only — the action rejects
+   anything else server-side, and the browser must never send a reflection or a
+   user-written prayer. Identity is derived server-side; no userId is sent. */
+export async function journeyTranslate(fields) {
+  return (await ensure())
+    ? runAction(apiRef.journeyTranslate.translateJourneyDay, {
+        fields, sourceLocale: 'en', displayLocale: 'es',
+      })
+    : null;
+}
+
 export async function journeyStart(journeyId) { return (await ensure()) ? runMutation(apiRef.journeySlots.registerJourneyStart, { journeyId }) : null; }
 export async function journeyEnsure(journeyId) { return (await ensure()) ? runMutation(apiRef.journeySlots.ensureJourneySlot, { journeyId }) : null; }
 export async function journeyRelease(journeyId, status) { return (await ensure()) ? runMutation(apiRef.journeySlots.releaseJourneySlot, { journeyId, status }) : null; }

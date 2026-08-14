@@ -28,6 +28,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 // or put it in .env.development.local, which Vite loads only in dev mode.
 // Do NOT use .env.local, and do not add it to Cloudflare Pages build settings.
 const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
+
+// Spanish locale content, checkpoint 1: completed-day review only.
+// DEV && on purpose — a production build must contain no active Spanish
+// locale-render path at this stage even if the public variable is set by
+// accident. Vite folds both literals, so esbuild drops the branch entirely.
+// Enable locally with: PUBLIC_JOURNEY_ES_CONTENT=1 npm run dev
+const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
 ---
 <DeclareLayout
   title="Declare — Journey"
@@ -822,7 +829,11 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       // letting it fire could write stale text into the freshly rendered day.
       if (reflectDebounceT) { clearTimeout(reflectDebounceT); reflectDebounceT = null; }
       const fd = curDay(), reviewing = !!reviewDay;
-      const d = PLAN[fd - 1], ds = dstate();
+      // Spanish display copy for a COMPLETED day. PLAN[] — the English original —
+      // is read, never written, which is what makes switching back exact.
+      const dEn = PLAN[fd - 1];
+      const d = (reviewing && esReview && esReview.day === fd && !esReviewForceEn) ? applyEsReview(dEn, esReview) : dEn;
+      const ds = dstate();
       if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; ds.reflected = true; }
       $('dayflow').classList.toggle('reviewing', reviewing);
       if (reviewing) { if (reviewStep < 1 || reviewStep > TOTAL_STEPS) reviewStep = 1; }
@@ -933,7 +944,29 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       let stepDots = ''; for (let i = 1; i <= TOTAL_STEPS; i++) { stepDots += '<i class="' + (i < s ? 'done' : (i === s ? 'cur' : '')) + '"></i>'; } $('dfStepDots').innerHTML = stepDots;
       let dayDots = ''; for (let i = 1; i <= TOTAL; i++) { dayDots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dayDots;
       $('dfReviewBadge').style.display = reviewing ? 'flex' : 'none';
-      if (reviewing) { $('dfReviewBadgeTxt').textContent = esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only'; }
+      if (reviewing) {
+        const showingEs = ES_REVIEW_ON && !!(esReview && esReview.day === fd && !esReviewForceEn);
+        // Quiet provenance rather than three competing chips: it states what the
+        // reader is looking at without shouting over the day itself.
+        $('dfReviewBadgeTxt').textContent = showingEs
+          ? 'Traducción al español del contenido original en inglés · Solo lectura'
+          : (esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only');
+        let back = $('esBackToEn');
+        if (showingEs) {
+          if (!back) {
+            back = document.createElement('button');
+            back.id = 'esBackToEn'; back.type = 'button'; back.className = 'es-back-en';
+            back.addEventListener('click', function () {
+              // Restores the untouched English record. Nothing was ever written
+              // over it, so this is exact rather than approximate.
+              esReviewForceEn = true; esReview = null; renderDayFlow();
+            });
+            $('dfReviewBadge').appendChild(back);
+          }
+          back.textContent = 'Ver el original en inglés';
+          back.style.display = '';
+        } else if (back) { back.style.display = 'none'; }
+      }
 
       const back = $('dfStepBack'), next = $('dfStepNext'), primary = $('dfComplete'), hint = $('dfLock');
       back.textContent = esL() ? 'Atrás' : 'Back';
@@ -1399,6 +1432,10 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       else if (!$('dayflow').contains(document.activeElement)) { e.preventDefault(); first.focus(); }
     }
     function closeDayFlow() {
+      // Drop any in-flight Spanish request and its resolved copy: a result that
+      // arrives after the reader has left must never paint over the next screen.
+      try { esReviewCancel(); } catch (e) {}
+      esReview = null; esReviewForceEn = false;
       if (breathInst) { try { breathInst.stop(); } catch (_) {} breathInst = null; }
       // Flush a pending (debounced, not-yet-written) reflection draft
       // immediately rather than trust the ~650ms timer to still fire after
@@ -1422,11 +1459,130 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       dayFlowReturnEl = null;
       if (target) { try { target.focus(); } catch (e) {} }
     }
+    /* ── Spanish completed-day review (checkpoint 1) ──────────────────────
+       Orchestration lives in review-controller.js; this page decides WHEN to
+       ask and WHAT to paint, and owns no hashing, transport, cache or Scripture
+       logic.
+
+       THE WHOLE BLOCK IS BEHIND A BUILD-TIME CONSTANT, and the controller is
+       loaded by DYNAMIC import inside it. That combination is what keeps the
+       production bundle free of this path: a STATIC import would pull the
+       module into the graph no matter what the flag said, and helper bodies
+       defined at module scope would ship their strings even if never called.
+       Both were true of the first attempt here, and both were caught by
+       grepping the built bundle rather than by reading the diff.
+
+       import.meta.env is read directly rather than through the frontmatter
+       constant — frontmatter is not in scope inside this bundled script, and
+       referencing it there is a runtime ReferenceError that the build does not
+       catch. */
+    const ES_REVIEW_ON = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
+
+    let esReview = null;         // { day, fields, scripture }
+    let esReviewForceEn = false; // reader chose "Ver el original en inglés"
+    let applyEsReview = function (d) { return d; };
+    let loadEsReview = function () {};
+    let esReviewCancel = function () {};
+
+    if (ES_REVIEW_ON) {
+      let ctrl = null;
+      const controller = async function () {
+        if (!ctrl) ctrl = await import('../app/declare/journey-locale/review-controller.js');
+        return ctrl;
+      };
+
+      /* Merge the Spanish display copy over the English record for RENDERING
+         only. The original object is never mutated — this returns a shallow
+         copy, which is what makes switching back byte-for-byte exact. */
+      applyEsReview = function (d, es) {
+        const out = Object.assign({}, d, es.fields);
+        if (es.scripture) { out.verse = es.scripture.text; out.ver = es.scripture.versionLabel; }
+        return out;
+      };
+
+      esReviewCancel = function () { if (ctrl) { try { ctrl.cancelPending(); } catch (e) {} } };
+
+      const notice = function (kind) {
+        const box = document.createElement('div');
+        box.className = 'es-review-note';
+        if (kind === 'loading') {
+          box.innerHTML = '<p>Estamos preparando el camino de hoy con cuidado.</p>';
+        } else if (kind === 'guest') {
+          box.innerHTML = '<p><b>Este día se completó originalmente en inglés.</b></p>'
+            + '<p>Puedes seguir revisando el contenido original. Inicia sesión para preparar una copia en español sin cambiar lo que completaste.</p>';
+        } else if (kind === 'scripture') {
+          box.innerHTML = '<p><b>No pudimos verificar el versículo.</b></p>'
+            + '<p>No pudimos verificar el versículo en este momento. Preferimos esperar antes que mostrar un texto no confirmado. La Palabra merece esa precisión.</p>';
+        } else {
+          box.innerHTML = '<p><b>No pudimos preparar este día.</b></p>'
+            + '<p>Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.</p>';
+        }
+        return box;
+      };
+
+      const renderPending = function () {
+        $('dfScroll').innerHTML = '';
+        $('dfScroll').appendChild(notice('loading'));
+        $('dfReviewBadge').style.display = 'none';
+        $('dfComplete').disabled = true;
+        $('dfComplete').textContent = 'Preparando…';
+        $('dfStepBack').style.display = 'none'; $('dfStepNext').style.display = 'none';
+      };
+
+      /* Blocked states keep the English original REACHABLE — never a dead end,
+         and never a silent English fallback dressed as Spanish. */
+      const renderBlocked = function (kind) {
+        $('dfScroll').innerHTML = '';
+        $('dfScroll').appendChild(notice(kind));
+        const actions = document.createElement('div');
+        actions.className = 'es-review-actions';
+        const primary = document.createElement('button');
+        primary.className = 'btn btn-primary'; primary.type = 'button';
+        primary.textContent = kind === 'guest' ? 'Continuar en inglés' : 'Intentar de nuevo';
+        primary.addEventListener('click', function () {
+          if (kind === 'guest') { esReviewForceEn = true; esReview = null; renderDayFlow(); }
+          else loadEsReview(reviewDay);
+        });
+        const secondary = document.createElement('button');
+        secondary.className = 'btn btn-ghost'; secondary.type = 'button';
+        secondary.textContent = kind === 'guest' ? 'Iniciar sesión para verlo en español' : 'Continuar en inglés';
+        secondary.addEventListener('click', function () {
+          if (kind === 'guest') { try { ensureSignedIn('Inicia sesión para preparar una copia en español.'); } catch (e) {} }
+          else { esReviewForceEn = true; esReview = null; renderDayFlow(); }
+        });
+        actions.appendChild(primary); actions.appendChild(secondary);
+        $('dfScroll').appendChild(actions);
+        $('dfComplete').disabled = false;
+        $('dfComplete').textContent = 'Volver al camino de hoy';
+        $('dfStepBack').style.display = 'none'; $('dfStepNext').style.display = 'none';
+      };
+
+      /* Resolve first, then render ONCE. Nothing paints between the request and
+         the result, so no mixed-language frame can exist. */
+      loadEsReview = async function (day) {
+        if (esReviewForceEn || !esL()) { esReview = null; renderDayFlow(); return; }
+        const c = await controller();
+        const token = c.beginRequest();
+        esReview = null;
+        renderPending();
+        let res;
+        try {
+          res = await c.getReviewContent({ instance: active && active.id, day, english: PLAN[day - 1], locale: 'es', token });
+        } catch (e) { res = { state: 'error', reason: 'unexpected', retryable: true }; }
+        if (!c.isCurrent(token) || reviewDay !== day) return; // stale, discard
+        if (res.state === 'ready') { esReview = { day: day, fields: res.fields, scripture: res.scripture }; renderDayFlow(); return; }
+        if (res.state === 'english') { esReview = null; renderDayFlow(); return; }
+        renderBlocked(res.state === 'guest-notice' ? 'guest' : (res.reason === 'scripture-unverified' ? 'scripture' : 'error'));
+      };
+    }
+
     function openReview(day) {
       dayFlowReturnEl = document.activeElement || null;
       reviewDay = day; reviewStep = 1;
+      esReview = null; esReviewForceEn = false;
       $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
       openDayFlowA11y();
+      if (ES_REVIEW_ON && esL()) { loadEsReview(day); return; }
       renderDayFlow();
     }
     $('dfBack').addEventListener('click', closeDayFlow);
@@ -2431,6 +2587,12 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .df-stepdots i.done { background: var(--gold); }
     .journey .df-stepdots i.cur { background: var(--goldd); width: 18px; }
 
+    .journey .es-review-note { max-width: 560px; margin: 26px auto 0; text-align: center; }
+    .journey .es-review-note p { font-size: 14px; line-height: 1.65; color: var(--text2); margin: 0 0 9px; }
+    .journey .es-review-note p b { color: var(--text); }
+    .journey .es-review-actions { max-width: 420px; margin: 22px auto 0; display: flex; flex-direction: column; gap: 10px; }
+    .journey .es-back-en { background: none; border: 0; padding: 0 0 0 10px; margin-left: 8px; font: inherit; font-size: 11.5px;
+      color: var(--goldd); text-decoration: underline; cursor: pointer; min-height: 44px; }
     .journey .df-review-badge { display: none; align-items: center; gap: 6px; justify-content: center; margin: 12px 18px 0; padding: 6px 13px; border-radius: 100px;
       font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); flex: 0 0 auto; }
     .journey .df-review-badge svg { width: 13px; height: 13px; }

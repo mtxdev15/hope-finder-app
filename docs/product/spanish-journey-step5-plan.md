@@ -8,23 +8,29 @@ authenticated translation transport, **deployed and inert** (see
 
 ---
 
-## 1. The flag, and what "rollback" means
+## 1. The flag, and what "rollback" actually costs
 
 ```js
 // src/pages/journey.astro frontmatter
-const JOURNEY_ES_CONTENT = import.meta.env.DEV || import.meta.env.PUBLIC_JOURNEY_ES === '1';
+const JOURNEY_ES_CONTENT =
+  import.meta.env.DEV &&
+  import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
 ```
 
-Same shape as the preview-tools guard, for the same reason: with the flag unset, Vite folds the
-condition to `false` and esbuild drops the branch, so the production bundle contains no new render
-path at all. **Rollback is removing the flag from the build environment — not a code revert.**
+Enable locally with `PUBLIC_JOURNEY_ES_CONTENT=1 npm run dev`.
 
-Unlike the preview gate, `import.meta.env.DEV` is included here so the whole thing is live in local
-development without configuration. The production build stays inert until `PUBLIC_JOURNEY_ES=1` is set
-deliberately.
+`DEV &&` is deliberate for this checkpoint. A production build must contain **no** active Spanish
+locale-render path even if the public variable is set by accident — same reasoning as the preview-tools
+guard, and verified by building with the flag deliberately set. Vite folds both literals at build time,
+so esbuild drops the branch entirely.
 
-**Every surface below reads the flag through one helper**, not by repeating the condition. Two guards
-that must agree is how the preview gate nearly drifted; one helper cannot.
+**Rollback means disabling the build-time flag and redeploying** the previous user-facing behaviour,
+without reverting the locale modules or the backend transport. It is **not** an instant runtime toggle:
+a new build and deploy is required. That is a deliberate trade — turning it off costs a deploy, and in
+exchange the shipped bundle contains no new render path at all while the flag is unset.
+
+**Every surface reads the flag through one helper**, never by repeating the condition. Two guards that
+must agree is how the preview gate nearly drifted; one helper cannot.
 
 ---
 
@@ -84,18 +90,29 @@ Checks 1 and 4 are the two that would embarrass us most, so both are mechanical 
 
 ## 5. Rollback boundary per surface
 
+Rollback for every row below means: unset the build flag, rebuild, redeploy. Not a runtime toggle.
+
 | Surface | Blast radius if wrong | Rollback |
 |---|---|---|
-| Completed-day review | read-only screen; original untouched | unset flag |
-| Fruit Log | read-only list | unset flag |
-| Day-Opening | first screen of a day; no writes | unset flag |
-| Today card | home card only | unset flag |
-| Preview | pre-commit screen; no journey exists yet | unset flag |
-| Active ritual | **highest** — the writing path (reflection save, completion) | unset flag; writes stay on the untouched English path |
-| Language switching | cross-cutting render | unset flag |
+| Completed-day review | read-only screen; original untouched | flag off + redeploy |
+| Fruit Log | read-only list | flag off + redeploy |
+| Day-Opening | first screen of a day; no writes | flag off + redeploy |
+| Today card | home card only | flag off + redeploy |
+| Preview | pre-commit screen; no journey exists yet | flag off + redeploy |
+| Active ritual | **highest** — the writing path (reflection save, completion) | flag off + redeploy; writes stay on the untouched English path |
+| Language switching | cross-cutting render | flag off + redeploy |
 
-**No surface changes what is written.** The Spanish work is display-only: same records, same progress,
-same completion. That is what keeps every rollback a flag flip.
+**Non-destructive is not the same as writes nothing.** No surface modifies the original Journey: the
+English content, progress, returned count, completion, pacing, reflections and Vault records are all
+left exactly as they are. But authenticated Spanish rendering *does* create new records:
+
+- a `journeyTranslations` server-cache row
+- Journey-translation usage and reservation records
+- a browser locale-cache copy
+
+So the accurate statement is: **Spanish rendering is non-destructive to the original Journey records.
+It creates separate locale-display cache and operational usage records.** Those are additive, scoped to
+the translation feature, and removable without touching anything the person actually walked.
 
 ---
 

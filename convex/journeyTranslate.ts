@@ -345,6 +345,57 @@ export const cleanupInternal = internalMutation({
   },
 });
 
+/* Ops purge for synthetic verification records.
+ *
+ * Exists because production verification ran against a personal account rather
+ * than a disposable one, so the resulting counter and reservations are synthetic
+ * testing artefacts, not real operational history, and they consume part of that
+ * account's invisible daily ceiling.
+ *
+ * SCOPE IS THE POINT. It filters on feature === "journeyTranslate" and one
+ * userId, so Gentle Guidance and every other feature are untouchable from here,
+ * as are userData, Journey progress and locks, Vault, subscriptions,
+ * entitlements and authentication records — none of those tables is queried.
+ * dryRun lets the exact set be inspected before anything is deleted. */
+export const purgeVerificationUsageInternal = internalMutation({
+  args: { userId: v.string(), dryRun: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const counters = (
+      await ctx.db
+        .query("usageCounters")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect()
+    ).filter((r) => r.feature === JOURNEY_TRANSLATE_FEATURE);
+
+    // usageReservations has no by_user-only index, so scan this user's rows via
+    // the feature/day index is not possible without a day. Collect by user+
+    // feature+day across the days present on the counters, plus any day the
+    // reservations themselves report.
+    const reservations = [] as { _id: any; feature: string; accountDay: string }[];
+    const days = new Set(counters.map((c) => c.accountDay));
+    for (const day of days) {
+      const rows = await ctx.db
+        .query("usageReservations")
+        .withIndex("by_user_feature_day", (q) =>
+          q.eq("userId", args.userId).eq("feature", JOURNEY_TRANSLATE_FEATURE).eq("accountDay", day),
+        )
+        .collect();
+      for (const r of rows) reservations.push(r as never);
+    }
+
+    if (!args.dryRun) {
+      for (const r of reservations) await ctx.db.delete(r._id as never);
+      for (const c of counters) await ctx.db.delete(c._id);
+    }
+    return {
+      dryRun: !!args.dryRun,
+      counters: counters.length,
+      reservations: reservations.length,
+      feature: JOURNEY_TRANSLATE_FEATURE,
+    };
+  },
+});
+
 export const readInternal = internalQuery({
   args: { userId: v.string(), serverKey: v.string() },
   handler: async (ctx, args) =>

@@ -120,6 +120,36 @@ check("10 successful per rolling hour", MAX_PER_ROLLING_HOUR === 10, MAX_PER_ROL
 check("30 successful per account day", MAX_PER_ACCOUNT_DAY === 30, MAX_PER_ACCOUNT_DAY);
 check("a five-day Journey fits well inside every limit", 5 < MAX_PER_ROLLING_HOUR && 5 < MAX_PER_ACCOUNT_DAY);
 
+/* ── 7. Controller payload safety ──────────────────────────────────────── */
+section("7. Controller payload safety");
+const { pickTranslatable } = await import("../src/app/declare/journey-locale/payload.ts");
+
+// A whole completed-day record, exactly as journey.astro holds it: authored copy
+// AND the person's own words sitting side by side on the same object. This is
+// the shape that makes an accidental leak plausible, which is why it is the test.
+const wholeDay = {
+  title: "Name the fear", encouragement: "You are held.", commentary: "David named it.",
+  prayer: "Father, I am tired of pretending.", declaration: "I am held.",
+  reflectionPrompt: "What did you notice?",
+  // none of the following may ever be sent
+  reflection: "I kept saying I was fine. I wasn't.",
+  userPrayer: "God, my marriage is falling apart.",
+  verse: "When I am afraid, I put my trust in you.",
+  ref: "Psalm 56:3", ver: "ESV",
+  fruit: "Honest courage", fruitTruth: "Naming fear strips its power.",
+  vaultItems: ["x"], crisis: "disclosure",
+};
+const payload = pickTranslatable(wholeDay);
+const sent = Object.keys(payload).sort();
+check("sends exactly the six authored fields", sent.join(",") ===
+  "commentary,declaration,encouragement,prayer,reflectionPrompt,title", sent);
+for (const leak of ["reflection", "userPrayer", "verse", "ref", "ver", "fruit", "fruitTruth", "vaultItems", "crisis"]) {
+  check(`never sends ${leak}`, !(leak in payload));
+}
+check("payload passes the server allowlist", validateFields(payload).ok === true);
+check("the raw day object does NOT pass the server allowlist",
+  validateFields(wholeDay as never).ok === false);
+
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
 if (failures.length) {
