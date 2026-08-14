@@ -99,6 +99,17 @@ Done items move to the bottom or get deleted.
       closed sheet paints nothing) plus the light-theme button shadow. It will need deliberate
       reconciliation when that branch is merged — check `.journey .sheet` and the
       `html[data-theme="light"]` button override do not get duplicated or reverted.
+- [ ] **Scripture failure reason taxonomy (filed 2026-08-14).** `verified-scripture.ts` currently maps
+      both controlled source rejection and transport failure to `reason: "network"`. The distinction
+      survives only in `detail`: a controlled chapter rejection reports `chapter-400`, a transport
+      failure reports `Failed to fetch`. **Current user behaviour is correct for both** — verified
+      Scripture is withheld, the version label is removed, and the Spanish retry state is shown — so
+      this is not a user-facing defect. It matters for telemetry: once these surfaces are live, a spike
+      in `chapter-400` means bad references in our own content, while a spike in `Failed to fetch` means
+      the Worker or API is degraded, and today those look identical in aggregate. Before production
+      telemetry is added, split the internal taxonomy into `network`, `source-rejected`,
+      `invalid-response`, `translation-mismatch`. Do NOT change this during the completed-day review
+      checkpoint unless the current classification causes incorrect user-facing behaviour.
 - [ ] **Spanish Journey content fix (filed 2026-08-13).** Audit complete, see
       `docs/investigation/spanish-journey-content-fallback.md` and the In-progress entry above. Ship
       with visible prototypes/screenshots for: Spanish Day-Opening while loading, Spanish Journey
