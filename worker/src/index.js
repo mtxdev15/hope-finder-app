@@ -554,7 +554,8 @@ async function handleBillingWebhook(request, env) {
  * the payload; it is validated again here, independently. One shared check
  * would be one point of failure.
  */
-const JT_ALLOWED_FIELDS = ['title', 'encouragement', 'commentary', 'prayer', 'declaration', 'reflectionPrompt'];
+const JT_ALLOWED_FIELDS = ['title', 'insight', 'prayerTitle', 'pray', 'castOff', 'repent',
+  'declare', 'reflect', 'actionTitle', 'action', 'fruit', 'fruitTruth'];
 const JT_FORBIDDEN_KEYS = new Set([
   'reflection', 'reflectiontext', 'userprayer', 'usertext', 'usernote',
   'vault', 'vaultitems', 'crisis', 'supportdisclosure',

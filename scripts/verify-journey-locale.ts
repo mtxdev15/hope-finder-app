@@ -73,7 +73,7 @@ check("empty is stable", sourceHash({}) === sourceHash({}));
 /* ── 2. Cache key identity ─────────────────────────────────────────────── */
 section("2. Cache key identity");
 const key = localeCacheKey({ instance: "fear", day: 1, sourceLocale: "en", displayLocale: "es", sourceHash: "abc123-7" });
-check("shape", key === "db_journey_locale:fear:day1:en:es:abc123-7:v1", key);
+check("shape", key === "db_journey_locale:fear:day1:en:es:abc123-7:v" + LOCALE_SCHEMA_VERSION, key);
 const round = parseLocaleCacheKey(key);
 check("round-trips", !!round && round.instance === "fear" && round.day === 1 && round.displayLocale === "es", round);
 check("foreign key ignored", parseLocaleCacheKey("db_journey_inst:fear") === null);

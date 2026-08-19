@@ -23,7 +23,7 @@ export const ROLLING_WINDOW_MS = 60 * 60 * 1000;
 export const TRANSLATE_RESERVATION_TTL_MS = 2 * 60 * 1000;
 
 export const TRANSPORT_VERSION = "journey-translate/1";
-export const LOCALE_SCHEMA_VERSION = 1;
+export const LOCALE_SCHEMA_VERSION = 2;
 
 /* ── Server-side allowlist ─────────────────────────────────────────────────
  * The ONLY fields that may be translated. Anything else is rejected outright
@@ -33,11 +33,17 @@ export const LOCALE_SCHEMA_VERSION = 1;
  * construction and rejected explicitly below. */
 export const ALLOWED_FIELDS = [
   "title",
-  "encouragement",
-  "commentary",
-  "prayer",
-  "declaration",
-  "reflectionPrompt",
+  "insight",
+  "prayerTitle",
+  "pray",
+  "castOff",
+  "repent",
+  "declare",
+  "reflect",
+  "actionTitle",
+  "action",
+  "fruit",
+  "fruitTruth",
 ] as const;
 type AllowedField = (typeof ALLOWED_FIELDS)[number];
 const ALLOWED = new Set<string>(ALLOWED_FIELDS);

@@ -41,12 +41,12 @@ const section = (s: string) => console.log("\n" + s);
 
 /* ── 1. Allowlist ──────────────────────────────────────────────────────── */
 section("1. Field allowlist");
-const good = { title: "Name the fear", prayer: "Father, I am tired of pretending." };
+const good = { title: "Name the fear", pray: "Father, I am tired of pretending." };
 const ok = validateFields(good);
 check("accepts allowlisted fields", ok.ok === true, ok);
 check("trims values", ok.ok && ok.fields.title === "Name the fear");
-check("drops empty values", (() => { const r = validateFields({ title: "T", commentary: "   " }); return r.ok && !("commentary" in r.fields); })());
-check("allowlist is exactly six fields", ALLOWED_FIELDS.length === 6, ALLOWED_FIELDS.length);
+check("drops empty values", (() => { const r = validateFields({ title: "T", insight: "   " }); return r.ok && !("insight" in r.fields); })());
+check("allowlist matches the real day schema (12 fields)", ALLOWED_FIELDS.length === 12, ALLOWED_FIELDS.length);
 rejects("rejects unknown field", { title: "T", notes: "x" }, "unknown-field");
 rejects("rejects non-string", { title: 42 }, "field-not-string");
 rejects("rejects nested object (smuggling vector)", { title: { es: "x" } }, "field-not-string");
@@ -74,18 +74,19 @@ section("3. Size limits");
 rejects("rejects oversized field", { title: "x".repeat(4001) }, "field-too-long");
 check("accepts a field at the limit", validateFields({ title: "x".repeat(4000) }).ok === true);
 rejects("rejects oversized payload", {
-  title: "x".repeat(3000), encouragement: "y".repeat(3000),
-  commentary: "z".repeat(3000), prayer: "p".repeat(3000), declaration: "d".repeat(1000),
+  title: "x".repeat(3000), insight: "y".repeat(3000),
+  pray: "z".repeat(3000), repent: "p".repeat(3000), declare: "d".repeat(1000),
 }, "payload-too-long");
 
 /* ── 4. Hash parity: browser module vs Convex core ─────────────────────── */
 section("4. Hash parity (browser vs server)");
 const samples = [
   { title: "Name the fear" },
-  { title: "Name the fear", prayer: "Father, I am tired." },
-  { prayer: "Father, I am tired.", title: "Name the fear" },
-  { title: "Comillas \"dobles\" y, comas", commentary: "línea uno\nlínea dos" },
-  { declaration: "I am held", reflectionPrompt: "What did you notice?" },
+  { title: "Name the fear", pray: "Father, I am tired." },
+  { pray: "Father, I am tired.", title: "Name the fear" },
+  { title: "Comillas \"dobles\" y, comas", insight: "línea uno\nlínea dos" },
+  { declare: "I am held", reflect: "What did you notice?" },
+  { castOff: "a lie", repent: "a turning", fruit: "Honest Courage", fruitTruth: "Named fear loses power." },
   {},
 ];
 for (const [i, s] of samples.entries()) {
@@ -93,7 +94,7 @@ for (const [i, s] of samples.entries()) {
     { client: clientSourceHash(s), server: serverSourceHash(s) });
 }
 check("hash is order independent server-side",
-  serverSourceHash({ title: "A", prayer: "B" }) === serverSourceHash({ prayer: "B", title: "A" }));
+  serverSourceHash({ title: "A", pray: "B" }) === serverSourceHash({ pray: "B", title: "A" }));
 check("hash changes with content", serverSourceHash({ title: "A" }) !== serverSourceHash({ title: "B" }));
 check("server hash ignores non-allowlisted keys",
   serverSourceHash({ title: "A", bogus: "Z" } as Record<string, string>) === serverSourceHash({ title: "A" }));
@@ -110,7 +111,7 @@ check("locale pair is part of identity",
 check("content hash is part of identity",
   k1 !== serverTranslationKey({ userId: "userA", ...base, sourceHash: "different" }));
 check("schema version is part of identity",
-  k1 !== serverTranslationKey({ userId: "userA", ...base, schemaVersion: 2 }));
+  k1 !== serverTranslationKey({ userId: "userA", ...base, schemaVersion: 99 }));
 check("key contains the account", k1.includes("userA"));
 
 /* ── 6. Approved limits ────────────────────────────────────────────────── */
@@ -128,9 +129,12 @@ const { pickTranslatable } = await import("../src/app/declare/journey-locale/pay
 // AND the person's own words sitting side by side on the same object. This is
 // the shape that makes an accidental leak plausible, which is why it is the test.
 const wholeDay = {
-  title: "Name the fear", encouragement: "You are held.", commentary: "David named it.",
-  prayer: "Father, I am tired of pretending.", declaration: "I am held.",
-  reflectionPrompt: "What did you notice?",
+  title: "Name the fear", insight: "David named it.", prayerTitle: "Honest Before You",
+  pray: "Father, I am tired of pretending.", castOff: "Pulling back is wisdom.",
+  repent: "I turn from that agreement.", declare: "I am held.",
+  reflect: "What did you notice?", actionTitle: "Write It Down",
+  action: "Write the fear by name.", fruit: "Honest Courage",
+  fruitTruth: "Named fear loses its hidden power.",
   // none of the following may ever be sent
   reflection: "I kept saying I was fine. I wasn't.",
   userPrayer: "God, my marriage is falling apart.",
@@ -141,9 +145,12 @@ const wholeDay = {
 };
 const payload = pickTranslatable(wholeDay);
 const sent = Object.keys(payload).sort();
-check("sends exactly the six authored fields", sent.join(",") ===
-  "commentary,declaration,encouragement,prayer,reflectionPrompt,title", sent);
-for (const leak of ["reflection", "userPrayer", "verse", "ref", "ver", "fruit", "fruitTruth", "vaultItems", "crisis"]) {
+check("sends exactly the twelve authored fields", sent.join(",") ===
+  "action,actionTitle,castOff,declare,fruit,fruitTruth,insight,pray,prayerTitle,reflect,repent,title", sent);
+// fruit and fruitTruth are AUTHORED content shown in the Fruit Log, so they are
+// translatable and deliberately absent from this list. What must never be sent
+// is the person's own writing, and Scripture.
+for (const leak of ["reflection", "userPrayer", "verse", "ref", "ver", "vaultItems", "crisis"]) {
   check(`never sends ${leak}`, !(leak in payload));
 }
 check("payload passes the server allowlist", validateFields(payload).ok === true);

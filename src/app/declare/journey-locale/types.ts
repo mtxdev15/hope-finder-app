@@ -20,7 +20,7 @@
 export type LocaleCode = "en" | "es";
 
 /** Bumped when the translation contract changes, invalidating every prior copy. */
-export const LOCALE_SCHEMA_VERSION = 1 as const;
+export const LOCALE_SCHEMA_VERSION = 2 as const;
 export type LocaleSchemaVersion = typeof LOCALE_SCHEMA_VERSION;
 
 /* ── Translatable content ──────────────────────────────────────────────────
@@ -30,22 +30,39 @@ export type LocaleSchemaVersion = typeof LOCALE_SCHEMA_VERSION;
  * and user-written prayers are deliberately absent and must stay absent. */
 export interface TranslatableFields {
   title?: string;
-  encouragement?: string;
-  commentary?: string;
+  /** The day's commentary. */
+  insight?: string;
+  prayerTitle?: string;
   /** The AUTHORED prayer of the ritual, never a prayer the user wrote. */
-  prayer?: string;
-  declaration?: string;
-  reflectionPrompt?: string;
+  pray?: string;
+  /** The authored lie to cast off. */
+  castOff?: string;
+  /** The authored repentance prayer. */
+  repent?: string;
+  declare?: string;
+  /** The authored reflection PROMPT. The user's ANSWER lives in the Vault as a
+   *  separate record and is never part of this object. */
+  reflect?: string;
+  actionTitle?: string;
+  action?: string;
+  fruit?: string;
+  fruitTruth?: string;
 }
 
 /** Field names that may ever be sent for translation, as runtime data. */
 export const TRANSLATABLE_FIELD_NAMES = [
   "title",
-  "encouragement",
-  "commentary",
-  "prayer",
-  "declaration",
-  "reflectionPrompt",
+  "insight",
+  "prayerTitle",
+  "pray",
+  "castOff",
+  "repent",
+  "declare",
+  "reflect",
+  "actionTitle",
+  "action",
+  "fruit",
+  "fruitTruth",
 ] as const;
 
 /** Keys that must NEVER appear in a translation request. Enforced at runtime by
