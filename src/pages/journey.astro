@@ -936,8 +936,68 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       }
     }
 
+    /* The original-English provenance state.
+     *
+     * Three things have to be true together, which is why they are done in one
+     * place rather than scattered: the reader is told BEFORE the English title
+     * (the badge already sits above #dfScroll in the DOM, so reading order and
+     * tab order both put it first), the English record is marked lang="en" so a
+     * screen reader changes voice for it, and the Spanish interface around it
+     * stays Spanish and unmarked.
+     *
+     * The accessible name comes from the visible text rather than an aria-label.
+     * A role="note" with both a label and the same words as content is
+     * announced twice; letting the content name the region says exactly the
+     * intended sentence once. */
+    function renderOriginalEnglishProvenance(on) {
+      const badge = $('dfReviewBadge');
+      if (!badge) return;
+      badge.classList.toggle('is-original-en', !!on);
+      if (on) badge.setAttribute('role', 'note'); else badge.removeAttribute('role');
+
+      let sub = $('dfBadgeSub');
+      if (on) {
+        if (!sub) {
+          sub = document.createElement('span');
+          sub.id = 'dfBadgeSub'; sub.className = 'df-badge-sub';
+          badge.appendChild(sub);
+        }
+        sub.textContent = reviewCopy('support');
+        sub.style.display = '';
+      } else if (sub) { sub.style.display = 'none'; }
+
+      /* Mark only the immutable English record. Chrome, prompts and anything
+         the reader wrote are deliberately left alone — see the selector list. */
+      const scroll = $('dfScroll');
+      if (scroll && enContentSelectors) {
+        enContentSelectors.forEach(function (sel) {
+          scroll.querySelectorAll(sel).forEach(function (el) {
+            if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
+          });
+        });
+      }
+
+      /* Optional account action. The original stays fully readable without it —
+         signing in is an offer, never a gate. */
+      let sig = $('esSignInEs');
+      const wantSignIn = !!on && !esReviewSignedIn();
+      if (wantSignIn) {
+        if (!sig) {
+          sig = document.createElement('button');
+          sig.id = 'esSignInEs'; sig.type = 'button'; sig.className = 'es-back-en';
+          sig.addEventListener('click', function () {
+            try { ensureSignedIn('Inicia sesión para preparar una copia en español.'); } catch (e) {}
+          });
+          badge.appendChild(sig);
+        }
+        sig.textContent = reviewCopy('signIn');
+        sig.style.display = '';
+      } else if (sig) { sig.style.display = 'none'; }
+    }
+
     function renderStepChrome() {
       const fd = curDay(), reviewing = !!reviewDay, s = curStep(), ds = dstate();
+      let originalEn = false; // Spanish chrome over the immutable English record
       const dayTxt = (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL;
       $('dfEy').textContent = dayTxt;
       $('dfEySR').textContent = (reviewing ? (esL() ? 'Repasando, ' : 'Reviewing, ') : '') + dayTxt + (esL() ? ', Paso ' : ', Step ') + s + (esL() ? ' de 7' : ' of 7') + (reviewing ? (esL() ? ', solo lectura' : ', read only') : '');
@@ -946,11 +1006,21 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       $('dfReviewBadge').style.display = reviewing ? 'flex' : 'none';
       if (reviewing) {
         const showingEs = ES_REVIEW_ON && !!(esReview && esReview.day === fd && !esReviewForceEn);
+        /* What is this review actually showing? Resolved in the locale module,
+           not decided here, so the guest path and the signed-in "view the
+           original" path can never drift apart again. */
+        const vstate = reviewViewState
+          ? reviewViewState({ interfaceLocale: esL() ? 'es' : 'en', translationShown: showingEs, reviewing: true })
+          : null;
+        originalEn = !!vstate && vstate.provenanceKind === 'original-english';
         // Quiet provenance rather than three competing chips: it states what the
         // reader is looking at without shouting over the day itself.
         $('dfReviewBadgeTxt').textContent = showingEs
           ? 'Traducción al español del contenido original en inglés · Solo lectura'
-          : (esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only');
+          : (originalEn
+            ? reviewCopy('banner')
+            : (esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only'));
+        renderOriginalEnglishProvenance(originalEn);
         let back = $('esBackToEn');
         if (showingEs) {
           if (!back) {
@@ -973,7 +1043,12 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       back.style.display = (s > 1) ? 'block' : 'none';
 
       if (reviewing) {
-        primary.textContent = esL() ? 'Volver a Hoy' : 'Back to Today';
+        /* Phase 4: inside the open English original the exit reads as the full
+           "back to today's path", matching the guest notice the reader just
+           came through. Other review states keep their existing label. */
+        primary.textContent = originalEn
+          ? reviewCopy('returnToday')
+          : (esL() ? 'Volver a Hoy' : 'Back to Today');
         primary.disabled = false;
         $('dfFoot').classList.remove('ready');
         hint.style.display = 'none';
@@ -1483,6 +1558,17 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     let applyEsReview = function (d) { return d; };
     let loadEsReview = function () {};
     let esReviewCancel = function () {};
+    /* Set only when the flag is on. renderStepChrome() runs on every review,
+       flag or not, so it asks these rather than importing anything itself —
+       that is what keeps the locale modules and their Spanish copy out of a
+       production bundle while the feature is still development-only. */
+    let reviewViewState = null;  // (input) => ReviewViewState
+    let enContentSelectors = null;
+    /* (alias) => display string. Aliases, not catalog keys: this call site
+       ships even when the feature does not, and a key literal here would put
+       the name of an unreleased feature into a production bundle. */
+    let reviewCopy = function () { return ''; };
+    let esReviewSignedIn = function () { return false; };
 
     if (ES_REVIEW_ON) {
       let ctrl = null;
@@ -1490,6 +1576,31 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         if (!ctrl) ctrl = await import('../app/declare/journey-locale/review-controller.js');
         return ctrl;
       };
+
+      /* Load the view-state vocabulary and register its Spanish copy under the
+         canonical catalog keys. i18n.js reads window.__I18N_STRINGS live on
+         every lookup, so registering here makes tj() resolve these exactly like
+         any shipped key. At release the four entries move into
+         public/declare/i18n-strings.js and this call is deleted — no call site
+         changes, because the call sites already use the real keys. */
+      (async function () {
+        const vs = await import('../app/declare/journey-locale/review-view-state.ts');
+        reviewViewState = vs.resolveReviewViewState;
+        enContentSelectors = vs.ENGLISH_CONTENT_SELECTORS;
+        reviewCopy = function (alias) {
+          const key = vs.REVIEW_COPY_KEYS[alias];
+          return tj(key, vs.REVIEW_COPY_EN[key] || '');
+        };
+        try {
+          window.__I18N_STRINGS = window.__I18N_STRINGS || {};
+          window.__I18N_STRINGS.es = Object.assign({}, window.__I18N_STRINGS.es, vs.REVIEW_COPY_ES);
+        } catch (e) { /* copy falls back to the English source strings */ }
+        try {
+          const auth = await import('../app/declare/auth-store.js');
+          esReviewSignedIn = auth.isSignedIn;
+        } catch (e) { /* stays false; only affects an optional secondary action */ }
+        if (reviewDay) renderStepChrome();
+      })();
 
       /* Merge the Spanish display copy over the English record for RENDERING
          only. The original object is never mutated — this returns a shallow
@@ -2646,6 +2757,16 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .df-review-badge { display: none; align-items: center; gap: 6px; justify-content: center; margin: 12px 18px 0; padding: 6px 13px; border-radius: 100px;
       font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); flex: 0 0 auto; }
     .journey .df-review-badge svg { width: 13px; height: 13px; }
+    /* Original-English provenance carries a second line, so the pill relaxes
+       into a soft-cornered block and wraps instead of truncating. Same quiet
+       neutral treatment as the generic review badge — this is context, not a
+       warning, so nothing here borrows error colour or weight. */
+    .journey .df-review-badge.is-original-en { flex-wrap: wrap; row-gap: 3px; padding: 9px 15px; border-radius: 14px; }
+    .journey .df-review-badge.is-original-en #dfReviewBadgeTxt { flex: 1 1 auto; min-width: 0; }
+    .journey .df-review-badge .df-badge-sub { flex: 1 0 100%; text-align: center; text-transform: none;
+      letter-spacing: .01em; font-weight: 500; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+    .journey .df-review-badge.is-original-en .es-back-en { flex: 1 0 100%; padding-left: 0; margin-left: 0;
+      display: inline-flex; align-items: center; justify-content: center; text-transform: none; letter-spacing: .01em; }
 
     .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 24px; scrollbar-width: none; }
     .journey .df-scroll::-webkit-scrollbar { display: none; }

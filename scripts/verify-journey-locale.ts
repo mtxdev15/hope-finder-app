@@ -36,6 +36,13 @@ import {
   withSingleFlight,
 } from "../src/app/declare/journey-locale/translation-transport.ts";
 import { LOCALE_SCHEMA_VERSION } from "../src/app/declare/journey-locale/types.ts";
+import {
+  ENGLISH_CONTENT_SELECTORS,
+  REVIEW_COPY_EN,
+  REVIEW_COPY_ES,
+  REVIEW_COPY_KEYS,
+  resolveReviewViewState,
+} from "../src/app/declare/journey-locale/review-view-state.ts";
 
 let passed = 0;
 const failures: string[] = [];
@@ -215,6 +222,82 @@ check("rejects hash mismatch", (() => { const r = validateTranslation({ ...goodT
 check("rejects schema mismatch", (() => { const r = validateTranslation({ ...goodT, schemaVersion: 99 }, goodReq); return "reason" in r; })());
 check("rejects smuggled field", (() => { const r = validateTranslation({ ...goodT, fields: { title: "T", reflection: "x" } }, goodReq); return "reason" in r; })());
 check("rejects wrong locale pair", (() => { const r = validateTranslation({ ...goodT, displayLocale: "fr" }, goodReq); return "reason" in r; })());
+
+/* ── 12. Review view state ─────────────────────────────────────────────────
+ * The rule this section defends: whenever the interface is Spanish and the
+ * content on screen is the immutable English original, the review must say so.
+ * Derived from the content relationship, never from authentication, so the
+ * signed-out path and the signed-in "view the original" path cannot diverge. */
+section("12. Review view state");
+
+const esOriginal = resolveReviewViewState({ interfaceLocale: "es", translationShown: false, reviewing: true });
+check("es chrome + English original => original-english", esOriginal.provenanceKind === "original-english", esOriginal.provenanceKind);
+check("es chrome + English original => contentLocale en", esOriginal.contentLocale === "en");
+check("es chrome + English original => origin original", esOriginal.contentOrigin === "original");
+check("es chrome + English original => read only", esOriginal.readOnly === true);
+
+const esTranslated = resolveReviewViewState({ interfaceLocale: "es", translationShown: true, reviewing: true });
+check("es chrome + Spanish copy => translated-spanish", esTranslated.provenanceKind === "translated-spanish", esTranslated.provenanceKind);
+check("Spanish copy is never called original", esTranslated.contentOrigin === "translation");
+
+const enReview = resolveReviewViewState({ interfaceLocale: "en", translationShown: false, reviewing: true });
+check("English chrome + English original => no provenance", enReview.provenanceKind === "none", enReview.provenanceKind);
+
+const live = resolveReviewViewState({ interfaceLocale: "es", translationShown: false, reviewing: false });
+check("the live day is not a review", live.provenanceKind === "none" && live.readOnly === false);
+
+// The whole point of the fix: the state cannot be a function of who is signed in.
+check("state has no authentication input", !("signedIn" in (esOriginal as object)) && !("isGuest" in (esOriginal as object)));
+
+/* Content vs chrome. A selector that reached into interface text would mark
+ * Spanish words as English; one that reached into the reflection would claim a
+ * language for words the reader wrote. Both are guarded here. */
+const CHROME_SELECTORS = [".lab", ".df-sh", ".intro", ".lie-q", ".mic-hint", ".cast-done", ".act-check"];
+for (const sel of CHROME_SELECTORS) {
+  check("lang=en never marks chrome " + sel, !ENGLISH_CONTENT_SELECTORS.includes(sel));
+}
+const USER_AUTHORED_SELECTORS = ["#reflectText", ".reflect-review", "#reflectReviewBox"];
+for (const sel of USER_AUTHORED_SELECTORS) {
+  check("lang=en never marks user text " + sel, !ENGLISH_CONTENT_SELECTORS.includes(sel));
+}
+check("the authored PROMPT is marked, the answer is not",
+  ENGLISH_CONTENT_SELECTORS.includes("#reflectPrompt") && !ENGLISH_CONTENT_SELECTORS.includes("#reflectText"));
+check("Scripture reference and quotation are marked",
+  ENGLISH_CONTENT_SELECTORS.includes(".verse") && ENGLISH_CONTENT_SELECTORS.includes(".vref-link"));
+
+/* Copy contract. Keys are the catalog keys, so promoting the feature is a move
+ * of these entries into public/declare/i18n-strings.js and nothing else. */
+const COPY_KEYS = [
+  "journey.review.originalEnglishBanner",
+  "journey.review.originalEnglishSupport",
+  "journey.review.signInForSpanish",
+  "journey.review.returnToToday",
+];
+for (const k of COPY_KEYS) {
+  check("es copy defined for " + k, typeof REVIEW_COPY_ES[k] === "string" && REVIEW_COPY_ES[k].length > 0);
+  check("en fallback defined for " + k, typeof REVIEW_COPY_EN[k] === "string" && REVIEW_COPY_EN[k].length > 0);
+}
+check("no key is left in English by mistake",
+  COPY_KEYS.every((k) => REVIEW_COPY_ES[k] !== REVIEW_COPY_EN[k]));
+check("approved banner copy", REVIEW_COPY_ES["journey.review.originalEnglishBanner"] === "Contenido original en inglés · Solo lectura");
+check("approved support copy", REVIEW_COPY_ES["journey.review.originalEnglishSupport"] === "Este día se completó originalmente en inglés.");
+check("approved sign-in copy", REVIEW_COPY_ES["journey.review.signInForSpanish"] === "Iniciar sesión para verlo en español");
+check("approved return copy", REVIEW_COPY_ES["journey.review.returnToToday"] === "Volver al camino de hoy");
+// The translated-content banner is a different statement and must not be reused.
+check("original-English copy never claims translation",
+  !REVIEW_COPY_ES["journey.review.originalEnglishBanner"].toLowerCase().includes("traducci"));
+
+/* Aliases exist so the shipped view never contains a key literal. Every alias
+ * must resolve to a real key that has both translations. */
+const ALIASES = Object.keys(REVIEW_COPY_KEYS) as (keyof typeof REVIEW_COPY_KEYS)[];
+check("every copy key has an alias", ALIASES.length === COPY_KEYS.length);
+for (const alias of ALIASES) {
+  const key = REVIEW_COPY_KEYS[alias];
+  check("alias " + alias + " resolves to a known key", COPY_KEYS.includes(key));
+  check("alias " + alias + " has both translations",
+    typeof REVIEW_COPY_ES[key] === "string" && typeof REVIEW_COPY_EN[key] === "string");
+  check("alias " + alias + " is not itself a catalog key", !alias.includes("journey."));
+}
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

@@ -76,15 +76,45 @@ Each surface must pass all seven before the next one starts:
 
 | # | Check | How |
 |---|---|---|
-| 1 | No English authored-bank content under Spanish chrome | assert no rendered string is a member of the `JOURNEY_CONTENT` string set |
+| 1 | No **unlabelled** English authored content under Spanish chrome | assert no rendered string is a member of the `JOURNEY_CONTENT` string set, **unless** the review is in the `original-english` provenance state (see the exception below) |
 | 2 | No mixed-language frame | snapshot during the transition, not only after |
 | 3 | No unverified verse labelled RVR1909 | every rendered verse carries `verseSource: 'bible-api'`; force the fetch to fail and assert no quotation renders |
-| 4 | No reflection or user prayer sent | intercept the transport; assert the payload keys are a subset of the six allowlisted fields |
+| 4 | No reflection or user prayer sent | intercept the transport; assert the payload keys are a subset of the twelve allowlisted fields, and that the server itself rejects a forbidden key |
 | 5 | Exact English original on switch-back | byte-compare the rendered English before and after a round trip |
 | 6 | Guest review stays accessible in English | signed out, Spanish chrome: original readable, notice shown, no silent translation |
 | 7 | Failure never falls back to English | force transport failure; assert the Spanish retry state |
 
 Checks 1 and 4 are the two that would embarrass us most, so both are mechanical rather than visual.
+
+### The check-1 exception: deliberate original-English review
+
+The original rule was absolute, and that was wrong. It said no English authored
+content may appear under Spanish chrome, but a Spanish reader is allowed to read
+the immutable English original, and two supported paths lead there on purpose:
+the signed-out reader who taps "Continuar en inglés", and the signed-in reader
+who taps "Ver el original en inglés". Read absolutely, the rule forbids a
+feature we intend to have.
+
+What actually matters is not whether English appears, but whether it appears
+**unexplained**. The rule is therefore:
+
+> No unlabelled English authored content may appear under Spanish chrome.
+> English original content is allowed only after an explicit user choice, and
+> only while the persistent original-English provenance state is visible.
+
+Mechanically, whenever `resolveReviewViewState()` returns
+`provenanceKind: 'original-english'`, all of the following must hold for the
+whole time the English content is on screen:
+
+- the provenance banner reads `journey.review.originalEnglishBanner`;
+- the supporting sentence `journey.review.originalEnglishSupport` is visible;
+- both appear before the English title in DOM order;
+- the English authored content carries `lang="en"` and the Spanish chrome does not;
+- the reader reached the state through an explicit choice, never as a fallback.
+
+The state is derived from the content relationship in
+`src/app/declare/journey-locale/review-view-state.ts`, never from authentication,
+so the guest path and the signed-in path cannot diverge.
 
 ---
 
