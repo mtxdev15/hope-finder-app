@@ -1496,7 +1496,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
          copy, which is what makes switching back byte-for-byte exact. */
       applyEsReview = function (d, es) {
         const out = Object.assign({}, d, es.fields);
-        if (es.scripture) { out.verse = es.scripture.text; out.ver = es.scripture.versionLabel; }
+        if (es.scripture) {
+          out.verse = es.scripture.text;
+          out.ver = es.scripture.versionLabel;
+          // Spanish book name from the source, so the reference and the version
+          // label are not in two different languages.
+          if (es.scripture.refDisplay) out.ref = es.scripture.refDisplay;
+        }
         return out;
       };
 

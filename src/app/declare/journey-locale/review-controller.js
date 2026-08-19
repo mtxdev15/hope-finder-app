@@ -130,7 +130,17 @@ export async function getReviewContent({ instance, day, english, locale, token }
     });
     if (!isCurrent(token)) return { state: 'stale' };
     if (verse.ok) {
-      scripture = { text: verse.text, versionLabel: verse.versionLabel, provenance: verse.provenance, ref: english.ref };
+      /* Display reference in Spanish, built from the book name the SOURCE
+         reported ("Salmos 56") plus the verse we asked for — never translated
+         and never invented locally. Showing "PSALM 56:3 · RVR1909" put an
+         English book name beside a Spanish translation label, which reads as a
+         mismatch to the one reader it is for. Falls back to the English
+         reference if the source did not supply one. */
+      const r = verse.ref;
+      const tail = ':' + r.verse + (r.verseEnd ? '-' + r.verseEnd : '');
+      const refDisplay = verse.sourceReference ? verse.sourceReference + tail : english.ref;
+      scripture = { text: verse.text, versionLabel: verse.versionLabel, provenance: verse.provenance,
+                    ref: english.ref, refDisplay: refDisplay };
     } else {
       // Withheld, not faked. The view shows the Spanish Scripture-retry state.
       return { state: 'error', reason: 'scripture-unverified', retryable: true, prose: record.fields };
