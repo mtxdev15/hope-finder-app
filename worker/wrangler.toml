@@ -53,5 +53,9 @@ CONVEX_SITE_URL = "https://good-dotterel-906.convex.site"
 #   npx wrangler kv namespace create BIBLE_KV_DEV
 # then replace the id below.
 [[env.dev.kv_namespaces]]
+# Binding name MATCHES production on purpose: the Worker reads env.BIBLE_KV, and
+# both call sites are guarded by `if (env.BIBLE_KV)`. Cloudflare's create-output
+# suggests binding = "BIBLE_KV_DEV", which would silently DISABLE the cache
+# rather than error. Only the namespace id differs.
 binding = "BIBLE_KV"
-id = "PASTE_DEV_KV_ID_HERE"
+id = "0e4340248f204654b611e2fe3ee212ba"

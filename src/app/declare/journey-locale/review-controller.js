@@ -23,7 +23,11 @@ import { pickTranslatable } from './payload.ts';
 import { journeyTranslate } from '../convex-data.js';
 import { isSignedIn } from '../auth-store.js';
 
-const WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
+/* Scripture is fetched browser -> Worker directly (NOT through Convex), so it
+ * needs its own base URL or development silently reads production's /bible,
+ * spending production API.Bible quota and warming its KV cache. Defaults to
+ * production, so nothing changes unless PUBLIC_WORKER_URL is set. */
+const WORKER = (import.meta.env.PUBLIC_WORKER_URL || 'https://hope-finder-worker.thinktoro.workers.dev').replace(/\/+$/, '');
 
 
 
