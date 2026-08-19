@@ -46,9 +46,22 @@ import {
 } from "./journeyTranslateCore";
 
 /** How long a joiner waits for the in-flight leader before telling the client
- *  to retry. Kept well under the action time budget. */
-const JOIN_POLL_MS = 250;
-const JOIN_MAX_POLLS = 20;
+ *  to retry.
+ *
+ *  A joiner must be AT LEAST AS PATIENT AS THE LEADER CAN BE SLOW, or it gives
+ *  up on a translation that is still on its way and shows a retry screen for a
+ *  result that lands moments later. The previous 5s window (20 x 250ms) was far
+ *  under the real thing: translating a day's twelve fields on Sonnet 4.6 was
+ *  measured at 6.5s-9.6s, so joiners timed out essentially every time.
+ *
+ *  The ceiling is therefore derived from the leader's own ceiling. The Worker
+ *  aborts the model call at JT_TIMEOUT_MS (45s) and the leader then abandons its
+ *  row, so a joiner that waits just past that either receives the result or sees
+ *  the row disappear and breaks out to retry — it can never outlive the leader.
+ *  The ceiling is the worst case, not the common one: a joiner returns as soon
+ *  as the leader finalises, which is normally under ten seconds. */
+const JOIN_POLL_MS = 400;
+const JOIN_MAX_POLLS = 120;
 /** Cached translations are durable; a pending row this old is abandoned. */
 const PENDING_STALE_MS = 3 * 60 * 1000;
 
