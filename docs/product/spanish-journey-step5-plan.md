@@ -165,3 +165,35 @@ the translation feature, and removable without touching anything the person actu
 2. **Native es-LA editorial review** of the failure and retry copy.
 3. **`max_tokens` for `es`** in the generation path, which truncates ~20-25% more often than English.
 4. **Guest translation stays deferred.** Revisit only if usage shows a real need.
+
+---
+
+## 7. Completed-day review — status and release gates
+
+**Technically verified, NOT production-enabled.** The eighteen-check browser
+matrix passes in development, four defects found by it are fixed, and the feature
+remains behind the `PUBLIC_JOURNEY_ES_CONTENT` development build guard with every
+production-bundle probe at zero.
+
+Technical verification is not readiness. The remaining gate is **native es-LA
+review of the Spanish a real reader would see**:
+
+| Surface | Copy |
+|---|---|
+| Original-English provenance | `Contenido original en inglés · Solo lectura` / `Este día se completó originalmente en inglés.` |
+| Translated-content provenance | `Traducción al español del contenido original en inglés · Solo lectura` |
+| Preparation | `Estamos preparando el camino de hoy con cuidado.` |
+| Translation failure | `No pudimos preparar este día.` / `Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.` |
+| Scripture verification failure | `No pudimos verificar el versículo.` / `No pudimos verificar el versículo en este momento. Preferimos esperar antes que mostrar un texto no confirmado. La Palabra merece esa precisión.` |
+| Guest notice | `Este día se completó originalmente en inglés.` / `Puedes seguir revisando el contenido original. Inicia sesión para preparar una copia en español sin cambiar lo que completaste.` |
+| Sign-in action | `Iniciar sesión para verlo en español` |
+| Return action | `Volver al camino de hoy` |
+| Untranslated user text | `Tus palabras · Sin traducir` |
+
+**No native reviewer has read any of this.** The copy was written and approved
+in-project. Until an actual native es-LA speaker approves it, this feature must
+not be enabled for real readers, and no report should describe the copy as
+reviewed.
+
+The AI-generated Spanish day content is a separate matter from this interface
+copy and is not covered by that review.
