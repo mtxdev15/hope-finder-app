@@ -137,6 +137,11 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           </div>
           <div class="df-dots" id="dfDots"></div>
         </div>
+        <div class="df-prov" id="dfProv" role="note" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span class="df-prov-t" id="dfProvT"></span>
+          <span class="df-prov-s" id="dfProvS"></span>
+        </div>
         <div class="df-scroll" id="dfScroll"><!-- blocks injected --></div>
         <div class="df-foot" id="dfFoot">
           <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="journey.declareAloudFinish">Declare it aloud to finish the day</span></div>
@@ -575,6 +580,56 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       const book = READ_ALIASES[m[1].trim()] || m[1].trim();
       return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
     }
+    /* Which provenance, if any, a completed-day review must show.
+     *
+     * Derived from the RELATIONSHIP between the interface and the content, not
+     * from who is signed in. Today this build has no Spanish day content, so
+     * `contentLocale` is always 'en' and the Spanish case always resolves to
+     * 'original-english'. The relationship is still written out in full,
+     * because the moment translated content exists the correct answer changes
+     * and a bare `esL() && reviewing` check would silently keep claiming the
+     * content is the English original. */
+    function reviewProvenanceKind(rel) {
+      if (!rel.reviewing) return 'none';
+      if (rel.contentLocale === rel.interfaceLocale && rel.contentOrigin === 'original') return 'none';
+      if (rel.contentOrigin === 'translation') return 'translated';
+      if (rel.interfaceLocale === 'es' && rel.contentLocale === 'en') return 'original-english';
+      return 'none';
+    }
+
+    /* The English authored record, and only that.
+     *
+     * Spanish chrome (step labels, the struggle line, prompts, buttons) is
+     * absent on purpose, and so is the reflection textarea: those are the
+     * reader's own words and their language is not ours to declare. */
+    const EN_CONTENT_SEL = ['.df-h', '.vref-link', '.verse', '.insight', '.ptitle', '.pr',
+      '.lie-t', '.repent-t', '.dc', '.block.reflect > p', '.act-t', '.act-d'];
+
+    function renderReviewProvenance(kind) {
+      const box = $('dfProv'), on = kind === 'original-english';
+      box.style.display = on ? '' : 'none';
+      if (on) {
+        $('dfProvT').textContent = tj('journey.review.originalEnglishBanner', 'Original English content · Read only');
+        $('dfProvS').textContent = tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.');
+      }
+      /* The top bar repeats the English day title, and it sits ABOVE this
+         note, so a screen reader would otherwise meet unexplained English
+         before the sentence explaining it. It is an exact duplicate of the
+         <h2> that follows the note, so during this state it is dropped from
+         the accessibility tree rather than announced twice out of order.
+         Nothing is lost: the same title is still announced, as a heading, in
+         its proper place after the provenance. */
+      const nm = $('dfNm');
+      if (on) { nm.setAttribute('lang', 'en'); nm.setAttribute('aria-hidden', 'true'); }
+      else { nm.removeAttribute('lang'); nm.removeAttribute('aria-hidden'); }
+      const scroll = $('dfScroll');
+      EN_CONTENT_SEL.forEach(function (sel) {
+        scroll.querySelectorAll(sel).forEach(function (el) {
+          if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
+        });
+      });
+    }
+
     function renderDayFlow() {
       clearInterval(renderDayLoading._t);
       const fd = curDay(), reviewing = !!reviewDay;
@@ -634,6 +689,16 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? (esL() ? 'Lo hice' : 'I did this') : (esL() ? 'Lo llevaré hoy' : 'I’ll carry this today')) + '</span></button></div>';
 
       $('dfScroll').scrollTop = 0;
+      /* Runs after the blocks exist, so the English record can be marked, and
+         before the reveal cascade, so nothing paints unlabelled. */
+      renderReviewProvenance(reviewProvenanceKind({
+        interfaceLocale: esL() ? 'es' : 'en',
+        // This build has no translated day content; the displayed record is
+        // always the immutable English original.
+        contentLocale: 'en',
+        contentOrigin: 'original',
+        reviewing: reviewing,
+      }));
       bindCast(); bindRepent(); bindSpeak(); bindAction();
       refreshGate();
       // reverent unfolding — each step veils in as it scrolls into view (premium scroll-reveal,
@@ -1507,6 +1572,17 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .df-foot .lockhint { text-align: center; font-size: 11.5px; color: var(--soft); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .3s ease; }
     .journey .df-foot .lockhint svg { width: 13px; height: 13px; }
     .journey .df-foot.ready .lockhint { display: none; }
+    /* Provenance for a completed day shown in its original English under
+       Spanish chrome. Quiet neutral treatment on purpose: this is context, not
+       a warning, so it borrows no error colour, weight, or iconography. */
+    .journey .df-prov { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
+      margin: 10px 18px 0; padding: 9px 15px; border-radius: 14px; text-align: center;
+      color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); }
+    .journey .df-prov svg { width: 13px; height: 13px; flex: 0 0 auto; }
+    .journey .df-prov .df-prov-t { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+      flex: 1 1 auto; min-width: 0; }
+    .journey .df-prov .df-prov-s { flex: 1 0 100%; font-size: 11.5px; line-height: 1.35; font-weight: 500; letter-spacing: .01em; }
+
     /* review mode: read-only revisit of a completed day */
     .journey .dayflow.reviewing .cast-btn,
     .journey .dayflow.reviewing .breath-skip-link,
