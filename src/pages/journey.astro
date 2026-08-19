@@ -1631,11 +1631,55 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         const h = $('doEyebrow'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
       }, 60);
     }
+    /* Spanish leak guard for the Day-Opening screen.
+       This screen paints PLAN[] synchronously and calls no generator, so a
+       Spanish reader saw the ENGLISH authored bank ("The Hand-Off", an ESV
+       verse) under fully Spanish chrome on the first screen of Day 1.
+
+       Scope is deliberately narrow: stop the leak, nothing else. The generated
+       Spanish QUALITY work (BRIEF_ES/ARC_ES, es-LA review, max_tokens) is a
+       separate blocked item, and this fix does not depend on it.
+
+       ensureDay() sets _ai[idx] = true even when generation returns nothing, so
+       "it resolved" cannot be trusted as "it is Spanish now". The English title
+       is captured first and compared after; unchanged means generation did not
+       land, and the Spanish failure state is shown rather than the English bank. */
+    function renderDayOpeningPending(idx) {
+      const englishTitle = PLAN[idx] && PLAN[idx].title;
+      $('doTitle').textContent = '';
+      $('doVerseText').textContent = '';
+      $('doRef').textContent = '';
+      $('doEncourage').textContent = 'Estamos preparando el camino de hoy con cuidado.';
+      $('doBegin').disabled = true;
+      ensureDay(state.day).then(function () {
+        if (state.day - 1 !== idx) return;                       // moved on; discard
+        if (!$('dayOpen').classList.contains('open')) return;     // closed; discard
+        $('doBegin').disabled = false;
+        if (PLAN[idx] && PLAN[idx].title === englishTitle) {
+          // Generation did not produce Spanish. Say so — never fall back to the
+          // English bank, which is what this whole guard exists to prevent.
+          $('doTitle').textContent = 'No pudimos preparar este día';
+          $('doEncourage').textContent = 'Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.';
+          return;
+        }
+        renderDayOpening();
+      }).catch(function () {
+        $('doBegin').disabled = false;
+        $('doTitle').textContent = 'No pudimos preparar este día';
+        $('doEncourage').textContent = 'Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.';
+      });
+    }
+
     function renderDayOpening() {
       const d = PLAN[state.day - 1];
       $('doEyebrow').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; }
       $('doProgress').innerHTML = dots;
+      // Spanish + not yet generated -> skeleton, never the English bank.
+      if (ES_REVIEW_ON && esL() && !(active && active._ai && active._ai[state.day - 1])) {
+        renderDayOpeningPending(state.day - 1);
+        return;
+      }
       $('doTitle').textContent = d.title;
       $('doVerseText').textContent = '“' + d.verse + '”';
       $('doRef').textContent = d.ref + (d.ver ? ' · ' + d.ver : '');
