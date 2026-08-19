@@ -434,6 +434,10 @@ window.__I18N_STRINGS = {
     'journey.returnedPost': '. La fidelidad es la victoria.',
     'journey.pastJourneys': 'Caminos anteriores',
     'journey.declareAloudFinish': 'Decláralo en voz alta para terminar el día',
+    /* Shown when Spanish chrome is displaying the immutable English original of
+       a completed day, so the reader is never met by unexplained English. */
+    'journey.review.originalEnglishBanner': 'Contenido original en inglés · Solo lectura',
+    'journey.review.originalEnglishSupport': 'Este día se completó originalmente en inglés.',
     'journey.vineJohn': 'La Vid · Juan 15:5',
     'journey.dayWord': 'Día ',
     'journey.opensTomorrowSuffix': ' abre mañana',

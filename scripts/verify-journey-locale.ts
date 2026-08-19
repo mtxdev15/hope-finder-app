@@ -38,10 +38,12 @@ import {
 import { LOCALE_SCHEMA_VERSION } from "../src/app/declare/journey-locale/types.ts";
 import {
   ENGLISH_CONTENT_SELECTORS,
+  resolveReviewViewState,
+} from "../src/app/declare/journey-review-state.ts";
+import {
   REVIEW_COPY_EN,
   REVIEW_COPY_ES,
   REVIEW_COPY_KEYS,
-  resolveReviewViewState,
 } from "../src/app/declare/journey-locale/review-view-state.ts";
 
 let passed = 0;
@@ -267,9 +269,10 @@ check("Scripture reference and quotation are marked",
 
 /* Copy contract. Keys are the catalog keys, so promoting the feature is a move
  * of these entries into public/declare/i18n-strings.js and nothing else. */
+/* Only the copy that is still GATED lives in the locale module. The two
+ * original-English provenance strings shipped as a production hotfix and now
+ * live in public/declare/i18n-strings.js, so they are deliberately absent. */
 const COPY_KEYS = [
-  "journey.review.originalEnglishBanner",
-  "journey.review.originalEnglishSupport",
   "journey.review.signInForSpanish",
   "journey.review.returnToToday",
 ];
@@ -279,13 +282,8 @@ for (const k of COPY_KEYS) {
 }
 check("no key is left in English by mistake",
   COPY_KEYS.every((k) => REVIEW_COPY_ES[k] !== REVIEW_COPY_EN[k]));
-check("approved banner copy", REVIEW_COPY_ES["journey.review.originalEnglishBanner"] === "Contenido original en inglés · Solo lectura");
-check("approved support copy", REVIEW_COPY_ES["journey.review.originalEnglishSupport"] === "Este día se completó originalmente en inglés.");
 check("approved sign-in copy", REVIEW_COPY_ES["journey.review.signInForSpanish"] === "Iniciar sesión para verlo en español");
 check("approved return copy", REVIEW_COPY_ES["journey.review.returnToToday"] === "Volver al camino de hoy");
-// The translated-content banner is a different statement and must not be reused.
-check("original-English copy never claims translation",
-  !REVIEW_COPY_ES["journey.review.originalEnglishBanner"].toLowerCase().includes("traducci"));
 
 /* Aliases exist so the shipped view never contains a key literal. Every alias
  * must resolve to a real key that has both translations. */

@@ -452,6 +452,9 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     import { saveItem, upsertItem, getItem } from '../app/declare/vault-store.js';
     import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    /* Ships to production: the original-English provenance is a released fix,
+       not part of the gated translation feature. */
+    import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
     import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
@@ -962,15 +965,15 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
           sub.id = 'dfBadgeSub'; sub.className = 'df-badge-sub';
           badge.appendChild(sub);
         }
-        sub.textContent = reviewCopy('support');
+        sub.textContent = tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.');
         sub.style.display = '';
       } else if (sub) { sub.style.display = 'none'; }
 
       /* Mark only the immutable English record. Chrome, prompts and anything
          the reader wrote are deliberately left alone — see the selector list. */
       const scroll = $('dfScroll');
-      if (scroll && enContentSelectors) {
-        enContentSelectors.forEach(function (sel) {
+      if (scroll) {
+        ENGLISH_CONTENT_SELECTORS.forEach(function (sel) {
           scroll.querySelectorAll(sel).forEach(function (el) {
             if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
           });
@@ -980,7 +983,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       /* Optional account action. The original stays fully readable without it —
          signing in is an offer, never a gate. */
       let sig = $('esSignInEs');
-      const wantSignIn = !!on && !esReviewSignedIn();
+      /* Offering "sign in to read it in Spanish" only makes sense where that
+         actually leads somewhere, so it stays with the gated feature and folds
+         away in a production build. */
+      const wantSignIn = ES_REVIEW_ON && !!on && !esReviewSignedIn();
       if (wantSignIn) {
         if (!sig) {
           sig = document.createElement('button');
@@ -1009,16 +1015,16 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         /* What is this review actually showing? Resolved in the locale module,
            not decided here, so the guest path and the signed-in "view the
            original" path can never drift apart again. */
-        const vstate = reviewViewState
-          ? reviewViewState({ interfaceLocale: esL() ? 'es' : 'en', translationShown: showingEs, reviewing: true })
-          : null;
-        originalEn = !!vstate && vstate.provenanceKind === 'original-english';
+        const vstate = resolveReviewViewState({
+          interfaceLocale: esL() ? 'es' : 'en', translationShown: showingEs, reviewing: true,
+        });
+        originalEn = vstate.provenanceKind === 'original-english';
         // Quiet provenance rather than three competing chips: it states what the
         // reader is looking at without shouting over the day itself.
         $('dfReviewBadgeTxt').textContent = showingEs
           ? 'Traducción al español del contenido original en inglés · Solo lectura'
           : (originalEn
-            ? reviewCopy('banner')
+            ? tj('journey.review.originalEnglishBanner', 'Original English content · Read only')
             : (esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only'));
         renderOriginalEnglishProvenance(originalEn);
         let back = $('esBackToEn');
@@ -1046,7 +1052,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         /* Phase 4: inside the open English original the exit reads as the full
            "back to today's path", matching the guest notice the reader just
            came through. Other review states keep their existing label. */
-        primary.textContent = originalEn
+        primary.textContent = (ES_REVIEW_ON && originalEn)
           ? reviewCopy('returnToday')
           : (esL() ? 'Volver a Hoy' : 'Back to Today');
         primary.disabled = false;
@@ -1562,8 +1568,6 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        flag or not, so it asks these rather than importing anything itself —
        that is what keeps the locale modules and their Spanish copy out of a
        production bundle while the feature is still development-only. */
-    let reviewViewState = null;  // (input) => ReviewViewState
-    let enContentSelectors = null;
     /* (alias) => display string. Aliases, not catalog keys: this call site
        ships even when the feature does not, and a key literal here would put
        the name of an unreleased feature into a production bundle. */
@@ -1585,8 +1589,6 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
          changes, because the call sites already use the real keys. */
       (async function () {
         const vs = await import('../app/declare/journey-locale/review-view-state.ts');
-        reviewViewState = vs.resolveReviewViewState;
-        enContentSelectors = vs.ENGLISH_CONTENT_SELECTORS;
         reviewCopy = function (alias) {
           const key = vs.REVIEW_COPY_KEYS[alias];
           return tj(key, vs.REVIEW_COPY_EN[key] || '');
