@@ -518,7 +518,42 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
         ? window.JourneyEngine.fallbackPlan({ struggleId: struggleId, fromLabel: fromLabel, toLabel: toLabel, seed: seed })
         : null;
-      return clone(bespoke || composed || JOURNEY_CONTENT.shame);
+      /* Both sources here are English by construction: the authored bank in
+         journey-data.js has no Spanish variant, and the engine's offline
+         fallbackPlan() composes English prose regardless of the requested
+         language. Stamping it makes that explicit rather than assumed, and gives
+         every day in PLAN[] a locale from the moment it exists. */
+      return stampLang(clone(bespoke || composed || JOURNEY_CONTENT.shame), 'en');
+    }
+
+    /* THE BOUNDARY RULE, in one place.
+     *
+     * PLAN[] is CANONICAL Journey content. It is persisted, resumed, and handed
+     * to the completed-day review and the translation transport as the original
+     * record. It is NOT the translated display copy — translations are merged at
+     * render sites and never written back.
+     *
+     * Every day therefore carries the language it was written in. There are
+     * exactly two places content enters a day: the authored bank (always 'en')
+     * and JourneyEngine.generateDay() (whatever language was active). Both stamp
+     * `lang`, so a day whose language no longer matches the reader's can be
+     * found instead of quietly rendering beside days that do match. */
+    function stampLang(plan, lang) {
+      if (!Array.isArray(plan)) return plan;
+      return plan.map(function (d) {
+        return (d && typeof d === 'object' && !d.lang) ? Object.assign({}, d, { lang: lang }) : d;
+      });
+    }
+
+    /* A day is stale when its own language is not the one the reader is reading
+     * in. Days with no stamp are pre-boundary records: treated as English,
+     * because every writer before this change produced English or overwrote a
+     * day the reader was standing on. */
+    function dayLang(d) { return (d && d.lang) || 'en'; }
+    function staleDays(plan, lang) {
+      const out = [];
+      (plan || []).forEach(function (d, i) { if (dayLang(d) !== lang) out.push(i); });
+      return out;
     }
     // A fresh journey instance: clone the authored bank (always-valid fallback),
     // give it a new seed + theme arc, and clear the AI-upgrade cache. The Worker
@@ -578,15 +613,56 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         // than creating a competing storage key — see restoreInstance()'s
         // fallback below for what happens to instances saved before this field
         // existed.
-        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken, activeStep: activeStep, lang: curLang() }));
+        /* `lang` is kept for backward compatibility with instances written before
+           days carried their own stamp, but it is no longer authoritative and is
+           derived from the days rather than from the moment of writing. Writing
+           curLang() here is what let the label claim a language the array did not
+           hold. */
+        const planLang = (function () {
+          const langs = (PLAN || []).map(dayLang);
+          return langs.length && langs.every(function (l) { return l === langs[0]; }) ? langs[0] : 'mixed';
+        })();
+        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken, activeStep: activeStep, lang: planLang }));
       } catch (e) {}
     }
     function restoreInstance() {
       try {
         const raw = localStorage.getItem(instKey()); if (!raw) return false;
         const o = JSON.parse(raw); if (!o || !o.plan) return false;
-        PLAN = o.plan; active._seed = o.seed; active._themes = o.themes;
-        active._ai = (o.lang && o.lang !== curLang()) ? {} : (o.ai || {}); active._inflight = {};
+        /* Unstamped days are stamped ENGLISH, never with the instance label.
+           The label is the field this whole boundary exists because we cannot
+           trust: it records the language of the most recent write, not of the
+           array. Defaulting to it would stamp stale English days as Spanish,
+           make them match the reader, and legitimise the mixed record instead of
+           repairing it. Pre-boundary days really were English — the authored bank
+           has no Spanish variant, and generated days only ever replaced the day
+           the reader was standing on. */
+        PLAN = stampLang(o.plan, 'en');
+        active._seed = o.seed; active._themes = o.themes;
+        active._ai = o.ai || {}; active._inflight = {};
+
+        /* Per-day repair, replacing the old instance-level check.
+         *
+         * The previous rule compared ONE stored `lang` against the current one
+         * and cleared every generated flag. That was right in intent and wrong
+         * in effect: it never touched PLAN, so stale-language days survived, and
+         * once a single day regenerated the instance label flipped to the new
+         * language and the rest were frozen in the old one forever.
+         *
+         * Now each day is judged on its own stamp. A day in the wrong language
+         * is reset to the English authored baseline — a known-good, known-language
+         * starting point — and its generated flag cleared so it can be rewritten
+         * properly. Days that already match are left completely alone, so a
+         * reader who never switches language pays nothing for this. */
+        const stale = staleDays(PLAN, curLang());
+        if (stale.length) {
+          const baseline = resolveJourneyPlan(active.id, active.from, active.to, active._seed);
+          stale.forEach(function (i) {
+            if (baseline[i]) PLAN[i] = baseline[i];
+            delete active._ai[i];
+          });
+          saveInstance();
+        }
         dayState = o.dayState || {}; daySpoken = o.daySpoken || {};
         // Backward compatibility: an instance cache saved before B3.2 has no
         // `activeStep` field at all. Rather than guess how far into the (then
@@ -832,7 +908,8 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       // letting it fire could write stale text into the freshly rendered day.
       if (reflectDebounceT) { clearTimeout(reflectDebounceT); reflectDebounceT = null; }
       const fd = curDay(), reviewing = !!reviewDay;
-      // Spanish display copy for a COMPLETED day. PLAN[] — the English original —
+      // Spanish display copy for a COMPLETED day. PLAN[] — canonical content,
+      // English unless a day says otherwise via its own `lang` stamp —
       // is read, never written, which is what makes switching back exact.
       const dEn = PLAN[fd - 1];
       const d = (reviewing && esReview && esReview.day === fd && !esReviewForceEn) ? applyEsReview(dEn, esReview) : dEn;

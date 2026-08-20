@@ -87,6 +87,22 @@ export async function getReviewContent({ instance, day, english, locale, token }
   const eligibility = reviewEligibility(locale);
   if (eligibility.mode !== 'translate') return { state: eligibility.mode };
 
+  /* ASSERT the source language rather than assuming it.
+   *
+   * This used to trust that `english` was English, because PLAN[] was described
+   * that way. It is not guaranteed: a day is regenerated in whatever language
+   * was active at the time, so a plan can hold Spanish days. Translating one of
+   * those would ask the model to render Spanish into Spanish and charge the
+   * reader for it, and the result would be labelled as a translation of an
+   * English original that never existed.
+   *
+   * Days carry their own `lang` since the locale-integrity boundary. An unstamped
+   * day is pre-boundary and treated as English, which is what every writer before
+   * the stamp actually produced. */
+  if (english && english.lang && english.lang !== 'en') {
+    return { state: 'error', reason: 'source-not-english', retryable: false };
+  }
+
   const source = pickTranslatable(english);
   if (!Object.keys(source).length) return { state: 'error', reason: 'nothing-to-translate', retryable: false };
 
