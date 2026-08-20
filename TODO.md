@@ -4,6 +4,21 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
+- [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
+      on `main` still carries the retired `/give/*` handlers, including the billing-portal IDOR
+      that searched Stripe customers by a browser-submitted email. Production runs the hardened
+      Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
+      not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
+      backwards into those vulnerabilities. See
+      `docs/operations/convex-production-parity-audit.md`.
+- [ ] **Improvements deferred out of the Convex parity port.** The parity branch ports production
+      logic **verbatim** — nothing was tidied on the way through, on purpose, because a parity
+      port whose behaviour differs is not a parity port. Candidates noticed while reading the
+      deployed source, to be evaluated separately and never inside a parity change:
+      `journeyTranslate.ts` and `usage.ts` each carry their own reservation lifecycle and could
+      share one; `entitlementCatalog.ts` limits are literals rather than configuration; the
+      `journeySlots` release path rejects unknown statuses with a generic `invalid-status` that
+      does not say which values are valid.
 - [ ] **RELEASE PROCESS — a local build is not release evidence.** Vite loads `.env.local`
       and `.env` during `npm run build`, so a build made with either present bakes in the
       **development** Convex and Worker URLs. That build runs fine and is useless as evidence,
