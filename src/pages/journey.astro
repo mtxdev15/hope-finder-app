@@ -28,6 +28,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 // or put it in .env.development.local, which Vite loads only in dev mode.
 // Do NOT use .env.local, and do not add it to Cloudflare Pages build settings.
 const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
+
+// Spanish locale content, checkpoint 1: completed-day review only.
+// DEV && on purpose — a production build must contain no active Spanish
+// locale-render path at this stage even if the public variable is set by
+// accident. Vite folds both literals, so esbuild drops the branch entirely.
+// Enable locally with: PUBLIC_JOURNEY_ES_CONTENT=1 npm run dev
+const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
 ---
 <DeclareLayout
   title="Declare — Journey"
@@ -445,7 +452,8 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     import { saveItem, upsertItem, getItem } from '../app/declare/vault-store.js';
     import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
-    /* Released provenance rule. Ships; the translation feature does not. */
+    /* Ships to production: the original-English provenance is a released fix,
+       not part of the gated translation feature. */
     import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
@@ -824,7 +832,11 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       // letting it fire could write stale text into the freshly rendered day.
       if (reflectDebounceT) { clearTimeout(reflectDebounceT); reflectDebounceT = null; }
       const fd = curDay(), reviewing = !!reviewDay;
-      const d = PLAN[fd - 1], ds = dstate();
+      // Spanish display copy for a COMPLETED day. PLAN[] — the English original —
+      // is read, never written, which is what makes switching back exact.
+      const dEn = PLAN[fd - 1];
+      const d = (reviewing && esReview && esReview.day === fd && !esReviewForceEn) ? applyEsReview(dEn, esReview) : dEn;
+      const ds = dstate();
       if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; ds.reflected = true; }
       $('dayflow').classList.toggle('reviewing', reviewing);
       if (reviewing) { if (reviewStep < 1 || reviewStep > TOTAL_STEPS) reviewStep = 1; }
@@ -927,22 +939,19 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       }
     }
 
-    /* The original-English provenance state, preserved from the production
-     * hotfix and re-expressed against the paginated review chrome.
+    /* The original-English provenance state.
      *
-     * Three things have to be true together, which is why they live in one
-     * place: the reader is told BEFORE the English title (the badge sits above
-     * #dfScroll, so reading order and tab order both put it first), the English
-     * record is marked lang="en" so a screen reader changes voice for it, and
-     * the Spanish interface around it stays Spanish and unmarked.
+     * Three things have to be true together, which is why they are done in one
+     * place rather than scattered: the reader is told BEFORE the English title
+     * (the badge already sits above #dfScroll in the DOM, so reading order and
+     * tab order both put it first), the English record is marked lang="en" so a
+     * screen reader changes voice for it, and the Spanish interface around it
+     * stays Spanish and unmarked.
      *
-     * The accessible name comes from the visible text rather than an aria-label:
-     * a role="note" carrying both a label and the same words as content is
-     * announced twice.
-     *
-     * No "sign in to read it in Spanish" offer here. That belongs to the
-     * translation feature, which this release does not ship, and offering it
-     * would promise something the product cannot yet do. */
+     * The accessible name comes from the visible text rather than an aria-label.
+     * A role="note" with both a label and the same words as content is
+     * announced twice; letting the content name the region says exactly the
+     * intended sentence once. */
     function renderOriginalEnglishProvenance(on) {
       const badge = $('dfReviewBadge');
       if (!badge) return;
@@ -960,8 +969,8 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         sub.style.display = '';
       } else if (sub) { sub.style.display = 'none'; }
 
-      /* Mark only the immutable English record. Chrome, prompts and anything the
-         reader wrote are deliberately left alone — see the selector list. */
+      /* Mark only the immutable English record. Chrome, prompts and anything
+         the reader wrote are deliberately left alone — see the selector list. */
       const scroll = $('dfScroll');
       if (scroll) {
         ENGLISH_CONTENT_SELECTORS.forEach(function (sel) {
@@ -970,10 +979,31 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           });
         });
       }
+
+      /* Optional account action. The original stays fully readable without it —
+         signing in is an offer, never a gate. */
+      let sig = $('esSignInEs');
+      /* Offering "sign in to read it in Spanish" only makes sense where that
+         actually leads somewhere, so it stays with the gated feature and folds
+         away in a production build. */
+      const wantSignIn = !!on && !isSignedIn();
+      if (wantSignIn) {
+        if (!sig) {
+          sig = document.createElement('button');
+          sig.id = 'esSignInEs'; sig.type = 'button'; sig.className = 'es-back-en';
+          sig.addEventListener('click', function () {
+            try { ensureSignedIn(tj('journey.review.signInPrompt', 'Sign in to prepare a Spanish copy.')); } catch (e) {}
+          });
+          badge.appendChild(sig);
+        }
+        sig.textContent = tj('journey.review.signInForSpanish', 'Sign in to read it in Spanish');
+        sig.style.display = '';
+      } else if (sig) { sig.style.display = 'none'; }
     }
 
     function renderStepChrome() {
       const fd = curDay(), reviewing = !!reviewDay, s = curStep(), ds = dstate();
+      let originalEn = false; // Spanish chrome over the immutable English record
       const dayTxt = (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL;
       $('dfEy').textContent = dayTxt;
       $('dfEySR').textContent = (reviewing ? (esL() ? 'Repasando, ' : 'Reviewing, ') : '') + dayTxt + (esL() ? ', Paso ' : ', Step ') + s + (esL() ? ' de 7' : ' of 7') + (reviewing ? (esL() ? ', solo lectura' : ', read only') : '');
@@ -981,18 +1011,38 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       let dayDots = ''; for (let i = 1; i <= TOTAL; i++) { dayDots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dayDots;
       $('dfReviewBadge').style.display = reviewing ? 'flex' : 'none';
       if (reviewing) {
-        /* What is this review actually showing? Resolved in the shared module
-           rather than decided here, so every path that reaches the English
-           original answers the question the same way. This release has no
-           translated content, so Spanish chrome always means the original. */
+        const showingEs = !!(esReview && esReview.day === fd && !esReviewForceEn);
+        /* What is this review actually showing? Resolved in the locale module,
+           not decided here, so the guest path and the signed-in "view the
+           original" path can never drift apart again. */
         const vstate = resolveReviewViewState({
-          interfaceLocale: esL() ? 'es' : 'en', translationShown: false, reviewing: true,
+          interfaceLocale: esL() ? 'es' : 'en', translationShown: showingEs, reviewing: true,
         });
-        const originalEn = vstate.provenanceKind === 'original-english';
-        $('dfReviewBadgeTxt').textContent = originalEn
-          ? tj('journey.review.originalEnglishBanner', 'Original English content · Read only')
-          : 'Reviewing a completed day · Read only';
+        originalEn = vstate.provenanceKind === 'original-english';
+        // Quiet provenance rather than three competing chips: it states what the
+        // reader is looking at without shouting over the day itself.
+        $('dfReviewBadgeTxt').textContent = showingEs
+          ? tj('journey.review.translatedBanner', 'Spanish translation of the original English content · Read only')
+          : (originalEn
+            ? tj('journey.review.originalEnglishBanner', 'Original English content · Read only')
+            : (esL() ? tj('journey.review.genericBanner', 'Reviewing a completed day · Read only')
+                     : 'Reviewing a completed day · Read only'));
         renderOriginalEnglishProvenance(originalEn);
+        let back = $('esBackToEn');
+        if (showingEs) {
+          if (!back) {
+            back = document.createElement('button');
+            back.id = 'esBackToEn'; back.type = 'button'; back.className = 'es-back-en';
+            back.addEventListener('click', function () {
+              // Restores the untouched English record. Nothing was ever written
+              // over it, so this is exact rather than approximate.
+              esReviewForceEn = true; esReview = null; renderDayFlow();
+            });
+            $('dfReviewBadge').appendChild(back);
+          }
+          back.textContent = tj('journey.review.viewOriginalEnglish', 'View the English original');
+          back.style.display = '';
+        } else if (back) { back.style.display = 'none'; }
       }
 
       const back = $('dfStepBack'), next = $('dfStepNext'), primary = $('dfComplete'), hint = $('dfLock');
@@ -1000,7 +1050,12 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       back.style.display = (s > 1) ? 'block' : 'none';
 
       if (reviewing) {
-        primary.textContent = esL() ? 'Volver a Hoy' : 'Back to Today';
+        /* Phase 4: inside the open English original the exit reads as the full
+           "back to today's path", matching the guest notice the reader just
+           came through. Other review states keep their existing label. */
+        primary.textContent = originalEn
+          ? tj('journey.review.returnToToday', "Back to today's path")
+          : (esL() ? 'Volver a Hoy' : 'Back to Today');
         primary.disabled = false;
         $('dfFoot').classList.remove('ready');
         hint.style.display = 'none';
@@ -1459,6 +1514,10 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       else if (!$('dayflow').contains(document.activeElement)) { e.preventDefault(); first.focus(); }
     }
     function closeDayFlow() {
+      // Drop any in-flight Spanish request and its resolved copy: a result that
+      // arrives after the reader has left must never paint over the next screen.
+      try { esReviewCancel(); } catch (e) {}
+      esReview = null; esReviewForceEn = false;
       if (breathInst) { try { breathInst.stop(); } catch (_) {} breathInst = null; }
       // Flush a pending (debounced, not-yet-written) reflection draft
       // immediately rather than trust the ~650ms timer to still fire after
@@ -1482,11 +1541,147 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       dayFlowReturnEl = null;
       if (target) { try { target.focus(); } catch (e) {} }
     }
+    /* ── Spanish completed-day review (checkpoint 1) ──────────────────────
+       Orchestration lives in review-controller.js; this page decides WHEN to
+       ask and WHAT to paint, and owns no hashing, transport, cache or Scripture
+       logic.
+
+       PROMOTED 2026-08-19. This surface is production-enabled, so the
+       build-time guard is gone. What replaced it is deliberately NARROW: the
+       controller is still loaded by DYNAMIC import, and only when a Spanish
+       reader actually opens a completed day. No other Journey surface became
+       reachable — this pulls in the four locale modules the controller imports
+       and nothing else, and Fruit Log, Day-Opening, the Today card, Journey
+       Preview and the active ritual still have no Spanish path.
+
+       Keeping the import dynamic is not leftover caution. It keeps the locale
+       chunk, the transport and the Scripture code out of the initial payload
+       for the English reader, who should not pay for a screen never opened. */
+
+    /* Day-Opening is NOT part of this promotion and keeps its own
+       development-only guard, so promoting completed-day review cannot switch
+       it on by accident. Removing this would put a Spanish skeleton in front of
+       real readers on a surface that was never verified for production. */
+    const ES_DAY_OPENING_DEV = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
+
+    let esReview = null;         // { day, fields, scripture }
+    let esReviewForceEn = false; // reader chose "Ver el original en inglés"
+    let applyEsReview = function (d) { return d; };
+    let loadEsReview = function () {};
+    let esReviewCancel = function () {};
+
+    {
+      let ctrl = null;
+      const controller = async function () {
+        if (!ctrl) ctrl = await import('../app/declare/journey-locale/review-controller.js');
+        return ctrl;
+      };
+
+      /* Merge the Spanish display copy over the English record for RENDERING
+         only. The original object is never mutated — this returns a shallow
+         copy, which is what makes switching back byte-for-byte exact. */
+      applyEsReview = function (d, es) {
+        const out = Object.assign({}, d, es.fields);
+        if (es.scripture) {
+          out.verse = es.scripture.text;
+          out.ver = es.scripture.versionLabel;
+          // Spanish book name from the source, so the reference and the version
+          // label are not in two different languages.
+          if (es.scripture.refDisplay) out.ref = es.scripture.refDisplay;
+        }
+        return out;
+      };
+
+      esReviewCancel = function () { if (ctrl) { try { ctrl.cancelPending(); } catch (e) {} } };
+
+      const notice = function (kind) {
+        const box = document.createElement('div');
+        box.className = 'es-review-note';
+        if (kind === 'loading') {
+          box.innerHTML = '<p>' + tj('journey.review.preparingBody', 'We are preparing today\'s path with care.') + '</p>';
+        } else if (kind === 'guest') {
+          box.innerHTML = '<p><b>' + tj('journey.review.guestTitle', 'This day was originally completed in English.') + '</b></p>'
+            + '<p>' + tj('journey.review.guestBody', 'You can keep reviewing the original content. Sign in to prepare a Spanish copy without changing what you completed.') + '</p>';
+        } else if (kind === 'scripture') {
+          box.innerHTML = '<p><b>' + tj('journey.review.scriptureFailTitle', 'We could not verify the verse.') + '</b></p>'
+            + '<p>' + tj('journey.review.scriptureFailBody', 'We could not verify the verse right now. We would rather wait than show unconfirmed text. The Word deserves that precision.') + '</p>';
+        } else {
+          box.innerHTML = '<p><b>' + tj('journey.review.failTitle', 'We could not prepare this day.') + '</b></p>'
+            + '<p>' + tj('journey.review.failBody', 'Your journey is still saved and nothing was lost. Let us try again.') + '</p>';
+        }
+        return box;
+      };
+
+      const renderPending = function () {
+        $('dfScroll').innerHTML = '';
+        $('dfScroll').appendChild(notice('loading'));
+        $('dfReviewBadge').style.display = 'none';
+        $('dfComplete').disabled = true;
+        // Approved es-LA wording. "Preparando…" alone read as a spinner label;
+        // naming what is being prepared matches the unhurried register of the
+        // sentence above it, which is the whole point of the waiting screen.
+        $('dfComplete').textContent = tj('journey.review.preparingButton', 'Preparing your path for today…');
+        $('dfStepBack').style.display = 'none'; $('dfStepNext').style.display = 'none';
+      };
+
+      /* Blocked states keep the English original REACHABLE — never a dead end,
+         and never a silent English fallback dressed as Spanish. */
+      const renderBlocked = function (kind) {
+        $('dfScroll').innerHTML = '';
+        $('dfScroll').appendChild(notice(kind));
+        const actions = document.createElement('div');
+        actions.className = 'es-review-actions';
+        const primary = document.createElement('button');
+        primary.className = 'btn btn-primary'; primary.type = 'button';
+        primary.textContent = kind === 'guest'
+          ? tj('journey.review.continueInEnglish', 'Continue in English')
+          : tj('journey.review.tryAgain', 'Try again');
+        primary.addEventListener('click', function () {
+          if (kind === 'guest') { esReviewForceEn = true; esReview = null; renderDayFlow(); }
+          else loadEsReview(reviewDay);
+        });
+        const secondary = document.createElement('button');
+        secondary.className = 'btn btn-ghost'; secondary.type = 'button';
+        secondary.textContent = kind === 'guest'
+          ? tj('journey.review.signInForSpanish', 'Sign in to read it in Spanish')
+          : tj('journey.review.continueInEnglish', 'Continue in English');
+        secondary.addEventListener('click', function () {
+          if (kind === 'guest') { try { ensureSignedIn(tj('journey.review.signInPrompt', 'Sign in to prepare a Spanish copy.')); } catch (e) {} }
+          else { esReviewForceEn = true; esReview = null; renderDayFlow(); }
+        });
+        actions.appendChild(primary); actions.appendChild(secondary);
+        $('dfScroll').appendChild(actions);
+        $('dfComplete').disabled = false;
+        $('dfComplete').textContent = tj('journey.review.returnToToday', "Back to today's path");
+        $('dfStepBack').style.display = 'none'; $('dfStepNext').style.display = 'none';
+      };
+
+      /* Resolve first, then render ONCE. Nothing paints between the request and
+         the result, so no mixed-language frame can exist. */
+      loadEsReview = async function (day) {
+        if (esReviewForceEn || !esL()) { esReview = null; renderDayFlow(); return; }
+        const c = await controller();
+        const token = c.beginRequest();
+        esReview = null;
+        renderPending();
+        let res;
+        try {
+          res = await c.getReviewContent({ instance: active && active.id, day, english: PLAN[day - 1], locale: 'es', token });
+        } catch (e) { res = { state: 'error', reason: 'unexpected', retryable: true }; }
+        if (!c.isCurrent(token) || reviewDay !== day) return; // stale, discard
+        if (res.state === 'ready') { esReview = { day: day, fields: res.fields, scripture: res.scripture }; renderDayFlow(); return; }
+        if (res.state === 'english') { esReview = null; renderDayFlow(); return; }
+        renderBlocked(res.state === 'guest-notice' ? 'guest' : (res.reason === 'scripture-unverified' ? 'scripture' : 'error'));
+      };
+    }
+
     function openReview(day) {
       dayFlowReturnEl = document.activeElement || null;
       reviewDay = day; reviewStep = 1;
+      esReview = null; esReviewForceEn = false;
       $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
       openDayFlowA11y();
+      if (esL()) { loadEsReview(day); return; }
       renderDayFlow();
     }
     $('dfBack').addEventListener('click', closeDayFlow);
@@ -1535,11 +1730,55 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         const h = $('doEyebrow'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
       }, 60);
     }
+    /* Spanish leak guard for the Day-Opening screen.
+       This screen paints PLAN[] synchronously and calls no generator, so a
+       Spanish reader saw the ENGLISH authored bank ("The Hand-Off", an ESV
+       verse) under fully Spanish chrome on the first screen of Day 1.
+
+       Scope is deliberately narrow: stop the leak, nothing else. The generated
+       Spanish QUALITY work (BRIEF_ES/ARC_ES, es-LA review, max_tokens) is a
+       separate blocked item, and this fix does not depend on it.
+
+       ensureDay() sets _ai[idx] = true even when generation returns nothing, so
+       "it resolved" cannot be trusted as "it is Spanish now". The English title
+       is captured first and compared after; unchanged means generation did not
+       land, and the Spanish failure state is shown rather than the English bank. */
+    function renderDayOpeningPending(idx) {
+      const englishTitle = PLAN[idx] && PLAN[idx].title;
+      $('doTitle').textContent = '';
+      $('doVerseText').textContent = '';
+      $('doRef').textContent = '';
+      $('doEncourage').textContent = 'Estamos preparando el camino de hoy con cuidado.';
+      $('doBegin').disabled = true;
+      ensureDay(state.day).then(function () {
+        if (state.day - 1 !== idx) return;                       // moved on; discard
+        if (!$('dayOpen').classList.contains('open')) return;     // closed; discard
+        $('doBegin').disabled = false;
+        if (PLAN[idx] && PLAN[idx].title === englishTitle) {
+          // Generation did not produce Spanish. Say so — never fall back to the
+          // English bank, which is what this whole guard exists to prevent.
+          $('doTitle').textContent = 'No pudimos preparar este día';
+          $('doEncourage').textContent = 'Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.';
+          return;
+        }
+        renderDayOpening();
+      }).catch(function () {
+        $('doBegin').disabled = false;
+        $('doTitle').textContent = 'No pudimos preparar este día';
+        $('doEncourage').textContent = 'Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.';
+      });
+    }
+
     function renderDayOpening() {
       const d = PLAN[state.day - 1];
       $('doEyebrow').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; }
       $('doProgress').innerHTML = dots;
+      // Spanish + not yet generated -> skeleton, never the English bank.
+      if (ES_DAY_OPENING_DEV && esL() && !(active && active._ai && active._ai[state.day - 1])) {
+        renderDayOpeningPending(state.day - 1);
+        return;
+      }
       $('doTitle').textContent = d.title;
       $('doVerseText').textContent = '“' + d.verse + '”';
       $('doRef').textContent = d.ref + (d.ver ? ' · ' + d.ver : '');
@@ -2491,6 +2730,12 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .df-stepdots i.done { background: var(--gold); }
     .journey .df-stepdots i.cur { background: var(--goldd); width: 18px; }
 
+    .journey .es-review-note { max-width: 560px; margin: 26px auto 0; text-align: center; }
+    .journey .es-review-note p { font-size: 14px; line-height: 1.65; color: var(--text2); margin: 0 0 9px; }
+    .journey .es-review-note p b { color: var(--text); }
+    .journey .es-review-actions { max-width: 420px; margin: 22px auto 0; display: flex; flex-direction: column; gap: 10px; }
+    .journey .es-back-en { background: none; border: 0; padding: 0 0 0 10px; margin-left: 8px; font: inherit; font-size: 11.5px;
+      color: var(--goldd); text-decoration: underline; cursor: pointer; min-height: 44px; }
     .journey .df-review-badge { display: none; align-items: center; gap: 6px; justify-content: center; margin: 12px 18px 0; padding: 6px 13px; border-radius: 100px;
       font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); flex: 0 0 auto; }
     .journey .df-review-badge svg { width: 13px; height: 13px; }
@@ -2502,6 +2747,8 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .df-review-badge.is-original-en #dfReviewBadgeTxt { flex: 1 1 auto; min-width: 0; }
     .journey .df-review-badge .df-badge-sub { flex: 1 0 100%; text-align: center; text-transform: none;
       letter-spacing: .01em; font-weight: 500; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+    .journey .df-review-badge.is-original-en .es-back-en { flex: 1 0 100%; padding-left: 0; margin-left: 0;
+      display: inline-flex; align-items: center; justify-content: center; text-transform: none; letter-spacing: .01em; }
 
     .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 24px; scrollbar-width: none; }
     .journey .df-scroll::-webkit-scrollbar { display: none; }
