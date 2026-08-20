@@ -51,12 +51,39 @@ export function inventory(input: { plan: unknown[]; completedCount: number }): I
  * translated as part of one day. */
 export function fruitRow(english: FruitFields | null | undefined, translated: FruitFields | null | undefined): FruitRow {
   const en = english || {};
-  if (!translated) return { fruit: en.fruit, fruitTruth: en.fruitTruth, locale: "en" };
+  if (!translated) {
+    /* No translation: the row shows the CANONICAL day, whose language is
+     * whatever that day was written in. Reporting 'en' unconditionally would
+     * blanket-label a Spanish canonical day as English — the mixed-record bug
+     * wearing a different hat. */
+    return { fruit: en.fruit, fruitTruth: en.fruitTruth, locale: sourceLocale(en) };
+  }
   return {
     fruit: translated.fruit != null ? translated.fruit : en.fruit,
     fruitTruth: translated.fruitTruth != null ? translated.fruitTruth : en.fruitTruth,
     locale: "es",
   };
+}
+
+/* The canonical language of a day. Unstamped days predate the locale boundary
+ * and were English, which is what every writer before the stamp produced. */
+export function sourceLocale(day: { lang?: string } | null | undefined): "en" | "es" {
+  return day && day.lang === "es" ? "es" : "en";
+}
+
+/* What the section banner may honestly claim about a set of completed days.
+ *
+ * "original-english" only when EVERY canonical source really is English. A set
+ * containing any Spanish day is `mixed`, and mixed must not be given one
+ * blanket label in either direction — the view shows per-row languages and no
+ * original-English provenance, and offers no preparation, because translating a
+ * Spanish day English-to-Spanish is exactly what the transport now refuses. */
+export function sourceState(days: Array<{ lang?: string }>): "original-english" | "all-spanish" | "mixed" | "none" {
+  if (!days || !days.length) return "none";
+  const locales = days.map(sourceLocale);
+  if (locales.every((l) => l === "en")) return "original-english";
+  if (locales.every((l) => l === "es")) return "all-spanish";
+  return "mixed";
 }
 
 /* ── Interface copy ─────────────────────────────────────────────────────────

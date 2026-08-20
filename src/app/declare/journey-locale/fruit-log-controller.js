@@ -35,7 +35,7 @@
 import { LOCALE_SCHEMA_VERSION } from './types.ts';
 import { localeCacheKey, makeDisplayCopy, sourceHash } from './locale-cache.ts';
 import { pickTranslatable } from './payload.ts';
-import { fruitRow, inventory } from './fruit-log-merge.ts';
+import { fruitRow, inventory, sourceLocale, sourceState } from './fruit-log-merge.ts';
 import { journeyTranslate } from '../convex-data.js';
 import { isSignedIn } from '../auth-store.js';
 
@@ -83,21 +83,26 @@ export function fruitLogEligibility(locale) {
 /* ── Inventory and display merge ──────────────────────────────────────────
  * Both live in fruit-log-merge.ts so the harness can exercise them in plain
  * Node, and are re-exported here so the view has one import. */
-export { fruitRow, inventory };
+export { fruitRow, inventory, sourceLocale, sourceState };
 
 /* Which of those already have verified Spanish, and which are missing. A day
  * whose source content changed, or whose schema version moved, simply misses:
  * its old key no longer matches, so a stale copy cannot be served. */
 export function inspectCache({ instance, plan, completedCount }) {
-  const ready = [], missing = [], translations = {};
+  const ready = [], missing = [], untranslatable = [], translations = {};
   for (const item of inventory({ plan, completedCount })) {
+    /* A day whose canonical source is already Spanish is not translatable
+       English-to-Spanish; the transport refuses it, and asking would spend a
+       request to be told so. It is neither ready nor preparable. */
+    if (sourceLocale(item.english) !== 'en') { untranslatable.push(item.day); continue; }
     const id = cacheKeyFor(instance, item.day, item.english);
     if (!id) { missing.push(item.day); continue; }
     const rec = readCache(id.key);
     if (rec && rec.fields) { ready.push(item.day); translations[item.day] = rec.fields; }
     else missing.push(item.day);
   }
-  return { ready, missing, translations, total: ready.length + missing.length };
+  return { ready, missing, untranslatable, translations,
+           total: ready.length + missing.length + untranslatable.length };
 }
 
 /* ── Stale-request handling ───────────────────────────────────────────────────

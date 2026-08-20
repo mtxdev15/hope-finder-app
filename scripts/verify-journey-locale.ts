@@ -555,6 +555,53 @@ check("a second restore writes nothing when nothing changed", /if \(repaired\) s
 check("mixed-legacy is refused before any reservation",
   CONTROLLER.includes("source-unresolved") && /english\.lang === 'mixed-legacy'/.test(CONTROLLER));
 check("the mixed refusal is non-retryable", /reason: 'source-unresolved', retryable: false/.test(CONTROLLER));
+/* ── 15. Fruit Log source-locale honesty ───────────────────────────────────
+ * The Fruit Log must never give a row or a section one blanket language when
+ * the canonical sources disagree. */
+section("15. Fruit Log source honesty");
+
+const { sourceLocale, sourceState } = await import(
+  "../src/app/declare/journey-locale/fruit-log-merge.ts");
+
+check("a Spanish canonical day reports es", sourceLocale({ lang: "es" }) === "es");
+check("an English canonical day reports en", sourceLocale({ lang: "en" }) === "en");
+check("an unstamped legacy day is adopted as en", sourceLocale({}) === "en");
+check("a null day does not throw", sourceLocale(null) === "en");
+
+/* An untranslated row reports its SOURCE language, not "not translated". */
+check("untranslated Spanish source is labelled es",
+  fruitRow({ fruit: "Confianza arraigada", lang: "es" }, null).locale === "es");
+check("untranslated English source is labelled en",
+  fruitRow({ fruit: "Honest Courage", lang: "en" }, null).locale === "en");
+check("a translated row is always es",
+  fruitRow({ fruit: "Honest Courage", lang: "en" }, { fruit: "Valentía Honesta" }).locale === "es");
+
+/* THE HISTORICAL DEFECT, as a fixture. A day carrying a Spanish fruit beside an
+ * English truth is exactly what shipped before the locale boundary. It must be
+ * classified as mixed and must never receive one blanket lang or a false
+ * original-English provenance. */
+const DEFECT = { fruit: "Confianza arraigada", fruitTruth: "Stayed Mind" };
+check("the historical defect fixture has no stamp", !("lang" in DEFECT));
+check("it is adopted as en rather than guessed", sourceLocale(DEFECT) === "en");
+check("a set containing a Spanish day is mixed",
+  sourceState([{ lang: "en" }, DEFECT, { lang: "es" }]) === "mixed");
+check("an all-English set is original-english",
+  sourceState([{ lang: "en" }, DEFECT, {}]) === "original-english");
+check("an all-Spanish set is not called original-english",
+  sourceState([{ lang: "es" }, { lang: "es" }]) === "all-spanish");
+check("an empty set claims nothing", sourceState([]) === "none");
+
+/* The view must consult the source state before claiming provenance, and must
+ * label rows from the row's own locale. */
+check("the section consults sourceState before claiming original-English",
+  /sourceState\(PLAN\.slice/.test(VIEW));
+check("a non-English set gets no original-English provenance",
+  /srcState !== 'original-english'/.test(VIEW));
+check("rows are marked from their own content locale",
+  /esL\(\) && row\.locale === 'en'/.test(VIEW));
+check("preparation skips days whose source is not English",
+  readFileSync(new URL("../src/app/declare/journey-locale/fruit-log-controller.js", import.meta.url), "utf8")
+    .includes("sourceLocale(item.english) !== 'en'"));
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

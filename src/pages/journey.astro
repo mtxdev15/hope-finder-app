@@ -906,8 +906,17 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         return;
       }
 
-      /* Original English under Spanish chrome — say so, exactly as the review
-         does, and mark the record so a screen reader changes voice for it. */
+      /* Only claim "original English" when EVERY canonical source really is
+         English. A mixed set gets no blanket provenance and no preparation
+         offer: rows carry their own language, and a Spanish source cannot be
+         translated English-to-Spanish anyway. */
+      const srcState = flCtrl ? flCtrl.sourceState(PLAN.slice(0, n)) : 'original-english';
+      if (srcState !== 'original-english') {
+        bar.className = 'fl-chrome';
+        bar.removeAttribute('role');
+        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.review.genericBanner', 'Reviewing a completed day · Read only') + '</span>';
+        return;
+      }
       bar.className = 'fl-chrome is-original-en';
       bar.setAttribute('role', 'note');
       let html = '<span class="fl-prov-t">' + tj('journey.review.originalEnglishBanner', 'Original English content · Read only') + '</span>';
@@ -945,7 +954,11 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         const row = (FRUIT_LOG_ES_DEV && flCtrl)
           ? flCtrl.fruitRow(d, showingEs && flTranslations ? flTranslations[i] : null)
           : { fruit: d.fruit, fruitTruth: d.fruitTruth, locale: 'en' };
-        const lang = row.locale === 'en' && esL() ? ' lang="en"' : '';
+        /* Mark the row with the language its CONTENT is actually in. Marking
+           every untranslated row lang="en" would blanket-label a Spanish
+           canonical day as English — the same mistake the locale boundary
+           exists to stop, one layer up. */
+        const lang = (esL() && row.locale === 'en') ? ' lang="en"' : '';
         html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + row.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm"' + lang + '>' + row.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth"' + lang + '>' + row.fruitTruth + '</div></div></button>';
       }
       box.innerHTML = html;
