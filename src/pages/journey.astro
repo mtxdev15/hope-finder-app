@@ -445,6 +445,8 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     import { saveItem, upsertItem, getItem } from '../app/declare/vault-store.js';
     import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    /* Released provenance rule. Ships; the translation feature does not. */
+    import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
     import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
@@ -925,6 +927,51 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       }
     }
 
+    /* The original-English provenance state, preserved from the production
+     * hotfix and re-expressed against the paginated review chrome.
+     *
+     * Three things have to be true together, which is why they live in one
+     * place: the reader is told BEFORE the English title (the badge sits above
+     * #dfScroll, so reading order and tab order both put it first), the English
+     * record is marked lang="en" so a screen reader changes voice for it, and
+     * the Spanish interface around it stays Spanish and unmarked.
+     *
+     * The accessible name comes from the visible text rather than an aria-label:
+     * a role="note" carrying both a label and the same words as content is
+     * announced twice.
+     *
+     * No "sign in to read it in Spanish" offer here. That belongs to the
+     * translation feature, which this release does not ship, and offering it
+     * would promise something the product cannot yet do. */
+    function renderOriginalEnglishProvenance(on) {
+      const badge = $('dfReviewBadge');
+      if (!badge) return;
+      badge.classList.toggle('is-original-en', !!on);
+      if (on) badge.setAttribute('role', 'note'); else badge.removeAttribute('role');
+
+      let sub = $('dfBadgeSub');
+      if (on) {
+        if (!sub) {
+          sub = document.createElement('span');
+          sub.id = 'dfBadgeSub'; sub.className = 'df-badge-sub';
+          badge.appendChild(sub);
+        }
+        sub.textContent = tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.');
+        sub.style.display = '';
+      } else if (sub) { sub.style.display = 'none'; }
+
+      /* Mark only the immutable English record. Chrome, prompts and anything the
+         reader wrote are deliberately left alone — see the selector list. */
+      const scroll = $('dfScroll');
+      if (scroll) {
+        ENGLISH_CONTENT_SELECTORS.forEach(function (sel) {
+          scroll.querySelectorAll(sel).forEach(function (el) {
+            if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
+          });
+        });
+      }
+    }
+
     function renderStepChrome() {
       const fd = curDay(), reviewing = !!reviewDay, s = curStep(), ds = dstate();
       const dayTxt = (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL;
@@ -933,7 +980,20 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       let stepDots = ''; for (let i = 1; i <= TOTAL_STEPS; i++) { stepDots += '<i class="' + (i < s ? 'done' : (i === s ? 'cur' : '')) + '"></i>'; } $('dfStepDots').innerHTML = stepDots;
       let dayDots = ''; for (let i = 1; i <= TOTAL; i++) { dayDots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dayDots;
       $('dfReviewBadge').style.display = reviewing ? 'flex' : 'none';
-      if (reviewing) { $('dfReviewBadgeTxt').textContent = esL() ? 'Repasando un día completado · Solo lectura' : 'Reviewing a completed day · Read only'; }
+      if (reviewing) {
+        /* What is this review actually showing? Resolved in the shared module
+           rather than decided here, so every path that reaches the English
+           original answers the question the same way. This release has no
+           translated content, so Spanish chrome always means the original. */
+        const vstate = resolveReviewViewState({
+          interfaceLocale: esL() ? 'es' : 'en', translationShown: false, reviewing: true,
+        });
+        const originalEn = vstate.provenanceKind === 'original-english';
+        $('dfReviewBadgeTxt').textContent = originalEn
+          ? tj('journey.review.originalEnglishBanner', 'Original English content · Read only')
+          : 'Reviewing a completed day · Read only';
+        renderOriginalEnglishProvenance(originalEn);
+      }
 
       const back = $('dfStepBack'), next = $('dfStepNext'), primary = $('dfComplete'), hint = $('dfLock');
       back.textContent = esL() ? 'Atrás' : 'Back';
@@ -2434,6 +2494,14 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .df-review-badge { display: none; align-items: center; gap: 6px; justify-content: center; margin: 12px 18px 0; padding: 6px 13px; border-radius: 100px;
       font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); flex: 0 0 auto; }
     .journey .df-review-badge svg { width: 13px; height: 13px; }
+    /* Original-English provenance carries a second line, so the pill relaxes
+       into a soft-cornered block and wraps instead of truncating. Same quiet
+       neutral treatment as the generic review badge — this is context, not a
+       warning, so nothing here borrows error colour or weight. */
+    .journey .df-review-badge.is-original-en { flex-wrap: wrap; row-gap: 3px; padding: 9px 15px; border-radius: 14px; }
+    .journey .df-review-badge.is-original-en #dfReviewBadgeTxt { flex: 1 1 auto; min-width: 0; }
+    .journey .df-review-badge .df-badge-sub { flex: 1 0 100%; text-align: center; text-transform: none;
+      letter-spacing: .01em; font-weight: 500; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
 
     .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 24px; scrollbar-width: none; }
     .journey .df-scroll::-webkit-scrollbar { display: none; }
