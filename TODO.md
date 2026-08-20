@@ -4,6 +4,24 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
+- [ ] **GUARDRAIL — completed Journey content is immutable.** Any restore or migration capable of
+      changing canonical completed content must use **persisted** completion state
+      (`db_journey_lock` and `db_active_journey`, taking the higher value) and must pass a
+      byte-for-byte completed-content preservation fixture before production. Do not derive
+      completion from `state.day`: it is assigned *after* `restoreInstance()` runs, so during restore
+      it reads `1` and reports zero completed days. That is exactly how a shipped release replaced
+      walked-day content that could not be recovered — see
+      `docs/operations/journey-completed-day-data-loss.md`.
+- [ ] **Recurring expired-session 401 in production (noticed repeatedly during Journey verification,
+      2026-08-19/20).** `keen-hamster-650.convex.site/api/auth/convex/token` returns 401 on page load
+      once a session has aged, and it appears in the console every time. The app degrades correctly —
+      it falls back to guest, the Spanish review shows the guest notice rather than erroring, and
+      nothing user-visible breaks — so this is **not blocking**. But an unexplained 401 sitting in
+      production console output indefinitely makes real errors harder to notice, and it may mean
+      sessions are expiring sooner than intended. The endpoint is not a literal anywhere in `src/`
+      (it comes from the better-auth client), so start at `src/app/declare/auth-store.js` and the
+      token-refresh path. Decide whether the correct outcome is a silent refresh, a quiet re-auth, or
+      simply not logging an expected 401.
 - [ ] **Mast avatar icon may be redundant nav (raised during Release B / B2.2, 2026-07-29).** Jeff
       flagged the circular profile/avatar icon in the top-right mast (`DeclareLayout.astro`, shared
       sitewide, every page, both languages) as possibly making no sense alongside the bottom "You"/"Tú"
