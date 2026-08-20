@@ -438,6 +438,27 @@ window.__I18N_STRINGS = {
        a completed day, so the reader is never met by unexplained English. */
     'journey.review.originalEnglishBanner': 'Contenido original en inglés · Solo lectura',
     'journey.review.originalEnglishSupport': 'Este día se completó originalmente en inglés.',
+    /* Completed-day review in Spanish. All wording below was reviewed and
+       approved by a native es-LA speaker on 2026-08-19. The English source for
+       each key lives at the call site as the tj() fallback, per the house
+       convention; these screens only render under Spanish chrome, so the
+       fallbacks are defensive rather than something a reader normally sees. */
+    'journey.review.genericBanner': 'Repasando un día completado · Solo lectura',
+    'journey.review.translatedBanner': 'Traducción al español del contenido original en inglés · Solo lectura',
+    'journey.review.viewOriginalEnglish': 'Ver el original en inglés',
+    'journey.review.preparingButton': 'Preparando tu camino de hoy…',
+    'journey.review.preparingBody': 'Estamos preparando el camino de hoy con cuidado.',
+    'journey.review.guestTitle': 'Este día se completó originalmente en inglés.',
+    'journey.review.guestBody': 'Puedes seguir revisando el contenido original. Inicia sesión para preparar una copia en español sin cambiar lo que completaste.',
+    'journey.review.failTitle': 'No pudimos preparar este día.',
+    'journey.review.failBody': 'Tu camino sigue guardado y nada se perdió. Intentémoslo de nuevo.',
+    'journey.review.scriptureFailTitle': 'No pudimos verificar el versículo.',
+    'journey.review.scriptureFailBody': 'No pudimos verificar el versículo en este momento. Preferimos esperar antes que mostrar un texto no confirmado. La Palabra merece esa precisión.',
+    'journey.review.continueInEnglish': 'Continuar en inglés',
+    'journey.review.signInForSpanish': 'Iniciar sesión para verlo en español',
+    'journey.review.tryAgain': 'Intentar de nuevo',
+    'journey.review.returnToToday': 'Volver al camino de hoy',
+    'journey.review.signInPrompt': 'Inicia sesión para preparar una copia en español.',
     'journey.vineJohn': 'La Vid · Juan 15:5',
     'journey.dayWord': 'Día ',
     'journey.opensTomorrowSuffix': ' abre mañana',
