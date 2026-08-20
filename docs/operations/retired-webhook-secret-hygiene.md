@@ -91,71 +91,106 @@ No secret value was read, printed or requested.
 
 ---
 
-## 3. Stripe endpoints — NOT AUDITED, access unavailable
+## 3. Stripe endpoints — AUDITED (read-only)
 
-**I could not inspect the Stripe dashboard.** `STRIPE_SECRET_KEY` exists only as
-a Cloudflare Worker secret, which is write-only by design, and no Stripe
-credential is present in any local environment file. I did not attempt to
-extract it, and no Stripe API call was made.
+Audited **2026-08-20** over the read-only `stripe-live-audit` connection.
 
-A 55-second read-only `wrangler tail` of the production Worker captured no
-output. That is **inconclusive**, not evidence of absence: the window was short,
-Stripe retries on a long backoff, and the tail may require an interactive
-session. It is recorded here so nobody later mistakes it for proof.
+**Connected account:** `acct_1Mf55qLL3Uli7L4x` — *JC Kingdom Ventures*.
+**Mode: live.** Confirmed from the returned object's own `"livemode": true` field,
+not by inspecting a key. No API key, key fragment, or signing-secret value was
+read, printed, or requested at any point.
 
-**This is the blocking gap.** Steps 2–4 of the removal sequence cannot be
-justified until the endpoint inventory below is filled in by hand.
+Only two operations were called, both GET: `GetWebhookEndpoints` and
+`GetWebhookEndpointsWebhookEndpoint`. Nothing was created, updated, disabled,
+deleted, resent, or rotated.
 
-### Manual checklist — to be completed in the Stripe dashboard
+### Endpoint inventory — complete for live mode
 
-Go to **Developers → Webhooks**, in **both live and test mode**, and include
-**disabled** endpoints. For every endpoint record:
+**Exactly one endpoint exists.** The list call ran at `limit=100` and returned
+`has_more: false`, so this is the whole set — a disabled endpoint would have been
+included in that response, and none was.
 
-1. endpoint URL;
-2. enabled or disabled;
-3. live or test mode;
-4. subscribed event types;
-5. creation date;
-6. most recent delivery attempt (timestamp);
-7. recent response status codes;
-8. which path it targets — `/give/*`, `/billing/webhook`, a retired hostname, a
-   current hostname, or another service entirely;
-9. whether its signing secret corresponds conceptually to `STRIPE_WEBHOOK_SECRET`
-   (the retired donation webhook) or `STRIPE_BILLING_WEBHOOK_SECRET` (the
-   subscription webhook that was never configured);
-10. whether another application or environment shares the endpoint.
+| # | Field | Value |
+|---|---|---|
+| — | id | `we_1Tn2plLL3Uli7L4xUrsRKSpi` |
+| — | description | `Declare Live Giving Counts` |
+| 1 | endpoint URL | `https://hope-finder-worker.thinktoro.workers.dev/give/webhook` |
+| 2 | enabled or disabled | **`enabled`** |
+| 3 | live or test mode | **live** (`livemode: true`) |
+| 4 | subscribed event types | `checkout.session.completed` (one only) |
+| 5 | creation date | `1782592093` → **2026-06-27**, ~54 days before this audit |
+| 6 | most recent delivery attempt | **not retrievable — see the gap below** |
+| 7 | recent response status codes | **not retrievable — see the gap below** |
+| 8 | which path it targets | **a retired `/give/*` path**, on the **current** Worker hostname |
+| 9 | corresponds conceptually to | **`STRIPE_WEBHOOK_SECRET`** (Worker) — the retired donation webhook. It is the Worker, not Convex, that this endpoint addresses |
+| 10 | shared with another app or environment | **no** — the hostname is this project's production Worker, and `application` is `null`, so it was created directly on the account rather than installed by a Stripe app |
 
-**Do not reveal any signing-secret value.** The name and the endpoint URL are
-sufficient.
+`api_version` is pinned at `2022-11-15`. The `metadata` field is redacted by the
+audit connection and was not unwrapped.
 
-Then answer, explicitly:
+### Coverage gap — event and delivery history
+
+**Delivery activity could not be inventoried, and this is not the same as finding
+none.** The audit connection exposes only the `webhook_endpoints` resource. The
+Events API and per-endpoint delivery-attempt history are absent from its operation
+index — searches for events, delivery attempts, charges, payment intents, checkout
+sessions, and subscriptions all resolve to nothing, so the failure is one of
+credential scope, not of a missing record.
+
+Consequently, questions 6 and 7 above are **unanswered, not answered "none"**.
+Nobody should read this section as evidence that no deliveries occurred. The
+`wrangler tail` note from the earlier pass remains just as inconclusive as it was.
+
+These must be read by hand in **Developers → Webhooks →
+`we_1Tn2plLL3Uli7L4xUrsRKSpi`**, before step 4 of the removal sequence:
+
+- the most recent delivery attempt and its timestamp;
+- the response codes on recent attempts (a `410` is the retirement working);
+- whether any attempt is still **pending or scheduled for retry**.
+
+**Test mode was not enumerable** with this live credential. A separate test-mode
+read is required to make the same statement about test endpoints. Test-mode
+endpoints cannot deliver live events and do not gate either secret, so this does
+not block the decisions below.
+
+### Standing hazard, independent of the secrets
+
+The endpoint is **enabled and subscribed to `checkout.session.completed`** — an
+account-wide event, not a donation-specific one. Any live Checkout Session that
+completes on this account for **any** reason fans out to a retired `/give/*` path
+and collects a `410`. Should the subscription work in `convex/billing.ts` ever be
+switched on, its checkout completions would be delivered here too. That is an
+argument for disabling the endpoint on its own merits, separate from secret
+hygiene.
+
+### Answers
 
 | Question | Answer |
 |---|---|
-| Does any **live** endpoint still send donation events? | |
-| Does any endpoint still call a retired `/give/*` path? | |
-| Does any endpoint call `/billing/webhook`? | |
-| Are recent attempts receiving 410 / 404 / 405 / 500? | |
-| Can the endpoint be deleted safely? | |
-| Does the endpoint belong to another environment or application? | |
-
-**Do not delete an endpoint merely because its most recent response failed.**
-A 410 from `/give/webhook` is the retirement working as designed, and a 500 from
-`/billing/webhook` is the un-configured gate — neither proves the endpoint is
-abandoned. Confirm ownership and intended retirement first.
+| Does any **live** endpoint still send donation events? | **Yes.** One, `we_1Tn2plLL3Uli7L4xUrsRKSpi`, enabled, on `checkout.session.completed`. |
+| Does any endpoint still call a retired `/give/*` path? | **Yes** — that same endpoint, at `/give/webhook`. |
+| Does any endpoint call `/billing/webhook`? | **No.** None. The gated billing route receives no Stripe traffic. |
+| Does any endpoint target a **retired hostname**? | **No.** It targets the current production Worker hostname. |
+| Are recent attempts receiving 410 / 404 / 405 / 500? | **Unknown** — delivery history is outside this credential's scope. The route returns `410` when reached, verified independently in section 1. |
+| Do recent or pending deliveries exist? | **Unknown, and must be checked by hand.** Not established either way. |
+| Can the endpoint be deleted safely? | **Not yet.** Disable, observe, then delete — per section 6. Its signing secret is also the only recoverable copy of the Worker value; see section 8. |
+| Does the endpoint belong to another environment or application? | **No.** `application: null`, current hostname, this account. |
 
 ---
 
 ## 4. Decision table
 
+Updated after the Stripe audit above. The changed rows are the two endpoint rows
+and the two retired-secret rows.
+
 | Item | Present | Executable readers | External sender | Recent traffic | Action |
 |---|---:|---:|---|---|---|
-| Convex `GIFT_WEBHOOK_SECRET` | yes | **0** | unknown — Stripe not audited | unknown | **(2)** remove only after the Stripe endpoint audit clears it |
-| Worker `STRIPE_WEBHOOK_SECRET` | yes | **0** | unknown — Stripe not audited | unknown | **(2)** remove only after the Stripe endpoint audit clears it |
-| Stripe donation webhook endpoint(s) | unknown | n/a | n/a | unknown | **(4→2)** inventory first; disable, observe, then delete |
-| Stripe billing webhook endpoint(s) | unknown | n/a | n/a | unknown | **(3)** keep if any exists — the route is inert by design, not by accident |
-| Retired `/give/*` routes | yes, as 410 | 4 route matches | possibly Stripe | 410 verified live | **(1)** no change — the 410 is the retirement, and it works |
-| `/billing/webhook` | yes, gated | 1 route match | possibly Stripe | 500 verified live | **(5)** response shape is a separate application decision |
+| Convex `GIFT_WEBHOOK_SECRET` | yes | **0** | **none — no Stripe endpoint targets Convex** | n/a | **(1)** safe to remove now |
+| Worker `STRIPE_WEBHOOK_SECRET` | yes | **0** | **yes — live enabled `we_1Tn2pl…`** | unknown | **(2)** remove only after the endpoint is disabled and deleted |
+| Stripe donation webhook endpoint | **yes — 1, live, enabled** | n/a | n/a | unknown | **(2)** disable → observe → delete |
+| Stripe billing webhook endpoint | **no — none exists** | n/a | n/a | n/a | nothing to keep or remove |
+| Retired `/give/*` routes | yes, as 410 | 4 route matches | **confirmed Stripe** | 410 verified live | **(1)** no change — the 410 is the retirement, and it works |
+| `/billing/webhook` | yes, gated | 1 route match | **none — confirmed** | 500 verified live | **(5)** response shape is a separate application decision |
 | Convex `STRIPE_SECRET_KEY` (absent) | no | 2 | — | — | **do not add** |
 | Convex `BILLING_WEBHOOK_SECRET` (absent) | no | 1 | — | — | **do not add** |
 | Worker `STRIPE_BILLING_WEBHOOK_SECRET` (absent) | no | 2 | — | — | **do not add** |
@@ -165,9 +200,34 @@ Classification key: **(1)** safe now · **(2)** after deleting a stale Stripe
 endpoint · **(3)** keep for now · **(4)** belongs to another environment ·
 **(5)** needs a separate application change.
 
-Both retired secrets land in **(2)**, not **(1)**. Zero readers makes removal
-*safe for the application*; it does not tell us whether an external sender is
-still authenticating against one.
+### Why the two retired secrets now separate
+
+They were both **(2)** because the external-sender question was open. It is now
+closed differently for each.
+
+**`GIFT_WEBHOOK_SECRET` (Convex) → (1), safe to remove.** The single endpoint on
+the account addresses the **Worker**, not Convex. No Stripe endpoint delivers to
+any Convex URL, so nothing external can be authenticating against this secret. It
+has zero executable readers, and the unknown delivery history does not bear on it,
+because deliveries that do not arrive at Convex cannot involve it. Both halves of
+the (2) gate — no reader, no sender — are now satisfied.
+
+**`STRIPE_WEBHOOK_SECRET` (Worker) → stays (2), do not remove yet.** A live,
+enabled endpoint signs with this secret today. Removing it is *application*-safe —
+`/give/*` returns `410` from a branch that reads no secret, so behaviour would not
+change — but section 6 exists precisely so we do not leave a live endpoint
+authenticating against a secret we have deleted. Two further reasons to hold the
+order:
+
+- delivery history is unread, so a **pending retry** cannot be ruled out;
+- per section 8, the endpoint is the **only recoverable source** of this value.
+  Delete the secret while the endpoint lives and the value is still recoverable by
+  rolling it. Delete the endpoint first and the value is gone for good — which is
+  fine, but only once we are certain we want it gone.
+
+Sequence, unchanged from section 6: **disable the endpoint → observe → delete it →
+then remove the Worker secret.** `GIFT_WEBHOOK_SECRET` no longer needs to wait on
+any of that.
 
 ---
 
@@ -187,7 +247,10 @@ defect was found that would justify doing so.
 
 ## 6. Proposed operational order — for approval, not yet executed
 
-1. Export or record endpoint metadata from the Stripe dashboard (section 3).
+1. Confirm and preserve the live endpoint metadata already recorded in
+   Section 3, then inspect the Stripe Dashboard/Workbench for recent delivery
+   attempts, response codes, and pending retries for endpoint
+   `we_1Tn2plLL3Uli7L4xUrsRKSpi` before any disablement.
 2. **Disable** the retired donation endpoint (do not delete yet).
 3. Observe that no legitimate workflow breaks — giving is retired, so nothing
    should depend on it.
