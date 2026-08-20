@@ -554,6 +554,12 @@
       if(!obj.actionTitle) obj.actionTitle = es ? 'El paso de hoy' : 'Today\u2019s step';
       if(!obj.fruit) obj.fruit=obj.title;
       if(!obj.fruitTruth) obj.fruitTruth='';
+      /* Stamp the language this day was actually generated in. Without it a day
+         object is untraceable once it lands in PLAN[], and PLAN[] is persisted,
+         restored, and handed to the translation transport as "the English
+         original". One field here is what makes a mixed-language plan
+         detectable instead of silent. */
+      obj.lang = es ? 'es' : 'en';
       return obj;
     }catch(e){ return null; }
   }

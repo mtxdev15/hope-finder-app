@@ -342,6 +342,57 @@ check("Day-Opening keeps its own development guard", VIEW.includes("ES_DAY_OPENI
 check("the broad review flag is gone", !VIEW.includes("ES_REVIEW_ON"));
 check("the runtime catalog shim is gone", !VIEW.includes("__I18N_STRINGS"));
 
+/* ── 13. PLAN locale integrity ─────────────────────────────────────────────
+ * The boundary: PLAN[] is canonical content, never the translated display copy,
+ * and every day carries the language it was written in. */
+section("13. PLAN locale integrity");
+
+const JOURNEY = readFileSync(new URL("../src/pages/journey.astro", import.meta.url), "utf8");
+const ENGINE = readFileSync(new URL("../public/declare/journey-engine.js", import.meta.url), "utf8");
+
+/* Both content entry points stamp a language. There are exactly two. */
+check("the authored bank is stamped en", /return stampLang\(clone\(bespoke/.test(JOURNEY));
+check("generated days are stamped with the generated language", /obj\.lang\s*=\s*es\s*\?\s*'es'\s*:\s*'en'/.test(ENGINE));
+
+/* Restore repairs per day rather than per instance. */
+/* Restored days that carry no stamp must default to ENGLISH, never to the
+ * instance label. Stamping them with the label would mark stale English days as
+ * matching the reader and legitimise the mixed record instead of repairing it —
+ * a bug this suite caught in the first implementation. */
+check("restore stamps unstamped days as en", /PLAN = stampLang\(o\.plan, 'en'\)/.test(JOURNEY));
+check("restore does NOT stamp from the instance label",
+  !/stampLang\(o\.plan, o\.lang/.test(JOURNEY));
+check("restore repairs stale days", /staleDays\(PLAN, curLang\(\)\)/.test(JOURNEY));
+check("stale days are reset to the authored baseline", /if \(baseline\[i\]\) PLAN\[i\] = baseline\[i\]/.test(JOURNEY));
+check("stale days have their generated flag cleared", /delete active\._ai\[i\]/.test(JOURNEY));
+check("the old instance-level flag-clear is gone",
+  !/active\._ai = \(o\.lang && o\.lang !== curLang\(\)\)/.test(JOURNEY));
+
+/* The instance label must describe the days, not the moment of writing. */
+check("saved lang is derived from the days", /const planLang = /.test(JOURNEY));
+check("saved lang can report a mixed record", /'mixed'/.test(JOURNEY));
+check("saveInstance no longer writes curLang() as the label",
+  !/activeStep: activeStep, lang: curLang\(\)/.test(JOURNEY));
+
+/* The transport asserts its assumption instead of trusting it. This is the one
+ * that stops a Spanish day being sent for English-to-Spanish translation. */
+const CONTROLLER = readFileSync(
+  new URL("../src/app/declare/journey-locale/review-controller.js", import.meta.url), "utf8");
+check("transport refuses a non-English source",
+  /english\.lang !== 'en'/.test(CONTROLLER) && /source-not-english/.test(CONTROLLER));
+check("the refusal is not retryable", /reason: 'source-not-english', retryable: false/.test(CONTROLLER));
+
+/* Unstamped days are pre-boundary records and must be treated as English, or
+ * every existing instance would be wiped on first load after the upgrade. */
+check("missing stamp defaults to en", /function dayLang\(d\) \{ return \(d && d\.lang\) \|\| 'en'; \}/.test(JOURNEY));
+check("stampLang never overwrites an existing stamp", /!d\.lang\) \? Object\.assign/.test(JOURNEY));
+check("stampLang does not mutate the day", /Object\.assign\(\{\}, d, \{ lang: lang \}\)/.test(JOURNEY));
+
+/* The rule itself, stated where a future reader will meet it. */
+check("the boundary rule is documented at the helper", /PLAN\[\] is CANONICAL Journey content/.test(JOURNEY));
+check("the stale claim about PLAN being the English original is gone",
+  !/PLAN\[\] — the English original —/.test(JOURNEY));
+
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
 if (failures.length) {
