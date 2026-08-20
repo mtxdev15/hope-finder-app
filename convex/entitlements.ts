@@ -30,9 +30,18 @@ async function requireUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
 
 export type Resolved = {
   tier: Tier;
-  subscriptionStatus: string; // 'none' | raw Stripe status
+  subscriptionStatus: string; // 'none' | raw provider status
   paymentNeedsAttention: boolean;
   graceEndsAt: number | null;
+  /* Which provider currently carries the entitlement, and on what plan. Both
+   * null for a free account. `provider` is an enum, not an identifier — the
+   * billing UI needs it to route to the Stripe Portal or Apple's subscription
+   * management, and it cannot be used to address another account. */
+  provider: "stripe" | "app_store" | null;
+  planKey: "plus_monthly" | "plus_annual" | null;
+  /* More than one provider is independently billing this account. Someone is
+   * paying twice. Computed here, never trusted from a client. */
+  duplicateProviders: boolean;
   accountDay: string;
   timezone: string;
   limits: ReturnType<typeof definitionFor>["limits"];
@@ -89,12 +98,66 @@ function interpret(
   return { tier: "free", status: status || "none", needsAttention: false, graceEndsAt: null };
 }
 
+/* Resolve across EVERY provider the account holds.
+ *
+ * A user who bought Plus on the web and then signs into the iOS app must get
+ * Plus without buying again, and vice versa. That works because entitlement is
+ * canonical here rather than owned by whichever provider happens to have
+ * billed: each row is interpreted with the same rules, and the most generous
+ * result wins.
+ *
+ * `needsAttention` is OR-ed, not taken from the winning row, so a failing card
+ * on one provider is still surfaced while another provider carries the
+ * entitlement. Silence there would let a subscription lapse unnoticed. */
+function resolveAcrossProviders(rows: any[], now: number) {
+  if (rows.length === 0) {
+    return {
+      tier: "free" as Tier,
+      status: "none",
+      needsAttention: false,
+      graceEndsAt: null as number | null,
+      provider: null as Resolved["provider"],
+      planKey: null as Resolved["planKey"],
+      duplicateProviders: false,
+    };
+  }
+
+  const judged = rows.map((row) => ({ row, verdict: interpret(row, now) }));
+  const plus = judged.filter((j) => j.verdict.tier === "plus");
+
+  // Any provider granting Plus grants Plus.
+  const winner =
+    plus.length > 0
+      ? plus.reduce((a, b) => (a.row.updatedAt >= b.row.updatedAt ? a : b))
+      : judged.reduce((a, b) => (a.row.updatedAt >= b.row.updatedAt ? a : b));
+
+  const needsAttention = judged.some((j) => j.verdict.needsAttention);
+  // The soonest grace deadline among those that have one, so the UI warns about
+  // the most urgent rather than the most recent.
+  const graceCandidates = judged
+    .map((j) => j.verdict.graceEndsAt)
+    .filter((g): g is number => typeof g === "number");
+  const graceEndsAt = graceCandidates.length ? Math.min(...graceCandidates) : null;
+
+  const payingProviders = new Set(plus.map((j) => j.row.provider));
+
+  return {
+    tier: winner.verdict.tier,
+    status: winner.verdict.status,
+    needsAttention,
+    graceEndsAt,
+    provider: (winner.verdict.tier === "plus" ? winner.row.provider : null) as Resolved["provider"],
+    planKey: (winner.verdict.tier === "plus" ? winner.row.planKey : null) as Resolved["planKey"],
+    duplicateProviders: payingProviders.size > 1,
+  };
+}
+
 /* Shared resolution used by both the public query and internal callers. */
 async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<Resolved> {
-  const sub = await ctx.db
+  const subs = await ctx.db
     .query("subscriptions")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .first();
+    .collect();
 
   const settings = await ctx.db
     .query("accountSettings")
@@ -104,7 +167,8 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
   const timezone = settings?.timezone || "UTC";
   const accountDay = clampForward(dayKeyInZone(now, timezone), settings?.lastAccountDay);
 
-  const { tier, status, needsAttention, graceEndsAt } = interpret(sub, now);
+  const { tier, status, needsAttention, graceEndsAt, provider, planKey, duplicateProviders } =
+    resolveAcrossProviders(subs, now);
   const def = definitionFor(tier);
 
   const counter = await ctx.db
@@ -133,6 +197,9 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
     subscriptionStatus: status,
     paymentNeedsAttention: needsAttention,
     graceEndsAt,
+    provider,
+    planKey,
+    duplicateProviders,
     accountDay,
     timezone,
     limits: def.limits,
@@ -162,6 +229,9 @@ export const getMyEntitlements = query({
         subscriptionStatus: "none",
         paymentNeedsAttention: false,
         graceEndsAt: null,
+        provider: null,
+        planKey: null,
+        duplicateProviders: false,
         accountDay: dayKeyInZone(now, "UTC"),
         timezone: "UTC",
         limits: def.limits,

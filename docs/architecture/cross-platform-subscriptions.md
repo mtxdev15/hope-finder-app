@@ -170,17 +170,64 @@ Recorded now, built later.
 - Apple takes a commission. Pricing parity between web and iOS is a commercial
   decision that is **not** made in this document.
 
-## 7. What is deliberately not decided here
+## 7. Runtime split and the single Stripe credential
+
+Decided during Stage 2, and the reason the Worker no longer touches Stripe.
+
+**Cloudflare Worker — a verifying relay, nothing more.** It owns the
+`/billing/webhook` edge route, raw body capture, Stripe signature verification,
+method handling, bounded body validation, forwarding to Convex over a shared
+secret, and safe error mapping. It must not call Stripe's API, fetch
+subscriptions, decide entitlement, resolve customer ownership, interpret a
+generic subscription as Plus, or carry `STRIPE_SECRET_KEY`.
+
+**Convex owns everything else**: authenticated Checkout, Customer creation and
+reuse, Portal sessions, subscription retrieval, explicit API versioning, Price
+validation, C2 classification, webhook idempotency, account mapping,
+subscription persistence, provider-neutral state, and entitlement resolution.
+
+So the Stripe runtime credential exists in **one place only**:
+
+| Runtime | Secrets |
+|---|---|
+| Convex dev | `STRIPE_SECRET_KEY`, `BILLING_WEBHOOK_SECRET`, `STRIPE_PLUS_MONTHLY_PRICE_ID`, `STRIPE_PLUS_ANNUAL_PRICE_ID`, `SITE_URL` |
+| Worker dev | `STRIPE_BILLING_WEBHOOK_SECRET`, `BILLING_WEBHOOK_SECRET`, `CONVEX_SITE_URL` |
+
+`BILLING_WEBHOOK_SECRET` is intentionally on both — it is the shared secret that
+authenticates Worker → Convex. **No other Stripe secret is duplicated between
+runtimes.**
+
+### Pinned API version
+
+`convex/stripeApi.ts` pins **`2026-06-24.dahlia`** and sends it as an explicit
+`Stripe-Version` header on every request. The same version is set as the
+`api_version` on the Stripe webhook endpoint and recorded on captured fixtures.
+
+This is the fix for a real defect: the Worker previously called Stripe with no
+version header at all, so it silently inherited the account default and could
+parse a different shape than the webhook endpoint delivered, with nothing
+reporting the disagreement. One credential in one runtime speaking one pinned
+version removes the possibility.
+
+Apple's App Store Server API has its own versioning and is unrelated to this pin.
+
+## 8. What is deliberately not decided here
 
 - Apple product identifiers and App Store Connect configuration
 - whether iOS pricing matches web pricing
 - refund policy on either provider
 - Family and Church, which have no entitlement tier and no price on any provider
 
-## 8. Related
+## 9. Related
 
 - `convex/entitlementCatalog.ts` — the one place a limit is a number
 - `convex/entitlements.ts` — the resolver
 - `convex/subscriptions.ts` — the provider mirror and webhook application
 - `convex/billing.ts` — authenticated Checkout and Portal
+- `convex/plusPlans.ts` — canonical plans and the C2 classification
+- `convex/stripeApi.ts` — the one Stripe client, with the pinned API version
+- `scripts/verify-plus-classification.ts` — the regression suite, including the
+  real archived recurring-gift fixtures
+- `docs/implementation/release-c1-phase4-entitlements.md` — grace window, tax
+  deferral, confirmed commercial decisions
 - `docs/operations/retired-webhook-secret-hygiene.md` — the retired donation flow

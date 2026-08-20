@@ -120,39 +120,82 @@ export default defineSchema({
   subscriptions: defineTable({
     // Better Auth user _id, derived server-side. Never client-supplied.
     userId: v.string(),
-    stripeCustomerId: v.string(),
-    stripeSubscriptionId: v.string(),
-    stripePriceId: v.optional(v.string()),
-    // 'plus' | 'free' — a coarse mirror of Stripe lifecycle. Phase 4's resolver
-    // owns the real entitlement decision (including the past_due grace rule).
-    tier: v.string(),
-    billingInterval: v.optional(v.string()), // 'month' | 'year'
-    // Raw Stripe status, stored verbatim rather than collapsed, so Phase 4 can
-    // distinguish past_due from unpaid from canceled without re-querying.
+
+    /* ── Provider-neutral core ────────────────────────────────────────────
+       Convex owns the canonical entitlement. Stripe and Apple are billing
+       providers, and neither is the source of truth. These fields carry the
+       same meaning whichever one billed the money, which is what lets
+       StoreKit be an addition later rather than a billing rewrite.
+       See docs/architecture/cross-platform-subscriptions.md. */
+
+    // Closed domain, so a typo is a deploy-time error rather than a row that
+    // silently never matches a provider check.
+    provider: v.union(v.literal("stripe"), v.literal("app_store")),
+    // Canonical plan. Provider-independent: an Apple product and a Stripe
+    // Price both resolve to the same key.
+    planKey: v.union(v.literal("plus_monthly"), v.literal("plus_annual")),
+    // A sandbox purchase must never grant production Plus. Derived from the
+    // credential in use, never from a request.
+    environment: v.union(v.literal("sandbox"), v.literal("production")),
+    // Coarse mirror. The resolver in entitlements.ts owns the real decision,
+    // including the past_due grace rule.
+    tier: v.union(v.literal("free"), v.literal("plus")),
+    billingInterval: v.optional(v.union(v.literal("month"), v.literal("year"))),
+
+    /* Provider-native status, stored VERBATIM and deliberately NOT a literal
+       union. Stripe and Apple use different vocabularies, and Stripe may add
+       states; collapsing or constraining them here would either lose the
+       distinction between past_due and unpaid, or reject a lifecycle we have
+       not seen yet. The resolver interprets; the mirror records. */
     status: v.string(),
+
     currentPeriodStart: v.optional(v.number()),
     currentPeriodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     canceledAt: v.optional(v.number()),
-    // Present only if legacy/manual Stripe state ever produces a trial. No
-    // trial is configured or advertised.
+    // Present only if legacy/manual state ever produces a trial. No trial is
+    // configured or advertised on either provider.
     trialEnd: v.optional(v.number()),
+
+    /* ── Provider-specific identifiers ────────────────────────────────────
+       Stored, but NEVER returned to a client response. Withholding them means
+       a compromised browser cannot even name another customer's billing. */
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
     latestInvoiceId: v.optional(v.string()),
-    // Ordering guards: Stripe delivers webhooks out of order, so an older event
-    // must never overwrite newer state. See subscriptions.applyWebhook.
-    lastWebhookEventId: v.optional(v.string()),
-    lastWebhookCreated: v.optional(v.number()),
+    appleOriginalTransactionId: v.optional(v.string()),
+    appleAppAccountToken: v.optional(v.string()),
+
+    // Ordering guards: providers deliver out of order, so an older event must
+    // never overwrite newer state. See subscriptions.applyWebhook.
+    lastProviderEventId: v.optional(v.string()),
+    lastProviderEventAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    // One row per provider per user, so a web and an App Store subscription
+    // coexist rather than overwriting each other.
+    .index("by_user_provider", ["userId", "provider"])
     .index("by_subscription", ["stripeSubscriptionId"])
-    .index("by_customer", ["stripeCustomerId"]),
+    .index("by_customer", ["stripeCustomerId"])
+    .index("by_apple_original_tx", ["appleOriginalTransactionId"]),
 
-  // The account -> Stripe customer mapping, kept separate from `subscriptions`
-  // because it must survive a subscription being deleted: a returning customer
-  // has to land on their existing Stripe customer rather than a fresh one, or
-  // their billing history fragments across duplicate customers.
+  /* The account -> Stripe customer mapping, kept separate from `subscriptions`
+     because it must survive a subscription being deleted: a returning customer
+     has to land on their existing Stripe customer rather than a fresh one, or
+     their billing history fragments across duplicate customers.
+
+     DELIBERATELY STRIPE-SPECIFIC, and not generalised for Apple. A Stripe
+     Customer is a durable billing identity that outlives any one subscription;
+     Apple has no equivalent object. Apple's identity lives on the subscription
+     row itself as appleOriginalTransactionId / appleAppAccountToken. Inventing
+     a shared "provider account" abstraction over two things that are not alike
+     would add a layer that neither provider actually has.
+
+     The provider-neutral abstraction is kept where it is real: subscriptions,
+     provider event tracking, entitlement resolution, and the client contract. */
   billingCustomers: defineTable({
     userId: v.string(),
     stripeCustomerId: v.string(),
@@ -161,15 +204,20 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_customer", ["stripeCustomerId"]),
 
-  // Webhook idempotency for SUBSCRIPTION events. Deliberately not giftEvents:
-  // that table is keyed by Checkout session and belongs to the donation
-  // archive, and mixing the two would let one product's replay suppress the
-  // other's legitimate event.
+  /* Webhook idempotency for SUBSCRIPTION events. Deliberately not giftEvents:
+     that table is keyed by Checkout session and belongs to the donation
+     archive, and mixing the two would let one product's replay suppress the
+     other's legitimate event.
+
+     `provider` namespaces the id: Stripe sends evt_… and Apple sends a
+     notification UUID. Without it, two providers share one id space and an
+     unlucky collision would silently suppress a real event. */
   billingEvents: defineTable({
-    eventId: v.string(), // Stripe evt_...
+    provider: v.union(v.literal("stripe"), v.literal("app_store")),
+    eventId: v.string(), // Stripe evt_… / Apple notificationUUID
     type: v.string(),
     processedAt: v.number(),
-  }).index("by_event", ["eventId"]),
+  }).index("by_provider_event", ["provider", "eventId"]),
 
   /* ===== Entitlements & usage (Release C1 Phase 4) ============================
      Every table here is server-authoritative. None is written by a public

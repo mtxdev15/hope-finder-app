@@ -405,7 +405,7 @@ async function verifyStripeSignature(payload, sigHeader, secret) {
   return v1.some((sig) => timingSafeEqualHex(sig, expected));
 }
 
-/* ===== Plus subscription webhook (Release C1 Phase 3) ==============================
+/* ===== Plus subscription webhook (Release C1 Phase 3, revised Stage 2) ==========
    POST /billing/webhook
 
    Deliberately SEPARATE from /give/webhook. Donations and Plus subscriptions are
@@ -413,47 +413,57 @@ async function verifyStripeSignature(payload, sigHeader, secret) {
    different Convex tables. Sharing one handler would mean a change to either product
    risks the other, and one leaked signing secret would compromise both.
 
-   This handler verifies the Stripe signature (reusing verifyStripeSignature above:
-   HMAC-SHA256, constant-time compare, 5-minute replay window), extracts only the
-   subscription fields Convex needs, and forwards them over a shared secret. It
-   deliberately does NOT decide anything about entitlement — idempotency, ordering
-   and account resolution all live in the Convex mutation, which is the only place
-   that can see existing state.
+   THIS WORKER IS A VERIFYING RELAY AND NOTHING MORE.
+
+   It owns exactly:
+     - the /billing/webhook edge route and HTTP method handling
+     - raw request-body capture (the body must be read verbatim: any
+       re-serialisation would change the bytes the HMAC was computed over)
+     - Stripe signature verification
+     - bounded body validation
+     - forwarding the verified event to Convex over a shared secret
+     - safe error mapping
+
+   It must NOT, and now cannot:
+     - call Stripe's API                 (no Stripe credential exists here)
+     - fetch subscriptions               (moved to Convex stripeApi.ts)
+     - decide entitlement
+     - resolve customer ownership
+     - interpret a generic subscription as Plus
+     - carry STRIPE_SECRET_KEY
+
+   WHY: the Worker previously held a second copy of STRIPE_SECRET_KEY and called
+   Stripe with no explicit API version, so it silently inherited the account
+   default and could parse a different shape than the pinned webhook endpoint
+   delivered. Moving every Stripe call into Convex leaves ONE credential in ONE
+   runtime speaking ONE pinned API version.
+
+   Event filtering, subscription retrieval and Plus classification all live in
+   Convex. This file deliberately does not know which event types matter — that
+   ignorance is the point, so widening the set is a Convex deploy, not a Worker
+   deploy.
    ================================================================================= */
 
-// Events that carry subscription lifecycle. Anything else is acknowledged and
-// ignored, so Stripe stops retrying without us acting on noise.
-const BILLING_EVENTS = new Set([
-  'checkout.session.completed',
-  'customer.subscription.created',
-  'customer.subscription.updated',
-  'customer.subscription.deleted',
-  'invoice.paid',
-  'invoice.payment_failed',
-  'invoice.payment_action_required',
-  'checkout.session.expired',
-]);
-
-async function fetchStripeSubscription(subId, env) {
-  try {
-    const r = await fetch('https://api.stripe.com/v1/subscriptions/' + subId, {
-      headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
-    });
-    return r.ok ? await r.json() : null;
-  } catch (e) {
-    return null;
-  }
-}
+// Stripe webhook payloads are small. Anything larger is not ours; refuse before
+// spending CPU on an HMAC over it.
+const MAX_WEBHOOK_BYTES = 1048576; // 1 MiB
 
 async function handleBillingWebhook(request, env) {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
+  // No STRIPE_SECRET_KEY in this list, and none read anywhere below.
   if (!env.STRIPE_BILLING_WEBHOOK_SECRET || !env.CONVEX_SITE_URL || !env.BILLING_WEBHOOK_SECRET) {
     return new Response('Webhook not configured', { status: 500 });
   }
 
+  // Verbatim bytes. Never JSON.parse and re-stringify before verifying: that
+  // would change the payload the signature was computed over.
   const payload = await request.text();
+  if (payload.length > MAX_WEBHOOK_BYTES) {
+    return new Response('Payload too large', { status: 413 });
+  }
+
   const ok = await verifyStripeSignature(
     payload,
     request.headers.get('Stripe-Signature'),
@@ -461,76 +471,24 @@ async function handleBillingWebhook(request, env) {
   );
   if (!ok) return new Response('Invalid signature', { status: 400 });
 
+  // Shape check only — enough to reject junk, not enough to interpret it.
+  // Deciding what the event MEANS is Convex's job, not this Worker's.
   let event;
   try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
-
-  const type = event && event.type;
-  // Acknowledge anything we do not act on. Returning 200 here is correct: the
-  // event was received and verified, we simply have no state change to make.
-  if (!BILLING_EVENTS.has(type)) return new Response('ok', { status: 200 });
-
-  const obj = (event.data && event.data.object) || {};
-  let sub = null;
-  let customerId = null;
-  let subscriptionId = null;
-
-  if (type.startsWith('customer.subscription.')) {
-    sub = obj;
-    subscriptionId = obj.id || null;
-    customerId = typeof obj.customer === 'string' ? obj.customer : (obj.customer && obj.customer.id) || null;
-  } else if (type.startsWith('checkout.session.')) {
-    // Only subscription-mode sessions matter here. A donation session (mode
-    // 'payment', or a recurring GIFT) must never be treated as a Plus purchase.
-    if (obj.mode !== 'subscription') return new Response('ok', { status: 200 });
-    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
-    customerId = typeof obj.customer === 'string' ? obj.customer : null;
-    // The session alone does not carry period/status, so read the subscription.
-    if (subscriptionId) sub = await fetchStripeSubscription(subscriptionId, env);
-  } else if (type.startsWith('invoice.')) {
-    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
-    customerId = typeof obj.customer === 'string' ? obj.customer : null;
-    if (!subscriptionId) return new Response('ok', { status: 200 });
-    sub = await fetchStripeSubscription(subscriptionId, env);
+  if (!event || typeof event.id !== 'string' || typeof event.type !== 'string') {
+    return new Response('Bad payload', { status: 400 });
   }
-
-  if (!sub || !subscriptionId || !customerId) {
-    // Nothing actionable (e.g. an expired session that never became a
-    // subscription). Acknowledge so Stripe stops retrying.
-    return new Response('ok', { status: 200 });
-  }
-
-  const item = (sub.items && sub.items.data && sub.items.data[0]) || null;
-  const price = item && item.price;
-
-  const body = {
-    eventId: event.id,
-    eventType: type,
-    eventCreated: event.created,
-    stripeCustomerId: customerId,
-    stripeSubscriptionId: subscriptionId,
-    status: sub.status,
-    stripePriceId: (price && price.id) || undefined,
-    billingInterval: (price && price.recurring && price.recurring.interval) || undefined,
-    currentPeriodStart: sub.current_period_start,
-    currentPeriodEnd: sub.current_period_end,
-    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
-    canceledAt: sub.canceled_at || undefined,
-    trialEnd: sub.trial_end || undefined,
-    latestInvoiceId: typeof sub.latest_invoice === 'string' ? sub.latest_invoice : undefined,
-    // Only the value WE set at Checkout for an authenticated user. Never a
-    // browser-supplied id.
-    metadataUserId: (sub.metadata && sub.metadata.userId) || (obj.metadata && obj.metadata.userId) || undefined,
-  };
 
   try {
     const r = await fetch(env.CONVEX_SITE_URL + '/billing/subscription-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-billing-secret': env.BILLING_WEBHOOK_SECRET },
-      body: JSON.stringify(body),
+      // Forwarded verbatim. The Worker extracts nothing.
+      body: payload,
     });
-    // Log status only — never the payload. It carries customer and subscription
-    // ids that have no business sitting in logs.
-    console.log('[billing/webhook] type=' + type + ' convex=' + r.status);
+    // Log status and event type only — never the payload. It carries customer
+    // and subscription ids that have no business sitting in logs.
+    console.log('[billing/webhook] type=' + event.type + ' convex=' + r.status);
     if (!r.ok) return new Response('Downstream error', { status: 500 }); // let Stripe retry
   } catch (e) {
     return new Response('Downstream error', { status: 500 });
