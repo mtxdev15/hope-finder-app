@@ -1,0 +1,252 @@
+/* Declare & Believe — Journey locale cache identity.
+ *
+ * Pure functions. No storage access: this module decides WHAT a record is
+ * called and whether it may be written, and leaves reading and writing to the
+ * caller. That separation is what makes it testable without a browser.
+ *
+ * WHY THE KEY CARRIES SO MUCH
+ *
+ * The previous design keyed content by journey alone and guarded language with
+ * a soft `lang` field. That guard failed open: records written before the field
+ * existed had `lang === undefined`, the check short-circuited, and English
+ * content was pinned permanently for those users. A key cannot fail open the
+ * way a field can, so the identity carries everything that would invalidate a
+ * copy:
+ *
+ *   db_journey_locale:<instance>:day<day>:<src>:<dst>:<sourceHash>:v<version>
+ *
+ * - sourceHash  invalidates when the English it was derived from changes
+ * - version     invalidates everything when the translation contract changes
+ */
+
+import {
+  LOCALE_SCHEMA_VERSION,
+  TRANSLATABLE_FIELD_NAMES,
+  type JourneyLocaleRecord,
+  type LocaleCode,
+  type LocaleSchemaVersion,
+  type LocaleStatus,
+  type TranslatableFields,
+} from "./types.ts";
+
+export const LOCALE_KEY_PREFIX = "db_journey_locale";
+/** The pre-locale key this migration reads from. Copied, never moved. */
+export const LEGACY_INSTANCE_KEY_PREFIX = "db_journey_inst";
+
+/* ── Source hashing ────────────────────────────────────────────────────────
+ * FNV-1a over a canonical serialisation. Not cryptographic and not trying to
+ * be: the only job is "did the source content change", where a collision costs
+ * a stale translation, not a security failure. Chosen over a crypto digest
+ * because this runs in the browser on every cache lookup and must be
+ * synchronous — SubtleCrypto is async and would push async through every
+ * caller for no benefit.
+ *
+ * Canonicalisation sorts keys and skips empty values so that {a,b} and {b,a}
+ * hash identically and an absent field never differs from an empty one.
+ *
+ * Parts are JSON-encoded rather than joined with a raw separator. An earlier
+ * version used \x00 and \x01 as delimiters — unambiguous, but it made git treat
+ * this file as BINARY and its diffs unreviewable. JSON.stringify escapes quotes
+ * and newlines, so the concatenation stays just as unambiguous while the file
+ * stays plain text. */
+function canonicalise(fields: TranslatableFields): string {
+  const parts: string[] = [];
+  for (const name of [...TRANSLATABLE_FIELD_NAMES].sort()) {
+    const value = fields[name];
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    parts.push(JSON.stringify(name) + ":" + JSON.stringify(trimmed));
+  }
+  return parts.join(",");
+}
+
+export function sourceHash(fields: TranslatableFields): string {
+  const input = canonicalise(fields);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    // FNV prime 16777619, via shifts to stay in 32-bit integer range.
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  // Length is appended so two different inputs that collide on the 32-bit hash
+  // still differ whenever their sizes do. Cheap, and it costs four characters.
+  return h.toString(16).padStart(8, "0") + "-" + input.length.toString(36);
+}
+
+/* ── Key construction ─────────────────────────────────────────────────────── */
+
+export interface LocaleKeyParts {
+  instance: string;
+  day: number;
+  sourceLocale: LocaleCode;
+  displayLocale: LocaleCode;
+  sourceHash: string;
+  schemaVersion?: LocaleSchemaVersion;
+}
+
+/** Instance ids and hashes must not contain the delimiter, or a key could be
+ *  parsed back into the wrong parts. Rejected loudly rather than silently
+ *  producing an ambiguous key. */
+function assertKeySafe(label: string, value: string): void {
+  if (!value) throw new Error(`localeCacheKey: ${label} must not be empty`);
+  if (value.includes(":")) {
+    throw new Error(`localeCacheKey: ${label} must not contain ':' (got ${JSON.stringify(value)})`);
+  }
+}
+
+export function localeCacheKey(parts: LocaleKeyParts): string {
+  assertKeySafe("instance", parts.instance);
+  assertKeySafe("sourceHash", parts.sourceHash);
+  if (!Number.isInteger(parts.day) || parts.day < 1) {
+    throw new Error(`localeCacheKey: day must be a positive integer (got ${parts.day})`);
+  }
+  const version = parts.schemaVersion ?? LOCALE_SCHEMA_VERSION;
+  return [
+    LOCALE_KEY_PREFIX,
+    parts.instance,
+    "day" + parts.day,
+    parts.sourceLocale,
+    parts.displayLocale,
+    parts.sourceHash,
+    "v" + version,
+  ].join(":");
+}
+
+/** Inverse of localeCacheKey. Returns null for anything that is not one of our
+ *  keys, so a caller can sweep localStorage without exploding on foreign keys. */
+export function parseLocaleCacheKey(key: string): LocaleKeyParts | null {
+  const bits = key.split(":");
+  if (bits.length !== 7 || bits[0] !== LOCALE_KEY_PREFIX) return null;
+  const [, instance, dayPart, sourceLocale, displayLocale, hash, versionPart] = bits;
+  if (!dayPart.startsWith("day") || !versionPart.startsWith("v")) return null;
+  const day = Number(dayPart.slice(3));
+  const schemaVersion = Number(versionPart.slice(1));
+  if (!Number.isInteger(day) || day < 1 || !Number.isInteger(schemaVersion)) return null;
+  if (!isLocaleCode(sourceLocale) || !isLocaleCode(displayLocale)) return null;
+  return {
+    instance,
+    day,
+    sourceLocale,
+    displayLocale,
+    sourceHash: hash,
+    schemaVersion: schemaVersion as LocaleSchemaVersion,
+  };
+}
+
+export function isLocaleCode(value: unknown): value is LocaleCode {
+  return value === "en" || value === "es";
+}
+
+/** True when a stored key is stale for the current source content or contract,
+ *  which is the whole reason the hash and version are in the key. */
+export function isStaleKey(key: string, currentSourceHash: string): boolean {
+  const parts = parseLocaleCacheKey(key);
+  if (!parts) return false;
+  return parts.sourceHash !== currentSourceHash || parts.schemaVersion !== LOCALE_SCHEMA_VERSION;
+}
+
+/* ── Legacy adoption ───────────────────────────────────────────────────────
+ * Records predating the locale field are adopted as ENGLISH, because the
+ * authored bank they were seeded from is English-only. Adopting rather than
+ * discarding is what keeps a person's completed days intact.
+ *
+ * The inference is recorded as `legacy-adopted` rather than `authored` so a
+ * later pass can tell "we inferred this at migration" from "we observed this at
+ * generation". A legacy record is never rewritten in place. */
+
+export interface LegacyInstanceRecord {
+  /** Absent on records written before the field existed. That is the case that
+   *  matters, and the reason the old soft guard failed open. */
+  lang?: string;
+  plan?: unknown;
+  [key: string]: unknown;
+}
+
+export interface LegacyAdoption {
+  sourceLocale: LocaleCode;
+  localeStatus: LocaleStatus;
+  /** True when the locale was inferred rather than read from the record. */
+  inferred: boolean;
+}
+
+export function adoptLegacyRecord(record: LegacyInstanceRecord | null | undefined): LegacyAdoption {
+  const declared = record && typeof record.lang === "string" ? record.lang.toLowerCase() : null;
+  if (declared === "es") return { sourceLocale: "es", localeStatus: "authored", inferred: false };
+  if (declared === "en") return { sourceLocale: "en", localeStatus: "authored", inferred: false };
+  return { sourceLocale: "en", localeStatus: "legacy-adopted", inferred: true };
+}
+
+export function legacyInstanceKey(instance: string): string {
+  return LEGACY_INSTANCE_KEY_PREFIX + ":" + instance;
+}
+
+/* ── Immutability ──────────────────────────────────────────────────────────
+ * The original walked content is written once. This is enforced here rather
+ * than trusted to call sites, because "switch back to English restores the
+ * original exactly" is only true if nothing ever rewrites it. */
+
+export function isImmutableOriginal(record: JourneyLocaleRecord): boolean {
+  return record.immutable && record.sourceLocale === record.displayLocale;
+}
+
+/** Throws when a write would overwrite an immutable original. Callers should
+ *  treat a thrown error here as a bug in their own flow, not a user-facing state. */
+export function assertWritable(existing: JourneyLocaleRecord | null | undefined, key: string): void {
+  if (existing && isImmutableOriginal(existing)) {
+    throw new Error(
+      `Refusing to overwrite an immutable original Journey record (${key}). ` +
+        `A completed day is a record of what the person actually walked.`,
+    );
+  }
+}
+
+/** Builds the immutable original record for a day. `immutable` is set here so a
+ *  caller cannot forget it. */
+export function makeOriginalRecord(input: {
+  instance: string;
+  day: number;
+  locale: LocaleCode;
+  fields: TranslatableFields;
+  scripture?: JourneyLocaleRecord["scripture"];
+}): JourneyLocaleRecord {
+  return {
+    instance: input.instance,
+    day: input.day,
+    sourceLocale: input.locale,
+    displayLocale: input.locale,
+    sourceHash: sourceHash(input.fields),
+    schemaVersion: LOCALE_SCHEMA_VERSION,
+    localeStatus: "authored",
+    fields: input.fields,
+    scripture: input.scripture,
+    immutable: true,
+  };
+}
+
+/** Builds a locale DISPLAY copy. Never immutable: it can be re-derived, and it
+ *  carries the hash of the source it came from so it self-invalidates. */
+export function makeDisplayCopy(input: {
+  instance: string;
+  day: number;
+  sourceLocale: LocaleCode;
+  displayLocale: LocaleCode;
+  sourceHash: string;
+  fields: TranslatableFields;
+  translation: JourneyLocaleRecord["translation"];
+  scripture?: JourneyLocaleRecord["scripture"];
+}): JourneyLocaleRecord {
+  return {
+    instance: input.instance,
+    day: input.day,
+    sourceLocale: input.sourceLocale,
+    displayLocale: input.displayLocale,
+    sourceHash: input.sourceHash,
+    schemaVersion: LOCALE_SCHEMA_VERSION,
+    localeStatus: "translated",
+    fields: input.fields,
+    translation: input.translation,
+    scripture: input.scripture,
+    immutable: false,
+  };
+}

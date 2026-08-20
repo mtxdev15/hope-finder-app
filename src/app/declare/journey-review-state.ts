@@ -1,10 +1,13 @@
 /* Declare & Believe — what a completed-day review is actually showing.
  *
- * THIS MODULE SHIPS TO PRODUCTION, and the translation feature does not. The
- * original-English provenance is a released hotfix: a Spanish reader meeting
- * the immutable English original must be told so whether or not translation is
- * ever enabled. Keeping the rule in one shipped module is what stops this
- * release and a later one from answering the question differently.
+ * THIS MODULE SHIPS TO PRODUCTION. It used to live under journey-locale/, which
+ * is excluded from production bundles because that is where the unreleased
+ * translation feature lives. That was right while the only consumer was the
+ * translated-Spanish review, and wrong the moment the original-English
+ * provenance shipped as a production hotfix: a Spanish reader meeting the
+ * immutable English original needs to be told so whether or not translation is
+ * enabled. Keeping the rule in one shipped module is what stops the release
+ * branch and production from answering the question differently.
  *
  * A completed day can be on screen in four different relationships between the
  * interface language and the content language, and the review has to be honest
@@ -33,9 +36,7 @@
  * Pure. No DOM, no network, no storage. The view renders what this returns.
  */
 
-/* Declared here rather than imported from journey-locale/, which is not part of
- * this release. The provenance rule ships; the translation feature does not. */
-export type LocaleCode = "en" | "es";
+import type { LocaleCode } from "./journey-locale/types.ts";
 
 /** What the provenance area must say, if anything. */
 export type ProvenanceKind =

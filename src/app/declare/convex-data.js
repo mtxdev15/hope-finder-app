@@ -64,6 +64,28 @@ async function runMutation(fn, args) {
   try { const c = await authed(); return c ? await c.mutation(fn, args || {}) : null; }
   catch (e) { return null; }
 }
+async function runAction(fn, args) {
+  try { const c = await authed(); return c ? await c.action(fn, args || {}) : null; }
+  catch (e) { return null; }
+}
+
+/* Journey prose translation. Journey-authored fields only — the action rejects
+   anything else server-side, and the browser must never send a reflection or a
+   user-written prayer. Identity is derived server-side; no userId is sent.
+
+   Referenced by name through anyApi rather than the generated api, for the same
+   reason as the slot wrappers above: convex/journeyTranslate.ts reaches into
+   usage and entitlement code, and vendoring it would pull that source into a
+   Journey release for no benefit. The action is already deployed and verified
+   in production; the client only needs a reference. */
+export async function journeyTranslate(fields) {
+  const { anyApi } = await import('convex/server');
+  return (await ensure())
+    ? runAction(anyApi.journeyTranslate.translateJourneyDay, {
+        fields, sourceLocale: 'en', displayLocale: 'es',
+      })
+    : null;
+}
 
 /* ── Vault ── */
 /* ── Active-Journey slots ──────────────────────────────────────────────────
