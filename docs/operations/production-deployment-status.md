@@ -1,6 +1,6 @@
 # Production Deployment Status
 
-**Last updated:** 2026-08-20, after Convex source parity (`6746655`).
+**Last updated:** 2026-08-20, after Worker source parity (`a224ac7`).
 
 ---
 
@@ -17,57 +17,57 @@
 >   `convex/` actually changes.
 > - Deployments must **not** originate from stale release branches.
 
-## ⚠️ Worker: DO NOT DEPLOY THE WORKER FROM `main`
+## Worker: parity complete, freeze CLOSED ✅
 
-> **Production Worker source is divergent from `main`. Do not deploy the Worker
-> from `main` until Worker parity is completed and verified.**
+> **Worker source parity is complete as of `a224ac7`.**
 >
-> `main` still carries the retired `/give/*` handlers and the billing-portal
-> IDOR. Production runs the hardened Worker deployed from
-> `release-c1-monetization`. Deploying the Worker from `main` would roll
-> production backwards into those vulnerabilities.
+> - `main` is now **authoritative** for the production Worker.
+> - The temporary Worker deployment freeze is **closed**.
+> - **No production Worker deployment occurred during parity reconciliation.**
+>   Production already ran the exact source being reconciled.
+> - Future Worker deployments **are permitted from reviewed `main`** whenever
+>   `worker/` actually changes.
+> - Production deployment must **never** originate from
+>   `release-c1-monetization` or any other stale branch.
 
-### Why this is dangerous, concretely
+Both backends are now reproducible from `main`, and neither was redeployed to
+achieve it.
 
-`main` still contains the **pre-retirement** backend source:
+## Release rule — before every production Worker deployment
 
-- `convex/gifts.ts` — the removed gift functions, including `clearStats`, a
-  one-command destructive wipe of the giving tables.
-- `convex/schema.ts` — the `giftStats` / `giftHistory` / `giftEvents` tables.
-- `worker/src/index.js` — the original `/give/*` handlers, which include:
-  - a **billing-portal IDOR**: it searched Stripe customers by a
-    browser-submitted email, so submitting anyone's address opened their
-    billing portal;
-  - browser-supplied `userId` trusted as the gift owner;
-  - browser-supplied `subscriptionId` with no ownership check.
-
-Deploying either from `main` would **roll production backwards into those
-vulnerabilities.**
-
----
+1. Confirm the branch is based on current `main`.
+2. Review the complete `worker/` diff.
+3. Compare routes and bindings.
+4. Inspect authentication and ownership changes.
+5. Run `node scripts/verify-worker-parity.ts`.
+6. Deploy first to the isolated dev Worker (`wrangler deploy --env dev`).
+7. Verify dev routes and integrations.
+8. Obtain production approval.
+9. Deploy the reviewed commit.
+10. Verify the active production version and route behaviour afterwards.
 
 ## What is deployed where
 
 | Component | Deployed from | State |
 |---|---|---|
 | **Convex** `prod:keen-hamster-650` | **`main`** (parity restored `6746655`) | Gift functions and tables removed; subscription + entitlement functions deployed but **inactive** (no Stripe env vars set) |
-| **Cloudflare Worker** `hope-finder-worker` | `release-c1-monetization` | All four `/give/*` routes return **410 Gone**; IDOR removed; `GIFT_WEBHOOK_SECRET` deleted |
+| **Cloudflare Worker** `hope-finder-worker` | **`main`** (parity restored `a224ac7`) | All four `/give/*` routes return **410 Gone**; IDOR removed; `GIFT_WEBHOOK_SECRET` not bound |
 | **Cloudflare Pages** (frontend) | `main` | Donation frontend removed; `/pricing` live and **non-transactional** |
 
-The frontend is intentionally the only component that tracks `main`.
+All three components now track `main`.
 
 ---
 
-## Safe operations while this mismatch exists
+## Safe operations
 
 **Safe:** merging frontend-only changes to `main`; Cloudflare Pages builds
 triggered by those merges.
 
-**Safe:** `npx convex deploy` from reviewed `main`, following the release rule
-below.
+**Safe, following the release rules below:** `npx convex deploy` and
+`wrangler deploy` from reviewed `main`, and Cloudflare Pages builds from `main`.
 
-**Not safe:** `wrangler deploy` or `wrangler pages deploy dist` from `main`, until
-Worker parity closes.
+**Not safe:** deploying either backend from `release-c1-monetization` or any
+other stale branch. `main` is now the only correct source for both.
 
 ## Release rule — before every production Convex deployment
 
@@ -118,18 +118,42 @@ compared, the generated asset names, the catalog URL and the lazy chunk names.
 production-only functions, zero validator differences across all 51 entries. The
 audit is at `docs/operations/convex-production-parity-audit.md`.
 
-**Worker: open.** A dedicated Worker parity checkpoint is in progress. Until it
-lands, Worker deployments must be run from the branch the running Worker was
-actually deployed from.
+**Worker: resolved.** `a224ac7` ported the deployed Worker source verbatim from
+`release-c1-monetization` @ `7d0c767` — both files byte-identical, all twelve
+live routes behaving identically to production, and the two hazards `main`
+carried (the live `/give/*` handlers and the billing-portal IDOR) removed. The
+audit is at `docs/operations/worker-production-parity-audit.md`.
 
-### Convex environment variables — intentional gaps
+### Operational secret state — recorded, not changed
 
-`convex/billing.ts` reads `STRIPE_SECRET_KEY` and `convex/http.ts` reads
-`BILLING_WEBHOOK_SECRET`. **Neither is set in production**, which is exactly why
-checkout and the billing webhook are inert. This is the intended state, not a
-parity gap. `GIFT_WEBHOOK_SECRET` is still set on production Convex but nothing
-in the deployed source reads it — a leftover from the retired giving product,
-safe to remove once Worker parity closes.
+No secret was added, removed or rotated during parity closure. What follows is a
+statement of the current configuration, verified by reading **names only**.
+
+**Intentionally absent, which is why billing is inert:**
+
+| Secret | Where it is read | Production state |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | `convex/billing.ts` | **absent from production Convex** |
+| `BILLING_WEBHOOK_SECRET` | `convex/http.ts`, `worker/src/index.js` | **absent from production Convex** |
+| `STRIPE_BILLING_WEBHOOK_SECRET` | `worker/src/index.js` | **absent from the production Worker** |
+
+Checkout and the billing webhook therefore cannot run. `/billing/webhook`
+returns `500 Webhook not configured` on both production and dev — verified live.
+This is the intended state. **Do not add these secrets** as part of any parity or
+hygiene work; adding them is a monetization launch decision.
+
+**Configured but unread — secret-hygiene backlog, not parity:**
+
+| Secret | Where it is set | Current reader |
+|---|---|---|
+| `GIFT_WEBHOOK_SECRET` | production **Convex** | none — retired with the giving product |
+| `STRIPE_WEBHOOK_SECRET` | production **Worker** | none — the surviving code reads `STRIPE_BILLING_WEBHOOK_SECRET` |
+
+Both are leftovers from the retired donation product. Neither is a parity gap:
+the source on `main` is byte-identical to what is deployed. They should be
+removed in a **separate secret-hygiene checkpoint**, with the Stripe dashboard
+checked for any endpoint still pointing at the retired webhook first. **Do not
+remove them during parity work, and do not rotate anything.**
 
 ---
 
