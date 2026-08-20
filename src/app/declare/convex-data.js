@@ -70,6 +70,33 @@ async function runAction(fn, args) {
 }
 
 /* ── Vault ── */
+/* ── Active-Journey slots ──────────────────────────────────────────────────
+ * Partial extraction from cdb8d11, which also removed the retired giving data
+ * model. Only these three wrappers are taken; none of that commit's donation,
+ * schema or Worker changes are part of this release.
+ *
+ * These reference the deployed functions BY NAME through anyApi rather than the
+ * generated api, deliberately. convex/journeySlots.ts imports the entitlement
+ * catalog, so vendoring it here would pull monetization source into a Journey
+ * release for no benefit: the functions are already live in production, and the
+ * client only needs a reference to call them.
+ *
+ * Every call is fire-and-forget at the call site. Journey progress lives
+ * locally and is the user's real work; a sync failure must never block it. */
+async function slotApi() {
+  const { anyApi } = await import('convex/server');
+  return anyApi.journeySlots;
+}
+export async function journeyStart(journeyId) {
+  return (await ensure()) ? runMutation((await slotApi()).registerJourneyStart, { journeyId }) : null;
+}
+export async function journeyEnsure(journeyId) {
+  return (await ensure()) ? runMutation((await slotApi()).ensureJourneySlot, { journeyId }) : null;
+}
+export async function journeyRelease(journeyId, status) {
+  return (await ensure()) ? runMutation((await slotApi()).releaseJourneySlot, { journeyId, status }) : null;
+}
+
 export async function vaultList() { return (await ensure()) ? runQuery(apiRef.vault.list, {}) : null; }
 export async function vaultSave(payload) { return (await ensure()) ? runMutation(apiRef.vault.save, payload) : null; }
 export async function vaultRemove(clientId) { return (await ensure()) ? runMutation(apiRef.vault.remove, { clientId }) : null; }
