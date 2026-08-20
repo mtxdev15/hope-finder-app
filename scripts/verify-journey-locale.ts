@@ -431,10 +431,10 @@ check("Fruit Log reuses the APPROVED provenance strings",
 check("reader-text marker is NOT used here",
   !VIEW.includes("Sin traducir") && !CATALOG.includes("Tus palabras · Sin traducir"));
 
-/* ── 13. PLAN locale integrity ─────────────────────────────────────────────
+/* ── 14. PLAN locale integrity ─────────────────────────────────────────────
  * The boundary: PLAN[] is canonical content, never the translated display copy,
  * and every day carries the language it was written in. */
-section("13. PLAN locale integrity");
+section("14. PLAN locale integrity");
 
 const JOURNEY = readFileSync(new URL("../src/pages/journey.astro", import.meta.url), "utf8");
 const ENGINE = readFileSync(new URL("../public/declare/journey-engine.js", import.meta.url), "utf8");
@@ -482,10 +482,10 @@ check("the boundary rule is documented at the helper", /PLAN\[\] is CANONICAL Jo
 check("the stale claim about PLAN being the English original is gone",
   !/PLAN\[\] — the English original —/.test(JOURNEY));
 
-/* ── 14. Completed-day immutability ────────────────────────────────────────
+/* ── 15. Completed-day immutability ────────────────────────────────────────
  * A completed day is a record of something a person actually walked. A language
  * mismatch is never sufficient reason to rewrite it. */
-section("14. Completed-day immutability");
+section("15. Completed-day immutability");
 
 const { classifyDayLocale, isInternallyMixed, isTranslatable, looksSpanish, looksEnglish: looksEnglishRef } = await import(
   "../src/app/declare/journey-review-state.ts");
@@ -555,10 +555,10 @@ check("a second restore writes nothing when nothing changed", /if \(repaired\) s
 check("mixed-legacy is refused before any reservation",
   CONTROLLER.includes("source-unresolved") && /english\.lang === 'mixed-legacy'/.test(CONTROLLER));
 check("the mixed refusal is non-retryable", /reason: 'source-unresolved', retryable: false/.test(CONTROLLER));
-/* ── 15. Fruit Log source-locale honesty ───────────────────────────────────
+/* ── 16. Fruit Log source-locale honesty ───────────────────────────────────
  * The Fruit Log must never give a row or a section one blanket language when
  * the canonical sources disagree. */
-section("15. Fruit Log source honesty");
+section("16. Fruit Log source honesty");
 
 const { sourceLocale, sourceState } = await import(
   "../src/app/declare/journey-locale/fruit-log-merge.ts");
