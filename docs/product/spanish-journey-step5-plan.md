@@ -214,3 +214,44 @@ If this copy is ever challenged by a reader, that is the pair to revisit first.
 
 The AI-generated Spanish day content is a separate matter from this interface
 copy and is not covered by this review.
+
+
+---
+
+## 8. Completed-day review — PROMOTED (2026-08-19)
+
+Production-enabled. The `PUBLIC_JOURNEY_ES_CONTENT` build guard is gone from
+this surface, its copy lives in `public/declare/i18n-strings.js`, and the
+runtime catalog shim is deleted.
+
+**The gate is surface-specific, not a renamed global flag.** Promotion removed
+the guard from exactly two call sites: `openReview()`, which now loads the
+Spanish review whenever the interface is Spanish, and the review chrome that
+paints provenance. Day-Opening kept its own `ES_DAY_OPENING_DEV` guard, because
+it shared the old flag and would otherwise have been switched on by accident —
+the flag was doing two jobs and only one of them was reviewed.
+
+**Reachability is bounded by imports, not by a flag.** `review-controller.js` is
+still loaded by dynamic import, and only when a Spanish reader opens a completed
+day, so it lands in its own chunk (`review-controller.*.js`) that English
+readers never download. It pulls in four locale modules and nothing else;
+`index.ts` and `translation-transport.ts` are unreferenced and never bundle.
+Fruit Log, Day-Opening, the Today card, Journey Preview and the active ritual
+have no Spanish path at all, verified by build probes returning zero.
+
+Verified against a real production build served locally: all twenty checks,
+including first translation, both cache layers, reload, switch-to-original with
+byte-exact English restoration, guest gate, both failure states with no verse
+and no version label, retry recovery, both themes, reduced motion, three
+viewports, keyboard open/close/focus restoration, and language semantics.
+
+**Two observations carried forward, neither a defect:**
+
+- Signing out does not clear `db_journey_locale:*`. The guest never sees it,
+  because eligibility is checked before the cache is read, but
+  `clearPersonalData()` says "nothing personal lingers" and account-derived
+  translations arguably qualify. Left alone deliberately: no defect was
+  reproduced and auth is out of scope for this phase.
+- `auth-store` has no cross-tab storage listener, so signing out in one tab
+  leaves another tab's module state stale until reload. Pre-existing, not
+  introduced here, and an expired token degrades correctly to the guest notice.

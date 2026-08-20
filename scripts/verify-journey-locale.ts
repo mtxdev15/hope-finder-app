@@ -40,11 +40,8 @@ import {
   ENGLISH_CONTENT_SELECTORS,
   resolveReviewViewState,
 } from "../src/app/declare/journey-review-state.ts";
-import {
-  REVIEW_COPY_EN,
-  REVIEW_COPY_ES,
-  REVIEW_COPY_KEYS,
-} from "../src/app/declare/journey-locale/review-view-state.ts";
+
+import { readFileSync } from "node:fs";
 
 let passed = 0;
 const failures: string[] = [];
@@ -267,35 +264,72 @@ check("the authored PROMPT is marked, the answer is not",
 check("Scripture reference and quotation are marked",
   ENGLISH_CONTENT_SELECTORS.includes(".verse") && ENGLISH_CONTENT_SELECTORS.includes(".vref-link"));
 
-/* Copy contract. Keys are the catalog keys, so promoting the feature is a move
- * of these entries into public/declare/i18n-strings.js and nothing else. */
-/* Only the copy that is still GATED lives in the locale module. The two
- * original-English provenance strings shipped as a production hotfix and now
- * live in public/declare/i18n-strings.js, so they are deliberately absent. */
-const COPY_KEYS = [
-  "journey.review.signInForSpanish",
-  "journey.review.returnToToday",
-];
-for (const k of COPY_KEYS) {
-  check("es copy defined for " + k, typeof REVIEW_COPY_ES[k] === "string" && REVIEW_COPY_ES[k].length > 0);
-  check("en fallback defined for " + k, typeof REVIEW_COPY_EN[k] === "string" && REVIEW_COPY_EN[k].length > 0);
-}
-check("no key is left in English by mistake",
-  COPY_KEYS.every((k) => REVIEW_COPY_ES[k] !== REVIEW_COPY_EN[k]));
-check("approved sign-in copy", REVIEW_COPY_ES["journey.review.signInForSpanish"] === "Iniciar sesión para verlo en español");
-check("approved return copy", REVIEW_COPY_ES["journey.review.returnToToday"] === "Volver al camino de hoy");
+/* Copy contract. Every user-facing string this surface renders must resolve
+ * from the canonical catalog, not from a module constant and not from a literal
+ * in the view. The runtime-registration shim that used to inject them is gone,
+ * so the catalog is now the only source. */
+const CATALOG = readFileSync(
+  new URL("../public/declare/i18n-strings.js", import.meta.url), "utf8");
+const VIEW = readFileSync(new URL("../src/pages/journey.astro", import.meta.url), "utf8");
 
-/* Aliases exist so the shipped view never contains a key literal. Every alias
- * must resolve to a real key that has both translations. */
-const ALIASES = Object.keys(REVIEW_COPY_KEYS) as (keyof typeof REVIEW_COPY_KEYS)[];
-check("every copy key has an alias", ALIASES.length === COPY_KEYS.length);
-for (const alias of ALIASES) {
-  const key = REVIEW_COPY_KEYS[alias];
-  check("alias " + alias + " resolves to a known key", COPY_KEYS.includes(key));
-  check("alias " + alias + " has both translations",
-    typeof REVIEW_COPY_ES[key] === "string" && typeof REVIEW_COPY_EN[key] === "string");
-  check("alias " + alias + " is not itself a catalog key", !alias.includes("journey."));
+const REVIEW_KEYS = [
+  "journey.review.originalEnglishBanner",
+  "journey.review.originalEnglishSupport",
+  "journey.review.genericBanner",
+  "journey.review.translatedBanner",
+  "journey.review.viewOriginalEnglish",
+  "journey.review.preparingButton",
+  "journey.review.preparingBody",
+  "journey.review.guestTitle",
+  "journey.review.guestBody",
+  "journey.review.failTitle",
+  "journey.review.failBody",
+  "journey.review.scriptureFailTitle",
+  "journey.review.scriptureFailBody",
+  "journey.review.continueInEnglish",
+  "journey.review.signInForSpanish",
+  "journey.review.tryAgain",
+  "journey.review.returnToToday",
+  "journey.review.signInPrompt",
+];
+for (const k of REVIEW_KEYS) {
+  check("catalog defines " + k, CATALOG.includes("'" + k + "'"));
+  check("view reads " + k, VIEW.includes("'" + k + "'"));
 }
+check("no duplicate review keys in the catalog", (() => {
+  const found = CATALOG.match(/'journey\.review\.[A-Za-z]+'/g) || [];
+  return new Set(found).size === found.length;
+})());
+
+/* The approved es-LA wording, verbatim. These are the exact strings a native
+ * reviewer signed off on; a silent edit to any of them is a copy change that
+ * never went through review. */
+const APPROVED: Array<[string, string]> = [
+  ["journey.review.originalEnglishBanner", "Contenido original en inglés · Solo lectura"],
+  ["journey.review.originalEnglishSupport", "Este día se completó originalmente en inglés."],
+  ["journey.review.translatedBanner", "Traducción al español del contenido original en inglés · Solo lectura"],
+  ["journey.review.preparingButton", "Preparando tu camino de hoy…"],
+  ["journey.review.preparingBody", "Estamos preparando el camino de hoy con cuidado."],
+  ["journey.review.continueInEnglish", "Continuar en inglés"],
+  ["journey.review.signInForSpanish", "Iniciar sesión para verlo en español"],
+  ["journey.review.tryAgain", "Intentar de nuevo"],
+  ["journey.review.returnToToday", "Volver al camino de hoy"],
+  ["journey.review.viewOriginalEnglish", "Ver el original en inglés"],
+];
+for (const [k, v] of APPROVED) {
+  check("approved wording intact: " + k, CATALOG.includes("'" + k + "': '" + v + "'"));
+}
+
+/* Copy that passed review but was deliberately NOT built. Approval is not
+ * implementation; these must stay out until their UI actually exists. */
+for (const s of ["Tus palabras · Sin traducir", "Volver más tarde"]) {
+  check("approved-but-unbuilt stays out: " + s, !CATALOG.includes(s) && !VIEW.includes(s));
+}
+
+/* The promotion must not re-enable other surfaces. */
+check("Day-Opening keeps its own development guard", VIEW.includes("ES_DAY_OPENING_DEV"));
+check("the broad review flag is gone", !VIEW.includes("ES_REVIEW_ON"));
+check("the runtime catalog shim is gone", !VIEW.includes("__I18N_STRINGS"));
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
