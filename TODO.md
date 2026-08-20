@@ -69,6 +69,105 @@ Done items move to the bottom or get deleted.
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
+- [ ] **Navigation IA Migration — Bible · Journeys · Declare · Saved · You.**
+      Status: **approved and deferred.** Begin after the current Spanish Journey surface
+      work is complete and stable. Documentation-only for now; no navigation code, labels,
+      routes, analytics, SEO, GTM or Search Console changes have been made.
+
+      **Approved tab bar:** Bible · Journeys · Declare · Saved · You
+
+      **Intended route migration:** `/word`→`/bible`, `/journey`→`/journeys`,
+      `/today`→`/declare`, `/vault`→`/saved`, `/you` stays `/you`.
+
+      **Two things found while recording this, both of which change the audit:**
+
+      1. **`/declare` is not a page route — it is the static asset directory.**
+         `public/declare/` holds ~30 shipped assets (`atmosphere.css`, `card-studio.js`,
+         `i18n-strings.js`, `theme.js`, and the rest), all served from `/declare/*` and
+         referenced from versioned `<script>`/`<link>` tags across every page. Renaming
+         `/today`→`/declare` puts a page route on top of that prefix. Resolve this BEFORE
+         any rename: either move the assets to a different prefix (a cache-busting event
+         for every returning reader, so it needs its own version bump plan) or choose a
+         different Declare destination. The brief's "prevent route collision between the
+         current Declare experience and /today" is really this.
+      2. **An already-approved plan disagrees with this one.** The
+         app.declareandbelieve.com split below specifies `/you`→`/profile` and
+         `/signin`→`/login`; this migration keeps `/you` and is silent on `/signin`. It
+         also predates `/journey`→`/journeys` and `/vault`→`/saved`. **Reconcile the two
+         into one route map before either starts** — whichever ships first will make the
+         other's redirect matrix wrong.
+
+      **Required pre-implementation audit.** Before changing code: audit the existing
+      `/declare` prefix and the declaration flow; prevent the collision above; inventory
+      every English and Spanish navigation label; inventory every internal link, deep
+      link, authentication return URL, Journey resume link, saved-content link and
+      external link; inventory canonical URLs, hreflang, sitemap entries, structured data,
+      page metadata, Open Graph URLs and robots behaviour; inventory GTM triggers,
+      variables, lookup tables, analytics events, funnels, conversions, content groups and
+      dashboards; prepare the Search Console migration checklist; prepare the Cloudflare
+      redirect matrix; preserve historical analytics mapping where practical.
+
+      **Accessibility and UX requirements.** 44×44 minimum targets; visible active state;
+      `aria-current` on the active destination; accurate screen-reader labels; keyboard
+      navigation; reduced-motion behaviour; light and dark parity; mobile tab bar; tablet
+      rail; desktop sidebar; no duplicate navigation landmarks; no duplicate page-level
+      headings.
+
+      **Redirect requirements.** Every replaced public URL redirects permanently in ONE
+      hop: `/word`→`/bible`, `/journey`→`/journeys`, `/today`→the approved Declare
+      destination, `/vault`→`/saved`. Also cover trailing-slash variants, Spanish
+      equivalents, nested legacy routes, query parameters, safe deep-link state, canonical
+      tags, sitemap entries and internal links. No chains, no loops.
+
+      **Three mandatory sweeps.**
+      - [ ] **Sweep 1 — source and configuration.** Search the whole repository for `Word`,
+        `Journey`, `Today`, `Vault`, `/word`, `/journey`, `/today`, `/vault` and the Spanish
+        equivalents and route variants. Classify every hit as intentionally retained,
+        redirect compatibility, historical documentation, unrelated natural-language use,
+        or a defect requiring conversion.
+      - [ ] **Sweep 2 — built output and runtime.** Build and serve production output.
+        Verify new labels, new URLs, one-hop redirects, no broken links, no redirect loops,
+        correct active state, canonical, hreflang and sitemap, correct English and Spanish
+        behaviour, no stale user-facing labels, and no stale routes in generated HTML or JS.
+      - [ ] **Sweep 3 — external systems.** Audit and update GTM, Google Analytics, Search
+        Console, Cloudflare routing, sitemap submission, external links, documentation,
+        screenshots, emails and notifications, browser history and bookmarks, and
+        authenticated return paths. Repeat the full repository search and produce a final
+        legacy-match report.
+
+      **Deliverables.** (1) route and navigation inventory; (2) `/declare` collision
+      decision; (3) final route map; (4) English and Spanish prototypes; (5) redirect
+      matrix; (6) SEO migration plan; (7) GTM and analytics migration plan; (8) Search
+      Console checklist; (9) implementation commits; (10) three completed sweep reports;
+      (11) production verification; (12) rollback and post-launch monitoring plan.
+
+      **Guardrails.** Do not combine with Fruit Log or another Spanish Journey surface. Do
+      not remove legacy routes without redirects. Do not rename routes before resolving
+      the `/declare` prefix. Do not mark complete after changing labels only. Do not leave
+      analytics, SEO, Spanish routes or external systems behind. Do not accept completion
+      until all three sweeps pass.
+
+- [ ] **i18n release hardening (from the two bugs found closing Release B).**
+      - [x] **Harness evaluates the catalog instead of text-matching it.** Done in Release
+        B. `scripts/verify-journey-locale.ts` now executes `i18n-strings.js` and asserts on
+        the resulting object. The bug it missed: sixteen ported keys sat inside an
+        unterminated `/* */` block, so the file parsed, the keys were plainly visible, and
+        the Spanish review silently rendered its English fallbacks. A substring check is
+        true whether or not a key survives parsing. Confirmed by reintroducing the bug and
+        watching the suite fail.
+      - [ ] **Release check: the i18n asset version MUST change when the catalog changes.**
+        `i18n-strings.js` is loaded from a versioned URL (`?v=3.21.0`) from
+        `src/layouts/DeclareLayout.astro` and `src/pages/index.astro`. Release B added
+        sixteen keys without bumping it at first; every returning reader would have kept
+        the stale catalog and seen the Spanish review in English — a release-day bug that
+        reads as a translation failure rather than a caching one. Make this mechanical:
+        fail the build or the harness when `public/declare/i18n-strings.js` changes and the
+        `?v=` stamp does not.
+      - [ ] **Verify the deployed page references the new versioned catalog URL.** A
+        post-deploy assertion that the live HTML carries the expected `?v=`, and that
+        fetching it returns the expected key count. Both halves matter: the stamp can be
+        right while the file is stale behind a CDN.
+
 - [ ] **Split the app onto app.declareandbelieve.com (studied Psalmlog's app.psalmlog.com
       structure as the reference).** Full architecture + phase breakdown lives in
       `.claude/plans/please-use-the-skills-shimmying-wombat.md` — plan approved 2026-07-16,
