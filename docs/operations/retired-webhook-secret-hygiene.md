@@ -131,11 +131,15 @@ audit connection and was not unwrapped.
 ### Coverage gap — event and delivery history
 
 **Delivery activity could not be inventoried, and this is not the same as finding
-none.** The audit connection exposes only the `webhook_endpoints` resource. The
-Events API and per-endpoint delivery-attempt history are absent from its operation
-index — searches for events, delivery attempts, charges, payment intents, checkout
-sessions, and subscriptions all resolve to nothing, so the failure is one of
-credential scope, not of a missing record.
+none.** The Stripe MCP server does not expose the Events operation in this
+connection, and per-endpoint delivery-attempt history is likewise not exposed.
+
+That is a property of the tool surface, **not** of the credential. A later
+connection to a separate Stripe sandbox was granted explicit Events **Read**
+permission and the operation was still absent. Stripe also distinguishes the two
+cases in its own error text: a missing grant returns *"your API key does not have
+the required permissions"*, while Events returns *"operation is not available"*.
+Only the second is ever seen for Events.
 
 Consequently, questions 6 and 7 above are **unanswered, not answered "none"**.
 Nobody should read this section as evidence that no deliveries occurred. The
