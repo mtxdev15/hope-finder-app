@@ -779,6 +779,9 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       buildVine();
       renderFruitPreview();
       renderFruitLog();
+      /* Cache inspection only — never a translation. A Fruit Log whose days were
+         all prepared earlier can be Spanish immediately and for free. */
+      try { refreshFruitLogEs(); } catch (e) {}
       renderGrid();
       // Hybrid: quietly upgrade today's card with a freshly generated plan.
       const todayEl = document.querySelector('.today');
@@ -800,13 +803,150 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       box.style.display = 'flex';
     }
 
+    let flCopy = function () { return ''; };
+    async function fruitLogModule() {
+      if (!flCtrl) {
+        flCtrl = await import('../app/declare/journey-locale/fruit-log-controller.js');
+        const m = await import('../app/declare/journey-locale/fruit-log-merge.ts');
+        /* Register the not-yet-reviewed copy into the live dictionary so tj()
+           resolves it exactly like a shipped key. i18n.js reads
+           window.__I18N_STRINGS on every lookup, so this is enough. After native
+           review the four entries move into the catalog and this goes away. */
+        try {
+          window.__I18N_STRINGS = window.__I18N_STRINGS || {};
+          window.__I18N_STRINGS.es = Object.assign({}, window.__I18N_STRINGS.es, m.FRUIT_LOG_COPY_ES);
+        } catch (e) {}
+        flCopy = function (alias) {
+          const k = m.FRUIT_LOG_COPY_KEYS[alias];
+          return tj(k, m.FRUIT_LOG_COPY_EN[k] || '');
+        };
+      }
+      return flCtrl;
+    }
+
+    /* Preparation is started ONLY from here, which is only ever called by the
+       reader pressing the action. Rendering the Fruit Log must never reach this
+       function — a five-day preparation is the most expensive thing the app
+       does and nobody should pay for it by scrolling past. */
+    async function prepareFruitLogEs(retryOnly) {
+      const c = await fruitLogModule();
+      const token = c.beginRequest();
+      flState = 'preparing';
+      flProgress = { completed: 0, total: completed() };
+      renderFruitLog();
+      const res = await c.prepare({
+        instance: active ? active.id : '', plan: PLAN, completedCount: completed(),
+        locale: esL() ? 'es' : 'en', token,
+        onProgress: function (p) {
+          if (!c.isCurrent(token)) return;
+          flProgress = { completed: p.completed, total: p.total };
+          renderFruitLog();
+        },
+      });
+      if (!c.isCurrent(token)) return;              // superseded; discard silently
+      if (res.state === 'ready') {
+        flTranslations = res.translations; flState = 'ready'; flMissing = [];
+      } else if (res.state === 'stale') {
+        return;
+      } else if (res.state === 'guest-notice') {
+        flState = 'guest';
+      } else if (res.state === 'english') {
+        flState = 'english';
+      } else {
+        /* Successful days stay cached and paid for; the list stays English
+           because a half-Spanish Fruit Log is the thing being prevented. */
+        flState = 'error'; flMissing = res.missing || [];
+      }
+      renderFruitLog();
+    }
+
+    /* Inspect caches WITHOUT translating. If every completed day already has
+       Spanish — because the reader reviewed them, or prepared this before — the
+       list can be Spanish immediately at zero cost. */
+    async function refreshFruitLogEs() {
+      if (!FRUIT_LOG_ES_DEV || !esL() || completed() <= 0) { flState = 'english'; flTranslations = null; return; }
+      const c = await fruitLogModule();
+      const mode = c.fruitLogEligibility('es').mode;
+      if (mode === 'guest-notice') { flState = 'guest'; flTranslations = null; renderFruitLog(); return; }
+      if (mode !== 'translate') { flState = 'english'; flTranslations = null; renderFruitLog(); return; }
+      const scan = c.inspectCache({ instance: active ? active.id : '', plan: PLAN, completedCount: completed() });
+      if (scan.total && !scan.missing.length) { flTranslations = scan.translations; flState = 'ready'; }
+      else { flTranslations = null; flState = 'english'; flMissing = scan.missing; }
+      renderFruitLog();
+    }
+
+    /* ONE banner for the whole section, never one per row. Five rows each
+       carrying their own provenance would shout over a list whose entire point
+       is quietness, and the statement is about the list, not about any day. */
+    function renderFruitLogChrome(showingEs, n) {
+      const sec = $('fruitLog');
+      let bar = $('flChrome');
+      if (!FRUIT_LOG_ES_DEV || !esL()) { if (bar) bar.style.display = 'none'; return; }
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'flChrome'; bar.className = 'fl-chrome';
+        sec.insertBefore(bar, $('fruitList'));
+      }
+      bar.style.display = '';
+
+      if (flState === 'preparing') {
+        bar.className = 'fl-chrome is-busy';
+        bar.setAttribute('role', 'status');
+        bar.innerHTML = '<span class="fl-prov-t">' + flCopy('preparing') + '</span>'
+          + '<span class="fl-prov-s">' + flCopy('progress')
+              .replace('{n}', String(Math.min(flProgress.completed + 1, flProgress.total || n)))
+              .replace('{total}', String(flProgress.total || n)) + '</span>';
+        return;
+      }
+
+      bar.removeAttribute('role');
+      if (showingEs) {
+        bar.className = 'fl-chrome';
+        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.review.translatedBanner', 'Spanish translation of the original English content · Read only') + '</span>';
+        return;
+      }
+
+      /* Original English under Spanish chrome — say so, exactly as the review
+         does, and mark the record so a screen reader changes voice for it. */
+      bar.className = 'fl-chrome is-original-en';
+      bar.setAttribute('role', 'note');
+      let html = '<span class="fl-prov-t">' + tj('journey.review.originalEnglishBanner', 'Original English content · Read only') + '</span>';
+      if (flState === 'error') {
+        html += '<span class="fl-prov-s">' + flCopy('failBody') + '</span>'
+          + '<span class="fl-actions"><button type="button" class="es-back-en" id="flRetry">' + tj('journey.review.tryAgain', 'Try again') + '</button></span>';
+      } else if (flState === 'guest') {
+        html += '<span class="fl-prov-s">' + tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.') + '</span>'
+          + '<span class="fl-actions"><button type="button" class="es-back-en" id="flSignIn">' + tj('journey.review.signInForSpanish', 'Sign in to read it in Spanish') + '</button></span>';
+      } else {
+        html += '<span class="fl-actions"><button type="button" class="es-back-en" id="flPrepare">' + flCopy('prepare') + '</button></span>';
+      }
+      bar.innerHTML = html;
+
+      const prep = $('flPrepare'); if (prep) prep.addEventListener('click', function () { prepareFruitLogEs(false); });
+      const retry = $('flRetry');  if (retry) retry.addEventListener('click', function () { prepareFruitLogEs(true); });
+      const sign = $('flSignIn');  if (sign) sign.addEventListener('click', function () {
+        try { ensureSignedIn(tj('journey.review.signInPrompt', 'Sign in to prepare a Spanish copy.')); } catch (e) {}
+      });
+    }
+
     function renderFruitLog() {
       const n = completed(), sec = $('fruitLog'), box = $('fruitList');
       if (n <= 0) { sec.style.display = 'none'; return; }
       sec.style.display = 'block';
+
+      const showingEs = FRUIT_LOG_ES_DEV && flState === 'ready' && !!flTranslations;
+      renderFruitLogChrome(showingEs, n);
+
       let html = '';
-      for (let i = 1; i <= n; i++) { const d = PLAN[i - 1];
-        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm">' + d.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth">' + d.fruitTruth + '</div></div></button>';
+      for (let i = 1; i <= n; i++) {
+        const d = PLAN[i - 1];
+        /* Merged per row. PLAN[] is never written to, so the Today card, the
+           Vine and the past-Journeys grid keep reading English. */
+        const row = (FRUIT_LOG_ES_DEV && flCtrl)
+          ? flCtrl.fruitRow(d, showingEs && flTranslations ? flTranslations[i] : null)
+          : { fruit: d.fruit, fruitTruth: d.fruitTruth, locale: 'en' };
+        const lang = row.locale === 'en' && esL() ? ' lang="en"' : '';
+        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + row.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm"' + lang + '>' + row.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth"' + lang + '>' + row.fruitTruth + '</div></div></button>';
       }
       box.innerHTML = html;
     }
@@ -1689,6 +1829,17 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        chunk, the transport and the Scripture code out of the initial payload
        for the English reader, who should not pay for a screen never opened. */
 
+    /* Fruit Log Spanish is a NEW surface whose four interface strings have not
+       been through native es-LA review, so it stays development-only until they
+       have. Its own constant, not a shared one: the last time a single flag
+       covered two surfaces it nearly shipped Day-Opening by accident. */
+    const FRUIT_LOG_ES_DEV = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
+    let flCtrl = null;              // lazily imported orchestration module
+    let flTranslations = null;      // day -> translated fields, display only
+    let flState = 'english';        // english | guest | ready | preparing | error
+    let flProgress = { completed: 0, total: 0 };
+    let flMissing = [];
+
     /* Day-Opening is NOT part of this promotion and keeps its own
        development-only guard, so promoting completed-day review cannot switch
        it on by accident. Removing this would put a Spanish skeleton in front of
@@ -1953,6 +2104,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     $('dayOpen').querySelector('[data-jo-close]').addEventListener('click', closeDayOpening);
     document.addEventListener('declare-lang', function () {
       if ($('dayOpen').classList.contains('open')) renderDayOpening();
+      /* Leaving Spanish drops the translated view immediately; entering it
+         re-inspects the cache without spending anything. */
+      try {
+        if (flCtrl) flCtrl.cancelPending();
+        if (!esL()) { flState = 'english'; flTranslations = null; renderFruitLog(); }
+        else refreshFruitLogEs();
+      } catch (e) {}
     });
 
     $('continueBtn').addEventListener('click', function () { openDayOpening($('continueBtn')); });
@@ -2703,6 +2861,16 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .fl-list { display: grid; grid-template-columns: 1fr; gap: 11px; }
     @media (min-width: 640px) { .journey .fl-list { grid-template-columns: 1fr 1fr; } }
     @media (min-width: 1024px) { .journey .fl-list { grid-template-columns: 1fr 1fr 1fr; } }
+    /* Fruit Log provenance. One quiet block above the whole list — same
+       restrained treatment as the review badge, no error colour, no weight. */
+    .journey .fl-chrome { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px;
+      margin: 0 0 12px; padding: 9px 15px; border-radius: 14px; text-align: center;
+      color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); }
+    .journey .fl-chrome .fl-prov-t { flex: 1 1 auto; min-width: 0; font-size: 10.5px; letter-spacing: .08em;
+      text-transform: uppercase; font-weight: 700; }
+    .journey .fl-chrome .fl-prov-s { flex: 1 0 100%; font-size: 11.5px; line-height: 1.35; font-weight: 500; letter-spacing: .01em; }
+    .journey .fl-chrome .fl-actions { flex: 1 0 100%; display: flex; justify-content: center; }
+    .journey .fl-chrome .es-back-en { padding-left: 0; margin-left: 0; }
     .journey .fl-item { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px; border-radius: 14px; cursor: pointer; font-family: inherit; transition: border-color .2s ease, transform .15s ease; }
     .journey .fl-item:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
     .journey .fl-item:active { transform: scale(.99); }

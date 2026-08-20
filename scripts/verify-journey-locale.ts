@@ -340,7 +340,96 @@ for (const s of ["Tus palabras · Sin traducir", "Volver más tarde"]) {
 /* The promotion must not re-enable other surfaces. */
 check("Day-Opening keeps its own development guard", VIEW.includes("ES_DAY_OPENING_DEV"));
 check("the broad review flag is gone", !VIEW.includes("ES_REVIEW_ON"));
-check("the runtime catalog shim is gone", !VIEW.includes("__I18N_STRINGS"));
+/* The shim is allowed ONLY for copy that has not passed native review. Review
+ * copy is approved and shipped, so it must come from the catalog; Fruit Log copy
+ * is not, so it is registered at runtime by the dev-gated surface. Asserting
+ * "no shim at all" was right in Release B and is too blunt now. */
+check("no runtime registration of REVIEW copy",
+  !/__I18N_STRINGS[\s\S]{0,120}REVIEW_COPY_ES/.test(VIEW));
+check("the only runtime registration is the unreviewed Fruit Log copy",
+  (VIEW.match(/__I18N_STRINGS\.es\s*=/g) || []).length === 1 &&
+  /__I18N_STRINGS\.es\s*=[\s\S]{0,120}FRUIT_LOG_COPY_ES/.test(VIEW));
+
+/* ── 13. Fruit Log ─────────────────────────────────────────────────────────
+ * Two properties matter more than the rest of this surface combined: the day
+ * record must never be mutated, and the four out-of-scope consumers of `fruit`
+ * and `fruitTruth` must keep reading English. */
+section("13. Fruit Log");
+
+const { fruitRow, inventory } = await import(
+  "../src/app/declare/journey-locale/fruit-log-merge.ts");
+
+const DAY = Object.freeze({
+  title: "Lay It Down", fruit: "Untensed Trust",
+  fruitTruth: "Peace grows where control is released.", insight: "…",
+});
+const ES = { fruit: "Confianza destensada", fruitTruth: "La paz crece donde se suelta el control." };
+
+const row = fruitRow(DAY, ES);
+check("translated row shows Spanish fruit", row.fruit === ES.fruit);
+check("translated row shows Spanish truth", row.fruitTruth === ES.fruitTruth);
+check("translated row is labelled es", row.locale === "es");
+
+/* THE test for this surface. If fruitRow mutated its input, the Today card's
+ * focus line, the Today card's fruit preview, the Vine and the past-Journeys
+ * grid would all silently become Spanish, because every one of them reads the
+ * same record. Object.freeze would throw on write in strict mode; comparing the
+ * values catches a non-strict silent write too. */
+check("PLAN record is NOT mutated (fruit)", DAY.fruit === "Untensed Trust");
+check("PLAN record is NOT mutated (fruitTruth)", DAY.fruitTruth === "Peace grows where control is released.");
+check("fruitRow returns a NEW object", fruitRow(DAY, ES) !== DAY);
+check("no translated key leaks onto the record", !Object.keys(DAY).includes("locale"));
+
+const plain = fruitRow(DAY, null);
+check("untranslated row falls back to English", plain.fruit === DAY.fruit && plain.fruitTruth === DAY.fruitTruth);
+check("untranslated row is labelled en", plain.locale === "en");
+check("a partial translation still yields one language per field",
+  fruitRow(DAY, { fruit: ES.fruit }).fruitTruth === DAY.fruitTruth);
+
+/* Inventory covers only COMPLETED days and never over-runs the plan. */
+const PLAN5 = [DAY, DAY, DAY, DAY, DAY];
+check("inventory lists exactly the completed days", inventory({ plan: PLAN5, completedCount: 3 }).length === 3);
+check("inventory is empty at zero completed", inventory({ plan: PLAN5, completedCount: 0 }).length === 0);
+check("inventory cannot exceed the plan", inventory({ plan: PLAN5, completedCount: 99 }).length === 5);
+check("inventory tolerates a negative count", inventory({ plan: PLAN5, completedCount: -1 }).length === 0);
+
+/* The four out-of-scope consumers must still read the record directly. If any
+ * of these render sites started reading a translations map, this surface would
+ * have quietly grown into four others. */
+const OUT_OF_SCOPE = ["focusLine", "fpName", "fpTruth", "vineCfg", "cell-fruit"];
+for (const sel of OUT_OF_SCOPE) {
+  const line = VIEW.split("\n").find((l) => l.includes(sel) && l.includes("fruit"));
+  if (line) check(sel + " still reads the English record", !line.includes("flTranslations"));
+}
+check("only the Fruit Log render site merges translations",
+  (VIEW.match(/flCtrl\.fruitRow\(/g) || []).length === 1);
+check("PLAN is never assigned a translated field",
+  !/PLAN\[[^\]]+\]\.(fruit|fruitTruth)\s*=/.test(VIEW));
+check("Fruit Log keeps its OWN development guard", VIEW.includes("FRUIT_LOG_ES_DEV"));
+check("rendering never triggers preparation",
+  !/function renderFruitLog\(\)[\s\S]{0,900}prepareFruitLogEs\(/.test(VIEW));
+
+/* New copy is NOT in the shipped catalog: it has not been through native es-LA
+ * review, and the production bundle must not carry unreviewed Spanish. It lives
+ * with the dev-gated surface, keyed as the catalog would key it. */
+const { FRUIT_LOG_COPY_ES, FRUIT_LOG_COPY_EN, FRUIT_LOG_COPY_KEYS } = await import(
+  "../src/app/declare/journey-locale/fruit-log-merge.ts");
+for (const alias of Object.keys(FRUIT_LOG_COPY_KEYS)) {
+  const k = (FRUIT_LOG_COPY_KEYS as Record<string, string>)[alias];
+  check("dev copy defines " + k, typeof FRUIT_LOG_COPY_ES[k] === "string" && FRUIT_LOG_COPY_ES[k].length > 0);
+  check("English fallback defined for " + k, typeof FRUIT_LOG_COPY_EN[k] === "string");
+  check("unreviewed copy stays OUT of the catalog " + k, typeof CATALOG_ES[k] !== "string");
+  check("view uses the alias, not the key literal", !VIEW.includes("'" + k + "'"));
+}
+check("progress copy carries both placeholders",
+  FRUIT_LOG_COPY_ES["journey.fruitLog.progress"].includes("{n}") &&
+  FRUIT_LOG_COPY_ES["journey.fruitLog.progress"].includes("{total}"));
+check("Fruit Log reuses the APPROVED provenance strings",
+  VIEW.includes("journey.review.translatedBanner") && VIEW.includes("journey.review.originalEnglishBanner"));
+/* The marker phrase itself, not the substring "Tus palabras" — that also opens
+ * a legitimate account-modal line about where a reader's words are stored. */
+check("reader-text marker is NOT used here",
+  !VIEW.includes("Sin traducir") && !CATALOG.includes("Tus palabras · Sin traducir"));
 
 /* ── 13. PLAN locale integrity ─────────────────────────────────────────────
  * The boundary: PLAN[] is canonical content, never the translated display copy,
