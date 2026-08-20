@@ -560,10 +560,20 @@ check("the mixed refusal is non-retryable", /reason: 'source-unresolved', retrya
  * the canonical sources disagree. */
 section("16. Fruit Log source honesty");
 
-const { sourceLocale, sourceState } = await import(
+const { sourceLocale, sourceState, isRowTranslatable: isRowTranslatableRef } = await import(
   "../src/app/declare/journey-locale/fruit-log-merge.ts");
 
 check("a Spanish canonical day reports es", sourceLocale({ lang: "es" }) === "es");
+/* A mixed-legacy day must NOT collapse to "en". Collapsing it is what put an
+ * English marker on Spanish text — the mixed-record defect one layer up. */
+check("a mixed-legacy day reports mixed-legacy", sourceLocale({ lang: "mixed-legacy" }) === "mixed-legacy");
+check("a mixed-legacy row is not translatable", isRowTranslatableRef({ lang: "mixed-legacy" }) === false);
+check("a mixed-legacy row carries NO lang attribute",
+  fruitRow({ lang: "mixed-legacy", fruit: "Confianza arraigada" }, null).locale === "mixed-legacy");
+check("the view marks lang=en only for an unambiguously English row",
+  /esL\(\) && row\.locale === 'en'/.test(VIEW));
+check("a set containing a mixed-legacy day is mixed",
+  sourceState([{ lang: "en" }, { lang: "mixed-legacy" }]) === "mixed");
 check("an English canonical day reports en", sourceLocale({ lang: "en" }) === "en");
 check("an unstamped legacy day is adopted as en", sourceLocale({}) === "en");
 check("a null day does not throw", sourceLocale(null) === "en");
@@ -601,7 +611,7 @@ check("rows are marked from their own content locale",
   /esL\(\) && row\.locale === 'en'/.test(VIEW));
 check("preparation skips days whose source is not English",
   readFileSync(new URL("../src/app/declare/journey-locale/fruit-log-controller.js", import.meta.url), "utf8")
-    .includes("sourceLocale(item.english) !== 'en'"));
+    .includes("!isRowTranslatable(item.english)"));
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

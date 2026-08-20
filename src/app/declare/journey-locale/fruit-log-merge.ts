@@ -21,8 +21,10 @@ export interface FruitFields {
 export interface FruitRow {
   fruit?: string;
   fruitTruth?: string;
-  /** Which language the CONTENT is in, so the view can mark it honestly. */
-  locale: "en" | "es";
+  /** Which language the CONTENT is in, so the view can mark it honestly.
+   *  "mixed-legacy" means the day's own fields disagree: it gets NO lang
+   *  attribute, because there is no single true answer to give one. */
+  locale: "en" | "es" | "mixed-legacy";
 }
 
 export interface InventoryItem {
@@ -67,8 +69,14 @@ export function fruitRow(english: FruitFields | null | undefined, translated: Fr
 
 /* The canonical language of a day. Unstamped days predate the locale boundary
  * and were English, which is what every writer before the stamp produced. */
-export function sourceLocale(day: { lang?: string } | null | undefined): "en" | "es" {
-  return day && day.lang === "es" ? "es" : "en";
+export function sourceLocale(day: { lang?: string } | null | undefined): "en" | "es" | "mixed-legacy" {
+  if (!day) return "en";
+  if (day.lang === "es") return "es";
+  /* A day whose own fields disagree has no single source language. Collapsing it
+     to "en" is what put an English marker on Spanish text — the mixed-record bug
+     one layer up, which is exactly what this surface must not reproduce. */
+  if (day.lang === "mixed-legacy") return "mixed-legacy";
+  return "en";
 }
 
 /* What the section banner may honestly claim about a set of completed days.
@@ -84,6 +92,12 @@ export function sourceState(days: Array<{ lang?: string }>): "original-english" 
   if (locales.every((l) => l === "en")) return "original-english";
   if (locales.every((l) => l === "es")) return "all-spanish";
   return "mixed";
+}
+
+/** May this row be sent for English-to-Spanish translation? Only a day whose
+ *  source is unambiguously English. */
+export function isRowTranslatable(day: { lang?: string } | null | undefined): boolean {
+  return sourceLocale(day) === "en";
 }
 
 /* ── Interface copy ─────────────────────────────────────────────────────────

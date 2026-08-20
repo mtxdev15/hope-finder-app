@@ -958,6 +958,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
            every untranslated row lang="en" would blanket-label a Spanish
            canonical day as English — the same mistake the locale boundary
            exists to stop, one layer up. */
+        /* lang="en" ONLY for a row whose source is unambiguously English. A
+           mixed-legacy day gets no marker at all: there is no single true
+           language to claim, and claiming one is the defect this surface exists
+           to avoid reproducing. */
         const lang = (esL() && row.locale === 'en') ? ' lang="en"' : '';
         html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + row.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm"' + lang + '>' + row.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth"' + lang + '>' + row.fruitTruth + '</div></div></button>';
       }
