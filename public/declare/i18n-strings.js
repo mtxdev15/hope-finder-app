@@ -403,6 +403,9 @@ window.__I18N_STRINGS = {
     'journey.review.originalEnglishSupport': 'Este día se completó originalmente en inglés.',
     /* Completed-day review in Spanish. All wording below was reviewed and
        approved by a native es-LA speaker on 2026-08-19. The English source for
+       each key lives at the call site as the tj() fallback, per the house
+       convention; these screens only render under Spanish chrome, so the
+       fallbacks are defensive rather than something a reader normally sees. */
     'journey.review.genericBanner': 'Repasando un día completado · Solo lectura',
     'journey.review.translatedBanner': 'Traducción al español del contenido original en inglés · Solo lectura',
     'journey.review.viewOriginalEnglish': 'Ver el original en inglés',

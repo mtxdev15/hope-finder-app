@@ -270,6 +270,17 @@ check("Scripture reference and quotation are marked",
  * so the catalog is now the only source. */
 const CATALOG = readFileSync(
   new URL("../public/declare/i18n-strings.js", import.meta.url), "utf8");
+
+/* EVALUATE the catalog, do not text-match it. A key can appear in the file and
+ * still not exist at runtime — an unterminated block comment above the block
+ * swallowed sixteen of these once, and a substring check passed the whole time
+ * because the text was right there in the file. Parsing is the only check that
+ * knows the difference between present and reachable. */
+const CATALOG_ES: Record<string, string> = (() => {
+  const w: { __I18N_STRINGS?: { es?: Record<string, string> } } = {};
+  new Function("window", CATALOG)(w);
+  return (w.__I18N_STRINGS && w.__I18N_STRINGS.es) || {};
+})();
 const VIEW = readFileSync(new URL("../src/pages/journey.astro", import.meta.url), "utf8");
 
 const REVIEW_KEYS = [
@@ -293,7 +304,7 @@ const REVIEW_KEYS = [
   "journey.review.signInPrompt",
 ];
 for (const k of REVIEW_KEYS) {
-  check("catalog defines " + k, CATALOG.includes("'" + k + "'"));
+  check("catalog RESOLVES " + k, typeof CATALOG_ES[k] === "string" && CATALOG_ES[k].length > 0);
   check("view reads " + k, VIEW.includes("'" + k + "'"));
 }
 check("no duplicate review keys in the catalog", (() => {
@@ -317,7 +328,7 @@ const APPROVED: Array<[string, string]> = [
   ["journey.review.viewOriginalEnglish", "Ver el original en inglés"],
 ];
 for (const [k, v] of APPROVED) {
-  check("approved wording intact: " + k, CATALOG.includes("'" + k + "': '" + v + "'"));
+  check("approved wording intact: " + k, CATALOG_ES[k] === v);
 }
 
 /* Copy that passed review but was deliberately NOT built. Approval is not
