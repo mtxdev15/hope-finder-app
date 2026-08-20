@@ -358,102 +358,22 @@ async function handleUnsplash(request, env, pathname) {
   return jsonResponse({ query: q, results }, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
-/* ===== Stripe Checkout — the Give flow ============================================
-   POST /give/checkout  { amount, currency, recurring, frequency, path }
-   Creates a Stripe Checkout Session and returns { url } for the browser to redirect to.
-   The secret key lives in env.STRIPE_SECRET_KEY (test now, live later); the browser never
-   sees it. Apple Pay / Google Pay / card all appear automatically on Stripe's hosted page.
-   ================================================================================= */
-const FREQ_INTERVAL = {
-  semimonthly: { interval: 'week',  interval_count: 2 }, // "twice a month" → every 2 weeks (Stripe has no 1st-&-15th)
-  monthly:     { interval: 'month', interval_count: 1 },
-};
+/* The donation Checkout, Subscription-status, Billing-Portal AND gift-webhook
+   handlers were all REMOVED here, not merely unrouted. The first three trusted
+   browser-supplied identity (body.userId, an email searched against Stripe
+   customers, and an unowned subscriptionId); leaving that code in the file
+   would leave a working IDOR one route line from reachable again.
 
-async function handleCheckout(request, env) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  }
-  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  if (checkRateLimit(ip)) {
-    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
-  }
-  if (!env.STRIPE_SECRET_KEY) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
+   The gift webhook went with them once the giving product was retired:
+   production giftHistory held ZERO rows, so no user was ever linked to a gift
+   and there is nothing left to record. Retirement criteria and the one
+   outstanding item are in
+   docs/architecture/release-c1-legacy-giving-retention.md.
 
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
+   What is RETAINED below is the shared Stripe signature verification
+   (timingSafeEqualHex + verifyStripeSignature): HMAC-SHA256, constant-time
+   compare, 5-minute replay window. The Plus SUBSCRIPTION webhook depends on it. */
 
-  const amount = Number(body && body.amount);
-  if (!isFinite(amount) || amount < 1 || amount > 100000) {
-    return jsonResponse({ error: 'Please choose an amount between $1 and $100,000.' }, 400, CORS_HEADERS);
-  }
-  const recurring = !!(body && body.recurring);
-  const freqKey = String((body && body.frequency) || 'monthly');
-  const unitAmount = Math.round(amount * 100); // cents, USD for v1
-
-  // Build return URLs from an allowlisted origin so /es/dar comes back to /es/dar, etc.
-  const origin = request.headers.get('Origin') || '';
-  const okOrigin =
-    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
-    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
-    /^http:\/\/localhost(:\d+)?$/i.test(origin);
-  const base = okOrigin ? origin : 'https://declareandbelieve.com';
-  const rawPath = String((body && body.path) || '/give');
-  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
-  const successQ = 'status=success&amt=' + encodeURIComponent(amount) + (recurring ? '&rec=1&freq=' + encodeURIComponent(freqKey) : '');
-  const successUrl = base + path + '?' + successQ;
-  const cancelUrl = base + path + '?status=cancel';
-
-  const p = new URLSearchParams();
-  p.set('mode', recurring ? 'subscription' : 'payment');
-  p.set('success_url', successUrl);
-  p.set('cancel_url', cancelUrl);
-  p.set('line_items[0][quantity]', '1');
-  p.set('line_items[0][price_data][currency]', 'usd');
-  p.set('line_items[0][price_data][unit_amount]', String(unitAmount));
-  p.set('line_items[0][price_data][product_data][name]', recurring ? 'Recurring gift — Declare & Believe' : 'Gift — Declare & Believe');
-  if (recurring) {
-    const iv = FREQ_INTERVAL[freqKey] || FREQ_INTERVAL.monthly;
-    p.set('line_items[0][price_data][recurring][interval]', iv.interval);
-    p.set('line_items[0][price_data][recurring][interval_count]', String(iv.interval_count));
-  } else {
-    p.set('submit_type', 'donate');
-  }
-
-  // metadata the webhook reads to record the gift (counter + per-user history)
-  p.set('metadata[recurring]', recurring ? '1' : '0');
-  p.set('metadata[frequency]', freqKey);
-  if (body && body.userId) p.set('metadata[userId]', String(body.userId));
-
-  let res, data;
-  try {
-    res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: p.toString(),
-    });
-    data = await res.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
-  }
-  if (!res.ok || !data || !data.url) {
-    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
-    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
-  }
-  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
-}
-
-/* ===== Stripe webhook → Convex counter =============================================
-   Stripe POSTs here on a completed gift. We verify the signature, then tell Convex
-   to increment the public counter (and record per-user history when the giver was
-   signed in). The Convex side is idempotent, so retries are safe. ================== */
 function timingSafeEqualHex(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
   let r = 0;
@@ -485,193 +405,331 @@ async function verifyStripeSignature(payload, sigHeader, secret) {
   return v1.some((sig) => timingSafeEqualHex(sig, expected));
 }
 
-async function handleWebhook(request, env) {
+/* ===== Plus subscription webhook (Release C1 Phase 3) ==============================
+   POST /billing/webhook
+
+   Deliberately SEPARATE from /give/webhook. Donations and Plus subscriptions are
+   different products with different Stripe endpoints, different signing secrets and
+   different Convex tables. Sharing one handler would mean a change to either product
+   risks the other, and one leaked signing secret would compromise both.
+
+   This handler verifies the Stripe signature (reusing verifyStripeSignature above:
+   HMAC-SHA256, constant-time compare, 5-minute replay window), extracts only the
+   subscription fields Convex needs, and forwards them over a shared secret. It
+   deliberately does NOT decide anything about entitlement — idempotency, ordering
+   and account resolution all live in the Convex mutation, which is the only place
+   that can see existing state.
+   ================================================================================= */
+
+// Events that carry subscription lifecycle. Anything else is acknowledged and
+// ignored, so Stripe stops retrying without us acting on noise.
+const BILLING_EVENTS = new Set([
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.paid',
+  'invoice.payment_failed',
+  'invoice.payment_action_required',
+  'checkout.session.expired',
+]);
+
+async function fetchStripeSubscription(subId, env) {
+  try {
+    const r = await fetch('https://api.stripe.com/v1/subscriptions/' + subId, {
+      headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
+    });
+    return r.ok ? await r.json() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function handleBillingWebhook(request, env) {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
-  if (!env.STRIPE_WEBHOOK_SECRET) {
+  if (!env.STRIPE_BILLING_WEBHOOK_SECRET || !env.CONVEX_SITE_URL || !env.BILLING_WEBHOOK_SECRET) {
     return new Response('Webhook not configured', { status: 500 });
   }
+
   const payload = await request.text();
-  const ok = await verifyStripeSignature(payload, request.headers.get('Stripe-Signature'), env.STRIPE_WEBHOOK_SECRET);
-  console.log('[give/webhook] sig ok=' + ok);
+  const ok = await verifyStripeSignature(
+    payload,
+    request.headers.get('Stripe-Signature'),
+    env.STRIPE_BILLING_WEBHOOK_SECRET,
+  );
   if (!ok) return new Response('Invalid signature', { status: 400 });
 
   let event;
   try { event = JSON.parse(payload); } catch (e) { return new Response('Bad payload', { status: 400 }); }
-  console.log('[give/webhook] event type=' + (event && event.type));
 
-  if (event && event.type === 'checkout.session.completed') {
-    const s = (event.data && event.data.object) || {};
-    const amountCents = Number(s.amount_total);
-    const md = s.metadata || {};
-    console.log('[give/webhook] amount_total=' + s.amount_total + ' mode=' + s.mode + ' id=' + s.id + ' convexUrl=' + (env.CONVEX_SITE_URL || 'MISSING') + ' giftSecret=' + (env.GIFT_WEBHOOK_SECRET ? 'set' : 'MISSING'));
-    if (Number.isFinite(amountCents) && amountCents > 0 && env.CONVEX_SITE_URL && env.GIFT_WEBHOOK_SECRET) {
-      const recordBody = {
-        sessionId: s.id,
-        amountCents: amountCents,
-        currency: s.currency || 'usd',
-        recurring: md.recurring === '1' || s.mode === 'subscription',
-      };
-      if (md.frequency) recordBody.frequency = md.frequency;
-      if (md.userId) recordBody.userId = md.userId;
-      if (s.subscription) recordBody.subscriptionId = s.subscription;
-      if (s.customer) recordBody.customerId = s.customer;
-      const r = await fetch(env.CONVEX_SITE_URL + '/give/record', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
-        body: JSON.stringify(recordBody),
+  const type = event && event.type;
+  // Acknowledge anything we do not act on. Returning 200 here is correct: the
+  // event was received and verified, we simply have no state change to make.
+  if (!BILLING_EVENTS.has(type)) return new Response('ok', { status: 200 });
+
+  const obj = (event.data && event.data.object) || {};
+  let sub = null;
+  let customerId = null;
+  let subscriptionId = null;
+
+  if (type.startsWith('customer.subscription.')) {
+    sub = obj;
+    subscriptionId = obj.id || null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : (obj.customer && obj.customer.id) || null;
+  } else if (type.startsWith('checkout.session.')) {
+    // Only subscription-mode sessions matter here. A donation session (mode
+    // 'payment', or a recurring GIFT) must never be treated as a Plus purchase.
+    if (obj.mode !== 'subscription') return new Response('ok', { status: 200 });
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : null;
+    // The session alone does not carry period/status, so read the subscription.
+    if (subscriptionId) sub = await fetchStripeSubscription(subscriptionId, env);
+  } else if (type.startsWith('invoice.')) {
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : null;
+    customerId = typeof obj.customer === 'string' ? obj.customer : null;
+    if (!subscriptionId) return new Response('ok', { status: 200 });
+    sub = await fetchStripeSubscription(subscriptionId, env);
+  }
+
+  if (!sub || !subscriptionId || !customerId) {
+    // Nothing actionable (e.g. an expired session that never became a
+    // subscription). Acknowledge so Stripe stops retrying.
+    return new Response('ok', { status: 200 });
+  }
+
+  const item = (sub.items && sub.items.data && sub.items.data[0]) || null;
+  const price = item && item.price;
+
+  const body = {
+    eventId: event.id,
+    eventType: type,
+    eventCreated: event.created,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    status: sub.status,
+    stripePriceId: (price && price.id) || undefined,
+    billingInterval: (price && price.recurring && price.recurring.interval) || undefined,
+    currentPeriodStart: sub.current_period_start,
+    currentPeriodEnd: sub.current_period_end,
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    canceledAt: sub.canceled_at || undefined,
+    trialEnd: sub.trial_end || undefined,
+    latestInvoiceId: typeof sub.latest_invoice === 'string' ? sub.latest_invoice : undefined,
+    // Only the value WE set at Checkout for an authenticated user. Never a
+    // browser-supplied id.
+    metadataUserId: (sub.metadata && sub.metadata.userId) || (obj.metadata && obj.metadata.userId) || undefined,
+  };
+
+  try {
+    const r = await fetch(env.CONVEX_SITE_URL + '/billing/subscription-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-billing-secret': env.BILLING_WEBHOOK_SECRET },
+      body: JSON.stringify(body),
+    });
+    // Log status only — never the payload. It carries customer and subscription
+    // ids that have no business sitting in logs.
+    console.log('[billing/webhook] type=' + type + ' convex=' + r.status);
+    if (!r.ok) return new Response('Downstream error', { status: 500 }); // let Stripe retry
+  } catch (e) {
+    return new Response('Downstream error', { status: 500 });
+  }
+  return new Response('ok', { status: 200 });
+}
+
+/* ── Journey prose translation (INTERNAL) ──────────────────────────────────
+ * POST /internal/journey/translate
+ *
+ * Translates JOURNEY-AUTHORED copy of a completed day into Spanish. Called only
+ * by the authenticated Convex action, which has already established identity
+ * and reserved a quota slot. This route knows nothing about accounts and must
+ * never be given a user identifier.
+ *
+ * SEPARATE FROM /today ON PURPOSE. Different secret, different quota owner,
+ * different failure surface. A translation must never consume the Gentle
+ * Guidance allowance or be blocked by the /today IP rate limit, and vice versa.
+ *
+ * THIS IS THE SECOND VALIDATION BOUNDARY. The Convex action already validated
+ * the payload; it is validated again here, independently. One shared check
+ * would be one point of failure.
+ */
+const JT_ALLOWED_FIELDS = ['title', 'insight', 'prayerTitle', 'pray', 'castOff', 'repent',
+  'declare', 'reflect', 'actionTitle', 'action', 'fruit', 'fruitTruth'];
+const JT_FORBIDDEN_KEYS = new Set([
+  'reflection', 'reflectiontext', 'userprayer', 'usertext', 'usernote',
+  'vault', 'vaultitems', 'crisis', 'supportdisclosure',
+  'userid', 'accountid', 'email', 'sub', 'identity',
+  'verse', 'versetext', 'scripture', 'prompt', 'systemprompt', 'instructions', 'messages',
+]);
+const JT_MAX_FIELD_CHARS = 4000;
+const JT_MAX_TOTAL_CHARS = 12000;
+/* Hard ceiling on the RAW provider response before parsing. A translation of a
+ * 12k-char payload cannot legitimately exceed this; anything larger is a
+ * runaway generation and is refused rather than parsed. */
+const JT_MAX_RESPONSE_CHARS = 64000;
+/* The Convex action holds a reservation for the duration of this call, so it
+ * must not hang. Without a timeout a stalled provider would pin an account's
+ * single concurrent slot until the 2-minute reservation TTL reclaimed it. */
+const JT_TIMEOUT_MS = 45000;
+
+function jtValidateFields(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, reason: 'fields-not-object' };
+  const out = {};
+  let total = 0;
+  for (const [key, value] of Object.entries(raw)) {
+    if (JT_FORBIDDEN_KEYS.has(key.toLowerCase())) return { ok: false, reason: 'forbidden-field' };
+    if (!JT_ALLOWED_FIELDS.includes(key)) return { ok: false, reason: 'unknown-field' };
+    if (typeof value !== 'string') return { ok: false, reason: 'field-not-string' };
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    if (trimmed.length > JT_MAX_FIELD_CHARS) return { ok: false, reason: 'field-too-long' };
+    total += trimmed.length;
+    out[key] = trimmed;
+  }
+  if (!total) return { ok: false, reason: 'empty-request' };
+  if (total > JT_MAX_TOTAL_CHARS) return { ok: false, reason: 'payload-too-long' };
+  return { ok: true, fields: out };
+}
+
+/* Faithful transformation, not generation. The model is given ONLY the authored
+ * fields and is told, explicitly, that it may not add theology or pastoral
+ * advice, may not remove support language, and may not produce Scripture. */
+const JT_SYSTEM = [
+  'You translate devotional copy from English to Latin American Spanish (es-LA), using informal "tú".',
+  'This is a FAITHFUL TRANSLATION, not a rewrite and not new writing.',
+  'Rules, all mandatory:',
+  '- Preserve the meaning of every field exactly.',
+  '- Preserve paragraph and section boundaries within a field.',
+  '- Do NOT add pastoral advice, theology, encouragement or commentary that is not in the source.',
+  '- Do NOT remove or soften any warning, caution or support language.',
+  '- Do NOT include any Bible quotation. If the source names a Scripture reference, keep the reference as-is and translate nothing of the quoted text.',
+  '- Do NOT address the reader by name or invent details.',
+  '- Never speak as God or as Jesus.',
+  'Return ONLY a JSON object whose keys are exactly the keys you were given, each mapped to its Spanish translation. No prose outside the JSON.',
+].join('\n');
+
+async function handleJourneyTranslate(request, env) {
+  // No CORS preflight support: this route is not for browsers.
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ ok: false, reason: 'method-not-allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const expected = env.JOURNEY_TRANSLATE_SECRET || '';
+  const provided = request.headers.get('X-Declare-Internal') || '';
+  // Constant-time compare, and refuse when unconfigured rather than allowing all.
+  if (!expected || !timingSafeEqualHex(provided, expected)) {
+    return new Response(JSON.stringify({ ok: false, reason: 'forbidden' }), {
+      status: 403, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    return new Response(JSON.stringify({ ok: false, reason: 'not-configured' }), {
+      status: 503, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ ok: false, reason: 'bad-json' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (body && ('userId' in body || 'accountId' in body || 'email' in body)) {
+    return new Response(JSON.stringify({ ok: false, reason: 'identity-not-accepted' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!body || body.sourceLocale !== 'en' || body.displayLocale !== 'es') {
+    return new Response(JSON.stringify({ ok: false, reason: 'unsupported-locale-pair' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const validated = jtValidateFields(body.fields);
+  if (!validated.ok) {
+    return new Response(JSON.stringify({ ok: false, reason: validated.reason }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const model = 'claude-sonnet-4-6';
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: AbortSignal.timeout(JT_TIMEOUT_MS),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        // Low variance: this is a translation, not a creative act.
+        temperature: 0.2,
+        system: JT_SYSTEM,
+        messages: [{ role: 'user', content: JSON.stringify(validated.fields) }],
+      }),
+    });
+  } catch (e) {
+    // Reason codes only. No provider body, no prompt, no stack trace.
+    const timedOut = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+    return new Response(JSON.stringify({ ok: false, reason: timedOut ? 'provider-timeout' : 'provider-unreachable' }), {
+      status: timedOut ? 504 : 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!res.ok) {
+    // Status is echoed so the caller can tell rate limiting from a hard failure,
+    // but no provider body is forwarded.
+    return new Response(JSON.stringify({ ok: false, reason: 'provider-failure' }), {
+      status: res.status === 429 ? 429 : 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let out;
+  try {
+    const raw = await res.text();
+    if (raw.length > JT_MAX_RESPONSE_CHARS) throw new Error('response-too-large');
+    const json = JSON.parse(raw);
+    const text = (json.content || []).map((b) => (b && b.type === 'text' ? b.text : '')).join('');
+    const sliced = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    out = JSON.parse(sliced);
+  } catch {
+    return new Response(JSON.stringify({ ok: false, reason: 'unparseable-model-output' }), {
+      status: 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Validate the model's output with the same allowlist, then confirm it did not
+  // invent a section that was never sent.
+  const checked = jtValidateFields(out);
+  if (!checked.ok) {
+    return new Response(JSON.stringify({ ok: false, reason: 'malformed-model-output' }), {
+      status: 502, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  for (const key of Object.keys(checked.fields)) {
+    if (!(key in validated.fields)) {
+      return new Response(JSON.stringify({ ok: false, reason: 'model-added-field' }), {
+        status: 502, headers: { 'Content-Type': 'application/json' },
       });
-      const rt = await r.text();
-      console.log('[give/webhook] convex record status=' + r.status + ' body=' + rt.slice(0, 120));
-      // If Convex rejects, return 500 so Stripe retries (Convex is idempotent).
-      if (!r.ok) return new Response('record failed', { status: 500 });
-    } else {
-      console.log('[give/webhook] SKIPPED record (amount not positive or config missing)');
     }
   }
-  return new Response(JSON.stringify({ received: true }), {
+
+  // Privacy-safe log: counts and identifiers of SHAPE only. No content, no
+  // account, no reference — nothing that could reconstruct what was translated.
+  console.log(JSON.stringify({
+    evt: 'journey_translate',
+    fields: Object.keys(checked.fields).length,
+    chars: Object.values(checked.fields).reduce((n, v) => n + v.length, 0),
+    model,
+  }));
+
+  return new Response(JSON.stringify({ ok: true, fields: checked.fields, model }), {
     status: 200, headers: { 'Content-Type': 'application/json' },
   });
-}
-
-// Live subscription status for the "Your giving" card: looks up a recurring gift's
-// next charge date + status straight from Stripe, so a canceled gift never shows a
-// phantom date. The subscription id comes from the caller's own authed gift history.
-async function handleSubscription(request, env) {
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
-  if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  if (!env.STRIPE_SECRET_KEY) return jsonResponse({ error: 'not configured' }, 500, CORS_HEADERS);
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'bad request' }, 400, CORS_HEADERS); }
-  const id = String((body && body.subscriptionId) || '');
-  if (!/^sub_[A-Za-z0-9]+$/.test(id)) return jsonResponse({ error: 'bad id' }, 400, CORS_HEADERS);
-  const r = await fetch('https://api.stripe.com/v1/subscriptions/' + id, {
-    headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-  });
-  if (!r.ok) return jsonResponse({ error: 'not found' }, 404, CORS_HEADERS);
-  const sub = await r.json();
-  const item = sub.items && sub.items.data && sub.items.data[0];
-  const periodEnd = sub.current_period_end || (item && item.current_period_end) || null;
-  return jsonResponse({
-    status: sub.status,
-    currentPeriodEnd: periodEnd,
-    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
-  }, 200, CORS_HEADERS);
-}
-
-/* ===== Stripe Billing Portal — real "Manage giving" session, no email step ==========
-   POST /give/portal  { userId, path }
-   Replaces the old static Stripe hosted "Customer Portal login page" link (type your
-   email, wait for a magic-link email that may never arrive). For a signed-in giver we
-   already know who they are, so we resolve their Stripe customer id server-side and
-   open a real portal session — the browser redirects straight in.
-   ================================================================================= */
-async function handleBillingPortal(request, env) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
-  }
-  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  if (checkRateLimit(ip)) {
-    return jsonResponse({ error: 'Too many requests. Please wait a moment and try again.' }, 429, CORS_HEADERS);
-  }
-  if (!env.STRIPE_SECRET_KEY) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
-  if (!env.CONVEX_SITE_URL || !env.GIFT_WEBHOOK_SECRET) {
-    return jsonResponse({ error: 'Giving is not configured yet.' }, 500, CORS_HEADERS);
-  }
-
-  let body;
-  try { body = await request.json(); } catch (e) { return jsonResponse({ error: 'Bad request.' }, 400, CORS_HEADERS); }
-  const userId = String((body && body.userId) || '');
-  if (!userId) return jsonResponse({ error: 'not-signed-in' }, 401, CORS_HEADERS);
-  const email = String((body && body.email) || '').trim();
-
-  // Same allowlisted-origin return URL as /give/checkout, so /es/dar comes back to /es/dar.
-  const origin = request.headers.get('Origin') || '';
-  const okOrigin =
-    /^https:\/\/([a-z0-9-]+\.)*declareandbelieve\.com$/i.test(origin) ||
-    /^https:\/\/([a-z0-9-]+\.)+pages\.dev$/i.test(origin) ||
-    /^http:\/\/localhost(:\d+)?$/i.test(origin);
-  const base = okOrigin ? origin : 'https://declareandbelieve.com';
-  const rawPath = String((body && body.path) || '/give');
-  const path = /^\/[a-z0-9/_.-]*$/i.test(rawPath) ? rawPath : '/give';
-  const returnUrl = base + path;
-
-  // Resolve which Stripe customer this account's giving belongs to, three ways,
-  // cheapest/most-authoritative first:
-  //  1. customerId already stored on their most recent recurring gift (fast path,
-  //     every gift going forward has this — no extra Stripe call needed).
-  //  2. subscriptionId on that gift, but recorded before customerId capture shipped —
-  //     resolve live, same fetch pattern as /give/subscription.
-  //  3. No usable history at all in our own records (e.g. they gave signed out, or
-  //     before per-user history existed) — search Stripe directly by account email.
-  //     This is the path that makes "Manage giving" actually work for givers who
-  //     predate this fix, not just gifts made after it ships.
-  let lookup = null;
-  try {
-    const lr = await fetch(env.CONVEX_SITE_URL + '/give/customer-lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-gift-secret': env.GIFT_WEBHOOK_SECRET },
-      body: JSON.stringify({ userId }),
-    });
-    lookup = lr.ok ? await lr.json() : null;
-  } catch (e) { /* fall through — email search below still has a shot */ }
-
-  let customerId = (lookup && lookup.customerId) || null;
-  if (!customerId && lookup && lookup.subscriptionId) {
-    try {
-      const sr = await fetch('https://api.stripe.com/v1/subscriptions/' + lookup.subscriptionId, {
-        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-      });
-      if (sr.ok) {
-        const sub = await sr.json();
-        customerId = sub.customer || null;
-      }
-    } catch (e) { /* fall through to the email search below */ }
-  }
-  if (!customerId && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    try {
-      const cr = await fetch('https://api.stripe.com/v1/customers?email=' + encodeURIComponent(email) + '&limit=1', {
-        headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
-      });
-      if (cr.ok) {
-        const cd = await cr.json();
-        const found = cd && cd.data && cd.data[0];
-        if (found && found.id) customerId = found.id;
-      }
-    } catch (e) { /* no match — fall through to the error below */ }
-  }
-  if (!customerId) {
-    return jsonResponse({ error: 'no-recurring-gift' }, 404, CORS_HEADERS);
-  }
-
-  let res, data;
-  try {
-    const p = new URLSearchParams();
-    p.set('customer', customerId);
-    p.set('return_url', returnUrl);
-    res = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: p.toString(),
-    });
-    data = await res.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Could not reach the payment processor.' }, 502, CORS_HEADERS);
-  }
-  if (!res.ok || !data || !data.url) {
-    const msg = (data && data.error && data.error.message) || 'Payment processor error.';
-    return jsonResponse({ error: msg }, 502, CORS_HEADERS);
-  }
-  return jsonResponse({ url: data.url }, 200, CORS_HEADERS);
 }
 
 export default {
@@ -687,17 +745,59 @@ export default {
     if (pathname === '/bible') {
       return handleBible(request, env);
     }
-    if (pathname === '/give/checkout') {
-      return handleCheckout(request, env);
+    /* ===== Donation endpoints: fully retired =======================================
+       All FOUR /give/* routes are permanently gone.
+
+         /give/checkout      took body.userId as the gift's owner -> a gift could be
+                             attributed to another account.
+         /give/portal        took body.userId AND fell back to searching Stripe by a
+                             SUBMITTED EMAIL -> submitting anyone's address opened
+                             their billing portal. Full IDOR.
+         /give/subscription  took body.subscriptionId with no ownership check -> any
+                             sub_... id disclosed its status and period end.
+         /give/webhook       retired with the product itself. Production giftHistory
+                             held ZERO rows, so no user was ever linked to a gift and
+                             there is nothing left to record. Retiring it does NOT
+                             stop a Stripe charge — only cancelling in Stripe does.
+
+       The first three trusted the browser for identity, which this Worker cannot
+       verify, so they were retired rather than patched: there is no safe version of
+       "tell me who you are" available at this layer. Their handlers are deleted, not
+       merely unrouted.
+
+       Nothing replaces them. The giving product is gone: no acknowledgement route,
+       no Giving History, no recurring-gift management.
+
+       410 Gone rather than 404: these endpoints existed and are permanently retired,
+       so a caller should not retry. Stripe treats 4xx as delivered-and-rejected and
+       stops retrying. The body carries a stable code, not English prose, so the
+       client localizes it.
+
+       RETAINED above: timingSafeEqualHex + verifyStripeSignature, which the Plus
+       subscription webhook depends on. ============================================ */
+    if (
+      pathname === '/give/checkout' ||
+      pathname === '/give/portal' ||
+      pathname === '/give/subscription' ||
+      pathname === '/give/webhook'
+    ) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: CORS_HEADERS });
+      }
+      return jsonResponse({ error: 'donations-retired' }, 410, CORS_HEADERS);
     }
-    if (pathname === '/give/webhook') {
-      return handleWebhook(request, env);
+    // Plus subscriptions. Separate route, separate signing secret, separate
+    // Convex tables — the donation routes above are untouched by it.
+    if (pathname === '/billing/webhook') {
+      return handleBillingWebhook(request, env);
     }
-    if (pathname === '/give/subscription') {
-      return handleSubscription(request, env);
-    }
-    if (pathname === '/give/portal') {
-      return handleBillingPortal(request, env);
+
+    // Journey prose translation. INTERNAL ONLY: called server-to-server by the
+    // authenticated Convex action, never by a browser. No CORS headers are
+    // emitted on this route on purpose — a browser must not be able to read a
+    // response from it even if it somehow guessed the secret.
+    if (pathname === '/internal/journey/translate') {
+      return handleJourneyTranslate(request, env);
     }
 
     // ===== existing Anthropic proxy (root path) — untouched =====

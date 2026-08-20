@@ -3,7 +3,9 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 
 # Convex httpAction base URL (the .site domain). Public, not a secret.
-# The giving webhook posts the counter increment to CONVEX_SITE_URL + /give/record.
+# The Plus subscription webhook posts verified state to
+# CONVEX_SITE_URL + /billing/subscription-event. (The old giving webhook and its
+# /give/record ingress were retired with the donation product.)
 [vars]
 CONVEX_SITE_URL = "https://keen-hamster-650.convex.site"
 
@@ -15,3 +17,45 @@ CONVEX_SITE_URL = "https://keen-hamster-650.convex.site"
 [[kv_namespaces]]
 binding = "BIBLE_KV"
 id = "823458f407a74de29402b6e88bba5a1e"
+
+# ── Development environment ────────────────────────────────────────────────
+# A SEPARATE Worker service used only by the dev Convex deployment
+# (good-dotterel-906) for Journey-translation testing. It exists so development
+# never borrows a production credential and production is never rotated to
+# enable a test.
+#
+# Deploys as its own service, `hope-finder-worker-dev`, at its own URL, with its
+# own secrets. Nothing here changes the production service: `wrangler deploy`
+# without --env still targets `hope-finder-worker` exactly as before, and
+# `--env dev` is required to touch this one.
+#
+# SECRETS ARE PER-ENVIRONMENT AND MUST NOT BE COPIED FROM PRODUCTION:
+#   cd worker
+#   npx wrangler secret put JOURNEY_TRANSLATE_SECRET --env dev   # new value
+#   npx wrangler secret put ANTHROPIC_API_KEY       --env dev    # dev-scoped key
+#
+# Then point ONLY the dev Convex deployment at it (no --prod):
+#   npx convex env set JOURNEY_TRANSLATE_SECRET "<dev secret>"
+#   npx convex env set JOURNEY_TRANSLATE_URL \
+#     "https://hope-finder-worker-dev.<subdomain>.workers.dev/internal/journey/translate"
+#
+# Deploy:  npx wrangler deploy --env dev
+[env.dev]
+name = "hope-finder-worker-dev"
+
+# CONVEX_SITE_URL points at the DEV Convex deployment, so a stray webhook from
+# this service can never reach production.
+[env.dev.vars]
+CONVEX_SITE_URL = "https://good-dotterel-906.convex.site"
+
+# A separate KV namespace, so dev Bible caching cannot read or evict production
+# cache entries. Create it before the first dev deploy:
+#   npx wrangler kv namespace create BIBLE_KV_DEV
+# then replace the id below.
+[[env.dev.kv_namespaces]]
+# Binding name MATCHES production on purpose: the Worker reads env.BIBLE_KV, and
+# both call sites are guarded by `if (env.BIBLE_KV)`. Cloudflare's create-output
+# suggests binding = "BIBLE_KV_DEV", which would silently DISABLE the cache
+# rather than error. Only the namespace id differs.
+binding = "BIBLE_KV"
+id = "0e4340248f204654b611e2fe3ee212ba"
