@@ -121,3 +121,67 @@ export const ENGLISH_CONTENT_SELECTORS: readonly string[] = [
   ".act-t",        // authored action title
   ".act-d",        // authored action
 ];
+
+/* ── Completed-day locale classification ────────────────────────────────────
+ * Pure, so the fixtures that matter can be exercised in plain Node.
+ *
+ * THE RULE THIS SERVES: a completed day is a record of something a person
+ * actually walked. A language mismatch is never sufficient reason to rewrite
+ * it. These functions classify; they never transform. */
+
+/** Fields sampled to decide whether one day is internally consistent. */
+export const LOCALE_SAMPLE_FIELDS = ["title", "fruit", "fruitTruth", "insight", "declare"] as const;
+
+/** Cheap language sniff, used ONLY to detect disagreement inside one day and
+ *  never to relabel a day that already carries a stamp. */
+export function looksSpanish(v: unknown): boolean {
+  return typeof v === "string" &&
+    (/[áéíóúñ¿¡]/.test(v) ||
+     /\b(el|la|los|las|una|del|que|para|con|pero|porque|cuando|donde|tu|tus|te|su|sus|eres|estás|soy|esto|esta)\b/i.test(v));
+}
+
+/** Positive English evidence. Required rather than inferred: treating
+ *  "not Spanish" as English flagged coherent Spanish days as mixed, because a
+ *  short Spanish sentence can carry neither an accent nor a stopword. A field
+ *  that looks like neither is AMBIGUOUS and votes for nothing. */
+export function looksEnglish(v: unknown): boolean {
+  return typeof v === "string" &&
+    /\b(the|and|is|are|was|were|you|your|that|this|with|for|not|but|his|her|him|they|what|when|where|have|has|been|from|into|will)\b/i.test(v);
+}
+
+/* A day whose own fields are in different languages. Pre-boundary records can
+ * hold a Spanish fruit beside an English truth; there is no single true source
+ * language for such a day, so it is never given one and never translated.
+ *
+ * BOTH languages must be positively seen. Ambiguous fields are ignored, which
+ * means this under-reports rather than over-reports — and it should, because a
+ * false "mixed" needlessly blocks a day from ever being translated. */
+export function isInternallyMixed(day: Record<string, unknown> | null | undefined): boolean {
+  if (!day) return false;
+  let es = false, en = false;
+  for (const k of LOCALE_SAMPLE_FIELDS) {
+    const v = day[k];
+    if (typeof v !== "string" || v.trim().length <= 12) continue;
+    if (looksSpanish(v)) es = true;
+    else if (looksEnglish(v)) en = true;
+  }
+  return es && en;
+}
+
+export type DayLocale = "en" | "es" | "mixed-legacy";
+
+/* What a completed day's source language is, for display and for deciding
+ * whether translation may be offered. An explicit stamp always wins: it was
+ * written by the code that created the content and outranks any sniff. */
+export function classifyDayLocale(day: Record<string, unknown> | null | undefined): DayLocale {
+  if (!day) return "en";
+  const stamped = day.lang;
+  if (stamped === "en" || stamped === "es" || stamped === "mixed-legacy") return stamped;
+  if (isInternallyMixed(day)) return "mixed-legacy";
+  return "en";               // pre-boundary writers produced English
+}
+
+/** May this day be sent through the English-to-Spanish transport? */
+export function isTranslatable(day: Record<string, unknown> | null | undefined): boolean {
+  return classifyDayLocale(day) === "en";
+}

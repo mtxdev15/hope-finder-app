@@ -363,7 +363,7 @@ check("restore stamps unstamped days as en", /PLAN = stampLang\(o\.plan, 'en'\)/
 check("restore does NOT stamp from the instance label",
   !/stampLang\(o\.plan, o\.lang/.test(JOURNEY));
 check("restore repairs stale days", /staleDays\(PLAN, curLang\(\)\)/.test(JOURNEY));
-check("stale days are reset to the authored baseline", /if \(baseline\[i\]\) PLAN\[i\] = baseline\[i\]/.test(JOURNEY));
+check("stale days are reset to the authored baseline", /PLAN\[i\] = baseline\[i\];/.test(JOURNEY));
 check("stale days have their generated flag cleared", /delete active\._ai\[i\]/.test(JOURNEY));
 check("the old instance-level flag-clear is gone",
   !/active\._ai = \(o\.lang && o\.lang !== curLang\(\)\)/.test(JOURNEY));
@@ -392,6 +392,80 @@ check("stampLang does not mutate the day", /Object\.assign\(\{\}, d, \{ lang: la
 check("the boundary rule is documented at the helper", /PLAN\[\] is CANONICAL Journey content/.test(JOURNEY));
 check("the stale claim about PLAN being the English original is gone",
   !/PLAN\[\] — the English original —/.test(JOURNEY));
+
+/* ── 14. Completed-day immutability ────────────────────────────────────────
+ * A completed day is a record of something a person actually walked. A language
+ * mismatch is never sufficient reason to rewrite it. */
+section("14. Completed-day immutability");
+
+const { classifyDayLocale, isInternallyMixed, isTranslatable, looksSpanish, looksEnglish: looksEnglishRef } = await import(
+  "../src/app/declare/journey-review-state.ts");
+
+const EN_DAY = Object.freeze({ lang: "en", title: "Lay It Down", fruit: "Untensed Trust",
+  fruitTruth: "Peace grows where control is released.", insight: "The voice inside sounds like responsibility but it is fear.", declare: "I am not the one holding this." });
+const ES_DAY = Object.freeze({ lang: "es", title: "El gran intercambio", fruit: "Mente guardada",
+  fruitTruth: "La paz crece donde se suelta el control.", insight: "La voz interior suena como responsabilidad pero es miedo.", declare: "Yo no soy quien sostiene esto." });
+const LEGACY_EN = Object.freeze({ title: "Hurling the Weight", fruit: "Unburdened",
+  fruitTruth: "He carries what you were never meant to hold.", insight: "You were never the load-bearer here.", declare: "I hand it over." });
+/* THE PRODUCTION DEFECT, as a fixture: one day, two languages. */
+const MIXED_DAY = Object.freeze({ fruit: "Confianza arraigada", fruitTruth: "Stayed Mind",
+  title: "El gran intercambio", insight: "A mind stayed on Him is kept in perfect peace." });
+
+check("1. completed English generated day classifies en", classifyDayLocale(EN_DAY) === "en");
+check("2. completed Spanish generated day classifies es", classifyDayLocale(ES_DAY) === "es");
+check("3. completed unstamped historical day is adopted as en", classifyDayLocale(LEGACY_EN) === "en");
+check("4. an unknown/empty day does not throw and defaults en", classifyDayLocale({}) === "en");
+check("5. completed internally mixed day classifies mixed-legacy", classifyDayLocale(MIXED_DAY) === "mixed-legacy");
+check("   the mixed fixture is genuinely detected as mixed", isInternallyMixed(MIXED_DAY) === true);
+check("   a coherent English day is not flagged mixed", isInternallyMixed(EN_DAY) === false);
+check("   a coherent Spanish day is not flagged mixed", isInternallyMixed(ES_DAY) === false);
+
+/* Translation eligibility follows the classification, never the reader. */
+check("an English completed day stays eligible for translation", isTranslatable(EN_DAY) === true);
+check("a Spanish completed day is never translated es->es", isTranslatable(ES_DAY) === false);
+check("an internally mixed completed day is refused", isTranslatable(MIXED_DAY) === false);
+check("a legacy unstamped English day stays eligible", isTranslatable(LEGACY_EN) === true);
+
+/* Classification NEVER transforms. */
+check("classification does not mutate the day",
+  EN_DAY.title === "Lay It Down" && ES_DAY.fruit === "Mente guardada" && MIXED_DAY.fruitTruth === "Stayed Mind");
+check("an explicit stamp outranks the sniff",
+  classifyDayLocale({ lang: "en", fruit: "Confianza arraigada", title: "El gran intercambio",
+    insight: "La voz interior suena como responsabilidad pero es miedo." }) === "en");
+check("the sniff finds Spanish", looksSpanish("La paz crece donde se suelta el control.") === true);
+check("the sniff does not flag English", looksSpanish("Peace grows where control is released.") === false);
+check("a Spanish line with a stopword is detected as Spanish",
+  looksSpanish("Yo no soy quien sostiene esto") === true);
+/* A short phrase carrying neither an accent, a Spanish stopword nor an English
+ * one votes for NOTHING. That is the point: ambiguity must not be read as
+ * English, or a coherent Spanish day gets falsely flagged mixed. */
+check("an ambiguous phrase is neither Spanish nor English",
+  looksSpanish("Confianza arraigada") === false && looksEnglishRef("Confianza arraigada") === false);
+check("ambiguity alone never produces mixed",
+  isInternallyMixed({ fruit: "Confianza arraigada", fruitTruth: "Mente guardada firme" }) === false);
+
+/* THE REGRESSION THAT MATTERS: the production defect cannot recur. A completed
+ * wrong-language day must never be replaced by the authored-bank day, and the
+ * completion predicate must not be derived from state.day, which is still at its
+ * default while restore runs — that is exactly how walked days were rewritten. */
+check("restore skips walked days before rewriting", /if \(isWalkedIndex\(i\)\) return;/.test(JOURNEY));
+check("the walked predicate reads PERSISTED progress, not state.day",
+  /function walkedDayCount\(\)/.test(JOURNEY) && /lockFor\(\)/.test(JOURNEY) && /loadActiveSaved\(\)/.test(JOURNEY));
+check("the walked predicate does not use completed()",
+  !/function walkedDayCount\(\)[\s\S]{0,400}completed\(\)/.test(JOURNEY));
+check("it takes the HIGHER of the two persisted records",
+  /Math\.max\(day, l\.day \| 0\)/.test(JOURNEY) && /Math\.max\(day, a\.day \| 0\)/.test(JOURNEY));
+check("completed days receive metadata only", /if \(!isWalkedIndex\(i\) \|\| !d \|\| typeof d !== 'object'\) return;/.test(JOURNEY));
+/* stampLang defaults unstamped days to English, so classification must read the
+ * RAW restored record or the mixed-legacy branch is unreachable. */
+check("classification reads the raw restored days, not the stamped ones",
+  /const rawDays = Array\.isArray\(o\.plan\)/.test(JOURNEY) && /classifyDayLocale\(raw \|\| d\)/.test(JOURNEY));
+check("an explicit raw stamp always wins over classification",
+  /raw\.lang === 'en' \|\| raw\.lang === 'es'/.test(JOURNEY));
+check("a second restore writes nothing when nothing changed", /if \(repaired\) saveInstance\(\);/.test(JOURNEY));
+check("mixed-legacy is refused before any reservation",
+  CONTROLLER.includes("source-unresolved") && /english\.lang === 'mixed-legacy'/.test(CONTROLLER));
+check("the mixed refusal is non-retryable", /reason: 'source-unresolved', retryable: false/.test(CONTROLLER));
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

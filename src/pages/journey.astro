@@ -454,7 +454,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     /* Ships to production: the original-English provenance is a released fix,
        not part of the gated translation feature. */
-    import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS } from '../app/declare/journey-review-state.ts';
+    import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS, classifyDayLocale } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
     import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
@@ -549,6 +549,25 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
      * in. Days with no stamp are pre-boundary records: treated as English,
      * because every writer before this change produced English or overwrote a
      * day the reader was standing on. */
+    /* WHICH DAYS HAVE BEEN WALKED — read from persisted state, not from `state`.
+     *
+     * completed() derives from state.day, and state.day is assigned AFTER
+     * restoreInstance() runs. During restore it still holds its default of 1, so
+     * completed() reports zero and every day looks incomplete. That is exactly
+     * how the first release came to rewrite days a reader had already walked.
+     *
+     * Both persisted records carry the day number: db_journey_lock (the pacing
+     * lock, written by setLock) and db_active_journey (written by saveActive).
+     * The higher of the two wins, because erring toward "completed" preserves
+     * content and erring the other way destroys it. */
+    function walkedDayCount() {
+      let day = 1;
+      try { const l = lockFor(); if (l && l.day) day = Math.max(day, l.day | 0); } catch (e) {}
+      try { const a = loadActiveSaved(); if (a && a.id === (active && active.id) && a.day) day = Math.max(day, a.day | 0); } catch (e) {}
+      return Math.max(0, day - 1);
+    }
+    function isWalkedIndex(i) { return i < walkedDayCount(); }
+
     function dayLang(d) { return (d && d.lang) || 'en'; }
     function staleDays(plan, lang) {
       const out = [];
@@ -637,6 +656,12 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
            repairing it. Pre-boundary days really were English — the authored bank
            has no Spanish variant, and generated days only ever replaced the day
            the reader was standing on. */
+        /* Classify BEFORE stamping. stampLang defaults every unstamped day to
+           English, so a classification pass that ran afterwards would never see
+           an unstamped day and could never detect an internally mixed one — the
+           mixed-legacy branch would be dead code. The raw restored days are the
+           only place that evidence still exists. */
+        const rawDays = Array.isArray(o.plan) ? o.plan.slice() : [];
         PLAN = stampLang(o.plan, 'en');
         active._seed = o.seed; active._themes = o.themes;
         active._ai = o.ai || {}; active._inflight = {};
@@ -654,15 +679,44 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
          * starting point — and its generated flag cleared so it can be rewritten
          * properly. Days that already match are left completely alone, so a
          * reader who never switches language pays nothing for this. */
+        /* THE IMMUTABILITY RULE.
+         *
+         * A completed day is a record of something a person actually walked. A
+         * language mismatch is never sufficient reason to rewrite it. Repair is
+         * therefore limited to days the reader has NOT walked; completed days
+         * receive metadata only — a locale stamp so they can be displayed and
+         * classified honestly — and their content, generated state and progress
+         * are left exactly as they are.
+         *
+         * The first release got this wrong in the worst possible way: it used a
+         * completion check that always reported zero during restore, so it
+         * rewrote walked days with authored-bank content. */
         const stale = staleDays(PLAN, curLang());
+        let repaired = false;
         if (stale.length) {
           const baseline = resolveJourneyPlan(active.id, active.from, active.to, active._seed);
           stale.forEach(function (i) {
-            if (baseline[i]) PLAN[i] = baseline[i];
+            if (isWalkedIndex(i)) return;                 // walked: never rewritten
+            if (!baseline[i]) return;
+            PLAN[i] = baseline[i];
             delete active._ai[i];
+            repaired = true;
           });
-          saveInstance();
         }
+        /* Completed days that carry no usable stamp are classified, not changed.
+         * An internally mixed record has no single true language, so it is marked
+         * `mixed-legacy` and stays out of translation entirely. */
+        PLAN.forEach(function (d, i) {
+          if (!isWalkedIndex(i) || !d || typeof d !== 'object') return;
+          const raw = rawDays[i];
+          /* An explicit stamp on the RAW record was written by whatever created
+             the content and always wins. Only a day that arrived unstamped is
+             classified, and it is classified from the raw evidence. */
+          if (raw && (raw.lang === 'en' || raw.lang === 'es')) return;
+          const cls = classifyDayLocale(raw || d);
+          if (d.lang !== cls) { PLAN[i] = Object.assign({}, d, { lang: cls }); repaired = true; }
+        });
+        if (repaired) saveInstance();
         dayState = o.dayState || {}; daySpoken = o.daySpoken || {};
         // Backward compatibility: an instance cache saved before B3.2 has no
         // `activeStep` field at all. Rather than guess how far into the (then
