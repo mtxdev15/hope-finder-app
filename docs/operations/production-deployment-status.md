@@ -1,16 +1,31 @@
 # Production Deployment Status
 
-**Last updated:** 2026-08-20, after the three-release Journey sequence
-(`93b5b9e`, `c838cbc`, `2dfee66`).
+**Last updated:** 2026-08-20, after Convex source parity (`6746655`).
 
 ---
 
-## ⚠️ DO NOT DEPLOY THE BACKEND FROM `main`
+## Convex: parity complete, freeze CLOSED ✅
 
-> Production Convex and Worker are currently **ahead of `main`** and were deployed
-> from `release-c1-monetization`. Until that branch is merged, **do not run
-> `npx convex deploy` or `wrangler deploy` from `main`**, because doing so would
-> restore retired giving functions and insecure legacy routes.
+> **Convex source parity is complete as of `6746655`.**
+>
+> - `main` is now the **authoritative source** for production Convex.
+> - The temporary "do not deploy Convex from `main`" freeze is **closed**.
+> - **No production Convex deployment occurred during parity reconciliation.**
+>   Production already ran the same functions and schema; redeploying identical
+>   code would have added deployment risk without changing behaviour.
+> - Future Convex deployments **are permitted from reviewed `main`** whenever
+>   `convex/` actually changes.
+> - Deployments must **not** originate from stale release branches.
+
+## ⚠️ Worker: DO NOT DEPLOY THE WORKER FROM `main`
+
+> **Production Worker source is divergent from `main`. Do not deploy the Worker
+> from `main` until Worker parity is completed and verified.**
+>
+> `main` still carries the retired `/give/*` handlers and the billing-portal
+> IDOR. Production runs the hardened Worker deployed from
+> `release-c1-monetization`. Deploying the Worker from `main` would roll
+> production backwards into those vulnerabilities.
 
 ### Why this is dangerous, concretely
 
@@ -35,7 +50,7 @@ vulnerabilities.**
 
 | Component | Deployed from | State |
 |---|---|---|
-| **Convex** `prod:keen-hamster-650` | `release-c1-monetization` | Gift functions and tables removed; subscription + entitlement functions deployed but **inactive** (no Stripe env vars set) |
+| **Convex** `prod:keen-hamster-650` | **`main`** (parity restored `6746655`) | Gift functions and tables removed; subscription + entitlement functions deployed but **inactive** (no Stripe env vars set) |
 | **Cloudflare Worker** `hope-finder-worker` | `release-c1-monetization` | All four `/give/*` routes return **410 Gone**; IDOR removed; `GIFT_WEBHOOK_SECRET` deleted |
 | **Cloudflare Pages** (frontend) | `main` | Donation frontend removed; `/pricing` live and **non-transactional** |
 
@@ -48,8 +63,26 @@ The frontend is intentionally the only component that tracks `main`.
 **Safe:** merging frontend-only changes to `main`; Cloudflare Pages builds
 triggered by those merges.
 
-**Not safe:** `npx convex deploy`, `wrangler deploy`, or
-`wrangler pages deploy dist` from `main`.
+**Safe:** `npx convex deploy` from reviewed `main`, following the release rule
+below.
+
+**Not safe:** `wrangler deploy` or `wrangler pages deploy dist` from `main`, until
+Worker parity closes.
+
+## Release rule — before every production Convex deployment
+
+1. Confirm the branch is based on current `main`.
+2. Inspect the `function-spec` diff.
+3. Inspect schema and index changes.
+4. Identify any destructive or validator-tightening change.
+5. Deploy first to the isolated **dev** Convex deployment.
+6. Run backend verification.
+7. Obtain approval for production.
+8. Deploy from the reviewed commit.
+9. Rerun the production `function-spec` and smoke checks.
+
+Deploy only when `main` carries an **intentional** backend difference from the
+running production revision. Identical code is not a reason to deploy.
 
 ### Before capturing release evidence
 
@@ -80,26 +113,23 @@ compared, the generated asset names, the catalog URL and the lazy chunk names.
 
 ## How this resolves
 
-> **Backend parity checkpoint, opened 2026-08-20.**
-> **Production Convex is ahead of `main`. Do not deploy from `main` until backend
-> parity is completed and verified.**
->
-> This is no longer only about the retired giving functions. The Spanish Journey
-> work shipped on 2026-08-20 depends on `convex/journeyTranslate.ts` and the
-> `journeyTranslations`, `usageCounters` and `usageReservations` tables, which
-> are **live in production but absent from `main`**. A Convex deploy from `main`
-> today would remove backend behaviour the live frontend is already using.
->
-> While this checkpoint is open: do not deploy Convex from `main`, do not deploy
-> Convex from another branch, do not change the production schema, and do not
-> delete deployed functions or tables.
+**Convex: resolved.** `6746655` ported the deployed backend source verbatim from
+`release-c1-monetization` @ `332e611` — 18 files byte-identical, zero
+production-only functions, zero validator differences across all 51 entries. The
+audit is at `docs/operations/convex-production-parity-audit.md`.
 
-The resolution is a dedicated **backend-parity release** that ports only the
-backend source already deployed to production — not a wholesale merge of
-`release-c1-monetization`, which also carries unfinished frontend monetization.
+**Worker: open.** A dedicated Worker parity checkpoint is in progress. Until it
+lands, Worker deployments must be run from the branch the running Worker was
+actually deployed from.
 
-Until that lands, backend deployments must be run from the branch the running
-backend was actually deployed from.
+### Convex environment variables — intentional gaps
+
+`convex/billing.ts` reads `STRIPE_SECRET_KEY` and `convex/http.ts` reads
+`BILLING_WEBHOOK_SECRET`. **Neither is set in production**, which is exactly why
+checkout and the billing webhook are inert. This is the intended state, not a
+parity gap. `GIFT_WEBHOOK_SECRET` is still set on production Convex but nothing
+in the deployed source reads it — a leftover from the retired giving product,
+safe to remove once Worker parity closes.
 
 ---
 
