@@ -190,10 +190,27 @@ review of the Spanish a real reader would see**:
 | Return action | `Volver al camino de hoy` |
 | Untranslated user text | `Tus palabras · Sin traducir` |
 
-**No native reviewer has read any of this.** The copy was written and approved
-in-project. Until an actual native es-LA speaker approves it, this feature must
-not be enabled for real readers, and no report should describe the copy as
-reviewed.
+**Native es-LA review COMPLETE — 2026-08-19.** All fourteen strings returned
+**approved as written**, 14 of 14, with no recommended replacements and no tone
+or regional comments. Nothing needed changing, and eleven of the fourteen were
+verified byte-for-byte identical to what is already in the code.
+
+One string was actionable: number 6 replaced the existing preparing-button label
+`Preparando…` with the approved `Preparando tu camino de hoy…`. That is a copy
+change to an element that already exists, so it was folded in.
+
+Two approved strings remain **unbuilt**, and approval does not build them:
+
+- `Tus palabras · Sin traducir` marks untranslated reader text and belongs to a
+  later surface, not to completed-day review.
+- `Volver más tarde` would add a new secondary action to the failure screens.
+  That is a new control rather than a wording change, so it was deliberately not
+  added here.
+
+A caveat worth carrying forward: a blanket 14-of-14 approval with no comments is
+a weaker signal than a review that pushes back somewhere. Strings 7 and 8 carry
+the most weight, string 8 especially, since it explains why Scripture is withheld.
+If this copy is ever challenged by a reader, that is the pair to revisit first.
 
 The AI-generated Spanish day content is a separate matter from this interface
-copy and is not covered by that review.
+copy and is not covered by this review.

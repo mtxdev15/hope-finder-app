@@ -1644,7 +1644,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         $('dfScroll').appendChild(notice('loading'));
         $('dfReviewBadge').style.display = 'none';
         $('dfComplete').disabled = true;
-        $('dfComplete').textContent = 'Preparando…';
+        // Approved es-LA wording. "Preparando…" alone read as a spinner label;
+        // naming what is being prepared matches the unhurried register of the
+        // sentence above it, which is the whole point of the waiting screen.
+        $('dfComplete').textContent = 'Preparando tu camino de hoy…';
         $('dfStepBack').style.display = 'none'; $('dfStepNext').style.display = 'none';
       };
 
