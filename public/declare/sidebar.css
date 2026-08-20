@@ -1,21 +1,34 @@
 /* ============================================================
-   DESKTOP SIDEBAR SHELL (redesign/desktop-web-shell)
-   >=1024px only. Mobile (<=480px bottom bar) and tablet/small-desktop
-   (481-1023px fixed top bar, both from declare.css) are UNTOUCHED.
-   At >=1024px the same <TabBar> markup reflows into a persistent left
-   sidebar instead of the top bar. Restrained on purpose: this app has
-   no thread history/projects to fill a sidebar with, so its real job
-   is permanent nav + an always-visible crisis-help link, not decoration.
+   LEFT NAVIGATION SHELL (B1.5A — responsive left navigation)
+   Canonical breakpoint map (viewport width, not device class):
+     0-767px    : fixed bottom tab bar (declare.css / DeclareLayout.astro)
+     768-899px  : compact left rail, icon-only, no expand capability yet
+     900-1023px : expanded left rail (~220px), user-collapsible to 72px
+     >=1024px   : desktop sidebar, unchanged (248px expanded / 72px collapsed)
+   One shared block (>=768px) carries every rail rule; the two narrower
+   sub-ranges only override the --sbw width value and, at 768-899, hide the
+   collapse toggle (see the two small blocks below the shared one). The same
+   <TabBar> markup reflows into this rail at every width in this range —
+   no separate tablet markup, exactly like the desktop-only version before it.
    ============================================================ */
 
 :root { --sbw: 248px; }
+/* tablet expanded default (900-1023px) — narrower than desktop's 248px so
+   768-1023px content keeps adequate width; wins here by source order (this
+   rule and the one above have equal specificity), loses outside 768-1023
+   since its media condition goes false there. */
+@media (min-width: 768px) and (max-width: 1023px) { :root { --sbw: 220px; } }
+/* explicitly collapsed always wins at every rail width (768px+), regardless
+   of the above, by selector specificity (html[attr] > :root) — same
+   mechanism this file has always used for the desktop collapse toggle. */
 html[data-sidebar="collapsed"] { --sbw: 72px; }
 
-/* Elements that only exist for the sidebar layout — hidden everywhere else */
-.sb-brand, .sb-crisis { display: none; }
+/* Elements that only exist for the rail layout — hidden everywhere else
+   (mobile, <768px, never gets the identity card — B1.5B scope). */
+.sb-brand, .sb-crisis, .sb-identity { display: none; }
 
-@media (min-width: 1024px) {
-  /* the sidebar's own brand row replaces the floating mast dot/avatar */
+@media (min-width: 768px) {
+  /* the rail's own brand row replaces the floating mast dot/avatar */
   .app-shell .mast { display: none; }
 
   body.app-shell {
@@ -33,7 +46,6 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
     overflow-y: auto; overflow-x: hidden; z-index: 40;
     transition: width var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1));
   }
-  .app-shell .tabbar .arc { display: none; }
 
   /* brand row: dot + wordmark + collapse toggle, pinned to the top of the list */
   .app-shell .sb-brand {
@@ -44,9 +56,16 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
     background: var(--dot); box-shadow: 0 0 12px rgba(216, 184, 95, .55); }
   .app-shell .sb-brand .sb-word { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* B1.5A closeout: visible icon stays 26x26px (unchanged) — position:relative
+     plus the ::before below give it a real 44x44px hit area (same invisible
+     centered-pseudo-element technique already used for the Journey day-dots
+     44px fix), without resizing anything the eye sees. */
   .app-shell .sb-brand .sb-collapse { flex: 0 0 auto; width: 26px; height: 26px; border: 0; border-radius: 8px;
     background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    position: relative;
     transition: background .2s ease, color .2s ease, transform var(--m-normal, .3s) var(--ease-soft, cubic-bezier(.2, .7, .2, 1)); }
+  .app-shell .sb-brand .sb-collapse::before { content: ''; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%); }
   .app-shell .sb-brand .sb-collapse:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
   .app-shell .sb-brand .sb-collapse svg { width: 15px; height: 15px; }
 
@@ -77,32 +96,175 @@ html[data-sidebar="collapsed"] { --sbw: 72px; }
   .app-shell .tab-declare { order: 3; }
   .app-shell .tab-vault { order: 4; }
   .app-shell .sb-crisis { order: 90; margin-top: auto; }
-  .app-shell .tab-you { order: 100; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; }
+  /* B1.5B closeout: the identity card is now the SOLE profile/account entry
+     at rail widths — .tab-you is removed from layout, tab order, and the
+     accessibility tree entirely (display:none, not visibility/opacity/
+     pointer-events, so no hidden duplicate can be focused or announced).
+     It stays completely unchanged below 768px (mobile bottom bar) — this
+     rule only exists inside the >=768px block. */
+  .app-shell .sb-identity { order: 95; margin-top: 8px; }
+  .app-shell .tab-you { display: none; }
 
-  /* the always-visible crisis link — the sidebar's real reason to exist on this app */
+  /* B1.5C shared crisis card — calm forest-and-gold treatment, never the
+     saturated red/emergency-alert look. One real anchor, no modal/loading/
+     redirecting state exists for this control — it's static markup, always a
+     direct /crisis link, reflowed by CSS only (no client script). Border is
+     deliberately a touch stronger than the identity card's (34% vs 20% gold
+     mix) so it reads as the more safety-relevant of the two stacked cards,
+     without tipping into an alarming/emergency look. */
   .app-shell .sb-crisis {
-    display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
-    border-radius: 11px; font-size: 13.5px; color: var(--text); opacity: .88;
-    background: color-mix(in srgb, var(--gold) 7%, transparent);
-    transition: opacity .2s ease, background .2s ease;
+    display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 12px;
+    border-radius: 13px; border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--line));
+    background: var(--surface); box-shadow: var(--chip-shadow, none);
+    transition: border-color .2s ease, background .2s ease;
   }
-  .app-shell .sb-crisis:hover { opacity: 1; background: color-mix(in srgb, var(--gold) 12%, transparent); }
-  .app-shell .sb-crisis svg { width: 17px; height: 17px; flex: 0 0 auto; color: var(--gold); }
-  .app-shell .sb-crisis .sb-crisis-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-shell .sb-crisis:hover {
+    border-color: color-mix(in srgb, var(--gold) 50%, var(--line));
+    background: color-mix(in srgb, var(--gold) 5%, var(--surface));
+  }
+
+  .app-shell .sbc-icon {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: var(--goldd);
+    background: color-mix(in srgb, var(--gold) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
+  }
+  .app-shell .sbc-icon svg { width: 17px; height: 17px; }
+
+  .app-shell .sbc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .app-shell .sbc-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .app-shell .sbc-reassurance,
+  .app-shell .sbc-support { font-size: 12.5px; color: var(--text2); line-height: 1.4; }
+  .app-shell .sbc-action {
+    display: flex; align-items: center; gap: 5px; margin-top: 4px;
+    font-size: 13px; font-weight: 600; color: var(--goldd);
+  }
+  /* the arrow nudges on hover only — no ongoing/looping animation, and
+     nothing about reaching /crisis depends on this ever happening */
+  .app-shell .sbc-action svg { width: 13px; height: 13px; transition: transform .2s ease; }
+  .app-shell .sb-crisis:hover .sbc-action svg { transform: translateX(2px); }
+  @media (prefers-reduced-motion: reduce) {
+    .app-shell .sbc-action svg { transition: none; }
+  }
+
+  /* B1.5B shared identity card — real avatar/name (signed in) or neutral
+     Guest state (signed out); tagline is fixed brand copy, never editable
+     content. Dark: deep surface + restrained gold border. Light: warm ivory
+     surface + subtle gold border. Both via existing semantic tokens only. */
+  .app-shell .sb-identity {
+    display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px;
+    border-radius: 13px; border: 1px solid color-mix(in srgb, var(--gold) 20%, var(--line));
+    background: var(--surface); box-shadow: var(--chip-shadow, none);
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .app-shell .sb-identity:hover { border-color: color-mix(in srgb, var(--gold) 36%, var(--line)); }
+  /* inert while whenSynced() hasn't resolved yet: no click-through, but the
+     box still occupies its final size so nothing shifts once real content lands */
+  .app-shell .sb-identity.sbi-loading { pointer-events: none; }
+  /* B1.5B closeout: restrained "you are here" treatment when signed in and on
+     /you — same tokens/visual language as .tab.on, just applied to the card's
+     own surface/border instead of a background swap, since the card already
+     has a border. Never applied to the signed-out Guest state (the script
+     only adds .on when isSignedIn() is also true), so /signin/ never reads
+     as current. */
+  .app-shell .sb-identity.on {
+    border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+    background: color-mix(in srgb, var(--gold) 10%, var(--surface));
+  }
+  .app-shell .sb-identity.on .sbi-name { color: var(--goldd); }
+
+  .app-shell .sbi-av {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; color: var(--goldd);
+    background: color-mix(in srgb, var(--gold) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
+  }
+  .app-shell .sbi-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .app-shell .sbi-av svg { width: 17px; height: 17px; }
+  .app-shell .sbi-initial { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; line-height: 1; }
+
+  .app-shell .sbi-meta { flex: 1; min-width: 0; }
+  .app-shell .sbi-name {
+    display: block; font-size: 14px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;
+  }
+  .app-shell .sbi-tag { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .app-shell .sbi-go { flex: 0 0 auto; width: 15px; height: 15px; color: var(--muted); }
 
   /* collapsed state: icon-only rail. State is set on <html data-sidebar> before
      paint (see DeclareLayout's inline resolver) so there is no load-time flash. */
   html[data-sidebar="collapsed"] .app-shell .sb-brand { justify-content: center; padding-left: 0; padding-right: 0; }
   html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-word { display: none; }
-  html[data-sidebar="collapsed"] .app-shell .tab,
-  html[data-sidebar="collapsed"] .app-shell .sb-crisis { justify-content: center; padding-left: 0; padding-right: 0; }
-  html[data-sidebar="collapsed"] .app-shell .tab .tlbl,
-  html[data-sidebar="collapsed"] .app-shell .sb-crisis .sb-crisis-label { display: none; }
+  html[data-sidebar="collapsed"] .app-shell .tab { justify-content: center; padding-left: 0; padding-right: 0; }
+  /* Visually hidden, NOT display:none — a real finding from an earlier pass: the
+     compact/collapsed range is now a default (768-899px), not just an
+     opt-in desktop toggle, so an icon-only link with no accessible name is
+     no longer an edge case. display:none removes text from the accessibility
+     tree entirely, leaving Word/Journey/Declare/Vault/You (and the You tab's
+     own dynamic first-name label) with NO accessible name at all when
+     collapsed. This standard visually-hidden pattern keeps the exact same
+     text available to assistive tech while staying visually absent — no
+     aria-label duplication needed. (The crisis card uses a different,
+     display:none + aria-label strategy instead — see below — since its
+     compact form is a deliberately distinct shape, not a shrunk tab row.) */
+  html[data-sidebar="collapsed"] .app-shell .tab .tlbl {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
   html[data-sidebar="collapsed"] .app-shell .sb-brand .sb-collapse { transform: rotate(180deg); }
+
+  /* B1.5B compact identity card: avatar/initials/icon only. Unlike the .tlbl
+     visually-hidden pattern above, plain display:none is correct here — the
+     anchor's own aria-label (composed in TabBar's script) already carries the
+     full accessible name regardless of what's visually rendered inside it, so
+     no name/tagline text needs to survive in the accessibility tree. */
+  html[data-sidebar="collapsed"] .app-shell .sb-identity {
+    justify-content: center; padding: 8px; position: relative;
+  }
+  html[data-sidebar="collapsed"] .app-shell .sbi-meta,
+  html[data-sidebar="collapsed"] .app-shell .sbi-go { display: none; }
+  /* invisible 44x44 hit area, centered on the compact avatar — same technique
+     already used for the day-dots and collapse-toggle 44px fixes this release. */
+  html[data-sidebar="collapsed"] .app-shell .sb-identity::before {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+
+  /* B1.5C compact crisis control: deliberately a distinct SHAPE (a self-
+     centered 44x44 circle), not a shrunk version of the full-width card or
+     the identity avatar's rounded-rectangle, so this one safety-critical
+     control can never be mistaken for a nav-tab row or the profile avatar
+     at a glance. Unlike the identity card's compact fix, the real <a> itself
+     is sized to 44x44 here — no invisible ::before hit-area expansion — this
+     is the safety-critical control, so its tap target must be the visible
+     element itself, not a hidden expansion around a smaller visible box. */
+  html[data-sidebar="collapsed"] .app-shell .sb-crisis {
+    width: 44px; height: 44px; padding: 0; margin: 0 auto;
+    border-radius: 50%; align-items: center; justify-content: center;
+  }
+  html[data-sidebar="collapsed"] .app-shell .sbc-icon {
+    width: auto; height: auto; border: 0; background: none;
+  }
+  html[data-sidebar="collapsed"] .app-shell .sbc-icon svg { width: 18px; height: 18px; }
+  /* the anchor's own translated aria-label (data-i18n-aria) already carries
+     the complete accessible name — no name/copy text needs to survive in
+     the accessibility tree, same reasoning as the identity card's .sbi-meta */
+  html[data-sidebar="collapsed"] .app-shell .sbc-body { display: none; }
 
   /* generic shared-shell clearance now that pages no longer need to clear a
      fixed top bar — pages with a dedicated desktop pass (today.astro so far)
      tune this themselves; this is just a safe shared default for the rest
      until their turn in the plan. */
   .app-shell .scroll { padding-top: 40px; }
+}
+
+/* Compact rail (768-899px): icon-only by default (--sbw:72px, resolved above),
+   and — deliberately, per B1.5A scope — no way to expand it. The pre-paint
+   resolver in DeclareLayout.astro already forces data-sidebar="collapsed" in
+   this range regardless of any stored desktop preference; hiding the toggle
+   here backs that up so there's no visible control that would suggest this
+   capability exists yet. A verified expand-at-compact-width treatment is
+   deferred, not this milestone. */
+@media (min-width: 768px) and (max-width: 899px) {
+  .app-shell .sb-brand .sb-collapse { display: none; }
 }

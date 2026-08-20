@@ -20,9 +20,25 @@ const MODE = 'signup';
     import { initAuth, isConfigured, isSignedIn } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
 
+    // `return` is the canonical param; `next` is accepted as a legacy alias so
+    // older links still land where they meant to.
+    //
+    // Safety: resolve against our own origin and require the RESULT to be
+    // same-origin. A prefix check like startsWith('/') && !startsWith('//') is
+    // not sufficient: browsers treat a backslash as a slash in the authority
+    // position, so "/\evil.com" passes it and still navigates off-site. Letting
+    // the URL parser decide closes backslash, tab, and mixed-separator variants.
+    const AUTH_ROUTES = ['/signin', '/create-account', '/reset-password'];
     function returnTo() {
-      const r = new URLSearchParams(location.search).get('return') || '';
-      return (r.startsWith('/') && !r.startsWith('//')) ? r : '/you';
+      const q = new URLSearchParams(location.search);
+      const raw = q.get('return') || q.get('next') || '';
+      if (!raw) return '/you';
+      let u;
+      try { u = new URL(raw, location.origin); } catch (e) { return '/you'; }
+      if (u.origin !== location.origin) return '/you';
+      // Never bounce back into an auth shell: that is a redirect loop, not a destination.
+      if (AUTH_ROUTES.includes(u.pathname)) return '/you';
+      return u.pathname + u.search + u.hash;
     }
 
     const mode = document.querySelector('.authpage').dataset.mode === 'signup' ? 'signup' : 'signin';

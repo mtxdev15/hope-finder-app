@@ -22,9 +22,29 @@ const MODE = 'signin';
     import { initAuth, isConfigured, isSignedIn } from '../app/declare/auth-store.js';
     import { openAuthModal } from '../app/declare/auth-modal.js';
 
+    // `return` is the canonical param. `next` is accepted as a legacy alias so a
+    // link minted by older code (give.js used ?next=) still lands where it meant
+    // to instead of silently defaulting to /you.
+    //
+    // Safety: resolve against our own origin and require the RESULT to be
+    // same-origin, rather than pattern-matching the raw string. A prefix check
+    // like startsWith('/') && !startsWith('//') looks right but is not: browsers
+    // treat a backslash as a slash in the authority position, so "/\evil.com"
+    // passes that check and still navigates to http://evil.com. Letting the URL
+    // parser decide closes backslash, tab, and mixed-separator variants at once.
+    // An auth page is the worst place to have an open redirect, since the bounce
+    // lands right after someone has typed their password.
+    const AUTH_ROUTES = ['/signin', '/create-account', '/reset-password'];
     function returnTo() {
-      const r = new URLSearchParams(location.search).get('return') || '';
-      return (r.startsWith('/') && !r.startsWith('//')) ? r : '/you';
+      const q = new URLSearchParams(location.search);
+      const raw = q.get('return') || q.get('next') || '';
+      if (!raw) return '/you';
+      let u;
+      try { u = new URL(raw, location.origin); } catch (e) { return '/you'; }
+      if (u.origin !== location.origin) return '/you';
+      // Never bounce back into an auth shell: that is a redirect loop, not a destination.
+      if (AUTH_ROUTES.includes(u.pathname)) return '/you';
+      return u.pathname + u.search + u.hash;
     }
 
     const mode = document.querySelector('.authpage').dataset.mode === 'signup' ? 'signup' : 'signin';

@@ -4,6 +4,43 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
+- [ ] **Mast avatar icon may be redundant nav (raised during Release B / B2.2, 2026-07-29).** Jeff
+      flagged the circular profile/avatar icon in the top-right mast (`DeclareLayout.astro`, shared
+      sitewide, every page, both languages) as possibly making no sense alongside the bottom "You"/"Tú"
+      tab — if both lead to the same account destination, that's duplicate navigation. Needs: confirm
+      what the mast avatar actually links to/does on each page today vs. the You tab, then decide
+      remove vs. repurpose. Sitewide change (not Journey-specific) — deserves its own pass, not a
+      same-turn patch.
+- [ ] **Journey day content doesn't always match the active language (found during Release B / B2.2,
+      2026-07-29).** With Spanish active, the Day-Opening screen (and identically, the pre-existing
+      "Today's Journey" card on `/journey` — confirmed both show the exact same English title/verse
+      in the same test) can show English day title/verse/encouragement while the surrounding UI chrome
+      is correctly Spanish. Root cause: that content only gets rewritten in Spanish by the Journey
+      Worker's AI call (`ensureDay()` in `journey.astro` → `journey-engine.js`); if that call fails or
+      hasn't resolved yet, it silently falls back to the English authored bank regardless of active
+      language (by design — no error surfaced). Confirmed pre-existing, not introduced by B2.2. Not
+      touched here — the original Release B brief explicitly protects `journey-engine.js`/the Worker
+      from changes without separate approval. Needs investigation into why the AI call isn't
+      completing (at minimum in local dev — unclear yet if this also happens in production).
+- [ ] **"Preview tomorrow" shouldn't be a live production button (found during Release B / B2.2,
+      2026-07-29).** The Journey lock-note's `#lnPreview` button (`src/pages/journey.astro`) lets any
+      user tap past the one-day-per-day pacing lock (`db_journey_lock`) and unlock the next day
+      early — undercutting the "faithfulness, not speed" design intent. The original Release B
+      Journey prompt explicitly called for this to be "a development/testing affordance, not a
+      normal production CTA," but it currently renders unconditionally with no gating. Fix: hide it
+      from production (dev-console-only, or a `?debug=1`-style flag) and keep `previewTomorrow()`
+      reachable for QA.
+- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
+      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
+      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
+      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
+      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
+      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
+      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
+      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
+      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
+      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
+      interpret it.
 - [ ] **Lead magnet: free declarations download (PAUSED — needs Jeff's 4 answers).** Replace the
       weak "early access" band at the bottom of `/welcome` (and 15 other pages, the `fsignup`/`nlForm`
       block) with a free PDF download offer. Today the form redirects to a broken `Signin.html` and
@@ -32,6 +69,47 @@ Done items move to the bottom or get deleted.
       skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
+- [ ] **Split the app onto app.declareandbelieve.com (studied Psalmlog's app.psalmlog.com
+      structure as the reference).** Full architecture + phase breakdown lives in
+      `.claude/plans/please-use-the-skills-shimmying-wombat.md` — plan approved 2026-07-16,
+      not yet started. Goal: `declareandbelieve.com` stays the marketing/SEO site,
+      `app.declareandbelieve.com` becomes the actual app, with `/today`→`/declare`,
+      `/word`→`/bible`, `/you`→`/profile`, `/signin`→`/login` (all real URL renames with
+      redirects). One Cloudflare Pages project, both domains attached, a new
+      `functions/_middleware.ts` does Host-based routing — no repo restructuring, no second
+      build pipeline. Do the 7 phases below **in order, one at a time**, verifying each
+      before moving on:
+      - [ ] **Phase 1 — add `app.declareandbelieve.com`** as a custom domain in Cloudflare
+        Pages on the existing Pages project (zero risk, mirrors current site, nothing on
+        `declareandbelieve.com` changes).
+      - [ ] **Phase 2 — add a no-op `functions/_middleware.ts`** (pure passthrough) to prove
+        Cloudflare Pages Functions work before adding real routing logic.
+      - [ ] **Phase 3 — fix the relative `/welcome` link** in `DeclareLayout.astro` and
+        `index.astro` (currently breaks on `app.*` since it's a relative link).
+      - [ ] **Phase 4 — wire up auth for the new domain.** `convex/auth.ts` `trustedOrigins`
+        needs to support both origins; update Convex dashboard `SITE_URL` on dev
+        (`good-dotterel-906`) first, test Google + email sign-in on `app.*`, then repeat on
+        prod (`keen-hamster-650`). Also verify Google Cloud Console "Authorized JavaScript
+        origins."
+      - [ ] **Phase 5 — rename the 4 routes on `app.*` only** (no real traffic there yet):
+        `today.astro`→`declare.astro`, `word.astro`→`bible.astro`, `you.astro`→`profile.astro`,
+        `signin.astro`→`login.astro`. Update `TabBar.astro`, `auth-modal.js`'s default
+        `?return=` target, `create-account.astro`/`reset-password.astro` cross-links. Click
+        through the whole app on `app.*` to confirm nothing 404s.
+      - [ ] **Phase 6 — update canonical/OG tags** in `DeclareLayout.astro` and `index.astro`
+        to the new `app.*` base (accepted risk: could re-trigger Google's OAuth branding
+        review, per Jeff's call).
+      - [ ] **Phase 7 — the actual cutover (needs Jeff's explicit go-ahead).** Add
+        Host-conditional single-hop 301s in `functions/_middleware.ts` sending old
+        `declareandbelieve.com` routes straight to their final `app.*` names (e.g.
+        `/today`→`app.declareandbelieve.com/declare`). Excludes `/crisis` and `/` — crisis
+        must never depend on a redirect, and root-domain `/` is a separate later decision.
+        Expect a temporary Search Console ranking dip on `/declare` and `/bible` (both
+        currently indexed) for 1–2 weeks post-redirect — normal, not a break.
+      **Not part of this project:** journaling, paywalls, or any Psalmlog product features —
+      only the domain/routing structure is being adopted. Comparison report + a
+      `/declare-vs-psalmlog` page, and a Mobbin-referenced dashboard/marketing redesign, are
+      separate follow-on efforts (references saved in the plan file).
 - [ ] **iOS app (Capacitor, same repo).** Decided 2026-07-02: wrap the existing web app with
       Capacitor rather than rewriting native — `npx cap add ios` creates an `ios/` folder Xcode opens
       directly; web changes flow with `npm run build && npx cap sync`. Prereq: Apple Developer Program

@@ -11,6 +11,11 @@ const ALLOWED = {
   // pass 1 — the two core conversions
   struggle_submitted: ['struggle_category', 'input_method', 'translation'],
   signup_completed: ['method'],
+  // signin_completed has been fired by auth-store.js since Google sign-in
+  // shipped, but was never allowlisted — so every one of those events was
+  // silently dropped. Allowlisted here with the same single non-PII prop
+  // signup_completed carries.
+  signin_completed: ['method'],         // method: google | email
   // pass 2 — rate & review (testimonial text is NEVER an allowed key)
   rate_prompt_shown: [],
   rate_started: ['source'],             // source: toast | profile | footer | menu

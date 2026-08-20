@@ -21,6 +21,23 @@ function amT(en, es) { return amES() ? es : en; }
 
 let root = null, state = null;
 
+/* Every caller today passes a returnTo we control (a sanitised query param, or
+   location.pathname), but this modal navigates on that value and lives one
+   import away from any future page. Validating at the point of USE means a
+   caller can never turn the post-sign-in redirect into a way off the site.
+   Resolve against our own origin and require the result to still be ours — a
+   startsWith('/') style check misses "/\evil.com", since browsers read the
+   backslash as a slash in the authority position. Returns '' when unusable so
+   callers fall through to their own default. */
+function safeReturnPath(raw) {
+  if (!raw || typeof window === 'undefined') return '';
+  try {
+    const u = new URL(raw, location.origin);
+    if (u.origin !== location.origin) return '';
+    return u.pathname + u.search + u.hash;
+  } catch (e) { return ''; }
+}
+
 /* Social logins appear ONLY for providers listed in PUBLIC_AUTH_PROVIDERS
    (comma-separated, e.g. "google" or "google,apple,facebook"). Until a
    provider is both configured in Better Auth AND named here, its button never
@@ -240,7 +257,7 @@ function mount() {
                'Google no permite iniciar sesión dentro del navegador de esta app. Abre declareandbelieve.com en Safari o Chrome — o continúa con tu correo arriba.'), true);
       return;
     }
-    const path = (state && state.returnTo) || (location.pathname + location.search);
+    const path = safeReturnPath(state && state.returnTo) || (location.pathname + location.search);
     b.disabled = true;
     const res = await signInWithProvider(b.dataset.prov, location.origin + path);
     if (!res.ok) { b.disabled = false; hint(res.error, true); }
@@ -364,8 +381,19 @@ async function submit(e) {
     return;
   }
   closeAuthModal();
-  // A brand-new account goes straight into /today to start declaring.
-  if (signupMode) { window.location.href = '/today'; return; }
+  // A brand-new account goes straight into /today to start declaring — UNLESS the
+  // caller expressed an intent to come back to (e.g. "choose Plus -> create account
+  // -> return to the selected plan"). The Google path already honours returnTo via
+  // signInWithProvider(); before this, the email path discarded both onSuccess and
+  // returnTo and hard-redirected, so the same journey behaved differently depending
+  // on which button you pressed. Order: explicit callback, then returnTo, then the
+  // unchanged /today default.
+  if (signupMode) {
+    const cbNew = state.onSuccess;
+    if (cbNew) { try { cbNew(); } catch (err) {} return; }
+    window.location.href = safeReturnPath(state.returnTo) || '/today';
+    return;
+  }
   const cb = state.onSuccess;
   if (cb) { try { cb(); } catch (err) {} }
 }

@@ -9,23 +9,24 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 // Internal QA affordance. "Preview tomorrow" permanently defeats the one-day
 // pacing lock (it stamps the lock date with a sentinel that can never equal
 // today), so it must never reach a real user. This is a BUILD-TIME flag: when
-// PUBLIC_JOURNEY_DEV_TOOLS is absent the button's markup is not emitted, so
-// there is no control to unhide and no listener to attach. It is deliberately
-// not a runtime check, a CSS rule, or a disabled attribute — each of those
-// still ships the control.
+// PUBLIC_JOURNEY_DEV_TOOLS is absent, the button's markup is not emitted at
+// all, so there is no control to unhide and no listener to trigger. It is
+// deliberately not a runtime check, a CSS rule, or a disabled attribute —
+// each of those still ships the control. Matches the PUBLIC_AUTH_PROVIDERS
+// convention in src/app/declare/auth-modal.js, which likewise decides at build
+// time which controls exist.
 //
-// The `import.meta.env.DEV` term is the load-bearing half. The env var alone
-// is not a sufficient guard: a stray PUBLIC_JOURNEY_DEV_TOOLS=1 in a
-// Cloudflare Pages build setting, a CI environment, or a .env.local (which
-// Vite loads in EVERY mode, production builds included) would otherwise ship
-// the bypass. DEV is false in any `astro build`, so a production build cannot
-// contain this control even when the flag is deliberately set to 1.
+// The `import.meta.env.DEV` term is the important half. The env var alone is
+// not enough: a stray PUBLIC_JOURNEY_DEV_TOOLS=1 in a Cloudflare Pages build
+// setting, a CI environment, or a .env.local (which Vite loads in EVERY mode,
+// production builds included) would otherwise ship the bypass. DEV is false in
+// any `astro build`, so a production build cannot contain this control even
+// when the flag is deliberately set to 1. Verified both ways.
 //
-// To enable it locally, pass it inline for a dev run:
+// To enable it locally:
 //   PUBLIC_JOURNEY_DEV_TOOLS=1 npm run dev
-// or put it in .env.development.local, which Vite loads ONLY in dev mode.
-// Do NOT use .env.local, and do not add it to the Cloudflare Pages build
-// environment.
+// or put it in .env.development.local, which Vite loads only in dev mode.
+// Do NOT use .env.local, and do not add it to Cloudflare Pages build settings.
 const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_DEV_TOOLS === '1';
 ---
 <DeclareLayout
@@ -38,8 +39,9 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
     <div class="jin">
       <div class="jhead rise d1">
-        <h1 data-i18n="journey.hTitle">Your Journey</h1>
-        <div class="sub" data-i18n="journey.becoming">Who are you becoming?</div>
+        <div class="jhead-ey" data-i18n="journey.hTitle">Your Journey</div>
+        <h1 data-i18n="journey.becoming">Who are you becoming?</h1>
+        <div class="sub" data-i18n="journey.overviewSub">God is meeting you in the everyday and growing something eternal.</div>
       </div>
 
       <div class="scroll" id="homeScroll">
@@ -55,35 +57,49 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           <button class="seeall zs-seeall" id="zsSeeAll"><span data-i18n="journey.seeAllJourneys">See all journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         </section>
 
-        <section class="jcard rise d2" id="activeCard" aria-label="Active journey">
-          <div class="jc-top">
-            <div>
-              <div class="ey" data-i18n="journey.activeJourney">Active Journey</div>
-              <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="to-row"><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></span></div>
+        <section class="jcard rise d2" id="activeCard" aria-label="Active journey" tabindex="-1">
+          <div class="jc-grid">
+            <div class="jc-copy">
+              <div class="jc-top">
+                <div class="ey" data-i18n="journey.activeJourney">Active Journey</div>
+              </div>
+              <div class="jc-shift"><span class="from" id="fromW">Shame</span><span class="arr" aria-hidden="true">&rarr;</span><span class="to" id="toW">Beloved Child</span></div>
               <div class="jc-habit" id="habitW"></div>
+              <span class="daypill" id="dayPill">Day 1 / 5</span>
+
+              <div class="today">
+                <div class="today-ey" data-i18n="journey.todayJourney">Today's Journey</div>
+                <div class="tt" id="todayTitle"></div>
+                <div class="tref" id="todayRef"></div>
+                <div class="focus" id="focusLine"></div>
+                <div class="gen-tag"><span class="gd"></span><span data-i18n="journey.personalizing">Personalizing your path</span></div>
+              </div>
+
+              <div class="jc-actions">
+                <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
+                <button class="btn btn-ghost btn-view" id="viewTreeBtn"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.viewVine">View Vine</span></button>
+              </div>
+
+              <div class="jc-foot">
+                <div class="dots" id="dayDots"></div>
+                <div class="remain" id="remainTxt">Just planted</div>
+              </div>
             </div>
-            <span class="daypill" id="dayPill">Day 1 / 5</span>
-          </div>
 
-          <div class="vinewrap">
-            <div class="tree-mount" id="vineMount"></div>
-          </div>
+            <!-- Real-data-only preview of the most recently completed day's fruit —
+                 hidden entirely until at least one day is actually done (see
+                 renderFruitPreview()). Never shows today's unfinished day. -->
+            <div class="jc-fruit-preview" id="fruitPreview" style="display:none">
+              <div class="fp-h"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.fruitSoFar">Fruit God Is Growing</span></div>
+              <div class="fp-item">
+                <span class="fp-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span>
+                <div class="fp-meta"><div class="fp-nm" id="fpName"></div><div class="fp-tr" id="fpTruth"></div></div>
+              </div>
+            </div>
 
-          <div class="jc-foot">
-            <div class="dots" id="dayDots"></div>
-            <div class="remain" id="remainTxt">Just planted</div>
-          </div>
-
-          <div class="today">
-            <div class="tt" id="todayTitle"></div>
-            <div class="tref" id="todayRef"></div>
-            <div class="focus" id="focusLine"></div>
-            <div class="gen-tag"><span class="gd"></span><span data-i18n="journey.personalizing">Personalizing your path</span></div>
-          </div>
-
-          <div class="jc-actions">
-            <button class="btn btn-primary btn-cont" id="continueBtn">Continue Day 1</button>
-            <button class="btn btn-ghost btn-view" id="viewTreeBtn" data-i18n="journey.viewVine">View Vine</button>
+            <div class="vinewrap">
+              <div class="tree-mount" id="vineMount"></div>
+            </div>
           </div>
 
           <div class="lock-note" id="lockNote">
@@ -110,7 +126,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
         <!-- Fruit log — a quiet record of grace -->
         <section class="fruitlog rise d3" id="fruitLog" style="display:none">
-          <div class="fl-h" data-i18n="journey.fruitSoFar">Fruit so far</div>
+          <div class="fl-h"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.fruitSoFar">Fruit God Is Growing</span></div>
           <div class="fl-list" id="fruitList"></div>
         </section>
 
@@ -127,25 +143,96 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         </section>
       </div>
 
-      <!-- ===== DAY FLOW ===== -->
-      <div class="dayflow" id="dayflow" aria-hidden="true">
-        <div class="df-top">
-          <button class="df-back" id="dfBack" aria-label="Back to journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-          <div class="df-tt">
-            <div class="ey" id="dfEy"></div>
-            <div class="nm" id="dfNm"></div>
+      <!-- ===== JOURNEY PREVIEW (B2.1) =====
+           Shown for a brand-new, not-yet-committed journey only — resolved
+           read-only from real journey-data.js/journey-engine.js content, never
+           mutating active/PLAN/storage until "Begin Day 1" is chosen. Modeled
+           on the same full-screen overlay pattern as #dayflow (fixed, its own
+           z-index above the rail, toggled via .open + aria-hidden) so the
+           shared crisis/identity rail is untouched code-wise, exactly as it's
+           already temporarily covered while a day is open today. -->
+      <div class="jpreview scroll" id="journeyPreview" aria-hidden="true" role="region" aria-labelledby="jpHeading">
+        <div class="jp-head">
+          <h2 class="jp-ey" data-i18n="journey.previewEyebrow" tabindex="-1" id="jpHeading">Preview Your 5-Day Journey</h2>
+          <div class="jp-shift" id="jpShift"><span id="jpFrom">Shame</span><span class="jp-arr" aria-hidden="true">&rarr;</span><span id="jpTo">Beloved Child</span></div>
+          <div class="jp-meta">
+            <span data-i18n="journey.previewDays">5 Days</span>
+            <span class="jp-dot" aria-hidden="true">&middot;</span>
+            <span data-i18n="journey.previewPace">One step at a time.</span>
           </div>
-          <div class="df-dots" id="dfDots"></div>
+          <p class="jp-support" id="jpSupport" style="display:none"></p>
         </div>
-        <div class="df-prov" id="dfProv" role="note" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span class="df-prov-t" id="dfProvT"></span>
-          <span class="df-prov-s" id="dfProvS"></span>
+
+        <div class="jp-days" id="jpDays"></div>
+
+        <div class="jp-actions">
+          <button class="btn btn-primary jp-begin" id="jpBegin" data-i18n="journey.previewBeginDay1">Begin Day 1</button>
+          <button class="btn btn-ghost jp-secondary" id="jpSecondary">Back to Today</button>
         </div>
-        <div class="df-scroll" id="dfScroll"><!-- blocks injected --></div>
-        <div class="df-foot" id="dfFoot">
-          <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="journey.declareAloudFinish">Declare it aloud to finish the day</span></div>
-          <button class="btn btn-primary" id="dfComplete" disabled>Complete Day 1</button>
+        <div class="jp-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+          <span data-i18n="journey.previewPrivacy">Your journey is private and only visible to you.</span>
+        </div>
+      </div>
+
+      <!-- ===== DAY OPENING (B2.2) =====
+           A quiet pause shown once per day, immediately before the seven-step
+           #dayflow opens — for Day 1 (right after Preview's "Begin Day 1")
+           and for every Continue/Resume on Days 1-5. Read-only: renders
+           straight from PLAN[state.day-1], writes nothing to storage, and is
+           never shown for completed-day review (openReview() bypasses it).
+           Mobile: this element itself is the full-screen surface. Tablet and
+           desktop (≥768px): a centered dialog card over a dimmed, blurred
+           backdrop (.jo-back) — the same responsive shape as the account
+           modal (auth-modal.js), reusing only existing declare.css tokens. -->
+      <div class="dayopen" id="dayOpen" aria-hidden="true">
+        <div class="jo-back" data-jo-close></div>
+        <div class="jo-card" role="dialog" aria-modal="true" aria-labelledby="doEyebrow">
+          <button class="jo-close" id="doClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <div class="jo-scroll">
+            <div class="jo-eyebrow" id="doEyebrow" tabindex="-1">Day 2 of 5</div>
+            <div class="jo-progress" id="doProgress" aria-hidden="true"></div>
+            <span class="jo-leaf" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg></span>
+            <h2 class="jo-title" id="doTitle"></h2>
+            <blockquote class="jo-verse">
+              <p id="doVerseText"></p>
+              <cite id="doRef"></cite>
+            </blockquote>
+            <p class="jo-encourage" id="doEncourage"></p>
+          </div>
+          <div class="jo-actions">
+            <button class="btn btn-primary jo-begin" id="doBegin" data-i18n="journey.dayOpenBegin">Begin Today&rsquo;s Journey</button>
+            <button class="jo-secondary" id="doSecondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="journey.dayOpenOverview">View Journey Overview</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DAY FLOW (B3.2: one-step-at-a-time ritual shell) =====
+           .dayflow is the full-viewport overlay wrapper (mobile: itself IS the
+           full-bleed surface, unchanged from before B3.2; >=768px: becomes a
+           dimmed/blurred backdrop, same pattern as B2.2's .dayopen/.jo-back).
+           .df-shell is the actual bounded card at >=768px (mirrors .jo-card
+           being both the mobile full-bleed surface and the desktop dialog). -->
+      <div class="dayflow" id="dayflow" aria-hidden="true">
+        <div class="df-shell" id="dfShell">
+          <div class="df-top">
+            <button class="df-back" id="dfBack" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="df-tt">
+              <div class="ey" id="dfEy" aria-hidden="true"></div>
+              <span class="sr-only" id="dfEySR" tabindex="-1"></span>
+            </div>
+            <button class="df-help" id="dfHelp" aria-label="Need help? Talk to someone now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+            <div class="df-dots" id="dfDots"></div>
+          </div>
+          <div class="df-stepdots" id="dfStepDots" aria-hidden="true"></div>
+          <div class="df-review-badge" id="dfReviewBadge" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="dfReviewBadgeTxt">Reviewing a completed day &middot; Read only</span></div>
+          <div class="df-scroll" id="dfScroll"><!-- blocks injected --></div>
+          <div class="df-foot" id="dfFoot">
+            <div class="lockhint" id="dfLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="dfLockTxt" data-i18n="journey.declareAloudFinish">Declare it aloud to finish the day</span></div>
+            <button class="btn btn-primary" id="dfComplete" disabled>Complete Day 1</button>
+            <button class="df-step-next" id="dfStepNext" style="display:none">Next</button>
+            <button class="df-step-back" id="dfStepBack" style="display:none">Back</button>
+          </div>
         </div>
       </div>
 
@@ -290,6 +377,45 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         </div>
       </div>
 
+      <!-- ===== in-ritual support sheet (B3.2) =====
+           New in-ritual control — the audit confirmed no crisis/help access
+           existed anywhere inside the seven-step flow before this. Reuses the
+           EXACT real resource list and copy already authored in
+           src/pages/crisis.astro via the same crisis.* i18n keys (no invented
+           hotlines, categories, or copy) and the existing .sheet component
+           pattern already used by menuSheet/careSheet/etc. Does not replace
+           or weaken the B2.1 care gate, which remains a separate, one-time,
+           pre-Journey acknowledgment. -->
+      <div class="sheet support-sheet" id="supportSheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="supportTitle">
+        <div class="grabber"></div>
+        <div class="care-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></div>
+        <h3 id="supportTitle" data-i18n="crisis.ttl">Find help now</h3>
+        <p data-i18n="crisis.csub">If you&rsquo;re thinking about harming yourself, please reach out right now. Trained, caring people are ready to talk &mdash; any time, day or night.</p>
+        <div class="support-list">
+          <a class="support-row" href="tel:988">
+            <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></span>
+            <span class="sm"><span class="st" data-i18n="crisis.call988">Call 988</span><span class="sd" data-i18n="crisis.call988D">Suicide &amp; Crisis Lifeline &middot; 24/7, free</span></span>
+          </a>
+          <a class="support-row" href="sms:988&body=HOME">
+            <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg></span>
+            <span class="sm"><span class="st" data-i18n="crisis.text988">Text 988</span><span class="sd" data-i18n="crisis.text988D">Prefer to text? Connect by message</span></span>
+          </a>
+          <a class="support-row" href="tel:911">
+            <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17v.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+            <span class="sm"><span class="st" data-i18n="crisis.call911">Call 911</span><span class="sd" data-i18n="crisis.call911D">For an immediate, life-threatening emergency</span></span>
+          </a>
+          <a class="support-row" href="sms:741741&body=HOME">
+            <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            <span class="sm"><span class="st">Crisis Text Line</span><span class="sd" data-i18n="crisis.ctlD">Text HOME to 741741 &middot; 24/7</span></span>
+          </a>
+          <a class="support-row" href="mailto:care@declareandbelieve.com">
+            <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+            <span class="sm"><span class="st" data-i18n="crisis.emailTeam">Email our care team</span><span class="sd">care@declareandbelieve.com</span></span>
+          </a>
+        </div>
+        <button class="btn btn-ghost support-close" id="supportCloseBtn" data-i18n="journey.done">Done</button>
+      </div>
+
       <div class="scrim" id="scrim"></div>
     </div>
 
@@ -316,11 +442,14 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
        Persistence is device-local: 'db_active_journey' (which vine is growing),
        'db_journey_lock' (one day per calendar day + reminder time),
        'db_journeys_done' (rooted journeys — keeps the grid honest). */
-    import { saveItem } from '../app/declare/vault-store.js';
+    import { saveItem, upsertItem, getItem } from '../app/declare/vault-store.js';
     import { initAuth, isSignedIn } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
+    /* Released provenance rule. Ships; the translation feature does not. */
+    import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
+    import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
     // so signing in/up can never pull stale account state over local progress
@@ -368,18 +497,32 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     const CURATED = ['anxiety', 'shame', 'loneliness', 'doubt', 'burnout'];
 
     function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+    // PURE — B2.1: extracted from startPlan()'s own resolution logic below,
+    // unchanged in behavior. Touches no global (no `active`, no `PLAN`, no
+    // storage, no JourneyEngine.generateDay()/Sonnet call). Safe to call
+    // before a journey is committed — this is what the Journey Preview reads.
+    // Same resolution priority as always: authored bank (journey-data.js) →
+    // seeded programmatic fallback (journey-engine.js, for any struggle with
+    // no authored content) → the 'shame' bank as an always-valid last resort.
+    function resolveJourneyPlan(struggleId, fromLabel, toLabel, seed) {
+      const bespoke = JOURNEY_CONTENT[struggleId];
+      const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
+        ? window.JourneyEngine.fallbackPlan({ struggleId: struggleId, fromLabel: fromLabel, toLabel: toLabel, seed: seed })
+        : null;
+      return clone(bespoke || composed || JOURNEY_CONTENT.shame);
+    }
     // A fresh journey instance: clone the authored bank (always-valid fallback),
     // give it a new seed + theme arc, and clear the AI-upgrade cache. The Worker
     // then rewrites each day on demand so no two journeys are ever the same.
-    function startPlan() {
-      active._seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+    // B2.1: accepts an optional pre-generated seed so a journey committed after
+    // Preview produces the EXACT plan Preview already showed (same seed →
+    // same resolveJourneyPlan() output) rather than re-rolling a new one.
+    function startPlan(existingSeed) {
+      active._seed = (existingSeed !== undefined && existingSeed !== null) ? existingSeed : ((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
       active._themes = window.JourneyEngine ? window.JourneyEngine.arc(active.id, active._seed) : null;
       active._ai = {}; active._inflight = {};
-      const bespoke = JOURNEY_CONTENT[active.id];
-      const composed = (!bespoke && window.JourneyEngine && window.JourneyEngine.fallbackPlan)
-        ? window.JourneyEngine.fallbackPlan({ struggleId: active.id, fromLabel: active.from, toLabel: active.to, seed: active._seed })
-        : null;
-      PLAN = clone(bespoke || composed || JOURNEY_CONTENT.shame);
+      PLAN = resolveJourneyPlan(active.id, active.from, active.to, active._seed);
     }
     // Ensure day n has freshly generated content (else keep the fallback already
     // in PLAN). One attempt per day per journey — a failed/slow Worker call keeps
@@ -423,7 +566,11 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     function saveInstance() {
       try {
         if (!active || active.status !== 'active' || !PLAN) return;
-        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken, lang: curLang() }));
+        // B3.2: extends this same existing object with `activeStep` rather
+        // than creating a competing storage key — see restoreInstance()'s
+        // fallback below for what happens to instances saved before this field
+        // existed.
+        localStorage.setItem(instKey(), JSON.stringify({ seed: active._seed, themes: active._themes, ai: active._ai, plan: PLAN, dayState: dayState, daySpoken: daySpoken, activeStep: activeStep, lang: curLang() }));
       } catch (e) {}
     }
     function restoreInstance() {
@@ -433,6 +580,12 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         PLAN = o.plan; active._seed = o.seed; active._themes = o.themes;
         active._ai = (o.lang && o.lang !== curLang()) ? {} : (o.ai || {}); active._inflight = {};
         dayState = o.dayState || {}; daySpoken = o.daySpoken || {};
+        // Backward compatibility: an instance cache saved before B3.2 has no
+        // `activeStep` field at all. Rather than guess how far into the (then
+        // single-scroll) day a returning user had read, default safely to
+        // Step 1 — never skips real content, never lands on a step whose
+        // prerequisite the user may not have actually seen.
+        activeStep = (typeof o.activeStep === 'number' && o.activeStep >= 1 && o.activeStep <= TOTAL_STEPS) ? o.activeStep : 1;
         return true;
       } catch (e) { return false; }
     }
@@ -464,7 +617,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     function renderHome() {
       $('fromW').textContent = cFrom(); $('toW').textContent = cTo();
       $('habitW').textContent = cLine();
-      $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + ' / ' + TOTAL;
+      $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
       const n = completed(); $('remainTxt').textContent = n > 0 ? (n + (esL() ? (n === 1 ? ' fruto hasta ahora' : ' frutos hasta ahora') : ' fruit so far')) : (esL() ? 'Recién plantado' : 'Just planted');
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { const cl = (i < state.day ? 'done' : (i === state.day ? 'cur' : '')); dots += '<i class="' + cl + (i < state.day ? ' tap' : '') + '" data-day="' + i + '"' + (i < state.day ? ' role="button" tabindex="0" aria-label="Revisit day ' + i + '"' : '') + '></i>'; } $('dayDots').innerHTML = dots;
       const d = PLAN[state.day - 1];
@@ -486,6 +639,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       $('resetShift').innerHTML = '&ldquo;' + cFrom() + ' &rarr; ' + cTo() + '.&rdquo;';
       $('doneCount').textContent = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
       buildVine();
+      renderFruitPreview();
       renderFruitLog();
       renderGrid();
       // Hybrid: quietly upgrade today's card with a freshly generated plan.
@@ -495,13 +649,26 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       if (generating) { ensureDay(state.day).then(function () { if (document.querySelector('.jcard') && active.status === 'active') { renderHome(); } }); }
     }
 
+    // Small, real-data-only preview inside the Active Journey card: the most
+    // recently COMPLETED day's fruit only — never today's unfinished day, never
+    // fabricated. Hidden entirely until completed() > 0. Does not touch or
+    // duplicate renderFruitLog()'s own logic, just reads the same PLAN data.
+    function renderFruitPreview() {
+      const n = completed(), box = $('fruitPreview');
+      if (n <= 0) { box.style.display = 'none'; return; }
+      const d = PLAN[n - 1];
+      $('fpName').textContent = d.fruit;
+      $('fpTruth').textContent = d.fruitTruth;
+      box.style.display = 'flex';
+    }
+
     function renderFruitLog() {
       const n = completed(), sec = $('fruitLog'), box = $('fruitList');
       if (n <= 0) { sec.style.display = 'none'; return; }
       sec.style.display = 'block';
       let html = '';
       for (let i = 1; i <= n; i++) { const d = PLAN[i - 1];
-        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-bud" aria-hidden="true"></span><div class="fl-meta"><div class="nm">' + d.fruit + '</div><div class="dy">' + (esL() ? 'Día ' : 'Day ') + i + ' &middot; ' + d.fruitTruth + '</div></div><span class="fl-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + d.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm">' + d.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth">' + d.fruitTruth + '</div></div></button>';
       }
       box.innerHTML = html;
     }
@@ -523,7 +690,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     // variable, on purpose: Vite substitutes the literals at build time, so in
     // any production build this folds to `if (false)` and esbuild drops the
     // whole branch. The production bundle therefore ships no unlock function and
-    // no sentinel date, not merely a hidden button.
+    // no sentinel date, not merely a hidden button. Verified by grepping dist/.
     //
     // import.meta.env.DEV is false in every `astro build`, so this stays absent
     // from production even if PUBLIC_JOURNEY_DEV_TOOLS is accidentally set to 1
@@ -542,6 +709,23 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       });
     }
 
+    // Reads the (untouched, not-mirrored) per-journey instance cache left behind
+    // by a completed Journey — read-only, no write, no shape change. Returns a
+    // real authored fruit/truth pair when the cache is still present, or null
+    // (never invented) once it's been cleared by a later restart of that struggle.
+    function pastFruitSummary(id) {
+      try {
+        const raw = localStorage.getItem('db_journey_inst:' + id);
+        if (!raw) return null;
+        const inst = JSON.parse(raw);
+        const plan = inst && inst.plan;
+        if (!Array.isArray(plan) || !plan.length) return null;
+        const last = plan[plan.length - 1];
+        if (!last || !last.fruit) return null;
+        return { fruit: last.fruit, fruitTruth: last.fruitTruth || '' };
+      } catch (e) { return null; }
+    }
+
     function renderGrid() {
       const box = $('jgrid');
       const done = CATALOG.filter(function (c) { return c.status === 'done'; });
@@ -550,10 +734,14 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         return;
       }
       box.innerHTML = done.map(function (c) {
+        const fr = pastFruitSummary(c.id);
         return '<div class="cell done" data-id="' + c.id + '">'
-          + '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
+          + '<span class="cell-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span>'
+          + '<div class="cell-body">'
+          +   '<div class="nm">' + cFrom(c) + ' <span class="a2">&rarr; ' + cTo(c) + '</span></div>'
+          +   (fr ? '<div class="cell-fruit">' + fr.fruit + (fr.fruitTruth ? ' &middot; ' + fr.fruitTruth : '') + '</div>' : '')
+          + '</div>'
           + '<span class="st done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>' + (esL() ? 'Arraigado' : 'Rooted') + '</span>'
-          + '<div class="nm">' + cFrom(c) + ' <span class="a2">&rarr; ' + cTo(c) + '</span></div>'
           + '</div>';
       }).join('');
       box.querySelectorAll('.cell').forEach(function (cell) {
@@ -570,7 +758,49 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     let breathInst = null;
     let reviewDay = null; // when set, the day flow shows a completed day read-only
     function curDay() { return reviewDay || state.day; }
-    function dstate() { const k = curDay(); if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false }; return dayState[k]; }
+    function dstate() {
+      const k = curDay();
+      if (!dayState[k]) dayState[k] = { cast: false, spoke: false, acted: false };
+      const ds = dayState[k];
+      // B3.3: backfill for day-state objects saved before the reflection gate
+      // existed (an old db_journey_inst cache has cast/spoke/acted but not
+      // these) — never overwrite real values, only fill in what's missing.
+      if (ds.reflected === undefined) ds.reflected = false;
+      if (ds.reflectDraft === undefined) ds.reflectDraft = null;
+      if (ds.reflectDraftTs === undefined) ds.reflectDraftTs = null;
+      return ds;
+    }
+
+    // ---- B3.2: one-step-at-a-time pagination ----
+    // `activeStep` tracks position (1-7) within the ACTIVE day's ritual;
+    // `reviewStep` is a completely separate counter used only while
+    // `reviewDay` is set, so paging through a read-only review can never
+    // disturb the real in-progress step (mirrors the existing curDay()/
+    // reviewDay split above — same pattern, not a new one).
+    let activeStep = 1;
+    let reviewStep = 1;
+    const TOTAL_STEPS = 7;
+    function curStep() { return reviewDay ? reviewStep : activeStep; }
+    // Which step, if any, the Continue action is gated on — matches
+    // refreshGate()'s original `ready = ds.cast && ds.repented && ds.spoke`
+    // exactly, just distributed one gate per step instead of one gate for
+    // the whole day. Step 7 keeps the full three-part check as a defensive
+    // safety net (see refreshGate()) even though per-step gating on 3/4/5
+    // already guarantees it's true by the time a user can reach step 7.
+    function stepReady(ds, step) {
+      if (step === 3) return !!ds.cast;
+      if (step === 4) return !!ds.repented;
+      if (step === 5) return !!ds.spoke;
+      // B3.3: Step 6 is gated by a successful Save Reflection — an empty
+      // reflection can't be saved, so the user must intentionally write and
+      // save before continuing. Step 7's own defensive check is deliberately
+      // left as the original three-part cast/repented/spoke expression, not
+      // touched, per this milestone's scope.
+      if (step === 6) return !!ds.reflected;
+      if (step === 7) return !!(ds.cast && ds.repented && ds.spoke);
+      return true; // 1, 2 — no gate
+    }
+    let dayFlowReturnEl = null; // for close-focus restoration, same pattern as B2.2's dayOpenReturnEl
 
     // Build a Word-reader deep link from a day's scripture reference (e.g. "Philippians 4:6-7").
     const READ_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Revelations': 'Revelation' };
@@ -580,93 +810,52 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       const book = READ_ALIASES[m[1].trim()] || m[1].trim();
       return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
     }
-    /* Which provenance, if any, a completed-day review must show.
-     *
-     * Derived from the RELATIONSHIP between the interface and the content, not
-     * from who is signed in. Today this build has no Spanish day content, so
-     * `contentLocale` is always 'en' and the Spanish case always resolves to
-     * 'original-english'. The relationship is still written out in full,
-     * because the moment translated content exists the correct answer changes
-     * and a bare `esL() && reviewing` check would silently keep claiming the
-     * content is the English original. */
-    function reviewProvenanceKind(rel) {
-      if (!rel.reviewing) return 'none';
-      if (rel.contentLocale === rel.interfaceLocale && rel.contentOrigin === 'original') return 'none';
-      if (rel.contentOrigin === 'translation') return 'translated';
-      if (rel.interfaceLocale === 'es' && rel.contentLocale === 'en') return 'original-english';
-      return 'none';
-    }
-
-    /* The English authored record, and only that.
-     *
-     * Spanish chrome (step labels, the struggle line, prompts, buttons) is
-     * absent on purpose, and so is the reflection textarea: those are the
-     * reader's own words and their language is not ours to declare. */
-    const EN_CONTENT_SEL = ['.df-h', '.vref-link', '.verse', '.insight', '.ptitle', '.pr',
-      '.lie-t', '.repent-t', '.dc', '.block.reflect > p', '.act-t', '.act-d'];
-
-    function renderReviewProvenance(kind) {
-      const box = $('dfProv'), on = kind === 'original-english';
-      box.style.display = on ? '' : 'none';
-      if (on) {
-        $('dfProvT').textContent = tj('journey.review.originalEnglishBanner', 'Original English content · Read only');
-        $('dfProvS').textContent = tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.');
-      }
-      /* The top bar repeats the English day title, and it sits ABOVE this
-         note, so a screen reader would otherwise meet unexplained English
-         before the sentence explaining it. It is an exact duplicate of the
-         <h2> that follows the note, so during this state it is dropped from
-         the accessibility tree rather than announced twice out of order.
-         Nothing is lost: the same title is still announced, as a heading, in
-         its proper place after the provenance. */
-      const nm = $('dfNm');
-      if (on) { nm.setAttribute('lang', 'en'); nm.setAttribute('aria-hidden', 'true'); }
-      else { nm.removeAttribute('lang'); nm.removeAttribute('aria-hidden'); }
-      const scroll = $('dfScroll');
-      EN_CONTENT_SEL.forEach(function (sel) {
-        scroll.querySelectorAll(sel).forEach(function (el) {
-          if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
-        });
-      });
-    }
-
+    // B3.2: renders all 7 real blocks exactly as before (same markup, same
+    // ids — bindCast()/bindRepent()/bindSpeak()/bindAction() are completely
+    // unchanged below), but each now carries data-step="N" so
+    // applyStepVisibility() can show exactly one at a time instead of the
+    // old continuous stack. This function still runs once per day-open (or
+    // day switch) — not once per step — matching the original render cadence
+    // exactly; navigating between steps calls applyStepVisibility() alone.
     function renderDayFlow() {
       clearInterval(renderDayLoading._t);
+      // Defensive: a pending reflection debounce belongs to the DOM we are
+      // about to replace. Its closure holds the old (detached) textarea, so
+      // letting it fire could write stale text into the freshly rendered day.
+      if (reflectDebounceT) { clearTimeout(reflectDebounceT); reflectDebounceT = null; }
       const fd = curDay(), reviewing = !!reviewDay;
       const d = PLAN[fd - 1], ds = dstate();
-      if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; }
+      if (reviewing) { ds.cast = true; ds.repented = ds.repented || true; ds.spoke = true; ds.acted = true; ds.reflected = true; }
       $('dayflow').classList.toggle('reviewing', reviewing);
-      $('dfEy').innerHTML = (reviewing ? (esL() ? 'Repasando &middot; ' : 'Reviewing &middot; ') : '') + (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL + ' &middot; ' + cFrom() + ' &rarr; ' + cTo();
-      $('dfNm').textContent = d.title;
-      let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dots;
-      $('dfComplete').textContent = reviewing ? (esL() ? 'Volver a hoy' : 'Back to today') : ((esL() ? 'Completar Día ' : 'Complete Day ') + fd);
+      if (reviewing) { if (reviewStep < 1 || reviewStep > TOTAL_STEPS) reviewStep = 1; }
 
       const welcome = (fd === 1 && !reviewing) ? (
-        '<div class="day1note">'
-        + '<span class="d1ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D8B85F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-7"/><path d="M12 13c-3.3 0-5.5-2-5.5-5C9.8 8 12 10 12 13z"/><path d="M12 11c0-2.6 2.1-4.5 5-4.5C17 9.2 14.7 11 12 11z"/><path d="M6 20h12"/></svg></span>'
+        '<span class="d1ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D8B85F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-7"/><path d="M12 13c-3.3 0-5.5-2-5.5-5C9.8 8 12 10 12 13z"/><path d="M12 11c0-2.6 2.1-4.5 5-4.5C17 9.2 14.7 11 12 11z"/><path d="M6 20h12"/></svg></span>'
         + '<div class="d1t">' + (esL() ? '<b>Día 1 de 5.</b> Cada día Dios da una manera nueva de ser libre. Recibirás su Palabra, echarás fuera la mentira en voz alta, exhalarás lo viejo y luego declararás la verdad sobre tu vida. Hoy: <b>' : '<b>Day 1 of 5.</b> Each day God gives a fresh way to be set free. You’ll receive His Word, cast off the lie out loud, breathe out the old, then declare the truth over your life. Today: <b>') + d.title.replace(/[.…]+$/, '') + '</b>.</div>'
-        + '</div>'
       ) : '';
 
       const ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 
       $('dfScroll').innerHTML =
-        '<h2 class="df-h">' + d.title + '</h2>'
+        // Day theme + transformation shift (real content, unchanged) now lives
+        // with Step 1 only, once, instead of pinned above all 7 stacked blocks —
+        // the top bar itself stays to the approved minimal "Day N of 5".
+        '<div class="df-intro" data-step="1"><h2 class="df-h">' + d.title + '</h2>'
         + '<div class="df-sh">' + cFrom() + ' <span class="arr">&rarr;</span> ' + cTo() + '</div>'
-        + welcome
+        + (welcome ? '<div class="day1note">' + welcome + '</div>' : '') + '</div>'
         // 1 — RECEIVE
-        + '<div class="block scripture"><div class="lab"><span class="step">1</span>' + (esL() ? 'Recibe' : 'Receive') + ' &middot; <a class="vref-link" href="' + dayVerseLink(d.ref) + '">' + d.ref + ' ' + d.ver + '<svg class="vref-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
+        + '<div class="block scripture" data-step="1"><div class="lab"><span class="step">1</span>' + (esL() ? 'Recibe' : 'Receive') + ' &middot; <a class="vref-link" href="' + dayVerseLink(d.ref) + '">' + d.ref + ' ' + d.ver + '<svg class="vref-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
           + '<div class="verse">“' + d.verse + '”</div><div class="insight">' + d.insight + '</div></div>'
         // 2 — PRAY
-        + '<div class="block pray"><div class="lab"><span class="step">2</span>' + (esL() ? 'Ora' : 'Pray') + '</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
+        + '<div class="block pray" data-step="2"><div class="lab"><span class="step">2</span>' + (esL() ? 'Ora' : 'Pray') + '</div><div class="ptitle">' + d.prayerTitle + '</div><div class="pr">' + d.pray + '</div></div>'
         // 3 — CAST OFF
-        + '<div class="block castoff' + (ds.cast ? ' done' : '') + '" id="castBlock"><div class="lab"><span class="step">3</span>' + (esL() ? 'Echa fuera la mentira' : 'Cast off the lie') + '</div>'
+        + '<div class="block castoff' + (ds.cast ? ' done' : '') + '" id="castBlock" data-step="3"><div class="lab"><span class="step">3</span>' + (esL() ? 'Echa fuera la mentira' : 'Cast off the lie') + '</div>'
           + '<div class="intro">' + (esL() ? 'Léela una vez, en voz alta, y nómbrala por lo que es. Luego échala fuera.' : 'Read it once, out loud, and name it for what it is. Then cast it off.') + '</div>'
           + '<div class="lie-card' + (ds.cast ? ' cast' : '') + '" id="lieCard"><div class="lie-q">' + (esL() ? 'La mentira que he creído' : 'The lie I’ve believed') + '</div><div class="lie-t">“' + d.castOff + '”</div></div>'
           + '<button class="cast-btn" id="castBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>' + (esL() ? 'Échala fuera' : 'Cast it off') + '</button>'
           + '<div class="cast-done">' + ck + (esL() ? 'Echada fuera. No tiene poder sobre ti.' : 'Cast off. It has no hold on you.') + '</div></div>'
         // 4 — REPENT & BREATHE
-        + '<div class="block repent" id="repentBlock"><div class="lab"><span class="step">4</span>' + (esL() ? 'Arrepiéntete y respira' : 'Repent &amp; breathe') + '</div>'
+        + '<div class="block repent" id="repentBlock" data-step="4"><div class="lab"><span class="step">4</span>' + (esL() ? 'Arrepiéntete y respira' : 'Repent &amp; breathe') + '</div>'
           + '<div class="repent-t">“' + d.repent + '”</div>'
           + '<div class="repent-stage" id="repentStage">'
             + '<div class="repent-idle" id="repentIdle">'
@@ -677,49 +866,210 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
             + '<div class="repent-done" id="repentDone" style="display:none"><span class="rd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><div class="rd-t" id="repentDoneT">' + (esL() ? 'Amén. Exhalaste lo viejo.' : 'Amen. You breathed out the old.') + '</div><button class="rd-again" id="breathAgain">' + (esL() ? 'Respira otra vez' : 'Breathe again') + '</button></div>'
           + '</div></div>'
         // 5 — DECLARE THE TRUTH ALOUD (no mic, no recording — just say it, then mark it)
-        + '<div class="block declare' + (ds.spoke ? ' spoken' : '') + '" id="declareBlock"><div class="lab"><span class="step">5</span>' + (esL() ? 'Declara la verdad en voz alta' : 'Declare the truth aloud') + '</div>'
+        + '<div class="block declare' + (ds.spoke ? ' spoken' : '') + '" id="declareBlock" data-step="5"><div class="lab"><span class="step">5</span>' + (esL() ? 'Declara la verdad en voz alta' : 'Declare the truth aloud') + '</div>'
           + '<div class="dc">“' + d.declare + '”</div>'
           + '<div class="mic-hint" id="micHint">' + (ds.spoke ? (esL() ? 'Amén. Lo declaraste. &#10003;' : 'Amen. You declared it. &#10003;') : (esL() ? 'Dilo en voz alta, luego márcalo aquí.' : 'Say it out loud — then mark it here.')) + '</div>'
           + '<button class="act-check' + (ds.spoke ? ' on' : '') + '" id="declCheck"><span class="bx">' + ck + '</span><span id="declLbl">' + (ds.spoke ? (esL() ? 'Declarado en voz alta' : 'Declared aloud') : (esL() ? 'Marcar como declarado' : 'Mark as declared')) + '</span></button></div>'
-        // 6 — REFLECT
-        + '<div class="block reflect"><div class="lab"><span class="step">6</span>' + (esL() ? 'Reflexiona' : 'Reflect') + '</div><p>' + d.reflect + '</p><textarea placeholder="' + (esL() ? 'Escribe con libertad. Esto es entre tú y Dios.' : 'Write freely. This is between you and God.') + '"></textarea></div>'
+        // 6 — REFLECT (B3.3: draft autosave + explicit Save Reflection to Vault;
+        // see bindReflect()/renderReflectBlock() below for all the real logic —
+        // this markup is a static skeleton, same convention as every other block.)
+        + '<div class="block reflect" id="reflectBlock" data-step="6"><div class="lab"><span class="step">6</span>' + (esL() ? 'Reflexiona' : 'Reflect') + '</div><p id="reflectPrompt">' + d.reflect + '</p>'
+          + '<div class="reflect-conflict" id="reflectConflict" style="display:none" role="region" aria-label="' + (esL() ? 'Conflicto de borrador' : 'Draft conflict') + '">'
+            + '<div class="rc-h">' + (esL() ? 'Encontramos un borrador más reciente.' : 'We found a newer draft.') + '</div>'
+            + '<p>' + (esL() ? 'Tienes un borrador más reciente que la reflexión guardada. ¿Qué te gustaría hacer?' : 'You have a newer draft than the saved reflection. What would you like to do?') + '</p>'
+            + '<button class="rc-opt" id="reflectRestoreDraft"><b>' + (esL() ? 'Restaurar borrador' : 'Restore Draft') + '</b><span>' + (esL() ? 'Abre tu último borrador y continúa.' : 'Open your latest draft and continue.') + '</span></button>'
+            + '<button class="rc-opt" id="reflectUseSaved"><b>' + (esL() ? 'Usar reflexión guardada' : 'Use Saved Reflection') + '</b><span>' + (esL() ? 'Usa tu reflexión guardada tal cual.' : 'Use your saved reflection as-is.') + '</span></button>'
+          + '</div>'
+          + '<div id="reflectEditWrap">'
+            + '<textarea id="reflectText" aria-label="' + (esL() ? 'Tu reflexión' : 'Your reflection') + '" aria-describedby="reflectPrompt" placeholder="' + (esL() ? 'Escribe con libertad. Esto es entre tú y Dios.' : 'Write freely. This is between you and God.') + '"></textarea>'
+            + '<div class="reflect-status" id="reflectStatus" aria-live="polite"></div>'
+            + '<div class="reflect-error" id="reflectErrorBox" style="display:none" aria-live="assertive">'
+              + '<div class="re-t">' + (esL() ? 'No pudimos guardar esta reflexión en la Bóveda.' : 'We couldn’t save this reflection to Vault.') + '</div>'
+              + '<div class="re-s">' + (esL() ? 'Tu borrador sigue seguro.' : 'Your draft is still safe.') + '</div>'
+            + '</div>'
+          + '</div>'
+          + '<div class="reflect-review" id="reflectReviewBox" style="display:none"></div>'
+        + '</div>'
         // 7 — ACT
-        + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock"><div class="lab"><span class="step">7</span>' + (esL() ? 'Llévalo a tu día' : 'Take it into your day') + '</div>'
+        + '<div class="block action' + (ds.acted ? ' done' : '') + '" id="actBlock" data-step="7"><div class="lab"><span class="step">7</span>' + (esL() ? 'Llévalo a tu día' : 'Take it into your day') + '</div>'
           + '<div class="act-t">' + d.actionTitle + '</div><div class="act-d">' + d.action + '</div>'
           + '<button class="act-check' + (ds.acted ? ' on' : '') + '" id="actCheck"><span class="bx">' + ck + '</span><span id="actLbl">' + (ds.acted ? (esL() ? 'Lo hice' : 'I did this') : (esL() ? 'Lo llevaré hoy' : 'I’ll carry this today')) + '</span></button></div>';
 
-      $('dfScroll').scrollTop = 0;
-      /* Runs after the blocks exist, so the English record can be marked, and
-         before the reveal cascade, so nothing paints unlabelled. */
-      renderReviewProvenance(reviewProvenanceKind({
-        interfaceLocale: esL() ? 'es' : 'en',
-        // This build has no translated day content; the displayed record is
-        // always the immutable English original.
-        contentLocale: 'en',
-        contentOrigin: 'original',
-        reviewing: reviewing,
-      }));
-      bindCast(); bindRepent(); bindSpeak(); bindAction();
-      refreshGate();
-      // reverent unfolding — each step veils in as it scrolls into view (premium scroll-reveal,
-      // not all-at-once on load), with a gentle cascade for the steps already on screen.
-      if (window.DeclareMotion && !window.DeclareMotion.reduced && ('IntersectionObserver' in window)) {
-        const root = $('dfScroll');
-        root.style.setProperty('--m-stagger', '0ms'); // we control timing; no per-index CSS delay
-        const seq = Array.prototype.slice.call(root.querySelectorAll(':scope > .df-h, :scope > .df-sh, :scope > .block, :scope > .day1note'));
-        seq.forEach(function (el) { el.classList.add('m-veil'); el.style.setProperty('--i', 0); });
-        const rb = root.getBoundingClientRect();
-        let k = 0;
-        const io = new IntersectionObserver(function (ents) {
-          ents.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('m-in'); io.unobserve(e.target); } });
-        }, { root: root, rootMargin: '0px 0px -8% 0px', threshold: 0 });
-        seq.forEach(function (el) {
-          const r = el.getBoundingClientRect();
-          if (r.top < rb.bottom * 0.95 && r.bottom > rb.top) { const i = k++; setTimeout(function () { el.classList.add('m-in'); }, 90 + i * 110); }
-          else io.observe(el);
+      bindCast(); bindRepent(); bindSpeak(); bindReflect(); bindAction();
+      applyStepVisibility(false);
+    }
+
+    // Shows exactly one data-step block (plus the step-1-only .df-intro),
+    // hides and inerts the rest, updates the top bar/progress/footer, and
+    // (unless `noFocus`) moves focus to the new step's own heading — a real,
+    // pre-existing gap the audit found (§7: "no explicit focus management
+    // exists"), fixed here rather than carried forward.
+    function applyStepVisibility(moveFocus) {
+      const s = curStep();
+      const scroll = $('dfScroll');
+      const nodes = scroll.querySelectorAll('[data-step]');
+      let activeEl = null;
+      nodes.forEach(function (el) {
+        const match = (+el.dataset.step === s);
+        el.classList.toggle('step-active', match);
+        if (match) { el.removeAttribute('aria-hidden'); el.removeAttribute('inert'); activeEl = el; }
+        else { el.setAttribute('aria-hidden', 'true'); el.setAttribute('inert', ''); }
+      });
+      scroll.scrollTop = 0;
+      renderStepChrome();
+      if (moveFocus !== false && activeEl) {
+        // Focus the step's own heading (df-h on step 1, the block's .lab
+        // otherwise) — never steals focus into a form control, matches how
+        // B2.2's Day-Opening already focuses its own heading on open.
+        const heading = activeEl.querySelector('.df-h, .lab') || activeEl;
+        heading.setAttribute('tabindex', '-1');
+        try { heading.focus({ preventScroll: true }); } catch (e) { heading.focus(); }
+      }
+    }
+
+    /* The original-English provenance state, preserved from the production
+     * hotfix and re-expressed against the paginated review chrome.
+     *
+     * Three things have to be true together, which is why they live in one
+     * place: the reader is told BEFORE the English title (the badge sits above
+     * #dfScroll, so reading order and tab order both put it first), the English
+     * record is marked lang="en" so a screen reader changes voice for it, and
+     * the Spanish interface around it stays Spanish and unmarked.
+     *
+     * The accessible name comes from the visible text rather than an aria-label:
+     * a role="note" carrying both a label and the same words as content is
+     * announced twice.
+     *
+     * No "sign in to read it in Spanish" offer here. That belongs to the
+     * translation feature, which this release does not ship, and offering it
+     * would promise something the product cannot yet do. */
+    function renderOriginalEnglishProvenance(on) {
+      const badge = $('dfReviewBadge');
+      if (!badge) return;
+      badge.classList.toggle('is-original-en', !!on);
+      if (on) badge.setAttribute('role', 'note'); else badge.removeAttribute('role');
+
+      let sub = $('dfBadgeSub');
+      if (on) {
+        if (!sub) {
+          sub = document.createElement('span');
+          sub.id = 'dfBadgeSub'; sub.className = 'df-badge-sub';
+          badge.appendChild(sub);
+        }
+        sub.textContent = tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.');
+        sub.style.display = '';
+      } else if (sub) { sub.style.display = 'none'; }
+
+      /* Mark only the immutable English record. Chrome, prompts and anything the
+         reader wrote are deliberately left alone — see the selector list. */
+      const scroll = $('dfScroll');
+      if (scroll) {
+        ENGLISH_CONTENT_SELECTORS.forEach(function (sel) {
+          scroll.querySelectorAll(sel).forEach(function (el) {
+            if (on) el.setAttribute('lang', 'en'); else el.removeAttribute('lang');
+          });
         });
       }
     }
+
+    function renderStepChrome() {
+      const fd = curDay(), reviewing = !!reviewDay, s = curStep(), ds = dstate();
+      const dayTxt = (esL() ? 'Día ' : 'Day ') + fd + (esL() ? ' de ' : ' of ') + TOTAL;
+      $('dfEy').textContent = dayTxt;
+      $('dfEySR').textContent = (reviewing ? (esL() ? 'Repasando, ' : 'Reviewing, ') : '') + dayTxt + (esL() ? ', Paso ' : ', Step ') + s + (esL() ? ' de 7' : ' of 7') + (reviewing ? (esL() ? ', solo lectura' : ', read only') : '');
+      let stepDots = ''; for (let i = 1; i <= TOTAL_STEPS; i++) { stepDots += '<i class="' + (i < s ? 'done' : (i === s ? 'cur' : '')) + '"></i>'; } $('dfStepDots').innerHTML = stepDots;
+      let dayDots = ''; for (let i = 1; i <= TOTAL; i++) { dayDots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + (i === fd && reviewing ? ' viewing' : '') + '"></i>'; } $('dfDots').innerHTML = dayDots;
+      $('dfReviewBadge').style.display = reviewing ? 'flex' : 'none';
+      if (reviewing) {
+        /* What is this review actually showing? Resolved in the shared module
+           rather than decided here, so every path that reaches the English
+           original answers the question the same way. This release has no
+           translated content, so Spanish chrome always means the original. */
+        const vstate = resolveReviewViewState({
+          interfaceLocale: esL() ? 'es' : 'en', translationShown: false, reviewing: true,
+        });
+        const originalEn = vstate.provenanceKind === 'original-english';
+        $('dfReviewBadgeTxt').textContent = originalEn
+          ? tj('journey.review.originalEnglishBanner', 'Original English content · Read only')
+          : 'Reviewing a completed day · Read only';
+        renderOriginalEnglishProvenance(originalEn);
+      }
+
+      const back = $('dfStepBack'), next = $('dfStepNext'), primary = $('dfComplete'), hint = $('dfLock');
+      back.textContent = esL() ? 'Atrás' : 'Back';
+      back.style.display = (s > 1) ? 'block' : 'none';
+
+      if (reviewing) {
+        primary.textContent = esL() ? 'Volver a Hoy' : 'Back to Today';
+        primary.disabled = false;
+        $('dfFoot').classList.remove('ready');
+        hint.style.display = 'none';
+        // Review is never gated (every block already reads as completed) —
+        // Next/Back page freely through the 7 reviewed steps; "Back to
+        // today" (dfComplete, above) stays the one persistent way to exit,
+        // reachable from any step.
+        next.textContent = esL() ? 'Siguiente' : 'Next';
+        next.style.display = (s < TOTAL_STEPS) ? 'block' : 'none';
+        return;
+      }
+      next.style.display = 'none';
+      const ready = stepReady(ds, s);
+      $('dfFoot').classList.toggle('ready', ready);
+      // Step 6 replaces the generic disabled-Continue-plus-hint pattern with
+      // its own explicit action label (approved product language: "Save
+      // Reflection" -> "Saving..." -> "Continue") — every other gated step
+      // keeps the original pattern untouched.
+      if (s === 6) {
+        primary.classList.toggle('df-btn-error', reflectError && !ready);
+        if (reflectError && !ready) {
+          primary.disabled = false;
+          primary.textContent = esL() ? 'Intentar de nuevo' : 'Try Again';
+        } else {
+          primary.disabled = ready ? false : (reflectSaving || !reflectHasText());
+          primary.textContent = ready ? (esL() ? 'Continuar' : 'Continue')
+            : (reflectSaving ? (esL() ? 'Guardando...' : 'Saving...') : (esL() ? 'Guardar reflexión' : 'Save Reflection'));
+        }
+        hint.style.display = 'none';
+        saveInstance();
+        return;
+      }
+      primary.disabled = !ready;
+      primary.textContent = (s < TOTAL_STEPS) ? (esL() ? 'Continuar' : 'Continue') : ((esL() ? 'Completar Día ' : 'Complete Day ') + fd);
+      if (ready) { hint.style.display = 'none'; }
+      else {
+        hint.style.display = 'flex';
+        const txt = $('dfLockTxt');
+        if (s === 3) txt.textContent = esL() ? 'Echa fuera la mentira para continuar' : 'Cast off the lie to continue';
+        else if (s === 4) txt.textContent = esL() ? 'Tómate un momento para arrepentirte y respirar' : 'Take a moment to repent and breathe';
+        else if (s === 5) txt.textContent = esL() ? 'Declara la verdad en voz alta para terminar' : 'Declare the truth aloud to finish';
+        else if (s === 7) txt.textContent = esL() ? 'Completa los pasos anteriores para terminar' : 'Complete the steps above to finish';
+      }
+      saveInstance(); // persist activeStep so leaving and returning resumes on the exact same step
+    }
+
+    // Leaving step 4 mid-breath (via Back, not Continue — Continue is gated
+    // and can't fire until repented is true) must not leave an orphaned
+    // BreathRing timer running behind a step the user can no longer see.
+    // Does not mark repented/skipped — the user just sees the idle "Begin
+    // breath prayer" state again if they return to step 4 later.
+    function stopBreathIfLeavingStep4(fromStep, toStep) {
+      if (fromStep === 4 && toStep !== 4 && breathInst) {
+        try { breathInst.stop(); } catch (_) {}
+        try { breathInst.destroy(); } catch (_) {}
+        breathInst = null;
+        const idle = $('repentIdle'), act = $('breathActive'), done = $('repentDone');
+        if (!dstate().repented) { if (idle) idle.style.display = 'flex'; if (act) act.style.display = 'none'; if (done) done.style.display = 'none'; }
+      }
+    }
+    function goToStep(n) {
+      const from = curStep();
+      const clamped = Math.max(1, Math.min(TOTAL_STEPS, n));
+      if (reviewDay) { reviewStep = clamped; } else { activeStep = clamped; }
+      stopBreathIfLeavingStep4(from, clamped);
+      applyStepVisibility(true);
+    }
+    function nextStep() { if (curStep() < TOTAL_STEPS) goToStep(curStep() + 1); }
+    function prevStep() { if (curStep() > 1) goToStep(curStep() - 1); }
 
     // ---- step 3: cast off ----
     function bindCast() {
@@ -731,7 +1081,11 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       });
     }
     // ---- step 4: repent breath (guided, finite, with start + skip + complete) ----
-    const BREATH_ROUNDS = 3;
+    // B3.2 approved change: 3 rounds -> 1 round. Real phase timing/copy
+    // (4s "Breathe in mercy" / 2s "Hold" / 6s "Release the old") is
+    // untouched — only the round count changed, exactly as approved in the
+    // B3.1 design review (docs/design/release-b-b3-seven-step-audit.md §4).
+    const BREATH_ROUNDS = 1;
     function repentMarkDone(skipped) {
       if (breathInst) { try { breathInst.destroy(); } catch (_) {} breathInst = null; }
       dstate().repented = skipped ? 'skipped' : true;
@@ -759,7 +1113,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       breathInst = window.BreathRing.mount($('repentBreath'), {
         seq: seq, loop: false, skipLabel: esL() ? 'Omitir el resto' : 'Skip the rest',
         caption: esL() ? 'Exhala lo viejo. Inhala su misericordia.' : 'Breathe out the old. Breathe in His mercy.',
-        onPhase: function (idx) { const rd = Math.floor(idx / perRound) + 1; const el = $('breathRound'); if (el) el.textContent = (esL() ? 'Respiración ' : 'Breath ') + rd + (esL() ? ' de ' : ' of ') + BREATH_ROUNDS; },
+        onPhase: function (idx) { const el = $('breathRound'); if (!el) return; if (BREATH_ROUNDS <= 1) { el.textContent = ''; return; } const rd = Math.floor(idx / perRound) + 1; el.textContent = (esL() ? 'Respiración ' : 'Breath ') + rd + (esL() ? ' de ' : ' of ') + BREATH_ROUNDS; },
         onDone: function () { if (navigator.vibrate) { try { navigator.vibrate(16); } catch (_) {} } repentMarkDone(false); },
         onSkip: function () { repentMarkDone(true); }
       });
@@ -774,23 +1128,261 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       });
     }
 
-    // gate: the day completes once the lie is cast off, the breath is taken,
-    // AND the truth is declared aloud
-    function refreshGate() {
-      const ds = dstate();
-      if (reviewDay) { $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = false;
-        const lh = $('dfLock'); if (lh) { lh.style.display = 'flex'; lh.querySelector('span').textContent = esL() ? 'Ya caminaste este día — vuelve a él cuando quieras' : 'You’ve already walked this day — revisit it anytime'; } return; }
-      const ready = ds.cast && ds.repented && ds.spoke;
-      $('dfFoot').classList.toggle('ready', ready);
-      $('dfComplete').disabled = !ready;
-      const hint = $('dfLock'); if (hint) {
-        hint.style.display = '';
-        if (!ds.cast) hint.querySelector('span').textContent = esL() ? 'Echa fuera la mentira para continuar' : 'Cast off the lie to continue';
-        else if (!ds.repented) hint.querySelector('span').textContent = esL() ? 'Tómate un momento para arrepentirte y respirar' : 'Take a moment to repent and breathe';
-        else if (!ds.spoke) hint.querySelector('span').textContent = esL() ? 'Declara la verdad en voz alta para terminar' : 'Declare the truth aloud to finish';
-      }
-      saveInstance(); // persist in-day progress so leaving and returning resumes exactly
+    // ---- step 6: reflect (B3.3 — draft autosave + explicit Save Reflection to Vault) ----
+    // Deterministic per-day identity, same convention as the existing
+    // 'journey:' + active.id + ':' + seed vault ids elsewhere in this file —
+    // distinguishes both the struggle AND the specific journey instance
+    // (seed), so restarting the same struggle never collides with a prior
+    // attempt's reflections. Never includes the reflection text itself.
+    function reflectClientId(day) { return 'journeyReflection:' + active.id + ':' + (active._seed || 0) + ':day' + day; }
+
+    let reflectSaving = false;
+    let reflectError = false;
+    let reflectDebounceT = null;
+
+    function reflectHasText() {
+      const ta = $('reflectText');
+      return !!(ta && ta.value && ta.value.replace(/^\s+|\s+$/g, '').length);
     }
+
+    // Live per-keystroke toggle only (cheap: one disabled/class flip) — the
+    // actual draft write is debounced separately in bindReflect()'s input
+    // listener, so typing itself never triggers a heavier renderStepChrome().
+    function updateReflectButtonLive() {
+      if (curStep() !== 6 || reviewDay || dstate().reflected) return;
+      $('dfComplete').disabled = reflectSaving || !reflectHasText();
+      $('dfFoot').classList.toggle('ready', !$('dfComplete').disabled);
+    }
+
+    // Keeps `reflected` honest against what is actually in the Vault right
+    // now. Without this, editing an already-saved reflection left the UI
+    // claiming "Saved to Vault" (and offering Continue) while the Vault still
+    // held the OLD text — the visible text was not saved anywhere durable and
+    // the user had no way to save it. Editing back to exactly the saved text
+    // returns to the saved state rather than demanding a pointless re-save.
+    // Returns true when the saved/unsaved state actually flipped.
+    function syncReflectSavedState() {
+      const ds = dstate();
+      const ta = $('reflectText');
+      if (!ta || reviewDay) return false;
+      const vaultItem = getItem(reflectClientId(curDay()));
+      const cur = (ta.value || '').replace(/^\s+|\s+$/g, '');
+      const nowSaved = !!(vaultItem && cur === (vaultItem.text || ''));
+      if (ds.reflected === nowSaved) return false;
+      ds.reflected = nowSaved;
+      return true;
+    }
+
+    function setReflectStatus(kind) {
+      const el = $('reflectStatus'); if (!el) return;
+      const copy = {
+        draftSaved: { ic: true, t: esL() ? 'Borrador guardado' : 'Draft saved', s: esL() ? 'Estamos manteniendo tu reflexión segura mientras escribes.' : 'We’re keeping your reflection safe while you write.' },
+        draftRestored: { ic: true, t: esL() ? 'Borrador restaurado' : 'Draft restored', s: esL() ? 'Restauramos lo que estabas escribiendo.' : 'We restored what you were writing.' },
+        savedVault: { ic: true, t: esL() ? 'Guardado en la Bóveda' : 'Saved to Vault', s: esL() ? 'Puedes volver a esta reflexión cuando quieras en tu Bóveda.' : 'You can revisit this reflection anytime in Vault.' },
+      }[kind];
+      if (!copy) { el.textContent = ''; el.classList.remove('show'); return; }
+      el.innerHTML = '<span class="rs-ic">' + (copy.ic ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>' : '') + '</span>'
+        + '<span class="rs-tx"><span class="rs-t">' + copy.t + '</span><span class="rs-s">' + copy.s + '</span></span>';
+      el.classList.add('show');
+    }
+
+    // Only a genuinely newer AND different local draft than what's saved in
+    // Vault counts as a conflict — equal or older timestamps, or identical
+    // content, resolve silently (see renderReflectBlock()). This is the one
+    // exact rule requested: draft.ts strictly greater than the saved item's
+    // updatedTs (falling back to ts for an item saved before this field
+    // existed), and the text must actually differ.
+    function checkReflectConflict(ds, vaultItem) {
+      if (!vaultItem || ds.reflectDraft == null || ds.reflectDraft === '') return false;
+      const savedAt = (vaultItem.updatedTs != null ? vaultItem.updatedTs : vaultItem.ts) || 0;
+      return ds.reflectDraftTs > savedAt && ds.reflectDraft !== vaultItem.text;
+    }
+
+    function renderReflectBlock() {
+      const reviewing = !!reviewDay, day = curDay(), ds = dstate();
+      const vaultItem = getItem(reflectClientId(day));
+      const editWrap = $('reflectEditWrap'), reviewBox = $('reflectReviewBox'),
+        conflictBox = $('reflectConflict'), ta = $('reflectText'), errBox = $('reflectErrorBox');
+      if (!ta) return;
+
+      if (reviewing) {
+        // Completed-day review: read-only, no textarea, no autosave, no
+        // Save Reflection, no draft restore, no state mutation — matches
+        // every other read-only treatment in review mode.
+        editWrap.style.display = 'none';
+        conflictBox.style.display = 'none';
+        reviewBox.style.display = 'block';
+        if (vaultItem && vaultItem.text) {
+          reviewBox.innerHTML = '<div class="reflect-saved-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+            + '<span><b>' + (esL() ? 'Guardado en la Bóveda' : 'Saved to Vault') + '</b><br>' + (esL() ? 'Puedes volver a esta reflexión cuando quieras en tu Bóveda.' : 'You can revisit this reflection anytime in Vault.') + '</span></div>'
+            + '<div class="reflect-readback" id="reflectReadback"></div>';
+          $('reflectReadback').textContent = vaultItem.text; // textContent, never innerHTML, for user-authored text
+        } else {
+          reviewBox.innerHTML = '<div class="reflect-empty">' + (esL() ? 'No se guardó ninguna reflexión para este día.' : 'No reflection was saved for this day.') + '</div>';
+        }
+        return;
+      }
+
+      reviewBox.style.display = 'none';
+      editWrap.style.display = 'block';
+      errBox.style.display = 'none';
+      ta.readOnly = false;
+
+      if (checkReflectConflict(ds, vaultItem)) {
+        conflictBox.style.display = 'block';
+        ta.readOnly = true;
+        ta.value = vaultItem.text || '';
+        ds.reflected = true;
+        setReflectStatus('savedVault');
+      } else {
+        conflictBox.style.display = 'none';
+        if (vaultItem) {
+          // Vault always wins once there's no genuine conflict, whether or
+          // not a stale local draft also exists (e.g. a newer copy synced
+          // down from another signed-in device) — clear the now-superseded
+          // draft rather than let it linger and re-compare forever.
+          ta.value = vaultItem.text || '';
+          ds.reflected = true;
+          ds.reflectDraft = null; ds.reflectDraftTs = null;
+          setReflectStatus('savedVault');
+        } else if (ds.reflectDraft) {
+          ta.value = ds.reflectDraft;
+          ds.reflected = false;
+          setReflectStatus('draftRestored');
+        } else {
+          ta.value = '';
+          ds.reflected = false;
+          setReflectStatus(null);
+        }
+      }
+      saveInstance();
+      updateReflectButtonLive();
+    }
+
+    function saveReflection() {
+      if (reflectSaving || reviewDay) return;
+      const ta = $('reflectText');
+      const text = (ta.value || '').replace(/^\s+|\s+$/g, ''); // trim ends only; internal line breaks are the user's own
+      if (!text) return; // defensive — the button is already disabled when empty
+      // Disabling a focused button (for the "Saving..." state) blurs it to
+      // <body> in every browser, and nothing focuses it back — a keyboard user
+      // who saved would silently lose their place and have to tab in from the
+      // top again. Remember whether the button owned focus, and restore it once
+      // the button is interactive again (see restoreSaveFocus() below).
+      const hadFocus = document.activeElement === $('dfComplete');
+      reflectSaving = true;
+      reflectError = false;
+      $('reflectErrorBox').style.display = 'none';
+      renderStepChrome(); // shows the "Saving..." state
+      // The local write itself is synchronous/instant; a short deliberate
+      // pause keeps "Saving..." legible as its own real, visible step in the
+      // approved flow rather than an imperceptible flash.
+      setTimeout(function () {
+        const day = curDay();
+        const d = PLAN[day - 1];
+        const saved = upsertItem({
+          id: reflectClientId(day), type: 'journeyReflection', text: text,
+          struggle: active.id, day: day, journeyTitle: cFrom() + ' → ' + cTo(),
+          prompt: (d && d.reflect) || '', route: '/journey',
+        });
+        reflectSaving = false;
+        if (!saved) {
+          // Real, if rare, local-write failure (quota exceeded / private-mode
+          // storage disabled) — the draft and the reflection text are both
+          // still intact; nothing is claimed saved. The footer button becomes
+          // "Try Again" and reuses this exact same click path — a retry is
+          // just another saveReflection() call, not a separate control.
+          reflectError = true;
+          $('reflectErrorBox').style.display = 'flex';
+          renderStepChrome();
+          restoreSaveFocus(hadFocus); // the button is now "Try Again" — keep it reachable
+          return;
+        }
+        const ds = dstate();
+        ds.reflected = true;
+        ds.reflectDraft = null; ds.reflectDraftTs = null; // the draft is now committed — nothing left to restore
+        setReflectStatus('savedVault');
+        saveInstance();
+        renderStepChrome();
+        restoreSaveFocus(hadFocus); // the button is now "Continue" — keep the keyboard user's place
+      }, 300);
+    }
+
+    // Only reclaims focus if the save itself is what lost it (the button was
+    // focused before, and focus has since fallen to <body>/nowhere). Never
+    // steals focus from wherever the user has deliberately moved it — e.g.
+    // back into the textarea to keep editing while the save was in flight.
+    function restoreSaveFocus(hadFocus) {
+      if (!hadFocus) return;
+      const ae = document.activeElement;
+      if (ae && ae !== document.body && ae !== document.documentElement) return;
+      const btn = $('dfComplete');
+      if (btn && !btn.disabled) { try { btn.focus(); } catch (e) {} }
+    }
+
+    function bindReflect() {
+      const ta = $('reflectText'); if (!ta) return;
+      renderReflectBlock();
+
+      ta.addEventListener('input', function () {
+        if (ta.readOnly) return; // conflict not yet resolved
+        if (reflectError) { reflectError = false; $('reflectErrorBox').style.display = 'none'; renderStepChrome(); }
+        // Editing away from (or back to) the saved text flips the gate, so the
+        // footer never offers Continue over text that isn't actually in the
+        // Vault. Only re-renders the chrome on a real state change.
+        if (syncReflectSavedState()) { setReflectStatus(dstate().reflected ? 'savedVault' : null); renderStepChrome(); }
+        updateReflectButtonLive();
+        clearTimeout(reflectDebounceT);
+        reflectDebounceT = setTimeout(function () {
+          const ds = dstate();
+          ds.reflectDraft = ta.value;
+          ds.reflectDraftTs = Date.now();
+          saveInstance();
+          // Once already saved to Vault, keep showing "Saved to Vault" rather
+          // than flashing "Draft saved" under a reflection that's already
+          // safely stored — a further unsaved edit is protected by the
+          // draft-vs-vault conflict check the next time this day is opened,
+          // not by a second status message competing with the first.
+          if (!ds.reflected) setReflectStatus('draftSaved');
+        }, 650); // 500-800ms band: writes settle after a pause, never per keystroke
+      });
+
+      const restoreBtn = $('reflectRestoreDraft');
+      const useSavedBtn = $('reflectUseSaved');
+      if (restoreBtn) restoreBtn.addEventListener('click', function () {
+        const ds = dstate();
+        $('reflectConflict').style.display = 'none';
+        ta.readOnly = false;
+        ta.value = ds.reflectDraft || '';
+        ds.reflected = false;
+        setReflectStatus('draftRestored');
+        updateReflectButtonLive();
+        renderStepChrome();
+        try { ta.focus(); } catch (e) {}
+      });
+      if (useSavedBtn) useSavedBtn.addEventListener('click', function () {
+        const day = curDay(), ds = dstate();
+        const vaultItem = getItem(reflectClientId(day));
+        ds.reflectDraft = null; ds.reflectDraftTs = null;
+        ds.reflected = !!vaultItem;
+        saveInstance();
+        $('reflectConflict').style.display = 'none';
+        ta.readOnly = false;
+        ta.value = (vaultItem && vaultItem.text) || '';
+        setReflectStatus('savedVault');
+        updateReflectButtonLive();
+        renderStepChrome();
+      });
+    }
+
+    // gate: each of steps 3/4/5 gates its OWN Continue action now (see
+    // stepReady()); step 7's Complete Day keeps the original three-part
+    // check as a defensive safety net. renderStepChrome() (defined above,
+    // next to goToStep()) does the actual per-step gate/button/hint work —
+    // this stays as a thin wrapper so every existing call site (bindCast,
+    // repentMarkDone, "breathe again", markSpoken, bindAction) needs no
+    // changes at all.
+    function refreshGate() { renderStepChrome(); }
 
     function setGate(spoken) { // declare block visual state
       const blk = $('declareBlock'), check = $('declCheck'), hint = $('micHint');
@@ -815,14 +1407,16 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
     function renderDayLoading() {
       if (breathInst) { try { breathInst.stop(); } catch (_) {} }
-      $('dfEy').innerHTML = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL + ' &middot; ' + cFrom() + ' &rarr; ' + cTo();
-      $('dfNm').textContent = esL() ? 'Preparando hoy' : 'Preparing today';
+      $('dfEy').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
+      $('dfEySR').textContent = $('dfEy').textContent;
+      $('dfStepDots').innerHTML = ''; $('dfReviewBadge').style.display = 'none';
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; } $('dfDots').innerHTML = dots;
       $('dfScroll').innerHTML = '<div class="dayloading"><div class="dl-orb"><i></i></div>'
         + '<div class="dl-t">' + (esL() ? 'Jesús está preparando el camino para hoy.' : 'Jesus is preparing the way for today.') + '</div>'
         + '<div class="dl-s" id="dlS">' + (esL() ? 'Aquiétate un momento…' : 'Be still a moment…') + '</div></div>';
       $('dfFoot').classList.remove('ready'); $('dfComplete').disabled = true;
       $('dfComplete').textContent = (esL() ? 'Completar Día ' : 'Complete Day ') + state.day;
+      $('dfStepBack').style.display = 'none';
       const lines = esL() ? ['Aquiétate un momento…', 'Él sabe exactamente lo que cargas.', 'Este paso se está escribiendo para ti.'] : ['Be still a moment…', 'He knows exactly what you carry.', 'This step is being written for you.'];
       let k = 0; clearInterval(renderDayLoading._t);
       renderDayLoading._t = setInterval(function () { k = (k + 1) % lines.length; const el = $('dlS'); if (el) el.textContent = lines[k]; }, 2300);
@@ -832,30 +1426,174 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       // Day 1 is the free taste; walking on requires an account
       if (state.day >= 2 && !ensureSignedIn(esL() ? 'Crea una cuenta gratis para mantener tu camino creciendo.' : 'Create a free account to keep your journey growing.')) return;
       if (isLocked()) { renderHome(); toast((esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' abre mañana' : ' opens tomorrow')); return; }
+      dayFlowReturnEl = document.activeElement || null; // for close-focus restoration below
       $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
+      openDayFlowA11y();
       if (active._ai[state.day - 1] || !window.JourneyEngine) { renderDayFlow(); return; }
       renderDayLoading();
       ensureDay(state.day).then(function () { if ($('dayflow').classList.contains('open') && $('dayflow').getAttribute('aria-hidden') === 'false') { renderDayFlow(); } });
     }
-    function closeDayFlow() { if (breathInst) { try { breathInst.stop(); } catch (_) {} } reviewDay = null; $('dayflow').classList.remove('open', 'reviewing'); $('dayflow').setAttribute('aria-hidden', 'true'); }
+    function dayFlowFallbackFocus() {
+      const cb = $('continueBtn');
+      return (cb && !cb.disabled) ? cb : $('activeCard');
+    }
+    // Focus-in + focus trap for the #dayflow ritual shell — same pattern as
+    // openDayOpening()/dayOpenKeydown() and openSupportSheet()/supportKeydown()
+    // above, just not previously applied to this (pre-B3.2) overlay.
+    function openDayFlowA11y() {
+      document.addEventListener('keydown', dayflowKeydown);
+      setTimeout(function () { const h = $('dfEySR'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } } }, 60);
+    }
+    function dayflowKeydown(e) {
+      // The support sheet can open on top of the day flow (dfHelp, any step) —
+      // while it's open, supportKeydown() alone owns Escape/Tab; stay out of its way.
+      if ($('supportSheet').classList.contains('open')) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeDayFlow(); return; }
+      if (e.key !== 'Tab') return;
+      const nodes = Array.prototype.slice.call($('dayflow').querySelectorAll('button, a[href], textarea, input'))
+        .filter(function (b) { return b.offsetParent !== null; });
+      if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!$('dayflow').contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    }
+    function closeDayFlow() {
+      if (breathInst) { try { breathInst.stop(); } catch (_) {} breathInst = null; }
+      // Flush a pending (debounced, not-yet-written) reflection draft
+      // immediately rather than trust the ~650ms timer to still fire after
+      // the ritual is gone — closing mid-sentence must never lose the last
+      // few keystrokes.
+      if (reflectDebounceT) {
+        clearTimeout(reflectDebounceT); reflectDebounceT = null;
+        const ta = $('reflectText');
+        if (ta && !reviewDay && !ta.readOnly) {
+          const ds = dstate();
+          ds.reflectDraft = ta.value; ds.reflectDraftTs = Date.now();
+          saveInstance();
+        }
+      }
+      reviewDay = null;
+      $('dayflow').classList.remove('open', 'reviewing');
+      $('dayflow').setAttribute('aria-hidden', 'true');
+      document.removeEventListener('keydown', dayflowKeydown);
+      const target = (dayFlowReturnEl && document.contains(dayFlowReturnEl) && dayFlowReturnEl.offsetParent !== null)
+        ? dayFlowReturnEl : dayFlowFallbackFocus();
+      dayFlowReturnEl = null;
+      if (target) { try { target.focus(); } catch (e) {} }
+    }
     function openReview(day) {
-      reviewDay = day; $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
+      dayFlowReturnEl = document.activeElement || null;
+      reviewDay = day; reviewStep = 1;
+      $('dayflow').classList.add('open'); $('dayflow').setAttribute('aria-hidden', 'false');
+      openDayFlowA11y();
       renderDayFlow();
     }
     $('dfBack').addEventListener('click', closeDayFlow);
-    $('continueBtn').addEventListener('click', openDayFlow);
+    $('dfStepBack').addEventListener('click', prevStep);
+    $('dfStepNext').addEventListener('click', nextStep); // review mode only — see renderStepChrome()
+    $('dfComplete').addEventListener('click', function () {
+      if (reviewDay) { closeDayFlow(); return; }
+      // Step 6 is gated by a successful Save Reflection (B3.3) — the shared
+      // primary button becomes the Save/Saving/Try-Again action itself while
+      // unsaved, and only behaves like every other step's Continue once
+      // dstate().reflected is true.
+      if (curStep() === 6 && !dstate().reflected) { saveReflection(); return; }
+      if (curStep() < TOTAL_STEPS) { nextStep(); return; }
+      // step 7, real completion — unchanged from before B3.2
+      const completing = state.day;
+      closeDayFlow();
+      setTimeout(function () { showDayComplete(completing); }, 260);
+    });
+
+    // ---- B2.2: Day-Opening screen — a quiet pause shown once per day,
+    // immediately before openDayFlow() actually opens #dayflow. In-memory
+    // only (no storage write); reads straight from the already-resolved
+    // PLAN[state.day-1], same as renderHome()'s "Today's Journey" card and
+    // B2.1's Preview day cards. Never shown for completed-day review —
+    // openReview() above is untouched and still opens #dayflow directly.
+    let dayOpenReturnEl = null;
+    function dayOpenFallbackFocus() {
+      const cb = $('continueBtn');
+      return (cb && !cb.disabled) ? cb : $('activeCard');
+    }
+    function openDayOpening(sourceEl) {
+      // Preserve openDayFlow()'s own lock behavior exactly: when the day is
+      // locked it refuses and toasts rather than opening — skip this screen
+      // entirely in that case instead of showing a day the user can't begin.
+      if (isLocked()) { openDayFlow(); return; }
+      dayOpenReturnEl = sourceEl || document.activeElement || null;
+      renderDayOpening();
+      $('dayOpen').classList.add('open');
+      $('dayOpen').setAttribute('aria-hidden', 'false');
+      document.addEventListener('keydown', dayOpenKeydown);
+      // Deferred, matching auth-modal.js's own account-modal timing for this
+      // exact opacity/visibility overlay shape — focusing in the same
+      // synchronous tick as classList.add('open') does not reliably move
+      // focus off the element that triggered the click.
+      setTimeout(function () {
+        const h = $('doEyebrow'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
+      }, 60);
+    }
+    function renderDayOpening() {
+      const d = PLAN[state.day - 1];
+      $('doEyebrow').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
+      let dots = ''; for (let i = 1; i <= TOTAL; i++) { dots += '<i class="' + (i < state.day ? 'done' : (i === state.day ? 'cur' : '')) + '"></i>'; }
+      $('doProgress').innerHTML = dots;
+      $('doTitle').textContent = d.title;
+      $('doVerseText').textContent = '“' + d.verse + '”';
+      $('doRef').textContent = d.ref + (d.ver ? ' · ' + d.ver : '');
+      $('doEncourage').textContent = d.fruitTruth || '';
+      // One distinct background per day (1-5), a heavy-to-golden mood arc —
+      // shared across every struggle (the art is about day position, not the
+      // specific struggle) so the pool stays small and reusable. Clamped
+      // defensively even though TOTAL is always 5. The CSS variable's own
+      // default (journey-bg-day1.jpg) covers the brief instant before first
+      // render.
+      const bgDay = Math.min(TOTAL, Math.max(1, state.day));
+      const card = document.querySelector('#dayOpen .jo-card');
+      if (card) card.style.setProperty('--jo-bg-img', "url('/declare/journey-bg-day" + bgDay + ".jpg')");
+    }
+    function closeDayOpening() {
+      $('dayOpen').classList.remove('open');
+      $('dayOpen').setAttribute('aria-hidden', 'true');
+      document.removeEventListener('keydown', dayOpenKeydown);
+      const target = (dayOpenReturnEl && document.contains(dayOpenReturnEl) && dayOpenReturnEl.offsetParent !== null)
+        ? dayOpenReturnEl : dayOpenFallbackFocus();
+      dayOpenReturnEl = null;
+      if (target) { try { target.focus(); } catch (e) {} }
+    }
+    // Escape closes; Tab/Shift+Tab is trapped to the two real controls inside
+    // (close button, begin, secondary) while the dialog is open.
+    function dayOpenKeydown(e) {
+      if (e.key === 'Escape') { e.preventDefault(); closeDayOpening(); return; }
+      if (e.key !== 'Tab') return;
+      const nodes = Array.prototype.slice.call($('dayOpen').querySelectorAll('button')).filter(function (b) { return b.offsetParent !== null; });
+      if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    $('doBegin').addEventListener('click', function () { closeDayOpening(); openDayFlow(); });
+    // "View Journey Overview" and the close (X) both dismiss back to the
+    // Journey home already rendered underneath — there is no separate
+    // overview screen to navigate to; the home page IS the overview.
+    $('doSecondary').addEventListener('click', closeDayOpening);
+    $('doClose').addEventListener('click', closeDayOpening);
+    $('dayOpen').querySelector('[data-jo-close]').addEventListener('click', closeDayOpening);
+    document.addEventListener('declare-lang', function () {
+      if ($('dayOpen').classList.contains('open')) renderDayOpening();
+    });
+
+    $('continueBtn').addEventListener('click', function () { openDayOpening($('continueBtn')); });
     // revisit a completed day (read-only) from the fruit log or the day dots
     $('fruitList').addEventListener('click', function (e) { const b = e.target.closest('.fl-item[data-day]'); if (b) openReview(+b.dataset.day); });
     $('dayDots').addEventListener('click', function (e) { const d = e.target.closest('i.tap[data-day]'); if (d) openReview(+d.dataset.day); });
     $('dayDots').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; const d = e.target.closest('i.tap[data-day]'); if (d) { e.preventDefault(); openReview(+d.dataset.day); } });
 
-    // complete the day
-    $('dfComplete').addEventListener('click', function () {
-      if (reviewDay) { closeDayFlow(); return; }
-      const completing = state.day;
-      closeDayFlow();
-      setTimeout(function () { showDayComplete(completing); }, 260);
-    });
+    // (dfComplete's click handler is registered once, up with openDayFlow()/
+    // closeDayFlow() above — it now has to know about step navigation, so it
+    // lives next to the pagination state it depends on rather than here.)
 
     let pendingReminder = null;
     function showDayComplete(completing) {
@@ -916,7 +1654,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       $('dayComplete').classList.remove('show'); $('dayComplete').setAttribute('aria-hidden', 'true');
       if (completing >= TOTAL) { setTimeout(showJourneyComplete, 280); }
       else {
-        state.day = completing + 1; state.returned += 1;
+        state.day = completing + 1; state.returned += 1; activeStep = 1; // fresh day starts back at Step 1
         setLock(pendingReminder);   // engage the one-day-per-day lock (with optional reminder)
         renderHome();
       }
@@ -938,6 +1676,7 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       // the vine has rooted: record it for real (grid + zero-state nod), and
       // release the active slot so a fresh visit lands on the chooser honestly
       active.status = 'done'; markDone(active.id); clearActiveSaved(); clearLock();
+      slotRelease('completed'); // frees the slot for the next Journey
       $('journeyComplete').classList.add('show'); $('journeyComplete').setAttribute('aria-hidden', 'false');
     }
 
@@ -965,8 +1704,46 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     const scrim = $('scrim');
     function openSheet(id) { $(id).classList.add('open'); $(id).setAttribute('aria-hidden', 'false'); scrim.classList.add('open'); }
     function closeSheets() { ['menuSheet', 'resetSheet', 'chooseSheet', 'shareSheet', 'careSheet'].forEach(function (s) { $(s).classList.remove('open'); $(s).setAttribute('aria-hidden', 'true'); }); scrim.classList.remove('open'); }
-    scrim.addEventListener('click', closeSheets);
+    scrim.addEventListener('click', function () { closeSheets(); closeSupportSheet(); });
     $('overflowBtn').addEventListener('click', function () { openSheet('menuSheet'); });
+
+    // ---- B3.2: in-ritual support sheet ----
+    // Reuses the same .sheet/scrim plumbing as every sheet above, but adds
+    // real focus-trap + Escape handling (a genuine gap in the existing sheet
+    // system — none of the sheets above have it — added here specifically
+    // because this one needs to work correctly while #dayflow is already
+    // open behind it, and must return the user to the exact same step).
+    let supportReturnEl = null;
+    function openSupportSheet() {
+      supportReturnEl = document.activeElement || null;
+      openSheet('supportSheet');
+      document.addEventListener('keydown', supportKeydown);
+      setTimeout(function () { const h = $('supportTitle'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) {} } }, 60);
+    }
+    function closeSupportSheet() {
+      const wasOpen = $('supportSheet').classList.contains('open');
+      $('supportSheet').classList.remove('open'); $('supportSheet').setAttribute('aria-hidden', 'true');
+      // Only drop the shared scrim if nothing else (e.g. a menu sheet) is
+      // still relying on it — closeSheets() already handles its own set.
+      if (wasOpen && !document.querySelector('.sheet.open')) scrim.classList.remove('open');
+      document.removeEventListener('keydown', supportKeydown);
+      if (wasOpen && supportReturnEl) { try { supportReturnEl.focus(); } catch (e) {} }
+      supportReturnEl = null;
+    }
+    function supportKeydown(e) {
+      if (e.key === 'Escape') { e.preventDefault(); closeSupportSheet(); return; }
+      if (e.key !== 'Tab') return;
+      const sheet = $('supportSheet');
+      const nodes = Array.prototype.slice.call(sheet.querySelectorAll('a[href], button')).filter(function (b) { return b.offsetParent !== null; });
+      if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!sheet.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    }
+    $('supportTitle').setAttribute('tabindex', '-1');
+    $('dfHelp').addEventListener('click', openSupportSheet);
+    $('supportCloseBtn').addEventListener('click', closeSupportSheet);
 
     /* ---- Vault (machinery): the device-local store every other page uses ---- */
     function vaultSaveVerses() {
@@ -999,16 +1776,43 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       list.innerHTML = CATALOG.filter(function (c) { return c.status === 'open'; }).map(function (c) {
         return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + cFrom(c) + ' &rarr; ' + cTo(c) + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + cLine(c) + '</span></span></button>';
       }).join('');
-      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginJourney(b.dataset.id, !!openDay); }); });
+      // B2.1: `openDay` is no longer consulted here — every pick from this list
+      // (whether reached via "See all" from the zero state, or via the
+      // switch-confirmed conflict flow) now routes through the care-gate-then-
+      // Preview funnel instead of committing immediately.
+      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginNewJourneyFlow(b.dataset.id, 'chooser'); }); });
       openSheet('chooseSheet');
     }
 
     // ---- begin a journey (shared by zero-state cards, See-all, and the switch flow) ----
-    function beginJourney(id, openDay, silent) {
+    // B2.1: accepts an optional 4th `seed` arg — when the caller is the Journey
+    // Preview's "Begin Day 1" commit, this is the exact seed Preview already
+    // resolved its plan from (see resolveJourneyPlan()/startPlan() above), so
+    // the committed journey is byte-identical to what was previewed.
+    /* Server-authoritative active-Journey slots.
+       The slot id carries the SEED as well as the catalog id, because
+       restarting a completed Journey is a genuinely new run and must get a new
+       identity — reusing the bare catalog id would silently re-open the old
+       slot instead. Mirrors reflectClientId()'s convention.
+
+       Every call is fire-and-forget. Journey progress lives locally and is the
+       user's real work; a sync failure must never block or lose it. The visible
+       limit sheet stays off until this integration is verified end to end, so a
+       refusal is recorded but not yet enforced in the UI. */
+    function slotId() {
+      if (!active) return null;
+      return active.id + ':' + (active._seed || 0);
+    }
+    function slotStart() { const id = slotId(); if (id) { try { journeyStart(id); } catch (e) {} } }
+    function slotEnsure() { const id = slotId(); if (id) { try { journeyEnsure(id); } catch (e) {} } }
+    function slotRelease(status) { const id = slotId(); if (id) { try { journeyRelease(id, status); } catch (e) {} } }
+
+    function beginJourney(id, openDay, silent, seed) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
       CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
-      active = c; active.status = 'active'; startPlan();
-      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
+      active = c; active.status = 'active'; startPlan(seed);
+      slotStart(); // new run: claims a slot (limit enforced server-side)
+      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; activeStep = 1; clearLock(); clearInstance(); saveActive();
       closeSheets(); showActiveUI();
       if (!silent) toast((esL() ? 'Una vid nueva ha sido plantada — ' : 'A fresh vine is planted — ') + cFrom(c) + ' → ' + cTo(c));
       if (openDay) openAfterBegin();
@@ -1054,6 +1858,158 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
         setTimeout(openAfterBegin, 360);
       };
     }
+    // plantAndBegin()/openAfterBegin() are kept, unmodified, for any future
+    // reuse — they are no longer called by the entry paths below (B2.1 routes
+    // every brand-new-journey pick through the Preview first instead), but
+    // deleting them isn't in scope for this pass.
+
+    // ---- B2.1: Journey Preview (side-effect-free until "Begin Day 1") ----
+    // In-memory only — never written to localStorage. Discarded on cancel.
+    let previewState = null;
+    let previewCommitting = false;
+
+    // Single funnel for every "a brand-new struggle was just picked" moment
+    // (zero-state card, choose-list button, Today bridge with no conflict).
+    // Replaces the old immediate beginJourney()/plantAndBegin() commit at
+    // pick-time — resolves the existing care gate (unmodified) first for the
+    // 6 sensitive struggles, then shows Preview; nothing is committed here.
+    function beginNewJourneyFlow(id, entrySource) {
+      const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
+      closeSheets();
+      if (isSensitive(c.id)) { openCareGate(c.id, function () { showJourneyPreview(c, entrySource); }); }
+      else { showJourneyPreview(c, entrySource); }
+    }
+
+    function showJourneyPreview(c, entrySource) {
+      previewCommitting = false;
+      const seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+      const plan = resolveJourneyPlan(c.id, c.from, c.to, seed);
+      previewState = { id: c.id, entrySource: entrySource, seed: seed, plan: plan };
+      renderJourneyPreview(c, plan, entrySource);
+      // In-flow content swap (not a full-viewport overlay like #dayflow) —
+      // the persistent rail (desktop/tablet) and bottom nav (mobile) live
+      // outside <main class="journey"> and are untouched either way, but
+      // hiding #homeScroll here keeps this from ever rendering underneath.
+      $('homeScroll').style.display = 'none';
+      $('journeyPreview').classList.add('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'false');
+      window.scrollTo(0, 0);
+      const h = $('jpHeading'); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
+    }
+
+    function renderJourneyPreview(c, plan, entrySource) {
+      $('jpFrom').textContent = cFrom(c); $('jpTo').textContent = cTo(c);
+      const supportLine = cLine(c);
+      const sup = $('jpSupport');
+      if (supportLine) { sup.textContent = supportLine; sup.style.display = 'block'; } else { sup.style.display = 'none'; }
+
+      let html = '';
+      for (let i = 0; i < TOTAL; i++) {
+        const d = plan[i]; const n = i + 1; const focus = d.fruitTruth || '';
+        if (n === 1) {
+          // Static labels here are built via tj()/esL(), not data-i18n — this
+          // markup is injected via innerHTML on demand (not present at the
+          // page's initial data-i18n sweep or reliably re-swept afterward),
+          // so the language must be resolved at generation time. The
+          // declare-lang listener below re-calls this function to repaint on
+          // a live switch instead of relying on the global attribute sweep.
+          html += '<div class="jp-day jp-day-current">'
+            + '<div class="jp-day-top"><span class="jp-daynum">' + tj('journey.previewDayWord', 'Day') + ' 1</span>'
+            + '<span class="jp-badge jp-badge-now">' + tj('journey.previewBeginsNow', 'Begins now') + '</span></div>'
+            + '<div class="jp-daytitle">' + d.title + '</div>'
+            + (d.ref ? '<div class="jp-dayref">' + d.ref + '</div>' : '')
+            + (focus ? '<div class="jp-dayfocus">' + focus + '</div>' : '')
+            + '</div>';
+        } else {
+          html += '<div class="jp-day jp-day-locked" aria-label="' + (esL() ? 'Día ' : 'Day ') + n + ' — ' + tj('journey.previewLocked', 'Locked') + '">'
+            + '<div class="jp-day-top"><span class="jp-daynum">' + tj('journey.previewDayWord', 'Day') + ' ' + n + '</span>'
+            + '<span class="jp-lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span></div>'
+            + '<div class="jp-daytitle">' + d.title + '</div>'
+            + (d.ref ? '<div class="jp-dayref">' + d.ref + '</div>' : '')
+            + (focus ? '<div class="jp-dayfocus">' + focus + '</div>' : '')
+            + '<div class="jp-lockedlbl">' + tj('journey.previewLocked', 'Locked') + '</div>'
+            + '</div>';
+        }
+      }
+      $('jpDays').innerHTML = html;
+
+      const sec = $('jpSecondary');
+      sec.removeAttribute('data-i18n');
+      if (entrySource === 'today') { sec.textContent = tj('journey.previewBackToday', 'Back to Today'); }
+      else if (entrySource === 'chooser') { sec.textContent = tj('journey.previewChooseDifferent', 'Choose a Different Struggle'); }
+      else { sec.textContent = tj('journey.previewReturn', 'Return to Journey'); }
+    }
+
+    // Guards against double activation: disabled immediately, and a boolean
+    // flag in case a second event still slips through before disabled takes.
+    $('jpBegin').addEventListener('click', function () {
+      if (!previewState || previewCommitting) return;
+      previewCommitting = true;
+      $('jpBegin').disabled = true;
+      const id = previewState.id, seed = previewState.seed;
+      const c = CATALOG.find(function (x) { return x.id === id; });
+      if (!c) { previewCommitting = false; $('jpBegin').disabled = false; toast(esL() ? 'Algo salió mal — intenta de nuevo.' : 'Something went wrong — please try again.'); return; }
+      beginJourney(id, false, true, seed);   // exactly-once commit, same plan Preview showed, no toast (the transition below replaces it)
+      previewState = null;
+      $('journeyPreview').classList.remove('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'true');
+      $('homeScroll').style.display = '';    // beginJourney() already called showActiveUI()/renderHome() into it
+      playPlantedTransition();
+      setTimeout(function () { openDayOpening(); }, 380);   // B2.2 Day-Opening gate; sensitivity already resolved before Preview — never show the care gate again
+    });
+
+    // Restrained, local, non-viewport-crossing acknowledgment that the
+    // journey now exists — reuses the same small scale-pulse already used at
+    // the end of plantAndBegin()'s flight animation (journey.astro ~line 989),
+    // without the seed-flight/bloom (which needs the now-gone chooser card's
+    // position). Respects prefers-reduced-motion by simply doing nothing.
+    function playPlantedTransition() {
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) return;
+      const vm = $('vineMount') || $('activeCard');
+      if (!vm) return;
+      try { vm.animate([{ transform: 'scale(.94)', opacity: .7 }, { transform: 'scale(1.03)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.34,1.4,.5,1)' }); } catch (e) {}
+    }
+
+    function closeJourneyPreview() {
+      const src = previewState && previewState.entrySource;
+      $('journeyPreview').classList.remove('open');
+      $('journeyPreview').setAttribute('aria-hidden', 'true');
+      $('homeScroll').style.display = '';
+      previewState = null;
+      if (src === 'today') { window.location.href = '/today/'; return; }
+      // 'chooser' and any unresolved source both return to whichever Journey
+      // home state is actually true right now — a still-active journey (this
+      // Preview may have been reached via the switch-conflict flow) or the
+      // honest zero state. Never commits anything.
+      const saved = loadActiveSaved();
+      // Focus a guaranteed-present landmark rather than the original tapped
+      // element — renderZero() rebuilds #zsList's buttons from scratch, so the
+      // pre-Preview element reference would otherwise be a detached, silently
+      // unfocusable node.
+      if (saved && saved.id) {
+        showActiveUI();
+        // continueBtn is disabled while the next day is pacing-locked, and a
+        // disabled control silently refuses focus — fall back to the card
+        // itself (tabindex="-1", programmatically focusable only) so focus
+        // always lands somewhere sensible either way.
+        const cb = $('continueBtn');
+        const target = (cb && !cb.disabled) ? cb : $('activeCard');
+        if (target) { try { target.focus(); } catch (e) {} }
+      }
+      else { showZeroUI(); renderZero(loadDone().length > 0); const sa = $('zsSeeAll'); if (sa) { try { sa.focus(); } catch (e) {} } }
+    }
+    $('jpSecondary').addEventListener('click', closeJourneyPreview);
+    // Repaint Preview's dynamically-templated day cards + secondary-action
+    // label on a live language switch. No new resolution/re-seeding — the
+    // already-resolved plan is just re-painted in the new language. Scoped to
+    // Preview only; the rest of this page has no equivalent listener today.
+    document.addEventListener('declare-lang', function () {
+      if (previewState && $('journeyPreview').classList.contains('open')) {
+        const c = CATALOG.find(function (x) { return x.id === previewState.id; });
+        if (c) renderJourneyPreview(c, previewState.plan, previewState.entrySource);
+      }
+    });
 
     // ---- home mode: the active-journey card vs. the zero state ----
     function showActiveUI() {
@@ -1081,7 +2037,9 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       $('zsList').innerHTML = CURATED.map(function (id) { const c = CATALOG.find(function (x) { return x.id === id; }); if (!c || c.status !== 'open') return '';
         return '<button class="zs-card" data-id="' + c.id + '"><span class="zs-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg></span><span class="zs-txt"><span class="zs-shift"><span class="zs-from">' + cFrom(c) + '</span><span class="zs-toline"><span class="zs-arr" aria-hidden="true">→</span><span class="zs-to">' + cTo(c) + '</span></span></span><span class="zs-line">' + cLine(c) + '</span></span><span class="zs-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
       }).join('');
-      $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { plantAndBegin(b); }); });
+      // B2.1: no longer commits immediately (plantAndBegin) — resolves the
+      // care gate first for sensitive struggles, then shows Journey Preview.
+      $('zsList').querySelectorAll('.zs-card').forEach(function (b) { b.addEventListener('click', function () { beginNewJourneyFlow(b.dataset.id, 'chooser'); }); });
     }
     $('zsSeeAll').addEventListener('click', function () { openChooseList(true); });
 
@@ -1221,33 +2179,33 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
           // through /today's "Start a 5-Day Journey" card the day after Day 1 and
           // were losing everything (lock, instance, reflections) to a fresh Day 1.
           const sc = CATALOG.find(function (x) { return x.id === already.id; });
-          if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
+          if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); slotEnsure(); }
           state.day = already.day || state.day; state.returned = already.returned || state.returned;
           restoreProgress();
           showActiveUI();
           if (already.id === targetId) {
             // Same struggle: this is a continue, not a restart — open where they left off.
-            setTimeout(openDayFlow, 380);
+            setTimeout(function () { openDayOpening(); }, 380);
           } else {
             // Different struggle: let them choose, with the existing progress-kept sheet.
             setTimeout(function () { openSheet('resetSheet'); }, 420);
           }
           return;
         }
+        // B2.1: brand-new journey via the Today bridge, no conflict — resolve
+        // (care-gate first if sensitive), then show Preview. Do NOT commit
+        // here anymore (no startPlan()/saveActive()/showActiveUI() at pick
+        // time) — commitment now happens once, at Preview's "Begin Day 1".
         const c = CATALOG.find(function (x) { return x.id === targetId; });
-        if (c) { active = c; active.status = 'active'; }
-        startPlan();
-        state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; clearLock(); clearInstance(); saveActive();
-        showActiveUI();
-        if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
-        else { setTimeout(openDayFlow, 380); }
+        showZeroUI(); renderZero(loadDone().length > 0); // sane default behind the Preview overlay; nothing is committed yet
+        if (c) { beginNewJourneyFlow(c.id, 'today'); }
         return;
       }
       // No bridge entry: honor real persistence.
       const saved = loadActiveSaved();
       if (saved) {
         const sc = CATALOG.find(function (x) { return x.id === saved.id; });
-        if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); }
+        if (sc) { active = sc; active.status = 'active'; startPlan(); restoreInstance(); slotEnsure(); }
         state.day = saved.day || state.day; state.returned = saved.returned || state.returned;
         restoreProgress();
         showActiveUI();
@@ -1286,23 +2244,23 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
     /* header */
     .journey .jhead { padding: 8px 22px 2px 40px; }
+    .journey .jhead-ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 6px; }
     .journey .jhead h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.04; color: var(--text); font-weight: 600; }
     .journey .jhead .sub { font-size: 14px; color: var(--muted); margin-top: 5px; }
 
     /* ============ ACTIVE JOURNEY CARD ============ */
     .journey .jcard { position: relative; margin: 16px 0 0; border-radius: 20px; overflow: hidden;
       border: 1px solid var(--line); box-shadow: var(--card-shadow); background: var(--surface); }
-    .journey .jc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; position: relative; z-index: 3; }
+    .journey .jc-top { padding: 16px 18px 0; position: relative; z-index: 3; }
     .journey .jc-top .ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
-    .journey .jc-shift { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.12; color: var(--text); font-weight: 600; margin-top: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-    .journey .jc-top > div:first-child { flex: 1; min-width: 0; }
-    .journey .jc-shift .from { color: var(--muted); font-weight: 500; font-style: italic; font-size: .74em; }
-    .journey .jc-shift .to-row { display: flex; align-items: baseline; gap: 9px; flex-wrap: nowrap; white-space: nowrap; }
-    .journey .jc-shift .arr { color: var(--gold); font-size: .72em; transform: translateY(-1px); }
-    .journey .jc-shift .to { color: var(--text); position: relative; padding-bottom: 2px; white-space: nowrap; }
-    .journey .jc-shift .to::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 18%, transparent)); }
-    .journey .jc-habit { font-size: 11.5px; color: var(--soft); margin-top: 6px; letter-spacing: .01em; }
-    .journey .daypill { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--gold) 15%, transparent);
+    /* Unified from → to weight (no muted/italic "from" or underlined "to") —
+       both segments read as one continuous transformation heading. */
+    .journey .jc-shift { font-family: 'Cormorant Garamond', serif; font-size: 21px; line-height: 1.15; color: var(--text); font-weight: 600;
+      margin-top: 8px; padding: 0 18px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+    .journey .jc-shift .from, .journey .jc-shift .to { color: var(--text); font-weight: 600; }
+    .journey .jc-shift .arr { color: var(--gold); }
+    .journey .jc-habit { font-size: 11.5px; color: var(--soft); margin-top: 8px; padding: 0 18px; letter-spacing: .01em; }
+    .journey .daypill { display: inline-block; margin: 12px 18px 0; font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--gold) 15%, transparent);
       border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent); padding: 7px 13px; border-radius: 100px; white-space: nowrap; }
 
     /* the Vine */
@@ -1324,6 +2282,31 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .vine-cap .cn { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--goldd); }
     .journey .vine-cap .ct { display: block; font-size: 12px; color: var(--text2); margin-top: 3px; line-height: 1.4; }
 
+    /* Compact overview-card composition only (#activeCard's Vine) — a tighter
+       crop and the from/to + "Jesus, the Vine" captions hidden here, since the
+       card already states the transformation in its own copy. The exact same
+       tree-mount markup, images, and captions are untouched everywhere else
+       (day-complete, journey-complete, the full-screen viewer) — this is a
+       scoped CSS-only rule, the-vine.js itself was not touched. */
+    #activeCard .vinewrap .vine-lab, #activeCard .vinewrap .vine-root { display: none; }
+    @media (min-width: 1024px) {
+      #activeCard .tree-mount.tree-live { aspect-ratio: 4 / 5; }
+      #activeCard .tree-mount.tree-live img.tl-over { object-position: 50% 32%; }
+    }
+
+    /* In-card fruit preview — real data only (renderFruitPreview()), hidden via
+       inline style until completed() > 0. Desktop-only visually meaningful
+       (see .jc-grid's "auto" middle column); stacks in normal flow elsewhere. */
+    .journey .jc-fruit-preview { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 18px; margin: 0 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--chip-shadow); }
+    .journey .fp-h { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
+    .journey .fp-item { display: flex; align-items: flex-start; gap: 11px; }
+    .journey .fp-ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd); background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .fp-ic svg { width: 15px; height: 15px; }
+    .journey .fp-meta { min-width: 0; }
+    .journey .fp-nm { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.15; }
+    .journey .fp-tr { font-size: 12px; color: var(--text2); line-height: 1.4; margin-top: 3px; }
+    @media (min-width: 1024px) { .journey .jc-fruit-preview { width: 220px; margin: 0; } }
+
     /* Tree of Life — death-to-life living tree (image frames + sparks). Immersive
        scene that looks the same in light/dark; only the frame chrome adapts. */
     .journey .tree-mount.tree-live { position: relative; border-radius: 18px; overflow: hidden; background: #0c1611; box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
@@ -1341,27 +2324,39 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .tree-mount.tree-live .vine-root span { color: #e8c96e; }
     @media (prefers-reduced-motion: reduce) { .journey .tree-mount.tree-live .tl-fruit.on { animation: none; } }
 
-    /* Fruit log */
-    .journey .fruitlog { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px 16px; }
-    .journey .fruitlog .fl-h { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 11px; }
-    .journey .fl-list { display: flex; flex-direction: column; gap: 11px; }
-    .journey .fl-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 6px; margin: -6px; border-radius: 12px; cursor: pointer; font-family: inherit; transition: background .18s ease; }
-    .journey .fl-item:hover { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+    /* Fruit God Is Growing — a real section heading (not a tiny label) above a
+       responsive card grid: 1 column on mobile, 2-then-1 on tablet, 3 across
+       on desktop when there's enough completed data (never invented). */
+    .journey .fruitlog { margin-top: 20px; }
+    .journey .fruitlog .fl-h { display: flex; align-items: center; gap: 8px; font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text); margin-bottom: 13px; }
+    .journey .fruitlog .fl-h .leaf-ic { width: 17px; height: 17px; color: var(--goldd); }
+    .journey .fl-list { display: grid; grid-template-columns: 1fr; gap: 11px; }
+    @media (min-width: 640px) { .journey .fl-list { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .journey .fl-list { grid-template-columns: 1fr 1fr 1fr; } }
+    .journey .fl-item { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--chip-shadow); padding: 14px; border-radius: 14px; cursor: pointer; font-family: inherit; transition: border-color .2s ease, transform .15s ease; }
+    .journey .fl-item:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
     .journey .fl-item:active { transform: scale(.99); }
-    .journey .fl-go { flex: 0 0 auto; color: var(--soft); display: flex; transition: color .18s ease, transform .18s ease; }
-    .journey .fl-go svg { width: 18px; height: 18px; }
-    .journey .fl-item:hover .fl-go { color: var(--goldd); transform: translateX(2px); }
-    .journey .fl-bud { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: radial-gradient(circle at 50% 42%, rgba(246, 234, 194, .95), rgba(216, 184, 95, .5) 60%, transparent 72%); box-shadow: 0 0 12px -2px rgba(216, 184, 95, .7); }
+    .journey .fl-ic { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd); background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .fl-ic svg { width: 15px; height: 15px; }
     .journey .fl-meta { flex: 1; min-width: 0; }
+    .journey .fl-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .journey .fl-meta .nm { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--text); font-weight: 600; line-height: 1.1; }
-    .journey .fl-meta .dy { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .journey .fl-day { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); flex: 0 0 auto; }
+    .journey .fl-truth { font-size: 12.5px; color: var(--text2); line-height: 1.4; margin-top: 3px; }
 
     /* card footer */
     .journey .jc-foot { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px 2px; position: relative; z-index: 3; }
-    .journey .dots { display: flex; gap: 5px; align-items: center; }
+    /* gap widened from 5px so the 44px invisible hit-areas below never overlap —
+       see .dots i.tap::before. The visible dots themselves are unchanged. */
+    .journey .dots { display: flex; gap: 28px; align-items: center; }
     .journey .dots i { width: 16px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--text) 15%, transparent); transition: background .4s ease, width .4s ease; }
     .journey .dots i.done { background: var(--gold); }
-    .journey .dots i.tap { cursor: pointer; }
+    .journey .dots i.tap { cursor: pointer; position: relative; }
+    /* invisible 44x44 touch target, centered on the visible dot. position:absolute
+       takes it out of flow so it can never affect .jc-foot's layout or push
+       neighboring content — only the real Continue/View Vine controls below it
+       and the widened .dots gap above account for spacing. */
+    .journey .dots i.tap::before { content: ''; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
     .journey .dots i.tap:hover { height: 7px; }
     .journey .dots i.viewing { outline: 2px solid var(--goldd); outline-offset: 2px; }
     .journey .dots i.cur { background: var(--goldd); width: 22px; }
@@ -1369,14 +2364,19 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
     /* what you'll do today */
     .journey .today { padding: 12px 18px 4px; position: relative; z-index: 3; }
+    .journey .today-ey { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; margin-bottom: 7px; }
     .journey .today .tt { font-family: 'Cormorant Garamond', serif; font-size: 19px; color: var(--text); font-weight: 600; line-height: 1.18; }
     .journey .today .tref { font-size: 11px; letter-spacing: .04em; color: var(--goldd); font-weight: 600; margin-top: 3px; text-transform: uppercase; }
     .journey .today .focus { font-size: 13.5px; color: var(--text2); line-height: 1.5; margin-top: 9px; }
 
     .journey .jc-actions { display: flex; gap: 10px; padding: 14px 16px 16px; position: relative; z-index: 3; }
     .journey .jc-actions .btn { border-radius: 14px; padding: 15px 18px; }
-    .journey .btn-cont { flex: 1; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); }
-    .journey .btn-view { flex: 0 0 auto; }
+    /* Decorative arrow only (::after survives renderHome()'s textContent
+       re-assignment on this button; a real inline SVG child would not). */
+    .journey .btn-cont { flex: 1; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .journey .btn-cont:not(.locked)::after { content: '\2192'; font-size: 16px; }
+    .journey .btn-view { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
+    .journey .leaf-ic { width: 15px; height: 15px; flex: 0 0 auto; }
 
     /* faithfulness line */
     .journey .returnline { display: flex; align-items: center; gap: 10px; margin: 16px 22px 0 18px; font-size: 13px; color: var(--muted); }
@@ -1389,15 +2389,21 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .allj .h .t { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
     .journey .allj .h .c { font-size: 11px; color: var(--muted); }
     .journey .jgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-    .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px 13px 14px; background: var(--surface);
-      box-shadow: var(--chip-shadow); min-height: 104px; display: flex; flex-direction: column; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }
+    .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: var(--surface);
+      box-shadow: var(--chip-shadow); display: flex; align-items: flex-start; gap: 11px; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }
     .journey .cell:hover { border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
     .journey .cell:active { transform: scale(.985); }
-    .journey .cell .ic { color: var(--muted); } .journey .cell .ic svg { width: 17px; height: 17px; }
-    .journey .cell .st { position: absolute; top: 12px; right: 12px; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+    .journey .cell-ic { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--goldd);
+      background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent); }
+    .journey .cell-ic svg { width: 15px; height: 15px; }
+    .journey .cell-body { flex: 1; min-width: 0; }
+    .journey .cell .st { flex: 0 0 auto; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
     .journey .cell .st svg { width: 15px; height: 15px; }
-    .journey .cell .nm { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; margin-top: auto; line-height: 1.12; }
+    .journey .cell .nm { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); font-weight: 600; line-height: 1.12; }
     .journey .cell .nm .a2 { color: var(--muted); } .journey .cell.done .nm .a2 { color: var(--goldd); }
+    /* the real fruit/truth summary, shown only when the completed journey's
+       cached content is still present (see pastFruitSummary()) — never invented */
+    .journey .cell-fruit { font-size: 11.5px; color: var(--text2); line-height: 1.4; margin-top: 6px; }
     .journey .jgrid-empty { grid-column: 1 / -1; font-size: 13px; color: var(--soft); line-height: 1.55; text-align: center; padding: 14px 10px; border: 1px dashed var(--line2); border-radius: 13px; }
 
     /* see all journeys toggle */
@@ -1447,36 +2453,79 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       transform: translate(-50%, -50%); will-change: transform, opacity; }
 
     /* ============ DAY FLOW (viewport-fixed) ============ */
-    .journey .dayflow { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; background: var(--bgfield);
+    /* Visually hidden but announced — carries the full "Day N of 5, Step N of
+       7" context for screen readers now that the visible top bar only shows
+       "Day N of 5" (see #dfEy/#dfEySR in renderStepChrome()). Not exposed at
+       200% zoom (fixed off-screen clip, not a transform any zoom could reveal). */
+    .journey .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    /* B3.2: .dayflow is now the full-viewport overlay WRAPPER (mobile: still
+       IS the full-bleed surface, unchanged transform-slide from before this
+       milestone; >=768px: becomes a dimmed/blurred backdrop via ::before,
+       exactly like B2.2's .dayopen/.jo-back). .df-shell is the actual
+       bounded card at >=768px — same "one element, two jobs" pattern .jo-card
+       already uses for the Day-Opening screen. */
+    .journey .dayflow { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column;
       transform: translateX(100%); transition: transform .42s cubic-bezier(.22, 1, .36, 1); visibility: hidden; }
     .journey .dayflow.open { transform: none; visibility: visible; }
-    .journey .df-top { display: flex; align-items: center; gap: 13px; padding: max(12px, env(safe-area-inset-top)) 18px 12px; position: relative; z-index: 3;
+    .journey .df-shell { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--bgfield); }
+    .journey .df-top { display: flex; align-items: center; gap: 10px; padding: max(12px, env(safe-area-inset-top)) 18px 12px; position: relative; z-index: 3;
       border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .journey .df-back { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
-    .journey .df-back svg { width: 19px; height: 19px; }
-    .journey .df-tt { flex: 1; min-width: 0; }
-    .journey .df-tt .ey { font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--goldd); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .journey .df-tt .nm { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 14px; color: var(--text2); margin-top: 1px; }
+    .journey .df-back, .journey .df-help { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .journey .df-help { color: var(--goldd); position: relative; }
+    .journey .df-back svg, .journey .df-help svg { width: 18px; height: 18px; }
+    .journey .df-tt { flex: 1; min-width: 0; text-align: center; }
+    .journey .df-tt .ey { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; color: var(--goldd); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .journey .df-dots { display: flex; gap: 5px; flex: 0 0 auto; }
     .journey .df-dots i { width: 13px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--text) 16%, transparent); }
     .journey .df-dots i.done { background: var(--gold); } .journey .df-dots i.cur { background: var(--goldd); }
     .journey .df-dots i.viewing { outline: 2px solid var(--goldd); outline-offset: 2px; }
 
-    .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 20px 20px 24px; scrollbar-width: none; }
+    /* Subtle 7-step progress — small, quiet, gold dots (matches the design
+       package's approved treatment). Never the sole source of position
+       information: #dfEySR above carries the same context in real text for
+       assistive tech, and this row itself is aria-hidden. Not interactive —
+       forward movement stays sequential via Continue, not tap-to-jump. */
+    .journey .df-stepdots { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 10px 18px 0; flex: 0 0 auto; }
+    .journey .df-stepdots i { width: 12px; height: 4px; border-radius: 100px; background: var(--line2); }
+    .journey .df-stepdots i.done { background: var(--gold); }
+    .journey .df-stepdots i.cur { background: var(--goldd); width: 18px; }
+
+    .journey .df-review-badge { display: none; align-items: center; gap: 6px; justify-content: center; margin: 12px 18px 0; padding: 6px 13px; border-radius: 100px;
+      font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); flex: 0 0 auto; }
+    .journey .df-review-badge svg { width: 13px; height: 13px; }
+    /* Original-English provenance carries a second line, so the pill relaxes
+       into a soft-cornered block and wraps instead of truncating. Same quiet
+       neutral treatment as the generic review badge — this is context, not a
+       warning, so nothing here borrows error colour or weight. */
+    .journey .df-review-badge.is-original-en { flex-wrap: wrap; row-gap: 3px; padding: 9px 15px; border-radius: 14px; }
+    .journey .df-review-badge.is-original-en #dfReviewBadgeTxt { flex: 1 1 auto; min-width: 0; }
+    .journey .df-review-badge .df-badge-sub { flex: 1 0 100%; text-align: center; text-transform: none;
+      letter-spacing: .01em; font-weight: 500; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+
+    .journey .df-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px 20px 24px; scrollbar-width: none; }
     .journey .df-scroll::-webkit-scrollbar { display: none; }
     /* Desktop: keep the ritual in a calm, readable centered column instead of full-width cards. */
     @media (min-width: 481px) {
-      .journey .df-scroll { padding: 30px 24px 40px; }
-      .journey .df-scroll > .df-h,
-      .journey .df-scroll > .df-sh,
-      .journey .df-scroll > .block,
-      .journey .df-scroll > .day1note { max-width: 660px; margin-left: auto; margin-right: auto; }
+      .journey .df-scroll { padding: 26px 24px 40px; }
+      .journey .df-scroll > .df-intro,
+      .journey .df-scroll > .block { max-width: 660px; margin-left: auto; margin-right: auto; }
     }
-    .journey .df-h { font-family: 'Cormorant Garamond', serif; font-size: 33px; line-height: 1.06; color: var(--text); font-weight: 600; }
+    .journey .df-h { font-family: 'Cormorant Garamond', serif; font-size: 33px; line-height: 1.06; color: var(--text); font-weight: 600; outline: none; }
     .journey .df-sh { font-size: 13px; color: var(--muted); margin-top: 6px; }
     .journey .df-sh .arr { color: var(--goldd); }
 
+    /* One-step-at-a-time: exactly one [data-step] element is ever visible —
+       applyStepVisibility() toggles .step-active and sets aria-hidden/inert
+       on the rest, so inactive steps are removed from both the accessibility
+       tree and tab order, not just hidden visually. */
+    .journey .df-intro[data-step], .journey .block[data-step] { display: none; }
+    .journey .df-intro[data-step].step-active, .journey .block[data-step].step-active { display: block; }
+    .journey .df-intro .day1note { margin-top: 15px; }
+    .journey .block .lab[tabindex], .journey .df-h[tabindex] { outline: none; } /* programmatic focus target only — no visible ring on a heading that isn't itself interactive */
+
     .journey .block { border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px; margin-top: 15px; background: var(--surface); box-shadow: var(--chip-shadow); }
+    .journey .block[data-step].step-active { margin-top: 0; } /* it's the only thing showing now, not one of a stack */
     .journey .block .lab { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
     /* Tappable scripture reference → opens the verse in the Word reader (themed for light + dark). */
     .journey .block .lab .vref-link { color: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
@@ -1496,6 +2545,51 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       color: var(--text); background: var(--field); border: 1px solid var(--line2); border-radius: 12px; padding: 13px 14px; line-height: 1.55; }
     .journey .block.reflect textarea::placeholder { color: var(--soft); }
     .journey .block.reflect textarea:focus { outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .journey .block.reflect textarea[readonly] { opacity: .6; cursor: not-allowed; }
+
+    /* B3.3 — Step 6 draft/save status, error, conflict, and review states.
+       --sage/--rust are the two semantic colors this addition needs; both
+       reuse hex values already established elsewhere in this codebase
+       (vault.astro's prayer tag / delete-hover accent) rather than inventing
+       a new palette. Scoped to the whole ritual shell (.dayflow), not just
+       the reflect block, since the error state also re-colors the shared
+       footer button (#dfComplete lives in .df-foot, a sibling of the reflect
+       block, not a descendant of it -- a custom property scoped narrower
+       than that would resolve to nothing for the button). */
+    .journey .dayflow { --sage: #9BD0A8; --rust: #E89B7E; }
+    .journey .reflect-status { display: none; align-items: flex-start; gap: 9px; margin-top: 11px; font-size: 12.5px; line-height: 1.5; }
+    .journey .reflect-status.show { display: flex; }
+    .journey .reflect-status .rs-ic { flex: 0 0 auto; color: var(--sage); margin-top: 1px; }
+    .journey .reflect-status .rs-ic svg { width: 15px; height: 15px; }
+    .journey .reflect-status .rs-t { display: block; font-weight: 600; color: var(--text2); }
+    .journey .reflect-status .rs-s { display: block; color: var(--muted); margin-top: 1px; }
+
+    .journey .reflect-error { display: none; flex-direction: column; margin-top: 13px; padding: 13px 14px; border-radius: 12px;
+      background: color-mix(in srgb, var(--rust) 14%, transparent); border: 1px solid color-mix(in srgb, var(--rust) 40%, transparent); }
+    .journey .reflect-error .re-t { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .journey .reflect-error .re-s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    /* Four classes (.journey .df-foot .btn.df-btn-error) so this reliably
+       beats .journey .df-foot .btn's same-family box-shadow rule regardless
+       of source order, rather than relying on a specificity tie. */
+    .journey .df-foot .btn.df-btn-error { background: var(--rust); box-shadow: 0 14px 34px -12px rgba(232, 155, 126, .55); }
+
+    .journey .reflect-conflict { display: none; margin-top: 13px; padding: 18px 16px; border-radius: 14px;
+      background: var(--field); border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent); }
+    .journey .reflect-conflict .rc-h { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text); }
+    .journey .reflect-conflict p { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    .journey .reflect-conflict .rc-opt { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--line2); font-family: inherit; transition: .18s; min-height: 44px; }
+    .journey .reflect-conflict .rc-opt:hover { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+    .journey .reflect-conflict .rc-opt b { display: block; font-size: 13.5px; color: var(--text); font-weight: 600; }
+    .journey .reflect-conflict .rc-opt span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .journey .reflect-saved-badge { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 13px 14px; border-radius: 12px;
+      background: color-mix(in srgb, var(--sage) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sage) 38%, transparent); font-size: 12.5px; }
+    .journey .reflect-saved-badge svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--sage); margin-top: 2px; }
+    .journey .reflect-saved-badge b { color: var(--text); font-size: 13px; }
+    .journey .reflect-saved-badge span { color: var(--muted); }
+    .journey .reflect-readback { margin-top: 13px; font-size: 14.5px; line-height: 1.62; color: var(--text2); white-space: pre-wrap; }
+    .journey .reflect-empty { margin-top: 13px; font-size: 13.5px; color: var(--muted); line-height: 1.6; text-align: center; padding: 18px 10px; }
 
     .journey .block .lab .step { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
       background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--goldd); font-size: 9.5px; font-weight: 700; margin-right: 7px; vertical-align: 1px; }
@@ -1569,26 +2663,34 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     .journey .df-foot .btn { display: block; width: 100%; max-width: 420px; margin-inline: auto; box-shadow: 0 14px 34px -12px rgba(216, 184, 95, .6); transition: opacity .3s ease, box-shadow .3s ease; }
     .journey .df-foot .btn[disabled] { opacity: .42; box-shadow: none; cursor: not-allowed; }
+    /* Light theme: the gold glow above is a dark-theme device — on a lit surface
+       it reads as a dirty yellow haze around the button rather than a lift.
+       Swap it for a low-alpha forest shadow, the same family already used by
+       html[data-theme="light"] .journey .tree-mount.tree-live.
+       The :not() guards are deliberate. This selector carries an attribute plus
+       three classes, so without them it would out-specify .btn[disabled] and
+       .btn-cont.locked and put a shadow back on controls that are meant to read
+       as inert, and it would also override the .df-btn-error rust shadow. */
+    html[data-theme="light"] .journey .df-foot .btn:not([disabled]):not(.df-btn-error),
+    html[data-theme="light"] .journey .btn-cont:not(.locked) {
+      box-shadow: 0 6px 16px -10px rgba(45, 74, 62, .38), 0 1px 3px rgba(45, 74, 62, .08);
+    }
     .journey .df-foot .lockhint { text-align: center; font-size: 11.5px; color: var(--soft); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .3s ease; }
     .journey .df-foot .lockhint svg { width: 13px; height: 13px; }
     .journey .df-foot.ready .lockhint { display: none; }
-    /* Provenance for a completed day shown in its original English under
-       Spanish chrome. Quiet neutral treatment on purpose: this is context, not
-       a warning, so it borrows no error colour, weight, or iconography. */
-    .journey .df-prov { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
-      margin: 10px 18px 0; padding: 9px 15px; border-radius: 14px; text-align: center;
-      color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line2); }
-    .journey .df-prov svg { width: 13px; height: 13px; flex: 0 0 auto; }
-    .journey .df-prov .df-prov-t { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
-      flex: 1 1 auto; min-width: 0; }
-    .journey .df-prov .df-prov-s { flex: 1 0 100%; font-size: 11.5px; line-height: 1.35; font-weight: 500; letter-spacing: .01em; }
-
+    /* per-step quiet "Back" text link (steps 2-7 only; step 1 has nothing
+       local to go back to — the persistent top-bar Close (X) covers exiting
+       the ritual entirely from any step, including step 1). Same restrained
+       treatment as the existing .breath-skip-link/.rd-again text links. */
+    .journey .df-step-back { display: none; width: 100%; max-width: 420px; margin: 10px auto 0; background: none; border: 0; color: var(--muted); font-family: inherit; font-size: 13px; cursor: pointer; padding: 10px; min-height: 44px; text-align: center; }
+    .journey .df-step-back:hover { color: var(--text2); }
     /* review mode: read-only revisit of a completed day */
     .journey .dayflow.reviewing .cast-btn,
     .journey .dayflow.reviewing .breath-skip-link,
     .journey .dayflow.reviewing .rd-again { display: none; }
     .journey .dayflow.reviewing .act-check { pointer-events: none; }
-    .journey .dayflow.reviewing .reflect textarea { opacity: .7; }
+    .journey .df-step-next { display: none; width: 100%; max-width: 420px; margin: 10px auto 0; background: none; border: 0; color: var(--goldd); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 10px; min-height: 44px; text-align: center; }
+    .journey .df-step-next:hover { color: var(--gold); }
 
     /* sacred loading — "Jesus is preparing the way" */
     .journey .dayloading { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 30px; min-height: 60vh; }
@@ -1724,10 +2826,17 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
 
     /* ============ SHEETS (viewport-fixed) ============ */
     .journey .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: var(--screen); border-radius: 24px 24px 0 0;
-      border-top: 1px solid var(--line2); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); transform: translateY(102%);
+      border-top: 1px solid var(--line2); transform: translateY(102%);
       transition: transform .42s cubic-bezier(.22, 1, .36, 1); padding: 0 22px max(24px, env(safe-area-inset-bottom)); max-height: 86dvh; overflow-y: auto; scrollbar-width: none; }
     .journey .sheet::-webkit-scrollbar { display: none; }
-    .journey .sheet.open { transform: translateY(0); }
+    /* box-shadow only while open: a closed sheet sits translateY(102%) off-
+       canvas, just below the viewport — its shadow is cast upward from its
+       own (transformed) box regardless of that offset, so an always-on
+       shadow here painted straight through the mobile tab bar (z-index 30)
+       and was visible as a dark band above it on every page load, even with
+       every sheet closed (pre-existing bug, found during Release B / B2.2
+       QA — unrelated to the Day-Opening screen itself). */
+    .journey .sheet.open { transform: translateY(0); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); }
     .journey .grabber { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 12px auto 8px; }
     .journey .sheet h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); margin-top: 8px; }
     .journey .sheet p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 9px; }
@@ -1753,6 +2862,19 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
     .journey .care-sheet p { text-align: center; max-width: 42ch; margin-left: auto; margin-right: auto; }
     .journey .care-sheet .care-talk { color: var(--goldd); }
 
+    /* B3.2: in-ritual support sheet — same .sheet/.care-ic language as the
+       existing care gate, real crisis.astro content (see markup comment). */
+    .journey .support-sheet h3 { text-align: center; }
+    .journey .support-sheet > p { text-align: center; max-width: 42ch; margin-left: auto; margin-right: auto; }
+    .journey .support-list { display: flex; flex-direction: column; gap: 9px; margin: 16px 0 6px; }
+    .journey .support-row { display: flex; align-items: center; gap: 13px; padding: 13px 14px; border-radius: 13px; background: var(--field); text-decoration: none; color: var(--text); min-height: 44px; }
+    .journey .support-row .si { width: 34px; height: 34px; border-radius: 10px; background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--goldd); flex: 0 0 auto; }
+    .journey .support-row .si svg { width: 16px; height: 16px; }
+    .journey .support-row .sm { flex: 1; min-width: 0; }
+    .journey .support-row .st { display: block; font-size: 14.5px; font-weight: 600; }
+    .journey .support-row .sd { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .journey .support-close { width: 100%; margin: 6px 0 4px; }
+
     .journey .toast { position: fixed; left: 50%; bottom: 108px; transform: translate(-50%, 14px); z-index: 80; background: var(--surface);
       border: 1px solid var(--line2); color: var(--text); font-size: 13px; padding: 11px 18px; border-radius: 100px; box-shadow: var(--card-shadow);
       opacity: 0; visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility .3s; white-space: nowrap; }
@@ -1772,6 +2894,257 @@ const JOURNEY_DEV_TOOLS = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_
       .journey .sheet { max-width: 560px; left: 50%; transform: translate(-50%, 102%); }
       .journey .sheet.open { transform: translate(-50%, 0); }
       .journey .toast { bottom: 40px; }
+    }
+
+    /* ============================================================
+       B3.2 — Day Flow tablet/desktop presentation
+       Mobile (<768px): .dayflow IS the full-bleed surface (unchanged).
+       >=768px: .dayflow becomes a dimmed, blurred backdrop (its own real
+       content — Journey home — stays visible and subdued behind it, exactly
+       matching "app visible but subdued" from the approved design), and
+       .df-shell becomes the bounded, centered ritual card. Same responsive
+       shape and tokens as B2.2's .dayopen/.jo-back/.jo-card — not a new
+       pattern invented for this milestone.
+       ============================================================ */
+    @media (min-width: 768px) {
+      .journey .dayflow { padding: 28px; align-items: center; justify-content: center; transform: none; }
+      .journey .dayflow::before { content: ''; position: absolute; inset: 0; z-index: 0; background: rgba(6, 11, 8, .55);
+        opacity: 0; transition: opacity .4s ease, backdrop-filter .4s ease; pointer-events: none; }
+      .journey .dayflow.open::before { opacity: 1; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+      .journey .df-shell { position: relative; z-index: 1; width: 100%; max-width: 620px; height: auto; max-height: calc(100dvh - 56px);
+        border-radius: 24px; border: 1px solid var(--line2); box-shadow: var(--card-shadow); overflow: hidden; }
+      .journey .dayflow .df-top, .journey .dayflow .df-foot { padding-left: 24px; padding-right: 24px; }
+      .journey .dayflow .df-scroll { max-width: none; }
+    }
+    @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+      .journey .dayflow.open .df-shell { animation: joIn .5s cubic-bezier(.16, 1, .3, 1) both; }
+    }
+    @media (min-width: 1024px) { .journey .df-shell { max-width: 660px; } }
+
+    /* Desktop only (matches the Release A sidebar breakpoint): a wide, focused
+       main column with a horizontal Active Journey card — copy / fruit preview
+       (real data only, collapses to nothing when there's none yet) / Vine.
+       Placed last in the stylesheet so it wins over the ≥481px tablet block
+       above for the properties both touch (.jhead/.scroll max-width) — two
+       media queries matching at the same width resolve by source order when
+       specificity ties. */
+    @media (min-width: 1024px) {
+      .journey .jhead { max-width: 1180px; }
+      .journey .scroll { max-width: 1180px; }
+      .journey .jhead h1 { font-size: 54px; }
+      .journey .jc-top, .journey .today, .journey .jc-actions { padding-left: 0; padding-right: 0; }
+      .journey .jc-foot { padding: 13px 0 2px; }
+      .journey .jc-shift { font-size: 34px; }
+      /* the dots row's widened 28px gap (see the B1 closeout 44px hit-area fix)
+         no longer fits beside the "N fruit so far" text on one line once the
+         card gets this much narrower internally than mobile — stack instead
+         of wrapping mid-word. Unaffected: the hit-areas themselves are
+         position:absolute and don't participate in this flex direction. */
+      .journey .jc-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .journey .remain { font-size: 11.5px; }
+    }
+    /* B2.2 QA fix: the 3-column Active Journey grid (text + fruit preview +
+       Vine) needs real room — at 1024-1279px (a 248px desktop sidebar plus
+       the fixed 220px fruit card and 320px Vine column) the leftover space
+       for minmax(0,1fr) collapsed to ~74px, crushing "Anxiety" into
+       "Anxiet" and wrapping every word of the body copy onto its own line
+       (found live at the 1024x768 viewport during B2.2 QA — pre-existing
+       B1-era bug, unrelated to the Day-Opening screen). Below 1280px this
+       card now falls back to plain stacked flow (text, then fruit preview,
+       then Vine) — the same safe, already-proven layout it already uses
+       below 1024px — rather than forcing a 3-column fit that doesn't have
+       the width to work. */
+    @media (min-width: 481px) and (max-width: 1279px) {
+      /* .vinewrap has no width cap outside the >=1280px grid (where its
+         320px column does that job) — below that it's a plain stacked block
+         that fills the FULL card width. That's fine on a narrow phone
+         (<=480px, card is naturally narrow already), but from 481px up
+         (.scroll's max-width jumps to 680px, and the compact 768-899px rail
+         leaves even more room) the Vine rendered comically oversized next to
+         the now-readable text above it (caught live at both the 1024x768
+         laptop size and the 768-899px compact-rail tablet size during the
+         same QA pass as the text-crush bug above). Cap and center it. */
+      .journey .vinewrap { max-width: 420px; margin: 18px auto 0; border-radius: 16px; overflow: hidden; }
+    }
+    @media (min-width: 1280px) {
+      /* Explicit grid-column placement on .jc-copy/.jc-fruit-preview/.vinewrap —
+         required because .jc-fruit-preview is display:none until real fruit
+         exists, and a display:none item is removed from grid auto-placement
+         entirely; without pinning, .vinewrap would slide into the middle
+         (auto) track instead of the 320px track whenever the preview is hidden. */
+      .journey .jc-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto 320px; column-gap: 32px; align-items: start; padding: 24px; }
+      .journey .jc-copy { min-width: 0; grid-column: 1; }
+      .journey .jc-fruit-preview { grid-column: 2; }
+      .journey .vinewrap { align-self: start; border-radius: 16px; overflow: hidden; grid-column: 3; }
+    }
+
+    /* ============================================================
+       B2.1 — Journey Preview
+       In-flow content (not a full-viewport overlay like .dayflow) — the
+       persistent left rail (>=768px, TabBar.astro/sidebar.css) and the
+       mobile bottom tab bar (<768px) live outside <main class="journey">
+       and are never covered or touched. Only existing semantic tokens
+       (declare.css) are used — no new palette, no red/emergency styling.
+       ============================================================ */
+    /* Reuses the .scroll class (same element `#homeScroll` uses) for its
+       existing padding/max-width/margin at every breakpoint — .scroll's own
+       generous bottom padding (120px+safe-area at mobile, still 60px at
+       tablet+) already clears the mobile bottom tab bar; no separate values
+       are duplicated here. */
+    .journey .jpreview { display: none; }
+    .journey .jpreview.open { display: flex; flex-direction: column; gap: 20px; }
+
+    .journey .jp-head { display: flex; flex-direction: column; gap: 6px; }
+    .journey .jp-ey { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; line-height: 1.15; color: var(--text); outline: none; }
+    .journey .jp-shift { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--goldd); display: flex; align-items: center; gap: 8px; }
+    .journey .jp-arr { color: var(--muted); }
+    .journey .jp-meta { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .journey .jp-dot { opacity: .6; }
+    .journey .jp-support { font-size: 13.5px; color: var(--text2); line-height: 1.5; margin: 2px 0 0; }
+
+    .journey .jp-days { display: flex; flex-direction: column; gap: 10px; }
+    .journey .jp-day { border-radius: 14px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+    .journey .jp-day-current { border-color: color-mix(in srgb, var(--gold) 55%, var(--line)); background: color-mix(in srgb, var(--gold) 8%, var(--surface)); box-shadow: var(--chip-shadow, none); }
+    .journey .jp-day-locked { opacity: .8; }
+    .journey .jp-day-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .journey .jp-daynum { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .journey .jp-day-current .jp-daynum { color: var(--goldd); }
+    .journey .jp-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+    .journey .jp-badge-now { background: var(--gold); color: #22382E; }
+    .journey .jp-lock { color: var(--muted); flex: 0 0 auto; }
+    .journey .jp-lock svg { width: 16px; height: 16px; display: block; }
+    .journey .jp-daytitle { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 2px; line-height: 1.2; }
+    .journey .jp-day-locked .jp-daytitle { color: var(--text2); }
+    .journey .jp-dayref { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .journey .jp-dayfocus { font-size: 13px; color: var(--text2); line-height: 1.42; }
+    .journey .jp-lockedlbl { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+    .journey .jp-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .journey .jp-begin, .journey .jp-secondary { width: 100%; min-height: 48px; border-radius: 12px; font-size: 15px; }
+    .journey .jp-begin:disabled { opacity: .6; pointer-events: none; }
+    .journey .jp-privacy { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); justify-content: center; }
+    .journey .jp-privacy svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+    @media (min-width: 768px) {
+      .journey .jp-ey { font-size: 27px; }
+      .journey .jp-shift { font-size: 20px; }
+    }
+
+    @media (min-width: 1024px) {
+      .journey .jp-ey { font-size: 32px; }
+      .journey .jp-days { flex-direction: row; align-items: stretch; }
+      .journey .jp-day { flex: 1; min-width: 0; }
+      .journey .jp-actions { flex-direction: row; }
+      .journey .jp-begin { flex: 2; }
+      .journey .jp-secondary { flex: 1; }
+    }
+
+    /* ============================================================
+       B2.2 — Day-Opening Screen
+       Mobile: .jo-card IS the full-bleed surface (no backdrop needed).
+       ≥768px: .jo-back becomes a dimmed, blurred scrim and .jo-card
+       shrinks to a centered, comfortable-width dialog — same responsive
+       shape as the account modal (auth-modal.js), same declare.css tokens
+       as every other overlay in this file (no new palette).
+       ============================================================ */
+    /* z-index 75, above .sheet/.care-sheet (70): those pre-existing bottom
+       sheets sit just off-screen at the bottom even when closed, and their
+       upward-cast box-shadow (0 -24px 60px rgba(0,0,0,.7)) peeks above the
+       fold — normally hidden under the opaque mobile tab bar, but it painted
+       through this overlay's lighter surface at 57 (visible as a dark smudge
+       along the bottom edge, worst in light theme). Not a change to the
+       sheets themselves — just placing this overlay above them like the
+       account modal (z-index 95) already sits above everything. */
+    .journey .dayopen { position: fixed; inset: 0; z-index: 75; display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: opacity .38s ease, visibility .38s; }
+    .journey .dayopen.open { opacity: 1; visibility: visible; }
+    .journey .jo-back { position: absolute; inset: 0; background: transparent; }
+    /* Photographic forest backdrop — one of five (journey-bg-day1.jpg through
+       day5.jpg, set per day by renderDayOpening() below), generated to match
+       the existing Vine imagery's own painterly god-ray/bokeh style (same
+       asset family as tree-alive.jpg, not stock "mountain-wellness"
+       photography). The five form one heavy-to-golden mood arc across the
+       journey (day 1: dense/enclosed → day 5: open/golden/resolved) — shared
+       across every struggle, since the art follows day position, not the
+       specific struggle content. A fixed dark scrim is baked into the same
+       background so text stays readable regardless of theme — this screen
+       intentionally keeps the same dark-forest mood in both light and dark
+       mode, like the mockups, rather than following the site-wide theme
+       toggle. Text/icon colors below are correspondingly fixed to the
+       dark-theme palette, not var(--text)/var(--goldd) (which would flip to
+       dark-on-dark in light theme otherwise). */
+    .journey .jo-card { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;
+      background-color: #0c130f;
+      /* --jo-bg-img is set per day (1-5) by renderDayOpening() in the script
+         above; the url() here is only a fallback for the brief instant before
+         first render (or if JS somehow never runs). */
+      background-image: linear-gradient(to bottom, rgba(6,11,8,.2) 0%, rgba(6,11,8,.6) 45%, rgba(6,11,8,.92) 100%),
+        var(--jo-bg-img, url('/declare/journey-bg-day1.jpg'));
+      background-position: center top; background-size: cover; background-repeat: no-repeat; }
+    @media (prefers-reduced-motion: no-preference) {
+      .journey .dayopen.open .jo-card { animation: joIn .5s cubic-bezier(.16,1,.3,1) both; }
+    }
+    @keyframes joIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+    .journey .jo-close { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; z-index: 3;
+      width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(244,239,230,.2); background: rgba(6,11,8,.35);
+      color: #F3EFE6; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .journey .jo-close svg { width: 18px; height: 18px; }
+
+    /* justify-content: safe center — centers when the content fits, but
+       behaves like flex-start (scrolls from the top, never overlaps the
+       close button or the actions below) once content grows past the
+       available height, e.g. at 200% browser zoom or a long verse. Plain
+       `center` here let overflowing content bleed both up into .jo-close
+       and down into .jo-actions instead of scrolling (caught live at 200%
+       zoom during B2.2 QA — a real bug, not just a test-method artifact). */
+    .journey .jo-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: safe center; text-align: center;
+      gap: 14px; padding: max(72px, calc(env(safe-area-inset-top) + 56px)) 26px 8px; }
+    .journey .jo-scroll::-webkit-scrollbar { display: none; }
+
+    /* Fixed dark-theme colors throughout (not var(--text)/var(--goldd)) —
+       this screen's photographic backdrop stays dark-forest in both site
+       themes (see .jo-card above), so its text must not flip to the
+       light-theme palette's dark-on-light values. */
+    .journey .jo-eyebrow { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #E2C572; font-weight: 700; outline: none; }
+    .journey .jo-progress { display: flex; gap: 8px; align-items: center; }
+    .journey .jo-progress i { width: 14px; height: 4px; border-radius: 100px; background: rgba(244,239,230,.25); }
+    .journey .jo-progress i.done { background: #D8B85F; }
+    .journey .jo-progress i.cur { background: #E2C572; width: 20px; }
+    .journey .jo-leaf { color: #E2C572; width: 26px; height: 26px; display: flex; filter: drop-shadow(0 1px 6px rgba(0,0,0,.5)); }
+    .journey .jo-leaf svg { width: 100%; height: 100%; }
+    .journey .jo-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; line-height: 1.12; color: #F3EFE6; max-width: 22ch;
+      text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+    .journey .jo-verse { max-width: 44ch; }
+    .journey .jo-verse p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; line-height: 1.4; color: #C7D6CD; }
+    .journey .jo-verse cite { display: block; margin-top: 8px; font-style: normal; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: #E2C572; font-weight: 600; }
+    .journey .jo-encourage { font-size: 14px; line-height: 1.55; color: #C7D6CD; max-width: 40ch; }
+
+    .journey .jo-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 14px 26px max(20px, env(safe-area-inset-bottom)); }
+    .journey .jo-begin { width: 100%; min-height: 50px; border-radius: 100px; font-size: 15px;
+      background: #D8B85F; color: #13211A; box-shadow: 0 12px 30px -10px rgba(216,184,95,.5); }
+    .journey .jo-secondary { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 44px;
+      background: none; border: 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #E2C572; cursor: pointer; }
+    .journey .jo-secondary svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    @media (hover: hover) { .journey .jo-secondary:hover { color: #D8B85F; } }
+
+    @media (min-width: 768px) {
+      .journey .dayopen { padding: 28px; }
+      .journey .jo-back { background: rgba(6, 11, 8, .55); opacity: 0; transition: opacity .4s ease, backdrop-filter .4s ease; }
+      .journey .dayopen.open .jo-back { opacity: 1; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+      .journey .jo-card { width: 100%; max-width: 460px; height: auto; max-height: calc(100dvh - 56px); overflow-y: auto; scrollbar-width: none;
+        border-radius: 24px; border: 1px solid rgba(244,239,230,.2);
+        box-shadow: 0 22px 56px -14px rgba(0,0,0,.74), 0 0 0 1px rgba(244,239,230,.07), 0 0 48px -6px rgba(222,190,100,.22); }
+      .journey .jo-card::-webkit-scrollbar { display: none; }
+      .journey .jo-scroll { padding-top: 60px; }
+      .journey .jo-title { font-size: 32px; }
+    }
+
+    @media (min-width: 1024px) {
+      .journey .jo-card { max-width: 500px; }
+      .journey .jo-title { font-size: 34px; }
+      .journey .jo-verse p { font-size: 19px; }
     }
   </style>
 </DeclareLayout>

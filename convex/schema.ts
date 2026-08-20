@@ -11,8 +11,8 @@ export default defineSchema({
     // Deterministic client-generated id (the same id vault-store.js uses), so a
     // save toggles/updates instead of duplicating, and removes can target it.
     clientId: v.string(),
-    type: v.string(), // 'word' | 'verse' | 'declaration' | 'prayer'
-    ts: v.number(),
+    type: v.string(), // 'word' | 'verse' | 'declaration' | 'prayer' | 'journeyReflection'
+    ts: v.number(), // created; preserved across updates
     struggle: v.optional(v.string()),
     translation: v.optional(v.string()),
     explanation: v.optional(v.string()),
@@ -20,6 +20,15 @@ export default defineSchema({
     text: v.optional(v.string()),
     ref: v.optional(v.string()),
     coll: v.optional(v.string()),
+    // Journey reflections (B3.3): a Step 6 write-up for one day of an active
+    // Journey. `text` holds the reflection body (same convention as 'verse');
+    // updatedTs tracks edits after the first save, since `ts` stays the
+    // original created time.
+    day: v.optional(v.number()),
+    updatedTs: v.optional(v.number()),
+    journeyTitle: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    route: v.optional(v.string()),
     // Verse-image cards saved from Card Studio: a lightweight background reference
     // (a hotlinked Unsplash photo + its credit, or a solid color). No blob storage.
     bgKind: v.optional(v.string()), // 'photo' | 'solid'

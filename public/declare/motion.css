@@ -143,16 +143,6 @@
 .tabbar .tab:active{ transform:scale(.9); }
 @media (hover:hover){ .tabbar .tab:not(.on):hover{ transform:translateY(-1px); } }
 
-/* the raised gold Declare orb breathes — the hero action, alive
-   (mobile/phone disc form only; desktop-flattened bars are skipped) */
-@media (prefers-reduced-motion: no-preference) and (max-width:480px){
-  @keyframes m-orb-breath{
-    0%,100%{ box-shadow:0 10px 24px -6px rgba(216,184,95,.5); }
-    50%    { box-shadow:0 12px 30px -6px rgba(216,184,95,.72), 0 0 26px -4px rgba(216,184,95,.5); }
-  }
-  .tab.center .tdisc{ animation:m-orb-breath 5s var(--ease-calm) infinite; }
-  .tab.center:active .tdisc{ transform:scale(.93); }
-}
 
 /* ============================================================
    7. REDUCED MOTION — gentle fades only, no travel/loops
@@ -162,7 +152,6 @@
   .m-rise.m-in, .m-fade.m-in, .m-scale.m-in, .m-veil.m-in, .rv.m-in, .rv.in{ opacity:1; }
   .m-breath, .m-breath-soft, .m-halo{ animation:none !important; }
   .tabbar{ animation:none !important; }
-  .tab.center .tdisc{ animation:none !important; }
   .m-enter{ animation:none !important; opacity:1 !important; }
   .m-card:hover{ transform:none; }
 }

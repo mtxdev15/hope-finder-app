@@ -37,6 +37,18 @@ window.__I18N_STRINGS = {
     'tab.declare': 'Declara',
     'tab.vault': 'Bóveda',
 
+    /* ---- B1.5B shared sidebar identity card ---- */
+    'sidebar.tagline': 'Camina con Él',
+    'sidebar.guest': 'Invitado',
+    'sidebar.openProfile': 'Abre tu perfil',
+
+    /* ---- B1.5C shared sidebar crisis card ---- */
+    'sidebar.crisisTitle': '¿Estás en crisis?',
+    'sidebar.crisisReassurance': 'No estás a solas.',
+    'sidebar.crisisSupport': 'Hay ayuda y esperanza disponibles.',
+    'sidebar.crisisCta': 'Recibe ayuda',
+    'sidebar.crisisAria': 'Ayuda en una crisis. No estás a solas. Hay ayuda y esperanza disponibles. Recibe ayuda.',
+
     /* ---- home (/) ---- */
     'home.kicker': 'Escritura, para el peso que cargas',
     'home.sub': 'Nombra lo que pesa. Recibe Su Palabra para este momento.',
@@ -53,6 +65,9 @@ window.__I18N_STRINGS = {
     'chip.griefLoss': 'Duelo y pérdida',
 
     /* ---- /today ---- */
+    /* Visually-hidden page-level h1. Short on purpose: it names the page, it is
+       not the visible lead line (that stays today.heading). */
+    'today.pageTitle': 'Hoy',
     'today.heading': '¿Qué pesa en tu corazón?',
     'today.sub': 'Nómbralo, y recibe Su Palabra para este momento.',
     'today.placeholder': 'O escribe lo que hay en tu corazón…',
@@ -79,8 +94,17 @@ window.__I18N_STRINGS = {
     'today.share': 'Compartir',
     'today.sjTag': 'Sé trasplantado',
     'today.sjH': 'No solo lo declares hoy',
-    'today.sjP1': 'Arráigate en ella. Empieza un camino de 5 días y deja que esta verdad se haga real donde ',
-    'today.sjP2': ' ha estado, una declaración a la vez.',
+    /* sjP1/sjP2 were STALE: their Spanish translated an earlier version of this
+       paragraph, so a Spanish reader saw different content than an English one.
+       Retranslated against the current English, and sjP3 added — the three are
+       one sentence split around two interpolated spans, so they only read
+       correctly together. NEEDS NATIVE es-LA EDITORIAL REVIEW. */
+    'today.sjP1': 'Una Palabra puede sostenerte ',
+    'today.sjP2': '. Pero el cambio real rara vez viene de entender una verdad una sola vez. Viene de encontrarte con Dios en ella una y otra vez, hasta que crees lo que declaras en lugar de solo decirlo. Este Camino de 5 días te lleva más adentro de ',
+    'today.sjP3': ', no para manejarlo, sino para reemplazar lo que hay debajo: lo que crees sobre ti mismo y lo que crees sobre Dios.',
+    /* Interpolated into sjP1 above, so the phrase reads 'sostenerte esta noche'. */
+    'today.tonight': 'esta noche',
+    'today.today': 'hoy',
     'today.startJourney': 'Empieza un Camino de 5 días',
     'today.carry': 'Llévalo contigo',
     'today.nsReadT': 'Lee el pasaje completo',
@@ -98,6 +122,17 @@ window.__I18N_STRINGS = {
     'today.savedVault': 'Guardado en tu Bóveda.',
     'today.removedVault': 'Quitado de tu Bóveda.',
     'today.saveSignin': 'Crea una cuenta gratis para guardar esta palabra en tu Bóveda.',
+    /* Right rail + reader states. These were referenced by today.astro but never
+       defined, so Spanish readers saw English here. NEEDS NATIVE es-LA REVIEW. */
+    'today.inThisWord': 'En esta Palabra',
+    'today.recentWords': 'Tus palabras recientes',
+    'today.translation': 'Traducción',
+    'today.breakdown': 'Desglose',
+    'today.noBreakdown': 'No hay un análisis más profundo de este versículo para esta palabra.',
+    'today.transFailed': 'No pudimos cambiar la traducción. Inténtalo de nuevo.',
+    'today.tapRevisit': 'toca para volver',
+    'today.justNow': 'ahora mismo',
+    'today.yesterday': 'ayer',
 
     /* ---- /word (The Word). Spanish locks the reader to RVR1909 (only + default). ---- */
     'word.library': 'La biblioteca',
@@ -216,6 +251,16 @@ window.__I18N_STRINGS = {
     'vault.tScripture': 'Escritura',
     'vault.tDeclaration': 'Declaración',
     'vault.tPrayer': 'Oración',
+    'vault.tReflection': 'Reflexión de camino',
+    'vault.editReflection': 'Editar reflexión',
+    'vault.copyReflection': 'Copiar reflexión',
+    'vault.saveChanges': 'Guardar cambios',
+    'vault.cancel': 'Cancelar',
+    'vault.copied': 'Copiado',
+    'vault.copyFailed': 'No se pudo copiar',
+    'vault.saveFailed': 'No se pudo guardar',
+    'vault.reflectionUpdated': 'Reflexión actualizada',
+    'vault.reflectionEmpty': 'Una reflexión no puede estar vacía',
     'vault.yesterday': 'Ayer',
     'vault.nothingYet': 'Nada aquí todavía, agrega verdades a medida que las guardas.',
     'vault.yours': 'Tuya',
@@ -341,11 +386,13 @@ window.__I18N_STRINGS = {
     'journey.chooseTransformation': 'Elige tu transformación',
     'journey.seeAllJourneys': 'Ver todos los caminos',
     'journey.activeJourney': 'Camino activo',
+    'journey.todayJourney': 'El camino de hoy',
     'journey.personalizing': 'Personalizando tu camino',
     'journey.viewVine': 'Ver la Vid',
     'journey.saveReminder': 'Guardar recordatorio',
     'journey.previewTomorrow': 'Ver mañana',
-    'journey.fruitSoFar': 'Fruto hasta ahora',
+    'journey.fruitSoFar': 'El fruto que Dios está haciendo crecer',
+    'journey.overviewSub': 'Dios te encuentra en lo cotidiano y está haciendo crecer algo eterno.',
     'journey.returnedPre': 'Has vuelto ',
     'journey.returnedPost': '. La fidelidad es la victoria.',
     'journey.pastJourneys': 'Caminos anteriores',
@@ -384,6 +431,23 @@ window.__I18N_STRINGS = {
     'journey.beforeWeBegin': 'Antes de comenzar',
     'journey.talkToSomeone': 'Habla con alguien ahora',
     'journey.readyBeginGently': 'Estoy listo, comencemos con calma',
+
+    /* ---- B2.1 Journey Preview ---- */
+    'journey.previewEyebrow': 'Vista previa de tu camino de 5 días',
+    'journey.previewDays': '5 días',
+    'journey.previewPace': 'Un paso a la vez.',
+    'journey.previewBeginDay1': 'Comienza el Día 1',
+    'journey.previewBeginsNow': 'Comienza ahora',
+    'journey.previewLocked': 'Bloqueado',
+    'journey.previewDayWord': 'Día',
+    'journey.previewBackToday': 'Volver a Hoy',
+    'journey.previewChooseDifferent': 'Elegir otra lucha',
+    'journey.previewReturn': 'Volver al Camino',
+    'journey.previewPrivacy': 'Tu camino es privado y solo tú puedes verlo.',
+
+    /* ---- B2.2 Day-Opening screen ---- */
+    'journey.dayOpenBegin': 'Comienza el camino de hoy',
+    'journey.dayOpenOverview': 'Ver el resumen del camino',
 
     /* ---- day-complete: save-your-progress invitation ---- */
     'journey.saveProgressH': 'Guarda tu progreso',
