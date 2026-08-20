@@ -4,6 +4,26 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
+- [ ] **Secret hygiene — BLOCKED on a Stripe dashboard audit.** `GIFT_WEBHOOK_SECRET` (Convex)
+      and `STRIPE_WEBHOOK_SECRET` (Worker) have **zero executable readers**, proven mechanically
+      by `node scripts/audit-retired-secrets.ts` (12/12). They are still not safe to delete: zero
+      readers proves the *application* does not need them, not that no external sender is still
+      authenticating against one. The Stripe webhook inventory could not be run — the Stripe key
+      exists only as a write-only Worker secret. Fill in the manual checklist in
+      `docs/operations/retired-webhook-secret-hygiene.md` §3, then follow the removal order in §6.
+      Do **not** add `STRIPE_SECRET_KEY`, `BILLING_WEBHOOK_SECRET` or
+      `STRIPE_BILLING_WEBHOOK_SECRET` — their absence is what keeps billing inert.
+- [ ] **`/billing/webhook` returns 500 for a deliberately disabled integration.** Arguably wrong:
+      500 says "misconfigured", when the truth is "switched off". Stripe also treats 5xx as
+      retryable and 4xx as delivered, so the current shape invites redelivery that a 4xx would
+      stop. Changing it is an application decision, deliberately kept out of the secret-hygiene
+      checkpoint. Decide the correct response (503, or a retired-style 410) alongside whatever
+      Stripe endpoint audit finds.
+- [ ] **Prune the stale agent worktree.** `.claude/worktrees/agent-a52d9218af95dab7e` still holds
+      **pre-parity** source — `convex/gifts.ts`, `public/declare/give.js`, and the billing-portal
+      IDOR. It is git-ignored and ships nowhere, but it pollutes repository-wide greps and briefly
+      produced false "executable reader" hits during the secret audit. Remove it with
+      `git worktree remove --force`.
 - [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
       on `main` still carries the retired `/give/*` handlers, including the billing-portal IDOR
       that searched Stripe customers by a browser-submitted email. Production runs the hardened
