@@ -852,7 +852,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        Spanish — because the reader reviewed them, or prepared this before — the
        list can be Spanish immediately at zero cost. */
     async function refreshFruitLogEs() {
-      if (!FRUIT_LOG_ES_DEV || !esL() || completed() <= 0) { flState = 'english'; flTranslations = null; return; }
+      if (!esL() || completed() <= 0) { flState = 'english'; flTranslations = null; return; }
       const c = await fruitLogModule();
       const mode = c.fruitLogEligibility('es').mode;
       if (mode === 'guest-notice') { flState = 'guest'; flTranslations = null; renderFruitLog(); return; }
@@ -872,7 +872,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     function renderFruitLogChrome(showingEs, n) {
       const sec = $('fruitLog');
       let bar = $('flChrome');
-      if (!FRUIT_LOG_ES_DEV || !esL()) { if (bar) bar.style.display = 'none'; return; }
+      if (!esL()) { if (bar) bar.style.display = 'none'; return; }
       if (!bar) {
         bar = document.createElement('div');
         bar.id = 'flChrome'; bar.className = 'fl-chrome';
@@ -944,7 +944,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       /* An empty translations map is not a translated list. `!!flTranslations`
          alone was true of `{}`, which is what a set of untranslatable days
          produces. */
-      const showingEs = FRUIT_LOG_ES_DEV && flState === 'ready' && !!flTranslations
+      const showingEs = flState === 'ready' && !!flTranslations
         && Object.keys(flTranslations).length > 0;
       renderFruitLogChrome(showingEs, n);
 
@@ -953,9 +953,15 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         const d = PLAN[i - 1];
         /* Merged per row. PLAN[] is never written to, so the Today card, the
            Vine and the past-Journeys grid keep reading English. */
-        const row = (FRUIT_LOG_ES_DEV && flCtrl)
+        /* renderFruitLog() runs on first paint, before the lazy module resolves,
+           so this fallback is a real rendered state and not a theoretical one.
+           It must read the day's own stamp: claiming 'en' for everything would
+           put lang="en" on a Spanish card for that frame. Same three-way
+           contract as sourceLocale(), which takes over once the module lands. */
+        const row = flCtrl
           ? flCtrl.fruitRow(d, showingEs && flTranslations ? flTranslations[i] : null)
-          : { fruit: d.fruit, fruitTruth: d.fruitTruth, locale: 'en' };
+          : { fruit: d.fruit, fruitTruth: d.fruitTruth,
+              locale: d.lang === 'es' ? 'es' : d.lang === 'mixed-legacy' ? 'mixed-legacy' : 'en' };
         /* Mark the row with the language its CONTENT is actually in. Marking
            every untranslated row lang="en" would blanket-label a Spanish
            canonical day as English — the same mistake the locale boundary
@@ -1857,11 +1863,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        chunk, the transport and the Scripture code out of the initial payload
        for the English reader, who should not pay for a screen never opened. */
 
-    /* Fruit Log Spanish is a NEW surface whose four interface strings have not
-       been through native es-LA review, so it stays development-only until they
-       have. Its own constant, not a shared one: the last time a single flag
-       covered two surfaces it nearly shipped Day-Opening by accident. */
-    const FRUIT_LOG_ES_DEV = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY_ES_CONTENT === '1';
+    /* Fruit Log Spanish ships. Its four interface strings were approved by a
+       native es-LA speaker on 2026-08-20 and live in the shipped catalog, so the
+       development gate that held it back has been removed rather than renamed:
+       a flag kept past its purpose is a flag someone later trusts.
+       What still gates the surface is what always should: Spanish chrome, at
+       least one completed day, and a signed-in reader. Day-Opening keeps its own
+       separate constant and stays off. */
     let flCtrl = null;              // lazily imported orchestration module
     let flTranslations = null;      // day -> translated fields, display only
     let flState = 'english';        // english | guest | ready | preparing | error

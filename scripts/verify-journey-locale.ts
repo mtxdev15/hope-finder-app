@@ -408,7 +408,23 @@ check("only the Fruit Log render site merges translations",
   (VIEW.match(/flCtrl\.fruitRow\(/g) || []).length === 1);
 check("PLAN is never assigned a translated field",
   !/PLAN\[[^\]]+\]\.(fruit|fruitTruth)\s*=/.test(VIEW));
-check("Fruit Log keeps its OWN development guard", VIEW.includes("FRUIT_LOG_ES_DEV"));
+/* The gate is GONE, not renamed. A development flag kept past its purpose is a
+ * flag someone later trusts, and the surface must now be gated by the things
+ * that are permanently true: Spanish chrome, a completed day, a signed-in
+ * reader. Day-Opening keeps its own separate constant and must stay off. */
+check("the Fruit Log development gate is gone, not renamed",
+  !VIEW.includes("FRUIT_LOG_ES_DEV") && !/FRUIT_LOG[A-Z_]*_DEV/.test(VIEW));
+check("removing it did not disturb the Day-Opening gate", VIEW.includes("ES_DAY_OPENING_DEV"));
+check("the Fruit Log still refuses to run outside Spanish chrome",
+  /if \(!esL\(\) \|\| completed\(\) <= 0\)/.test(VIEW));
+check("the module is still imported lazily, not at page load",
+  /flCtrl = await import\('\.\.\/app\/declare\/journey-locale\/fruit-log-controller\.js'\)/.test(VIEW) &&
+  !/^import .*fruit-log-controller/m.test(VIEW));
+/* First paint happens before the lazy module resolves, so its fallback row is a
+ * state readers actually see. Hardcoding 'en' there put lang="en" on a Spanish
+ * card for that frame. */
+check("the pre-module fallback row reads the day's own stamp",
+  /locale: d\.lang === 'es' \? 'es' : d\.lang === 'mixed-legacy' \? 'mixed-legacy' : 'en'/.test(VIEW));
 check("rendering never triggers preparation",
   !/function renderFruitLog\(\)[\s\S]{0,900}prepareFruitLogEs\(/.test(VIEW));
 
