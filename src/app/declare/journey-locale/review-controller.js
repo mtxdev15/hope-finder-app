@@ -99,6 +99,13 @@ export async function getReviewContent({ instance, day, english, locale, token }
    * Days carry their own `lang` since the locale-integrity boundary. An unstamped
    * day is pre-boundary and treated as English, which is what every writer before
    * the stamp actually produced. */
+  if (english && english.lang === 'mixed-legacy') {
+    /* A pre-boundary record whose own fields are in different languages. There
+       is no single source language to translate FROM, so translating it would
+       produce a copy that misrepresents the day either way. Refused before any
+       reservation, so it costs nothing. */
+    return { state: 'error', reason: 'source-unresolved', retryable: false };
+  }
   if (english && english.lang && english.lang !== 'en') {
     return { state: 'error', reason: 'source-not-english', retryable: false };
   }
