@@ -4,6 +4,26 @@ A running list of work to continue on the site. Newest priorities at the top of 
 Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
+- [ ] **RELEASE PROCESS — a local build is not release evidence.** Vite loads `.env.local`
+      and `.env` during `npm run build`, so a build made with either present bakes in the
+      **development** Convex and Worker URLs. That build runs fine and is useless as evidence,
+      because it is not the bundle Cloudflare Pages produces. It has already cost one full
+      39-item matrix, which had to be re-run against a clean checkout before it could be
+      trusted. Release evidence must come from **either** a Cloudflare Pages build whose
+      relevant public values have been *compared* to production (not assumed equal), **or** a
+      clean worktree with neither env file, given the exact production public values. Run
+      `node scripts/check-release-build-env.ts` before capturing evidence; it exits non-zero
+      when the tree cannot produce a clean build. Record the commit built, the build
+      environment, the public variables compared, the asset names, the catalog URL and the
+      lazy chunk names. See the evidence section of PR #11 for a worked example.
+- [ ] **Better Auth re-persists its own cookie key (non-blocking, observe only).** After
+      `endSession()` clears `better-auth_cookie`, the library writes it back from its own
+      `get-session` response, so the key can reappear. Since PR #13 this is **inert**: no
+      Convex token is minted without a session, so the reappearing key produces no requests,
+      no 401s and no console errors — verified across five consecutive loads in production.
+      Do **not** add cookie-fighting logic or override the library's storage. Revisit only if
+      the key later causes real requests, identity leakage, a retry loop, or anything a
+      reader can see.
 - [ ] **GUARDRAIL — completed Journey content is immutable.** Any restore or migration capable of
       changing canonical completed content must use **persisted** completion state
       (`db_journey_lock` and `db_active_journey`, taking the higher value) and must pass a
