@@ -422,6 +422,15 @@ window.__I18N_STRINGS = {
     'journey.review.tryAgain': 'Intentar de nuevo',
     'journey.review.returnToToday': 'Volver al camino de hoy',
     'journey.review.signInPrompt': 'Inicia sesión para preparar una copia en español.',
+    /* Fruit Log in Spanish. Reviewed and approved by a native es-LA speaker on
+       2026-08-20, who also settled the product term as "Registro del Fruto".
+       That term appears in three of these four strings and they move together;
+       changing it in one is a copy change that never went through review. The
+       English source for each key lives at the call site as the tj() fallback. */
+    'journey.fruitLog.prepareAction': 'Preparar mi Registro del Fruto en español',
+    'journey.fruitLog.preparing': 'Preparando tu Registro del Fruto en español…',
+    'journey.fruitLog.progress': 'Día {n} de {total}',
+    'journey.fruitLog.failBody': 'No pudimos preparar todo tu Registro del Fruto. Nada se perdió y lo que ya estaba listo se guardó. Puedes intentarlo de nuevo.',
     'journey.vineJohn': 'La Vid · Juan 15:5',
     'journey.dayWord': 'Día ',
     'journey.opensTomorrowSuffix': ' abre mañana',

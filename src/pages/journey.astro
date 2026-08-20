@@ -803,24 +803,8 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       box.style.display = 'flex';
     }
 
-    let flCopy = function () { return ''; };
     async function fruitLogModule() {
-      if (!flCtrl) {
-        flCtrl = await import('../app/declare/journey-locale/fruit-log-controller.js');
-        const m = await import('../app/declare/journey-locale/fruit-log-merge.ts');
-        /* Register the not-yet-reviewed copy into the live dictionary so tj()
-           resolves it exactly like a shipped key. i18n.js reads
-           window.__I18N_STRINGS on every lookup, so this is enough. After native
-           review the four entries move into the catalog and this goes away. */
-        try {
-          window.__I18N_STRINGS = window.__I18N_STRINGS || {};
-          window.__I18N_STRINGS.es = Object.assign({}, window.__I18N_STRINGS.es, m.FRUIT_LOG_COPY_ES);
-        } catch (e) {}
-        flCopy = function (alias) {
-          const k = m.FRUIT_LOG_COPY_KEYS[alias];
-          return tj(k, m.FRUIT_LOG_COPY_EN[k] || '');
-        };
-      }
+      if (!flCtrl) flCtrl = await import('../app/declare/journey-locale/fruit-log-controller.js');
       return flCtrl;
     }
 
@@ -848,6 +832,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         flTranslations = res.translations; flState = 'ready'; flMissing = [];
       } else if (res.state === 'stale') {
         return;
+      } else if (res.state === 'unresolved') {
+        /* Nothing failed and nothing was spent. The list stays in its own
+           per-row languages, which is the honest thing to show. */
+        flState = 'english'; flTranslations = null;
       } else if (res.state === 'guest-notice') {
         flState = 'guest';
       } else if (res.state === 'english') {
@@ -870,7 +858,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       if (mode === 'guest-notice') { flState = 'guest'; flTranslations = null; renderFruitLog(); return; }
       if (mode !== 'translate') { flState = 'english'; flTranslations = null; renderFruitLog(); return; }
       const scan = c.inspectCache({ instance: active ? active.id : '', plan: PLAN, completedCount: completed() });
-      if (scan.total && !scan.missing.length) { flTranslations = scan.translations; flState = 'ready'; }
+      /* `spanishReady`, not `!missing.length`. A list of days that can never be
+         translated has nothing missing either, and treating that as ready is
+         what made the banner claim a translation that never happened. */
+      if (scan.spanishReady) { flTranslations = scan.translations; flState = 'ready'; }
       else { flTranslations = null; flState = 'english'; flMissing = scan.missing; }
       renderFruitLog();
     }
@@ -892,8 +883,8 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       if (flState === 'preparing') {
         bar.className = 'fl-chrome is-busy';
         bar.setAttribute('role', 'status');
-        bar.innerHTML = '<span class="fl-prov-t">' + flCopy('preparing') + '</span>'
-          + '<span class="fl-prov-s">' + flCopy('progress')
+        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.fruitLog.preparing', 'Preparing your Fruit Log in Spanish\u2026') + '</span>'
+          + '<span class="fl-prov-s">' + tj('journey.fruitLog.progress', 'Day {n} of {total}')
               .replace('{n}', String(Math.min(flProgress.completed + 1, flProgress.total || n)))
               .replace('{total}', String(flProgress.total || n)) + '</span>';
         return;
@@ -901,8 +892,15 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
 
       bar.removeAttribute('role');
       if (showingEs) {
+        /* "Translation of the original English" is a claim about provenance, and
+           it is only true when every source in the set really was English. A set
+           that also contains natively Spanish days was not wholly translated,
+           and saying so would misdescribe the reader's own record. */
         bar.className = 'fl-chrome';
-        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.review.translatedBanner', 'Spanish translation of the original English content · Read only') + '</span>';
+        const src = flCtrl ? flCtrl.sourceState(PLAN.slice(0, n)) : 'original-english';
+        bar.innerHTML = '<span class="fl-prov-t">' + (src === 'original-english'
+          ? tj('journey.review.translatedBanner', 'Spanish translation of the original English content · Read only')
+          : tj('journey.review.genericBanner', 'Reviewing a completed day · Read only')) + '</span>';
         return;
       }
 
@@ -921,13 +919,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       bar.setAttribute('role', 'note');
       let html = '<span class="fl-prov-t">' + tj('journey.review.originalEnglishBanner', 'Original English content · Read only') + '</span>';
       if (flState === 'error') {
-        html += '<span class="fl-prov-s">' + flCopy('failBody') + '</span>'
+        html += '<span class="fl-prov-s">' + tj('journey.fruitLog.failBody', 'We could not prepare your whole Fruit Log. Nothing was lost and what was ready has been kept. You can try again.') + '</span>'
           + '<span class="fl-actions"><button type="button" class="es-back-en" id="flRetry">' + tj('journey.review.tryAgain', 'Try again') + '</button></span>';
       } else if (flState === 'guest') {
         html += '<span class="fl-prov-s">' + tj('journey.review.originalEnglishSupport', 'This day was originally completed in English.') + '</span>'
           + '<span class="fl-actions"><button type="button" class="es-back-en" id="flSignIn">' + tj('journey.review.signInForSpanish', 'Sign in to read it in Spanish') + '</button></span>';
       } else {
-        html += '<span class="fl-actions"><button type="button" class="es-back-en" id="flPrepare">' + flCopy('prepare') + '</button></span>';
+        html += '<span class="fl-actions"><button type="button" class="es-back-en" id="flPrepare">' + tj('journey.fruitLog.prepareAction', 'Prepare my Fruit Log in Spanish') + '</button></span>';
       }
       bar.innerHTML = html;
 
@@ -943,7 +941,11 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       if (n <= 0) { sec.style.display = 'none'; return; }
       sec.style.display = 'block';
 
-      const showingEs = FRUIT_LOG_ES_DEV && flState === 'ready' && !!flTranslations;
+      /* An empty translations map is not a translated list. `!!flTranslations`
+         alone was true of `{}`, which is what a set of untranslatable days
+         produces. */
+      const showingEs = FRUIT_LOG_ES_DEV && flState === 'ready' && !!flTranslations
+        && Object.keys(flTranslations).length > 0;
       renderFruitLogChrome(showingEs, n);
 
       let html = '';
@@ -962,8 +964,17 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
            mixed-legacy day gets no marker at all: there is no single true
            language to claim, and claiming one is the defect this surface exists
            to avoid reproducing. */
-        const lang = (esL() && row.locale === 'en') ? ' lang="en"' : '';
-        html += '<button class="fl-item" data-day="' + i + '" aria-label="' + (esL() ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + row.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm"' + lang + '>' + row.fruit + '</span><span class="fl-day">' + (esL() ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth"' + lang + '>' + row.fruitTruth + '</div></div></button>';
+        const rowEn = esL() && row.locale === 'en';
+        const lang = rowEn ? ' lang="en"' : '';
+        /* The day label speaks the ROW's language, not the page's. Spanish
+           chrome around an English day produced cards reading "Honest Courage
+           DÍA 1" — two languages inside one card, which is the very thing the
+           section banner exists to make unnecessary. The banner is where
+           Spanish explains the English; inside the card, one language.
+           A mixed-legacy row has no single language of its own, so it keeps the
+           page's rather than being given a claim that is not true. */
+        const esRow = esL() && !rowEn;
+        html += '<button class="fl-item"' + lang + ' data-day="' + i + '" aria-label="' + (esRow ? 'Revisitar día ' : 'Revisit day ') + i + ', ' + row.fruit + '"><span class="fl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2 7-6 7-11a7 7 0 0 0-14 0c0 5 3 9 7 11z"/><path d="M12 21v-8"/></svg></span><div class="fl-meta"><div class="fl-top"><span class="nm">' + row.fruit + '</span><span class="fl-day">' + (esRow ? 'Día ' : 'Day ') + i + '</span></div><div class="fl-truth">' + row.fruitTruth + '</div></div></button>';
       }
       box.innerHTML = html;
     }

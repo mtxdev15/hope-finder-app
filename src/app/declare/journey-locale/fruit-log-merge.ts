@@ -100,35 +100,10 @@ export function isRowTranslatable(day: { lang?: string } | null | undefined): bo
   return sourceLocale(day) === "en";
 }
 
-/* ── Interface copy ─────────────────────────────────────────────────────────
- * These four strings are NEW and have NOT been through native es-LA review, so
- * they deliberately do not live in public/declare/i18n-strings.js. Shipping
- * unreviewed Spanish in a file any reader can open is the thing the review gate
- * exists to prevent, and the production-bundle audit would flag it.
- *
- * They are keyed exactly as the catalog would key them and are registered into
- * the live dictionary by the dev-gated view, so promotion after review is a
- * matter of moving these four entries across and deleting the registration —
- * no call site changes. Everything else this surface renders reuses copy that
- * is already approved and already shipped. */
-export const FRUIT_LOG_COPY_ES: Readonly<Record<string, string>> = {
-  "journey.fruitLog.prepareAction": "Preparar mi Registro de Fruto en español",
-  "journey.fruitLog.preparing": "Preparando tu Registro de Fruto en español…",
-  "journey.fruitLog.progress": "Día {n} de {total}",
-  "journey.fruitLog.failBody": "No pudimos preparar todo tu Registro de Fruto. Nada se perdió y lo que ya estaba listo se guardó. Puedes intentarlo de nuevo.",
-};
-
-export const FRUIT_LOG_COPY_EN: Readonly<Record<string, string>> = {
-  "journey.fruitLog.prepareAction": "Prepare my Fruit Log in Spanish",
-  "journey.fruitLog.preparing": "Preparing your Fruit Log in Spanish…",
-  "journey.fruitLog.progress": "Day {n} of {total}",
-  "journey.fruitLog.failBody": "We could not prepare your whole Fruit Log. Nothing was lost and what was ready has been kept. You can try again.",
-};
-
-/** Short aliases so the view never carries a catalog key literal. */
-export const FRUIT_LOG_COPY_KEYS = {
-  prepare: "journey.fruitLog.prepareAction",
-  preparing: "journey.fruitLog.preparing",
-  progress: "journey.fruitLog.progress",
-  failBody: "journey.fruitLog.failBody",
-} as const;
+/* Interface copy for this surface lives in the shipped catalog
+ * (public/declare/i18n-strings.js, the `journey.fruitLog.*` keys), reviewed and
+ * approved by a native es-LA speaker on 2026-08-20 along with the product term
+ * "Registro del Fruto". English stays at the call sites as the tj() fallback,
+ * per the house convention. It is deliberately NOT re-exported from here: a
+ * second copy of a reviewed string is a second thing to keep in sync, and the
+ * runtime registration that once carried it has been removed. */

@@ -282,6 +282,10 @@ const CATALOG_ES: Record<string, string> = (() => {
   return (w.__I18N_STRINGS && w.__I18N_STRINGS.es) || {};
 })();
 const VIEW = readFileSync(new URL("../src/pages/journey.astro", import.meta.url), "utf8");
+const MERGE_SRC = readFileSync(new URL(
+  "../src/app/declare/journey-locale/fruit-log-merge.ts", import.meta.url), "utf8");
+const FL_CONTROLLER = readFileSync(new URL(
+  "../src/app/declare/journey-locale/fruit-log-controller.js", import.meta.url), "utf8");
 
 const REVIEW_KEYS = [
   "journey.review.originalEnglishBanner",
@@ -340,15 +344,14 @@ for (const s of ["Tus palabras · Sin traducir", "Volver más tarde"]) {
 /* The promotion must not re-enable other surfaces. */
 check("Day-Opening keeps its own development guard", VIEW.includes("ES_DAY_OPENING_DEV"));
 check("the broad review flag is gone", !VIEW.includes("ES_REVIEW_ON"));
-/* The shim is allowed ONLY for copy that has not passed native review. Review
- * copy is approved and shipped, so it must come from the catalog; Fruit Log copy
- * is not, so it is registered at runtime by the dev-gated surface. Asserting
- * "no shim at all" was right in Release B and is too blunt now. */
-check("no runtime registration of REVIEW copy",
-  !/__I18N_STRINGS[\s\S]{0,120}REVIEW_COPY_ES/.test(VIEW));
-check("the only runtime registration is the unreviewed Fruit Log copy",
-  (VIEW.match(/__I18N_STRINGS\.es\s*=/g) || []).length === 1 &&
-  /__I18N_STRINGS\.es\s*=[\s\S]{0,120}FRUIT_LOG_COPY_ES/.test(VIEW));
+/* The runtime shim existed only to hold copy that had not passed native review.
+ * Both sets are now reviewed and shipped in the catalog, so there is nothing
+ * left for it to carry. A shim reappearing means unreviewed Spanish is being
+ * injected past the catalog, where the bundle audit cannot see it. */
+check("no runtime registration of ANY Spanish copy",
+  (VIEW.match(/__I18N_STRINGS\.es\s*=/g) || []).length === 0);
+check("the dev-only copy exports are gone from the merge module",
+  !MERGE_SRC.includes("FRUIT_LOG_COPY_ES") && !MERGE_SRC.includes("FRUIT_LOG_COPY_EN"));
 
 /* ── 13. Fruit Log ─────────────────────────────────────────────────────────
  * Two properties matter more than the rest of this surface combined: the day
@@ -409,21 +412,71 @@ check("Fruit Log keeps its OWN development guard", VIEW.includes("FRUIT_LOG_ES_D
 check("rendering never triggers preparation",
   !/function renderFruitLog\(\)[\s\S]{0,900}prepareFruitLogEs\(/.test(VIEW));
 
-/* New copy is NOT in the shipped catalog: it has not been through native es-LA
- * review, and the production bundle must not carry unreviewed Spanish. It lives
- * with the dev-gated surface, keyed as the catalog would key it. */
-const { FRUIT_LOG_COPY_ES, FRUIT_LOG_COPY_EN, FRUIT_LOG_COPY_KEYS } = await import(
-  "../src/app/declare/journey-locale/fruit-log-merge.ts");
-for (const alias of Object.keys(FRUIT_LOG_COPY_KEYS)) {
-  const k = (FRUIT_LOG_COPY_KEYS as Record<string, string>)[alias];
-  check("dev copy defines " + k, typeof FRUIT_LOG_COPY_ES[k] === "string" && FRUIT_LOG_COPY_ES[k].length > 0);
-  check("English fallback defined for " + k, typeof FRUIT_LOG_COPY_EN[k] === "string");
-  check("unreviewed copy stays OUT of the catalog " + k, typeof CATALOG_ES[k] !== "string");
-  check("view uses the alias, not the key literal", !VIEW.includes("'" + k + "'"));
+/* Fruit Log copy, approved by a native es-LA speaker on 2026-08-20 and promoted
+ * into the shipped catalog. It is asserted the same way the review copy is:
+ * the catalog must RESOLVE each key, the view must read it, the wording must be
+ * verbatim what was approved, and English must survive at the call site so the
+ * surface degrades to English rather than to a raw key. */
+const FRUIT_LOG_APPROVED: Array<[string, string]> = [
+  ["journey.fruitLog.prepareAction", "Preparar mi Registro del Fruto en español"],
+  ["journey.fruitLog.preparing", "Preparando tu Registro del Fruto en español…"],
+  ["journey.fruitLog.progress", "Día {n} de {total}"],
+  ["journey.fruitLog.failBody", "No pudimos preparar todo tu Registro del Fruto. Nada se perdió y lo que ya estaba listo se guardó. Puedes intentarlo de nuevo."],
+];
+for (const [k, v] of FRUIT_LOG_APPROVED) {
+  check("catalog RESOLVES " + k, typeof CATALOG_ES[k] === "string" && CATALOG_ES[k].length > 0);
+  check("approved wording intact: " + k, CATALOG_ES[k] === v);
+  check("view reads " + k, VIEW.includes("'" + k + "'"));
+  check("call site keeps an English fallback for " + k,
+    new RegExp("tj\\('" + k.replace(/\./g, "\\.") + "',\\s*'[A-Za-z]").test(VIEW));
 }
+/* The product term was settled once, for every string that carries it. A string
+ * drifting to the other form is a copy change that never went through review. */
+for (const [k, v] of FRUIT_LOG_APPROVED) {
+  if (!v.includes("Registro")) continue;
+  check("product term is 'Registro del Fruto' in " + k, v.includes("Registro del Fruto"));
+}
+check("no duplicate Fruit Log keys in the catalog", (() => {
+  const found = CATALOG.match(/'journey\.fruitLog\.[A-Za-z]+'/g) || [];
+  return new Set(found).size === found.length;
+})());
 check("progress copy carries both placeholders",
-  FRUIT_LOG_COPY_ES["journey.fruitLog.progress"].includes("{n}") &&
-  FRUIT_LOG_COPY_ES["journey.fruitLog.progress"].includes("{total}"));
+  CATALOG_ES["journey.fruitLog.progress"].includes("{n}") &&
+  CATALOG_ES["journey.fruitLog.progress"].includes("{total}"));
+/* The catalog is loaded from a VERSIONED url. Promoting copy without bumping it
+ * leaves every returning reader on the old catalog, where these keys do not
+ * exist and the surface silently falls back to English. That has bitten once. */
+const STAMPS = [
+  ["../src/layouts/DeclareLayout.astro", "layout"],
+  ["../src/pages/index.astro", "index"],
+] as const;
+const stampValues = STAMPS.map(([rel]) => {
+  const src = readFileSync(new URL(rel, import.meta.url), "utf8");
+  const m = src.match(/i18n-strings\.js\?v=([0-9.]+)/);
+  return m ? m[1] : null;
+});
+for (let i = 0; i < STAMPS.length; i++) {
+  check("catalog is cache-busted in " + STAMPS[i][1], stampValues[i] !== null);
+}
+check("both catalog stamps agree", stampValues[0] === stampValues[1]);
+check("catalog stamp moved past the pre-promotion version", stampValues[0] !== "3.21.0");
+/* READINESS. A list with nothing missing is not the same as a list that reads
+ * as Spanish. Three fixtures, because the difference is where the banner
+ * started claiming a translation that never happened. */
+check("the view gates readiness on spanishReady, not on missing alone",
+  VIEW.includes("scan.spanishReady") && !/scan\.total && !scan\.missing\.length/.test(VIEW));
+check("an empty translations map is not a translated list",
+  /Object\.keys\(flTranslations\)\.length > 0/.test(VIEW));
+check("the translated banner is conditional on original-english provenance",
+  /showingEs\)[\s\S]{0,700}src === 'original-english'[\s\S]{0,200}translatedBanner/.test(VIEW));
+check("an unresolved set costs nothing and is not an error",
+  FL_CONTROLLER.includes("state: 'unresolved'") &&
+  /scan\.unresolved\.length\) return \{ state: 'unresolved'/.test(FL_CONTROLLER));
+check("unresolved returns BEFORE any translation is attempted",
+  FL_CONTROLLER.indexOf("state: 'unresolved'") < FL_CONTROLLER.indexOf("await journeyTranslate("));
+check("already-Spanish and mixed-legacy days are counted apart",
+  FL_CONTROLLER.includes("alreadySpanish") && FL_CONTROLLER.includes("unresolved") &&
+  /src === 'es'[\s\S]{0,80}alreadySpanish\.push/.test(FL_CONTROLLER));
 check("Fruit Log reuses the APPROVED provenance strings",
   VIEW.includes("journey.review.translatedBanner") && VIEW.includes("journey.review.originalEnglishBanner"));
 /* The marker phrase itself, not the substring "Tus palabras" — that also opens
@@ -572,6 +625,14 @@ check("a mixed-legacy row carries NO lang attribute",
   fruitRow({ lang: "mixed-legacy", fruit: "Confianza arraigada" }, null).locale === "mixed-legacy");
 check("the view marks lang=en only for an unambiguously English row",
   /esL\(\) && row\.locale === 'en'/.test(VIEW));
+/* One card, one language. Spanish chrome around an English day used to render
+ * "Honest Courage DÍA 1" — the day label taking the PAGE's language while the
+ * content kept its own. The label must follow the row. */
+check("the day label follows the ROW's language, not the page's",
+  /esRow \? 'Día ' : 'Day '/.test(VIEW) && !/esL\(\) \? 'Día ' : 'Day ' \) \+ i \+ '<\/span>/.test(VIEW));
+check("the accessible name follows the ROW's language too",
+  /esRow \? 'Revisitar día ' : 'Revisit day '/.test(VIEW));
+check("an English row is derived, not assumed", /const esRow = esL\(\) && !rowEn;/.test(VIEW));
 check("a set containing a mixed-legacy day is mixed",
   sourceState([{ lang: "en" }, { lang: "mixed-legacy" }]) === "mixed");
 check("an English canonical day reports en", sourceLocale({ lang: "en" }) === "en");
@@ -610,8 +671,8 @@ check("a non-English set gets no original-English provenance",
 check("rows are marked from their own content locale",
   /esL\(\) && row\.locale === 'en'/.test(VIEW));
 check("preparation skips days whose source is not English",
-  readFileSync(new URL("../src/app/declare/journey-locale/fruit-log-controller.js", import.meta.url), "utf8")
-    .includes("!isRowTranslatable(item.english)"));
+  /src === 'es'[\s\S]{0,80}continue;/.test(FL_CONTROLLER) &&
+  /src === 'mixed-legacy'[\s\S]{0,80}continue;/.test(FL_CONTROLLER));
 
 /* ── Summary ───────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

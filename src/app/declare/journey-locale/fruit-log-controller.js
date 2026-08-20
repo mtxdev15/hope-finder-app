@@ -89,20 +89,36 @@ export { fruitRow, inventory, sourceLocale, sourceState, isRowTranslatable };
  * whose source content changed, or whose schema version moved, simply misses:
  * its old key no longer matches, so a stale copy cannot be served. */
 export function inspectCache({ instance, plan, completedCount }) {
-  const ready = [], missing = [], untranslatable = [], translations = {};
+  const ready = [], missing = [], alreadySpanish = [], unresolved = [], translations = {};
   for (const item of inventory({ plan, completedCount })) {
-    /* A day whose canonical source is already Spanish is not translatable
-       English-to-Spanish; the transport refuses it, and asking would spend a
-       request to be told so. It is neither ready nor preparable. */
-    if (!isRowTranslatable(item.english)) { untranslatable.push(item.day); continue; }
+    /* Neither of the next two is translatable English-to-Spanish, but they are
+       not the same thing and must not be counted together.
+
+       A day whose canonical source is ALREADY Spanish needs no translation: it
+       is on screen in Spanish right now, at no cost. It counts TOWARD a fully
+       Spanish list.
+
+       A mixed-legacy day has no single source language, so nothing can make it
+       coherently Spanish. It counts AGAINST one, permanently. */
+    const src = sourceLocale(item.english);
+    if (src === 'es') { alreadySpanish.push(item.day); continue; }
+    if (src === 'mixed-legacy') { unresolved.push(item.day); continue; }
     const id = cacheKeyFor(instance, item.day, item.english);
     if (!id) { missing.push(item.day); continue; }
     const rec = readCache(id.key);
     if (rec && rec.fields) { ready.push(item.day); translations[item.day] = rec.fields; }
     else missing.push(item.day);
   }
-  return { ready, missing, untranslatable, translations,
-           total: ready.length + missing.length + untranslatable.length };
+  const total = ready.length + missing.length + alreadySpanish.length + unresolved.length;
+  /* THE question this surface asks: would every completed row read as Spanish?
+     Not "did we translate everything" — a natively Spanish day already reads as
+     Spanish and was never ours to translate. An empty list is not ready either;
+     `!missing.length` alone was true of a list with nothing in it. */
+  const spanishReady = total > 0 && !missing.length && !unresolved.length;
+  return { ready, missing, alreadySpanish, unresolved,
+           /* Kept as the union both callers used before the split. */
+           untranslatable: alreadySpanish.concat(unresolved),
+           translations, spanishReady, total };
 }
 
 /* ── Stale-request handling ───────────────────────────────────────────────────
@@ -122,7 +138,8 @@ export function cancelPending() { currentToken++; }
  * account's quota legible.
  *
  * Returns exactly one of:
- *   { state: 'ready', translations }        every completed day has Spanish
+ *   { state: 'ready', translations }        every completed day reads as Spanish
+ *   { state: 'unresolved', unresolved }     a mixed-legacy day makes it impossible
  *   { state: 'error', reason, retryable, missing }
  *   { state: 'stale' }                      superseded; the view discards it
  *   { state: 'guest-notice' } / { state: 'english' }
@@ -135,6 +152,12 @@ export async function prepare({ instance, plan, completedCount, locale, token, o
 
   const scan = inspectCache({ instance, plan, completedCount });
   if (!scan.total) return { state: 'error', reason: 'nothing-to-translate', retryable: false, missing: [] };
+
+  /* One mixed-legacy day is enough to make the whole list unresolvable. Spending
+     requests on the others would buy a list that still cannot be shown, so this
+     returns before any translation is attempted. Not an error: nothing failed,
+     and the honest per-row English list is a legitimate resting state. */
+  if (scan.unresolved.length) return { state: 'unresolved', unresolved: scan.unresolved };
 
   // Already complete: nothing to do, nothing to spend.
   if (!scan.missing.length) return { state: 'ready', translations: scan.translations };
