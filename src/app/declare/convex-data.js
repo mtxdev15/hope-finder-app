@@ -12,7 +12,7 @@
    Every call fails SOFT: if data isn't configured, the user isn't signed in, or
    the network hiccups, these return null and the caller stays on localStorage. */
 
-import { getAuthClient, isConfigured } from './auth-store.js';
+import { getAuthClient, initAuth, isConfigured, isSignedIn } from './auth-store.js';
 
 const URL = import.meta.env.PUBLIC_CONVEX_URL || '';
 
@@ -49,6 +49,20 @@ async function freshToken() {
 }
 
 async function authed() {
+  /* Never mint a token for a device that has no session.
+   *
+   * This used to ask unconditionally, so a guest — including anyone whose
+   * session had simply aged out — hit /api/auth/convex/token on every Convex
+   * call, got a 401 every time, and left one console error per call per page
+   * load, permanently. The endpoint was answering correctly; the mistake was
+   * asking at all.
+   *
+   * initAuth() is awaited rather than assumed: it is memoised, so this is free
+   * after the first call, and without it a call racing page start would read
+   * isSignedIn() before the session had resolved and wrongly skip a request a
+   * signed-in reader was entitled to make. */
+  try { await initAuth(); } catch (e) {}
+  if (!isSignedIn()) return null;
   if (!(await ensure())) return null;
   const t = await freshToken();
   if (!t) return null;
