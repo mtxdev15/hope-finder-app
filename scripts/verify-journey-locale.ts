@@ -493,6 +493,18 @@ check("unresolved returns BEFORE any translation is attempted",
 check("already-Spanish and mixed-legacy days are counted apart",
   FL_CONTROLLER.includes("alreadySpanish") && FL_CONTROLLER.includes("unresolved") &&
   /src === 'es'[\s\S]{0,80}alreadySpanish\.push/.test(FL_CONTROLLER));
+/* FOCUS. Rebuilding the banner destroys the control the reader pressed. Losing
+ * focus to <body> at the start of a twenty-second wait is how a keyboard or
+ * screen-reader user gets stranded, so every repaint goes through one write
+ * point that carries focus forward. */
+check("the banner has exactly ONE write point", (VIEW.match(/bar\.innerHTML/g) || []).length === 1);
+check("every banner branch repaints through it", (VIEW.match(/\bpaint\(/g) || []).length >= 4);
+check("focus is only moved when it was already inside the banner",
+  /const hadFocus = bar\.contains\(document\.activeElement\)/.test(VIEW) &&
+  /if \(!hadFocus\) return;/.test(VIEW));
+check("focus prefers the successor control, then the status banner",
+  /const next = bar\.querySelector\('button'\)[\s\S]{0,200}bar\.setAttribute\('tabindex', '-1'\)/.test(VIEW));
+
 check("Fruit Log reuses the APPROVED provenance strings",
   VIEW.includes("journey.review.translatedBanner") && VIEW.includes("journey.review.originalEnglishBanner"));
 /* The marker phrase itself, not the substring "Tus palabras" — that also opens

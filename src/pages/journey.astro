@@ -880,13 +880,33 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       }
       bar.style.display = '';
 
+      /* Rebuilding this banner destroys whatever the reader was standing on. If
+         they pressed the action with a keyboard, the button they pressed stops
+         existing mid-operation and focus falls to <body> — so a keyboard or
+         screen-reader user loses their place at the exact moment a twenty-second
+         wait begins, and has to tab from the top of the page to find out how it
+         went. Focus is therefore carried across every repaint, and only when it
+         was already inside the banner: moving it otherwise would yank a reader
+         out of wherever they actually are. */
+      const hadFocus = bar.contains(document.activeElement);
+      const paint = function (html) {
+        bar.innerHTML = html;
+        if (!hadFocus) return;
+        /* Prefer the successor control; otherwise the banner itself, which
+           carries the status text the reader is waiting on. */
+        const next = bar.querySelector('button');
+        if (next) { try { next.focus({ preventScroll: true }); } catch (e) { next.focus(); } return; }
+        bar.setAttribute('tabindex', '-1');
+        try { bar.focus({ preventScroll: true }); } catch (e) { bar.focus(); }
+      };
+
       if (flState === 'preparing') {
         bar.className = 'fl-chrome is-busy';
         bar.setAttribute('role', 'status');
-        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.fruitLog.preparing', 'Preparing your Fruit Log in Spanish\u2026') + '</span>'
+        paint('<span class="fl-prov-t">' + tj('journey.fruitLog.preparing', 'Preparing your Fruit Log in Spanish\u2026') + '</span>'
           + '<span class="fl-prov-s">' + tj('journey.fruitLog.progress', 'Day {n} of {total}')
               .replace('{n}', String(Math.min(flProgress.completed + 1, flProgress.total || n)))
-              .replace('{total}', String(flProgress.total || n)) + '</span>';
+              .replace('{total}', String(flProgress.total || n)) + '</span>');
         return;
       }
 
@@ -898,9 +918,9 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
            and saying so would misdescribe the reader's own record. */
         bar.className = 'fl-chrome';
         const src = flCtrl ? flCtrl.sourceState(PLAN.slice(0, n)) : 'original-english';
-        bar.innerHTML = '<span class="fl-prov-t">' + (src === 'original-english'
+        paint('<span class="fl-prov-t">' + (src === 'original-english'
           ? tj('journey.review.translatedBanner', 'Spanish translation of the original English content · Read only')
-          : tj('journey.review.genericBanner', 'Reviewing a completed day · Read only')) + '</span>';
+          : tj('journey.review.genericBanner', 'Reviewing a completed day · Read only')) + '</span>');
         return;
       }
 
@@ -912,7 +932,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       if (srcState !== 'original-english') {
         bar.className = 'fl-chrome';
         bar.removeAttribute('role');
-        bar.innerHTML = '<span class="fl-prov-t">' + tj('journey.review.genericBanner', 'Reviewing a completed day · Read only') + '</span>';
+        paint('<span class="fl-prov-t">' + tj('journey.review.genericBanner', 'Reviewing a completed day · Read only') + '</span>');
         return;
       }
       bar.className = 'fl-chrome is-original-en';
@@ -927,7 +947,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       } else {
         html += '<span class="fl-actions"><button type="button" class="es-back-en" id="flPrepare">' + tj('journey.fruitLog.prepareAction', 'Prepare my Fruit Log in Spanish') + '</button></span>';
       }
-      bar.innerHTML = html;
+      paint(html);
 
       const prep = $('flPrepare'); if (prep) prep.addEventListener('click', function () { prepareFruitLogEs(false); });
       const retry = $('flRetry');  if (retry) retry.addEventListener('click', function () { prepareFruitLogEs(true); });
