@@ -25,6 +25,51 @@ declare global {
     };
     /** One-shot mount guard for the TabBar identity card. */
     __sbIdentityInit?: boolean;
+
+    /* ── Globals assigned by scripts in public/declare/ ──────────────────
+       Same rule as I18N: these are plain <script> tags, not modules, so every
+       one is optional and every call site must still guard. Signatures are
+       transcribed from the real call sites, not invented. */
+
+    /** Scroll-reveal / stagger animations. */
+    DeclareMotion?: {
+      reveal: (el: Element | null, opts?: { stagger?: number }) => void;
+    };
+    /** The share sheet. `save` is the caller's own persist function. */
+    DeclareShare?: {
+      open: (opts: {
+        type: string;
+        text: string;
+        ref?: string;
+        subtitle?: string;
+        url?: string;
+        bg?: unknown;
+        save?: (...args: any[]) => any;
+      }) => void;
+    };
+    /** Full-page route transition overlay. */
+    RouteLoader?: { show: () => void; hide: () => void };
+    /** Theme switcher — 'light' | 'dark' | 'auto', passed through from a
+     *  data attribute, so the parameter is a plain string. */
+    DeclareTheme?: { set: (mode: string | undefined) => void };
+    /** FUMS analytics beacon (Faithlife/Bible API usage tracking). */
+    fums?: (event: string, token: string) => void;
+
+    /* Spanish lookup tables, each a plain string map keyed by the English
+       source text. Loaded per page; absent when the page has no Spanish. */
+    __I18N_STRINGS?: Record<string, string>;
+    __I18N_BIBLE_ES?: Record<string, string>;
+    __I18N_CHIP_ES?: Record<string, string>;
+    __I18N_STRUGGLES_ES?: Record<string, string>;
+    __I18N_JOURNEY_ES?: Record<string, string>;
+  }
+
+  /* The app stamps the original English onto elements before translating them
+     in place, so the toggle can restore without a re-render. An expando, but a
+     real one — declaring it is more honest than casting at each of the 16 use
+     sites. */
+  interface Element {
+    __en?: string;
   }
 }
 

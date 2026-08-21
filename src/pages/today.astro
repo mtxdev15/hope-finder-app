@@ -365,10 +365,23 @@ import RateReview from '../components/RateReview.astro';
     // (ref, Save, Share) always match what's really on screen.
     let responseTranslation = 'NLT';
     let transReqId = 0; // guards against a stale in-place translation resolving late
-    function activeTrans(){ return (window.I18N && I18N.lang() === 'es') ? 'RVR1909' : currentTranslation; }
-    function activeLang(){ try { return (window.I18N && I18N.lang()) || 'en'; } catch(e){ return 'en'; } }
+    function activeTrans(){ return (window.I18N?.lang() === 'es') ? 'RVR1909' : currentTranslation; }
+    function activeLang(){ try { return (window.I18N?.lang()) || 'en'; } catch(e){ return 'en'; } }
 
-    const $ = (id) => document.getElementById(id);
+    /* Every id passed to $() is rendered unconditionally by this page, so a
+       miss means the markup changed and this script cannot do its job.
+       Throwing fails at exactly the point the old code did — it raised
+       "Cannot set properties of null" on the very next access — but names the
+       id instead of leaving you to guess it.
+
+       The lookups that are genuinely OPTIONAL call document.getElementById directly and keep their
+       null checks. That distinction is the point: $() now means "must exist",
+       and anything that might not exist says so at the call site. */
+    const $ = (id: string): HTMLElement => {
+      const el = document.getElementById(id);
+      if (!el) throw new Error('today: missing #' + id);
+      return el;
+    };
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     const entryView = $('entryView'), resultsView = $('resultsView');
@@ -377,10 +390,10 @@ import RateReview from '../components/RateReview.astro';
     const sheet = $('sheet'), scrim = $('scrim'), sheetCta = $('sheetCta');
     const toast = $('toast'), toastMsg = $('toastMsg');
     function tI(k, fb){ try { return (window.I18N ? window.I18N.t(k, fb) : fb); } catch(e){ return fb; } }
-    function struggleLabel(s){ try { if (window.I18N && I18N.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}, c=window.__I18N_CHIP_ES||{}; return m[s]||c[s]||s; } } catch(e){} return s; }
+    function struggleLabel(s){ try { if (window.I18N?.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}, c=window.__I18N_CHIP_ES||{}; return m[s]||c[s]||s; } } catch(e){} return s; }
     /* inline (mid-sentence) form: Spanish lowercases only the first letter so proper
        nouns survive ('esperar en Dios'); English keeps the full lowercase as before */
-    function struggleLower(s){ var l = struggleLabel(s); try { if (window.I18N && I18N.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
+    function struggleLower(s){ var l = struggleLabel(s); try { if (window.I18N?.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
 
     // The Translation switcher only ever changes English output — Spanish is
     // always RVR1909 — so the whole section hides itself in that language.

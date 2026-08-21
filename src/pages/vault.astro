@@ -82,10 +82,24 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
     initAuth(); // resolve any saved session before the user reaches a gate
 
-    const $ = (id) => document.getElementById(id);
+    /* Every id passed to $() is rendered unconditionally by this page, so a
+       miss means the markup changed and this script cannot do its job.
+       Throwing here fails at exactly the point the old code did — it used to
+       raise "Cannot set properties of null" on the very next access — but names
+       the id instead of leaving you to guess it.
+
+       The two lookups that are genuinely OPTIONAL (#cc-create, #collDelete,
+       which exist only in some states) call document.getElementById directly
+       and keep their null checks. That distinction is the whole point: $() now
+       means "must exist", and anything that might not exist says so. */
+    const $ = (id: string): HTMLElement => {
+      const el = document.getElementById(id);
+      if (!el) throw new Error('vault: missing #' + id);
+      return el;
+    };
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tV = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
-    function collLabel(name){ try { if (!(window.I18N && I18N.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones', 'Journey Reflections':'Reflexiones de camino' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
+    function collLabel(name){ try { if (!(window.I18N?.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones', 'Journey Reflections':'Reflexiones de camino' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
     const TYPES = {
       verse: { get label(){ return tV('vault.tScripture','Scripture'); }, tagt: '#E8C97A' },
       declaration: { get label(){ return tV('vault.tDeclaration','Declaration'); }, tagt: '#E0A45A' },
@@ -97,14 +111,14 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const diffMs = Math.max(0, Date.now() - ts);
       const d = diffMs / 86400000;
       if (d < 1) {
-        if (diffMs < 60000) return (window.I18N && I18N.lang() === 'es') ? 'ahora mismo' : 'Just now';
-        if (diffMs < 3600000) { const m = Math.floor(diffMs / 60000); return (window.I18N && I18N.lang() === 'es') ? ('hace ' + m + 'm') : (m + 'm ago'); }
+        if (diffMs < 60000) return (window.I18N?.lang() === 'es') ? 'ahora mismo' : 'Just now';
+        if (diffMs < 3600000) { const m = Math.floor(diffMs / 60000); return (window.I18N?.lang() === 'es') ? ('hace ' + m + 'm') : (m + 'm ago'); }
         const h = Math.floor(diffMs / 3600000);
-        return (window.I18N && I18N.lang() === 'es') ? ('hace ' + h + 'h') : (h + 'h ago');
+        return (window.I18N?.lang() === 'es') ? ('hace ' + h + 'h') : (h + 'h ago');
       }
       if (d < 2) return tV('vault.yesterday','Yesterday');
-      if (d < 7) return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d) + ' días') : (Math.round(d) + ' days ago');
-      return (window.I18N && I18N.lang()==='es') ? ('hace ' + Math.round(d/7) + ' sem') : (Math.round(d/7) + 'w ago');
+      if (d < 7) return (window.I18N?.lang()==='es') ? ('hace ' + Math.round(d) + ' días') : (Math.round(d) + ' days ago');
+      return (window.I18N?.lang()==='es') ? ('hace ' + Math.round(d/7) + ' sem') : (Math.round(d/7) + 'w ago');
     }
 
     /* a saved struggle can grow into a 5-day journey (design's bridge) */
@@ -130,7 +144,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       'Anger': { s: 'Ira', to: 'Paz' },
       'Burnout': { s: 'Agotamiento', to: 'Descanso' },
     };
-    const jrnLabel = (j) => { try { if (window.I18N && I18N.lang() === 'es' && JRN_ES[j.struggle]) return JRN_ES[j.struggle]; } catch (e) {} return { s: j.struggle, to: j.to }; };
+    const jrnLabel = (j) => { try { if (window.I18N?.lang() === 'es' && JRN_ES[j.struggle]) return JRN_ES[j.struggle]; } catch (e) {} return { s: j.struggle, to: j.to }; };
 
     /* ---- explode store items into display TRUTHS (the real user data) ----
        word (from /today)  -> its verses + declarations + prayer, coll = struggle
@@ -243,7 +257,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       $('shelves').innerHTML = html;
       $('shelves').querySelectorAll('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
       $('shelves').querySelectorAll('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[+b.dataset.vimg]); });
-      const cc = $('cc-create'); if (cc) cc.onclick = openCreate;
+      const cc = document.getElementById('cc-create'); if (cc) cc.onclick = openCreate;
       animateVault();
     }
 
@@ -313,7 +327,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           foot = '<div class="ft-ref">' + esc(t.vref) + (t.trans ? ' · ' + esc(t.trans) : '') + '</div>'
             + '<a class="ft-read" href="' + readLink(t.vref) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>Read in the Word</a>';
         } else if (t.type === 'journeyReflection' && t.day) {
-          const esV = window.I18N && I18N.lang() === 'es';
+          const esV = window.I18N?.lang() === 'es';
           // esc() on the day too: every field here comes from localStorage, which
           // is only as trustworthy as the device, so nothing is interpolated raw.
           const dayN = esc(String(t.day));
@@ -365,7 +379,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           localStorage.setItem('declare-journey-struggle', jrn.struggle);
         } catch (e) {}
       });
-      const del = $('collDelete');
+      const del = document.getElementById('collDelete');
       if (del) del.onclick = () => { removeCollection(name); toast(tV('vault.collRemoved','Collection removed')); closeFocus(); render(); };
       $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
         b.onclick = (e) => { e.stopPropagation(); reshareTruth(focusList[+b.dataset.i]); };

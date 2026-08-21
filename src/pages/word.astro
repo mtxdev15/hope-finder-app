@@ -267,7 +267,21 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     initAuth(); // resolve any saved session before the user reaches a gate
 
     const WORKER = 'https://hope-finder-worker.thinktoro.workers.dev';
-    const $ = (id) => document.getElementById(id);
+    /* Every id passed to $() is rendered unconditionally by this page, so a
+       miss means the markup changed and this script cannot do its job.
+       Throwing fails at exactly the point the old code did — it raised
+       "Cannot set properties of null" on the very next access — but names the
+       id instead of leaving you to guess it.
+
+       The display-sheet lookups that are genuinely OPTIONAL (#libBright,
+       #libSizeSeg, #libFontSeg, #libThemeSeg, #lsPreview) call document.getElementById directly and keep their
+       null checks. That distinction is the point: $() now means "must exist",
+       and anything that might not exist says so at the call site. */
+    const $ = (id: string): HTMLElement => {
+      const el = document.getElementById(id);
+      if (!el) throw new Error('word: missing #' + id);
+      return el;
+    };
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     /* one source of truth for the default translation (library pills + reader) */
@@ -823,14 +837,14 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       const fs = { Small: 'fs-s', Medium: 'fs-m', Large: 'fs-l' }[size] || 'fs-m';
       rbody.className = 'rbody ' + fs + ' ff-' + font;
       dim.style.opacity = ((100 - bright) / 100 * 0.62).toFixed(3);
-      const lb = $('libBright'); if (lb) lb.value = bright;
-      const ss = $('libSizeSeg'); if (ss) ss.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.s === size));
-      const fsg = $('libFontSeg'); if (fsg) fsg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.f === font));
+      const lb = document.getElementById('libBright') as HTMLInputElement | null; if (lb) lb.value = bright;
+      const ss = document.getElementById('libSizeSeg'); if (ss) ss.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.s === size));
+      const fsg = document.getElementById('libFontSeg'); if (fsg) fsg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.f === font));
       let mode = 'dark'; try { mode = localStorage.getItem('declare-theme') || 'dark'; } catch (e) {}
-      const themeSeg = $('libThemeSeg'); if (themeSeg) themeSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.mode === mode));
+      const themeSeg = document.getElementById('libThemeSeg'); if (themeSeg) themeSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.mode === mode));
       const fam = { cormorant: "'Cormorant Garamond',serif", lora: "'Lora',serif", sans: "'DM Sans',sans-serif" };
       const sz = { Small: '18px', Medium: '22px', Large: '27px' };
-      const dp = $('lsPreview'); if (dp) { dp.style.fontFamily = fam[font] || fam.cormorant; dp.style.fontSize = sz[size] || sz.Medium; }
+      const dp = document.getElementById('lsPreview'); if (dp) { dp.style.fontFamily = fam[font] || fam.cormorant; dp.style.fontSize = sz[size] || sz.Medium; }
     }
 
     /* The unified Reading-preferences sheet — opened from the library gear AND the reader's

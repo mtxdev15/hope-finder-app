@@ -223,7 +223,21 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { reviewsSubmit, reviewsMine } from '../app/declare/convex-data.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
-    const $ = (id) => document.getElementById(id);
+    /* Every id passed to $() is rendered unconditionally by this page, so a
+       miss means the markup changed and this script cannot do its job.
+       Throwing fails at exactly the point the old code did — it raised
+       "Cannot set properties of null" on the very next access — but names the
+       id instead of leaving you to guess it.
+
+       The lookups that are genuinely OPTIONAL (#yAvRemove, #yRateCard, #yVer,
+       #yWhatsNew, #yRlsSub — present only in some states) call document.getElementById directly and keep their
+       null checks. That distinction is the point: $() now means "must exist",
+       and anything that might not exist says so at the call site. */
+    const $ = (id: string): HTMLElement => {
+      const el = document.getElementById(id);
+      if (!el) throw new Error('you: missing #' + id);
+      return el;
+    };
     const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     let P = getProfile();
@@ -245,7 +259,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
       // uploaded photo (if any) overlays the initial; remove-link shows only with one
       (function () {
-        const av = $('yAvatar'); let img = av.querySelector('.yav-img'); const rm = $('yAvRemove');
+        const av = $('yAvatar'); let img = av.querySelector('.yav-img'); const rm = document.getElementById('yAvRemove');
         if (sIn && P.avatar) {
           if (!img) { img = document.createElement('img'); img.className = 'yav-img'; img.alt = ''; av.appendChild(img); }
           img.src = P.avatar; av.classList.add('has-photo'); if (rm) rm.hidden = false;
@@ -572,7 +586,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ---------- Rate & Review: explicit entries (profile card + ?rate= deep-link) ----------
        No auto toast here — only deliberate opens. Signed-out clicks (from the footer/
        menu deep-links) route through sign-in, then open once the session lands. */
-    const _rateCard = $('yRateCard');
+    const _rateCard = document.getElementById('yRateCard');
     let _myReview = null;
     const rr = initRateReview({
       onSubmit: (payload) => {
@@ -774,7 +788,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         ['Fixed', 'Signing out now fully clears your info on a shared device.'],
       ] },
     ];
-    (function setVer(){ const el = $('yVer'); if (el && RELEASES[0]) el.textContent = (esY() ? 'DECLARE · VERSIÓN ' : 'DECLARE · VERSION ') + RELEASES[0].v; })();
+    (function setVer(){ const el = document.getElementById('yVer'); if (el && RELEASES[0]) el.textContent = (esY() ? 'DECLARE · VERSIÓN ' : 'DECLARE · VERSION ') + RELEASES[0].v; })();
     function rlsTagClass(t){ return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
     // Gentle "something new here" cue: the What's-new card nudges only while the
     // newest release hasn't been opened on this device. Opening it rests the cue
@@ -782,13 +796,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const NEWS_SEEN = 'declare-whatsnew-seen';
     (function () {
       try {
-        const card = $('yWhatsNew');
+        const card = document.getElementById('yWhatsNew');
         if (card && localStorage.getItem(NEWS_SEEN) !== RELEASES[0].v) card.classList.add('has-news');
       } catch (e) {}
     })();
     function openWhatsNew() {
-      try { localStorage.setItem(NEWS_SEEN, RELEASES[0].v); const c = $('yWhatsNew'); if (c) c.classList.remove('has-news'); } catch (e) {}
-      const sub = $('yRlsSub'); if (sub) sub.textContent = esY() ? 'Todo lo que hemos lanzado últimamente, en lenguaje sencillo.' : 'Everything we have shipped lately, in plain language.';
+      try { localStorage.setItem(NEWS_SEEN, RELEASES[0].v); const c = document.getElementById('yWhatsNew'); if (c) c.classList.remove('has-news'); } catch (e) {}
+      const sub = document.getElementById('yRlsSub'); if (sub) sub.textContent = esY() ? 'Todo lo que hemos lanzado últimamente, en lenguaje sencillo.' : 'Everything we have shipped lately, in plain language.';
       var _BADGE = { New:'Nuevo', Fixed:'Corregido', Improved:'Mejorado' };
       var _MON = { January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre' };
       function rlsDate(d){ return esY() ? String(d).replace(/([A-Za-z]+)\s+(\d{4})/, function(_,mo,y){ return (_MON[mo]||mo) + ' de ' + y; }) : d; }
@@ -840,7 +854,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       $('ymTitle').textContent = tY('you.yourAccount','Your account');
       $('ymSub').textContent = tY('you.signedInAs','Signed in as ') + (u.email || tY('you.you','you')) + tY('you.accountSub2','. Your words and verses stay on this device for now.');
       $('ymBody').innerHTML = '<button class="btn btn-ghost" id="ymSignout" style="width:100%;margin-top:16px" data-i18n="you.signOut">Sign out</button>';
-      try { window.I18N && I18N.apply(); } catch (e) {}
+      try { window.I18N?.apply(); } catch (e) {}
       $('ymSave').style.display = 'none';
       document.getElementById('ymSignout').addEventListener('click', async () => {
         await signOut(); closeModal(); renderAuth(); toast(tY('you.signedOut','Signed out on this device.'));
@@ -854,7 +868,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // in-app language toggle (Español | English) — persists + reloads to re-render everywhere
     (function(){
       var ctl = document.getElementById('langCtl'); if (!ctl) return;
-      function paint(){ var l = (window.I18N ? I18N.lang() : 'en'); ctl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
+      function paint(){ var l = (window.I18N?.lang() ?? 'en'); ctl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
       paint();
       // Repaint once everything has loaded and on any language change — the active
       // highlight must never show a stale language (module boot order is not a
@@ -864,9 +878,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       ctl.addEventListener('click', function(e){
         var b = e.target.closest('button'); if (!b || !b.dataset.lang) return;
         var want = b.dataset.lang;
-        if (window.I18N && I18N.lang() === want) { paint(); return; }
+        if (window.I18N?.lang() === want) { paint(); return; }
         try {
-          if (window.I18N) { I18N.setLang(want); }
+          if (window.I18N) { window.I18N.setLang(want); }
           else { // engine not ready yet: never a dead click — write the choice directly
             document.cookie = 'declare-lang=' + want + ';path=/;max-age=31536000;samesite=lax';
             localStorage.setItem('declare-lang', want);
