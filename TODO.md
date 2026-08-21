@@ -191,11 +191,15 @@ When Stage 2 resumes, in this order:
    - metadata provenance
    - cancellation state
    - entitlement activation
-6. **Narrow the provisional webhook field readers only after reviewing the
-   captured payloads.** They currently accept both known locations for
-   subscription period bounds and the invoice-to-subscription link. Tolerating
-   both is the absence of a guess — narrowing them from anything other than a
-   real payload would reintroduce one.
+6. ~~**Narrow the provisional webhook field readers.**~~ **DONE.** Narrowed
+   against the real payloads captured at step 3, not from memory:
+   `readPeriod` now reads only `subscription.items.data[0]`, and
+   `readInvoiceSubscriptionId` only
+   `invoice.parent.subscription_details.subscription`. The Checkout Session
+   reader and all cancellation fields were unchanged, because the captured
+   payloads showed neither moved. `verify-plus-classification.ts` grew 44 -> 96
+   checks and the new assertions were mutation-tested. See
+   `docs/operations/stage-2-sandbox-billing.md` §6.9.
 7. Test **annual** checkout and **cancellation** after monthly succeeds.
 8. Configure and test the **Stripe Customer Portal last.**
 

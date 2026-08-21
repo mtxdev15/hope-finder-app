@@ -27,6 +27,7 @@ import {
   PLAN_CATALOG,
 } from "../convex/plusPlans.ts";
 import { STRIPE_API_VERSION } from "../convex/stripeApi.ts";
+import { PAST_DUE_GRACE_MS } from "../convex/entitlementCatalog.ts";
 
 let passed = 0;
 const failures: string[] = [];
@@ -245,6 +246,310 @@ check("Convex webhook classifies before applying",
   HTTP.indexOf("classifyPlusSubscription") < HTTP.indexOf("internal.subscriptions.applyWebhook"));
 check("Convex webhook does not decide Plus from mode",
   !/obj\.mode\s*!==\s*["']subscription["']/.test(HTTP));
+
+/* ── 8. Pinned-version field readers (2026-06-24.dahlia) ─────────────────────
+ *
+ * These fixtures are the REAL shapes read back from the sandbox on 2026-08-21,
+ * after a genuine $8.99 monthly purchase completed through the app. Ids and
+ * timestamps are the actual ones; nothing here is invented.
+ *
+ * The readers were provisional until that purchase — they accepted both the
+ * old root-level locations and the new ones. They are now narrowed to the one
+ * location each field actually occupies. These tests are what stop someone
+ * widening them back "just in case": a payload carrying ONLY the old fields is
+ * not a valid pinned-version payload, and accepting it would let version drift
+ * flow into the entitlement tables looking healthy.
+ *
+ * The functions are EXTRACTED FROM convex/http.ts VERBATIM by brace-walking,
+ * the same technique verify-webhook-signature.ts uses on the Worker. Testing a
+ * copy would prove nothing about the code that runs.
+ */
+section("8. Pinned-version field readers — narrowed to dahlia");
+
+/* Slice a TOP-LEVEL function out of a Convex source file.
+ *
+ * Brace-walking from the first `{` — the technique verify-webhook-signature.ts
+ * uses on the plain-JS Worker — does NOT work here: a TypeScript return type
+ * like `: { start?: number; end?: number }` contains braces of its own and the
+ * walk terminates on the type annotation instead of the body. These functions
+ * are top level, so their closing brace is the first `}` at column zero. */
+function extractFn(src: string, signature: string): string {
+  const start = src.indexOf(signature);
+  if (start < 0) throw new Error("not found: " + signature);
+  const end = src.indexOf("\n}", start);
+  if (end < 0) throw new Error("no top-level terminator for: " + signature);
+  return src.slice(start, end + 2);
+}
+
+/* Strip the TypeScript signature so plain node can evaluate the body verbatim.
+ * Deliberately an exact-string swap and not a clever regex: if a signature ever
+ * changes, this throws loudly rather than silently testing something else. */
+function deType(fnSrc: string, from: string, to: string): string {
+  if (!fnSrc.includes(from)) {
+    throw new Error("signature changed, update this test — expected: " + from);
+  }
+  return fnSrc.replace(from, to);
+}
+
+const readers: any = await import(
+  "data:text/javascript," +
+    encodeURIComponent(
+      deType(
+        extractFn(HTTP, "function readPeriod"),
+        "function readPeriod(sub: any): { start?: number; end?: number } {",
+        "function readPeriod(sub) {",
+      ) +
+        "\n" +
+        deType(
+          extractFn(HTTP, "function readInvoiceSubscriptionId"),
+          "function readInvoiceSubscriptionId(obj: any): string | null {",
+          "function readInvoiceSubscriptionId(obj) {",
+        ) +
+        "\nexport { readPeriod, readInvoiceSubscriptionId };",
+    )
+);
+const { readPeriod, readInvoiceSubscriptionId } = readers;
+
+/* The real values from sub_1U6yXVLShxhb4mBzedFqJMQ0. */
+const PERIOD_START = 1787342144;
+const PERIOD_END = 1790020544;
+const REAL_SUB_ID = "sub_1U6yXVLShxhb4mBzedFqJMQ0";
+
+/* Exactly the shape dahlia returned: period on the ITEM, absent from the root. */
+const DAHLIA_SUB = {
+  id: REAL_SUB_ID,
+  object: "subscription",
+  status: "active",
+  cancel_at_period_end: false,
+  customer: "cus_V7BLkBE2Tz1hPY",
+  latest_invoice: "in_1U6yXULShxhb4mBzLJTRiksn",
+  items: {
+    object: "list",
+    total_count: 1,
+    data: [
+      {
+        id: "si_V7CxTE1NcDXn0s",
+        object: "subscription_item",
+        current_period_start: PERIOD_START,
+        current_period_end: PERIOD_END,
+        quantity: 1,
+        price: {
+          id: MONTHLY_PRICE,
+          lookup_key: "plus_monthly_usd_v1",
+          recurring: { interval: "month", interval_count: 1 },
+        },
+      },
+    ],
+  },
+  metadata: {
+    plan: "plus_monthly",
+    source: CHECKOUT_SOURCE,
+    billing_schema_version: BILLING_SCHEMA_VERSION,
+    environment: "sandbox",
+    userId: "REDACTED_USER_ID",
+  },
+};
+
+/* Exactly the shape dahlia returned for in_1U6yXULShxhb4mBzLJTRiksn: the
+ * subscription link nested under `parent`, with NO top-level `subscription`. */
+const DAHLIA_INVOICE = {
+  id: "in_1U6yXULShxhb4mBzLJTRiksn",
+  object: "invoice",
+  status: "paid",
+  billing_reason: "subscription_create",
+  parent: {
+    type: "subscription_details",
+    quote_details: null,
+    subscription_details: { subscription: REAL_SUB_ID, metadata: {} },
+  },
+};
+
+/* ── 8a. The dahlia shapes are accepted ──────────────────────────────────── */
+const p = readPeriod(DAHLIA_SUB);
+check("dahlia: period start read from items.data[0]", p.start === PERIOD_START);
+check("dahlia: period end read from items.data[0]", p.end === PERIOD_END);
+check("dahlia: invoice subscription read from parent.subscription_details",
+  readInvoiceSubscriptionId(DAHLIA_INVOICE) === REAL_SUB_ID);
+check("dahlia: expanded subscription object at the same location still works",
+  readInvoiceSubscriptionId({
+    parent: { subscription_details: { subscription: { id: REAL_SUB_ID, object: "subscription" } } },
+  }) === REAL_SUB_ID);
+
+/* ── 8b. The obsolete root-level shapes are NOT accepted ─────────────────── */
+const OBSOLETE_SUB = {
+  id: REAL_SUB_ID,
+  status: "active",
+  // Pre-dahlia location, and ONLY that location.
+  current_period_start: PERIOD_START,
+  current_period_end: PERIOD_END,
+  items: { data: [{ id: "si_x", price: { id: MONTHLY_PRICE } }] },
+};
+const op = readPeriod(OBSOLETE_SUB);
+check("obsolete: root current_period_start yields NO start", op.start === undefined);
+check("obsolete: root current_period_end yields NO end", op.end === undefined);
+
+check("obsolete: top-level invoice.subscription yields NO id",
+  readInvoiceSubscriptionId({ id: "in_x", object: "invoice", subscription: REAL_SUB_ID }) === null);
+check("obsolete: expanded top-level invoice.subscription yields NO id",
+  readInvoiceSubscriptionId({ id: "in_x", subscription: { id: REAL_SUB_ID } }) === null);
+
+/* Belt and braces: if BOTH shapes are present, the pinned one must win and the
+ * obsolete one must never be consulted. A payload like this can only come from
+ * a version mismatch, and taking the old value would hide it. */
+const p2 = readPeriod({
+  current_period_start: 1,
+  current_period_end: 2,
+  items: { data: [{ current_period_start: PERIOD_START, current_period_end: PERIOD_END }] },
+});
+check("both present: the ITEM values win, never the root", p2.start === PERIOD_START && p2.end === PERIOD_END);
+check("both present: the NESTED invoice id wins, never the root",
+  readInvoiceSubscriptionId({
+    subscription: "sub_OBSOLETE",
+    parent: { subscription_details: { subscription: REAL_SUB_ID } },
+  }) === REAL_SUB_ID);
+
+/* ── 8c. Fail closed on malformed or missing pinned fields ───────────────── */
+for (const [name, sub] of [
+  ["no items array", { id: "sub_x" }],
+  ["empty items", { id: "sub_x", items: { data: [] } }],
+  ["item without period", { id: "sub_x", items: { data: [{ id: "si_x" }] } }],
+  ["period as string", { id: "sub_x", items: { data: [{ current_period_start: "1787342144" }] } }],
+  ["period as null", { id: "sub_x", items: { data: [{ current_period_start: null, current_period_end: null }] } }],
+  ["undefined subscription", undefined],
+  ["null subscription", null],
+] as [string, any][]) {
+  const r = readPeriod(sub);
+  check(`fail closed: ${name} -> no period values`, r.start === undefined && r.end === undefined);
+}
+
+for (const [name, inv] of [
+  ["no parent", { id: "in_x" }],
+  ["parent without subscription_details", { id: "in_x", parent: { type: "quote_details" } }],
+  ["subscription_details without subscription", { id: "in_x", parent: { subscription_details: {} } }],
+  ["subscription empty string", { id: "in_x", parent: { subscription_details: { subscription: "" } } }],
+  ["subscription is a number", { id: "in_x", parent: { subscription_details: { subscription: 42 } } }],
+  ["object without id", { id: "in_x", parent: { subscription_details: { subscription: {} } } }],
+  ["undefined invoice", undefined],
+  ["null invoice", null],
+] as [string, any][]) {
+  check(`fail closed: invoice ${name} -> null`, readInvoiceSubscriptionId(inv) === null);
+}
+
+/* A missing period must not corrupt the row: applyWebhook spreads the field in
+ * only when it is present, so a bad payload leaves prior good state intact
+ * rather than overwriting it with undefined. */
+check("a missing period is OMITTED from the mutation, not written as undefined",
+  /\.\.\.\(period\.start != null[\s\S]{0,80}currentPeriodStart: period\.start/.test(HTTP));
+check("a missing period end is likewise omitted",
+  /\.\.\.\(period\.end != null[\s\S]{0,80}currentPeriodEnd: period\.end/.test(HTTP));
+check("no subscription id -> acknowledge without applying",
+  /if \(!subscriptionId\) return ACK\(\);/.test(HTTP));
+
+/* ── 8d. The old fallbacks are gone from the source ──────────────────────── */
+const READER_SRC =
+  extractFn(HTTP, "function readPeriod") + extractFn(HTTP, "function readInvoiceSubscriptionId");
+check("readPeriod no longer reads the subscription root",
+  !/sub\?\.current_period_start|sub\?\.current_period_end/.test(READER_SRC));
+check("readInvoiceSubscriptionId no longer reads obj.subscription",
+  !/const direct = obj\?\.subscription/.test(READER_SRC));
+check("readers are no longer labelled provisional", !/PROVISIONAL FIELD READERS/.test(HTTP));
+check("the pinned version is named where the readers are defined",
+  /PINNED FIELD READERS \(2026-06-24\.dahlia\)/.test(HTTP));
+
+/* ── 8e. Unchanged by design ─────────────────────────────────────────────── */
+check("Checkout Session subscription reader is UNCHANGED (session.subscription)",
+  /subscriptionId = asId\(obj\.subscription\);/.test(HTTP));
+check("cancel_at_period_end still read at the subscription root",
+  /typeof sub\.cancel_at_period_end === "boolean"/.test(HTTP));
+check("canceled_at still read at the subscription root",
+  /typeof sub\.canceled_at === "number"/.test(HTTP));
+
+/* ── 9. Classification and entitlement still pass on the REAL payload ─────── */
+section("9. The real purchase still classifies and grants Plus");
+
+const REAL_ENV = {
+  STRIPE_PLUS_MONTHLY_PRICE_ID: MONTHLY_PRICE,
+  STRIPE_PLUS_ANNUAL_PRICE_ID: ANNUAL_PRICE,
+};
+const realVerdict = classifyPlusSubscription({
+  subscription: DAHLIA_SUB,
+  session: null,
+  approvedPrices: approvedPricesFromEnv(REAL_ENV),
+  environment: "sandbox",
+});
+check("the real dahlia subscription classifies as Plus", realVerdict.ok === true);
+check("and resolves to plus_monthly",
+  realVerdict.ok === true && realVerdict.planKey === "plus_monthly");
+
+/* The entitlement interpreter, extracted verbatim from convex/entitlements.ts.
+ * The row below is the one Convex actually wrote. */
+const ENT_SRC = readFileSync(new URL("../convex/entitlements.ts", import.meta.url), "utf8");
+const ent: any = await import(
+  "data:text/javascript," +
+    encodeURIComponent(
+      "const PAST_DUE_GRACE_MS = " + PAST_DUE_GRACE_MS + ";\n" +
+        deType(
+          extractFn(ENT_SRC, "function interpret"),
+          "function interpret(\n  sub: any,\n  now: number,\n): { tier: Tier; status: string; needsAttention: boolean; graceEndsAt: number | null } {",
+          "function interpret(sub, now) {",
+        ) +
+        "\nexport { interpret };",
+    )
+);
+
+const REAL_ROW = {
+  provider: "stripe",
+  planKey: "plus_monthly",
+  environment: "sandbox",
+  tier: "plus",
+  status: "active",
+  cancelAtPeriodEnd: false,
+  currentPeriodStart: PERIOD_START,
+  currentPeriodEnd: PERIOD_END,
+  updatedAt: 1787342148189,
+};
+const NOW = 1787342200000; // just after the purchase
+check("the real row grants Plus", ent.interpret(REAL_ROW, NOW).tier === "plus");
+check("and needs no attention", ent.interpret(REAL_ROW, NOW).needsAttention === false);
+
+/* Fail closed: a row whose period never arrived must not become an unbounded
+ * free ride. past_due with no period falls back to updatedAt, so grace still
+ * ENDS. This is the case a widened reader would have produced. */
+const NO_PERIOD_ROW = { ...REAL_ROW, status: "past_due", currentPeriodEnd: undefined };
+const pastDue = ent.interpret(NO_PERIOD_ROW, NOW);
+check("past_due with no period still has a bounded grace deadline",
+  typeof pastDue.graceEndsAt === "number" && pastDue.graceEndsAt < NOW + PAST_DUE_GRACE_MS + 1000);
+check("past_due surfaces paymentNeedsAttention", pastDue.needsAttention === true);
+check("past_due beyond grace drops to free",
+  ent.interpret(NO_PERIOD_ROW, NOW + PAST_DUE_GRACE_MS * 3).tier === "free");
+check("an unclassifiable status is free, never plus",
+  ent.interpret({ ...REAL_ROW, status: "incomplete_expired" }, NOW).tier === "free");
+
+/* ── 10. Out-of-order delivery stays safe ─────────────────────────────────── */
+section("10. Out-of-order webhook delivery");
+
+/* This is not hypothetical. On 2026-08-21 the real purchase delivered
+ * invoice.paid BEFORE customer.subscription.created. Anyone who assumes Stripe
+ * delivers lifecycle events in causal order will write a bug. */
+const SUBS_SRC = readFileSync(new URL("../convex/subscriptions.ts", import.meta.url), "utf8");
+
+check("replay is refused before any write",
+  SUBS_SRC.indexOf("if (seen) return { ok: true, deduped: true }") <
+    SUBS_SRC.indexOf("const fields = {"));
+check("an older event never overwrites newer state",
+  /if \(args\.eventCreated < existing\.lastProviderEventAt\)/.test(SUBS_SRC));
+check("a stale event is recorded, then dropped",
+  /await recordEvent\(\);\s*\n\s*return \{ ok: true, stale: true \}/.test(SUBS_SRC));
+check("dedup is indexed, not a table scan", /by_provider_event/.test(SUBS_SRC));
+check("every applied event is recorded", /insert\("billingEvents"/.test(SUBS_SRC));
+
+/* The ordering predicate itself, exercised directly. */
+const stale = (incoming: number, lastSeen: number) => incoming < lastSeen;
+check("invoice.paid arriving first is NOT stale (nothing seen yet)", stale(1787342147, 0) === false);
+check("subscription.created arriving second is not stale", stale(1787342147, 1787342147) === false);
+check("a genuinely older event IS stale", stale(1787342100, 1787342147) === true);
+check("an equal timestamp is applied, not dropped — Stripe batches within a second",
+  stale(1787342147, 1787342147) === false);
 
 console.log("\n" + "─".repeat(62));
 if (failures.length) {

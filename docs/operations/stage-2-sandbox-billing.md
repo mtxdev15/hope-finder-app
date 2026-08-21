@@ -3,7 +3,8 @@
 **Status: resume steps 1, 2 and 3 are complete.** A monthly Plus subscription
 has been purchased end to end through the real app in the sandbox: Checkout,
 payment, all three webhooks, and the Convex entitlement. The provisional field
-readers are now confirmed against real pinned-version payloads (§6.8).
+readers have been confirmed against real pinned-version payloads and
+narrowed to the one location each field occupies (§6.8, §6.9).
 **No Portal configuration exists, no annual plan has been exercised, and
 nothing in live mode has been touched.**
 
@@ -597,7 +598,8 @@ strengthen.
 **Both provisional readers took their fallback branch, and both were right.**
 `readPeriod` fell through `sub.current_period_start` (absent) to the item;
 `readInvoiceSubscriptionId` fell through `obj.subscription` (absent) to
-`obj.parent.subscription_details.subscription`.
+`obj.parent.subscription_details.subscription`. Those payloads are what
+justified narrowing them; see §6.9.
 
 Had either assumed the older location, this purchase would have written a row
 with **no period bounds** — and both the `past_due` grace window and the
@@ -644,6 +646,71 @@ webhook-time guard that refuses a second Stripe subscription for a user who
 already holds an active one rather than silently overwriting. No code has been
 changed.
 
+### 6.9 The field readers, narrowed
+
+Resume step 6. The readers in `convex/http.ts` accepted two locations each
+while the real shape was unknown. §6.8 captured it, so they now accept one.
+
+| Reader | Was | Now |
+|---|---|---|
+| `readPeriod` | `sub.current_period_start ?? item.current_period_start` | **`sub.items.data[0].current_period_start`** only |
+| `readInvoiceSubscriptionId` | `obj.subscription`, else `obj.parent.subscription_details.subscription` | **`obj.parent.subscription_details.subscription`** only |
+
+Unchanged on purpose, because §6.8 showed neither moved: the Checkout Session
+link stays `session.subscription` at the root, and cancellation stays
+`cancel_at_period_end`, `cancel_at`, `canceled_at` and `cancellation_details` at
+the subscription root.
+
+The expanded-object form is still accepted at the one surviving location for the
+invoice link, since `expand` changes the shape of the value, not where it lives.
+
+#### Why removing the fallbacks is a safety improvement, not just tidying
+
+Tolerating both locations was correct while the shape was unknown: it was the
+absence of a guess, not a guess. Keeping them now would be worse than useless. A
+payload carrying **only** the old root-level fields is not a valid
+`2026-06-24.dahlia` payload. It could only come from version drift — an unpinned
+client, a replayed archive, a hand-built object — and silently accepting it
+would let that drift flow into the entitlement tables looking perfectly healthy.
+Failing closed surfaces it instead.
+
+Failing closed is safe here because `applyWebhook` spreads period fields in only
+when present, so a bad payload leaves prior good state untouched rather than
+overwriting it with `undefined`, and a missing subscription id acknowledges
+without applying. Both are asserted.
+
+These readers are tied to `stripeApi.STRIPE_API_VERSION`. **If that pin ever
+moves, re-capture real payloads and re-narrow. Do not widen speculatively.**
+
+#### Regression coverage
+
+`scripts/verify-plus-classification.ts` grew from 44 to **96 checks**, in three
+new sections built on the real 2026-08-21 shapes — genuine ids and timestamps,
+nothing invented:
+
+- **§8 readers** — dahlia shapes accepted; obsolete root-level period and
+  top-level `invoice.subscription` produce no values; when *both* shapes are
+  present the pinned one wins; 15 malformed inputs all fail closed
+- **§9 classification and entitlement** — the real subscription still
+  classifies as `plus_monthly`, and the row Convex actually wrote still resolves
+  to Plus. A `past_due` row with no period still gets a *bounded* grace deadline,
+  which is precisely the corruption a widened reader could have caused
+- **§10 out-of-order delivery** — the real run delivered `invoice.paid` before
+  `customer.subscription.created`, so the ordering and dedup guards are asserted
+  against that sequence
+
+The two readers are **extracted from `convex/http.ts` verbatim** and executed,
+not reimplemented. Note that the brace-walking used on the plain-JS Worker does
+not work on TypeScript here: a return type like `: { start?: number }` contains
+braces and the walk terminates on the annotation instead of the body. The
+extractor slices to the first `}` at column zero and swaps the signature by
+exact string, so a signature change throws loudly rather than silently testing
+something else.
+
+**Verified by mutation.** Re-introducing both fallbacks makes exactly 7 of the
+new assertions fail. A test that passes against both the fixed and the broken
+code proves nothing, so this was checked rather than assumed.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
@@ -661,11 +728,8 @@ PaymentIntent now exist in the sandbox (§6.8). Still absent:
 - `/checkout/success` and `/checkout/cancelled` — neither route exists, so a
   completed payment currently lands on a 404
 
-The webhook parser's field readers are **no longer unconfirmed**. Resume step 3
-captured real payloads at the pinned version and both readers took their
-fallback branch, correctly (§6.8). They may now be narrowed. That narrowing is
-resume step 6 and has deliberately not been done in the same pass as the
-verification that justifies it.
+The webhook parser's field readers are **narrowed and pinned** (§6.9). Resume
+step 6 is done.
 
 ## 8. Related
 

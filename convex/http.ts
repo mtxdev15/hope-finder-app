@@ -70,21 +70,34 @@ const BILLING_EVENTS = new Set([
    both places means neither has to trust the other. */
 const MAX_EVENT_BYTES = 1_048_576; // 1 MiB
 
-/* ── PROVISIONAL FIELD READERS ───────────────────────────────────────────────
-   Stripe has moved some of these between API versions: subscription period
-   bounds have lived on the subscription and on the subscription ITEM, and an
-   invoice's subscription link has lived at `invoice.subscription` and under
-   `invoice.parent.subscription_details.subscription`.
+/* ── PINNED FIELD READERS (2026-06-24.dahlia) ────────────────────────────────
+   These were provisional until a real sandbox purchase was completed on
+   2026-08-21 and its payloads read back at the pinned version. Both readers
+   were then NARROWED to the one location each field actually occupies. See
+   docs/operations/stage-2-sandbox-billing.md §6.8 for the captured shapes.
 
-   These readers deliberately accept EITHER location rather than assuming one.
-   They are provisional: real sandbox payloads captured at the pinned version
-   (see stripeApi.STRIPE_API_VERSION) will confirm which location is live, and
-   only then should these be narrowed. Tolerating both is not a guess — it is
-   the absence of one. */
+   What the older, wider versions accepted and these no longer do:
+     - `subscription.current_period_start` / `.current_period_end`
+     - `invoice.subscription`
+
+   Neither exists under this API version. Reading them was never wrong, it was
+   the deliberate absence of a guess while the real shape was unknown. Now it IS
+   known, and keeping the fallbacks would be worse than useless: a payload that
+   carries ONLY the old fields is not a valid pinned-version payload, and
+   silently accepting it would let a version drift — an unpinned client, a
+   replayed archive, a hand-built object — flow into the entitlement tables
+   looking healthy. Failing closed surfaces the drift instead.
+
+   These are tied to stripeApi.STRIPE_API_VERSION. If that pin ever moves,
+   re-capture real payloads and re-narrow; do not widen speculatively. */
 function readPeriod(sub: any): { start?: number; end?: number } {
+  /* Dahlia carries the period on the subscription ITEM, never on the
+   * subscription root. Our Checkout sends exactly one line item, and
+   * classification rejects `unexpected-multiple-items`, so item[0] is the
+   * only item there can be. */
   const item = sub?.items?.data?.[0];
-  const start = sub?.current_period_start ?? item?.current_period_start;
-  const end = sub?.current_period_end ?? item?.current_period_end;
+  const start = item?.current_period_start;
+  const end = item?.current_period_end;
   return {
     start: typeof start === "number" ? start : undefined,
     end: typeof end === "number" ? end : undefined,
@@ -92,9 +105,10 @@ function readPeriod(sub: any): { start?: number; end?: number } {
 }
 
 function readInvoiceSubscriptionId(obj: any): string | null {
-  const direct = obj?.subscription;
-  if (typeof direct === "string" && direct) return direct;
-  if (direct && typeof direct === "object" && typeof direct.id === "string") return direct.id;
+  /* Dahlia nests the invoice-to-subscription link under `parent`. There is no
+   * top-level `invoice.subscription`. Both the plain id and the expanded
+   * object are accepted at that one location, since `expand` changes the
+   * shape of the value, not where it lives. */
   const nested = obj?.parent?.subscription_details?.subscription;
   if (typeof nested === "string" && nested) return nested;
   if (nested && typeof nested === "object" && typeof nested.id === "string") return nested.id;
