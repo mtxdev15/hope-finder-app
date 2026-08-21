@@ -125,9 +125,11 @@ html[data-theme="light"]{background-color:#FAF7F2!important;}
       const els = document.querySelectorAll('[data-you-label]');
       if (!els.length) return;
       let name = '';
-      try { name = isSignedIn() ? (currentUser().firstName || '') : ''; } catch (e) {}
+      /* currentUser() returns null when signed out; the try/catch already
+         covered that at runtime, and the optional chain now says so. */
+      try { name = isSignedIn() ? (currentUser()?.firstName || '') : ''; } catch (e) {}
       const you = (window.I18N ? window.I18N.t('nav.you', 'You') : 'You');
-      els.forEach((el) => { el.textContent = name ? name.slice(0, 14) : you; });
+      els.forEach((el: Element) => { el.textContent = name ? name.slice(0, 14) : you; });
     }
     initAuth().then(paintYouTab).catch(() => {});
     onAuthChange(paintYouTab);

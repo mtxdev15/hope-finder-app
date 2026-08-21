@@ -167,8 +167,20 @@ check("no request field is ever read as a userId",
  * That fallback must never reappear in either action. */
 check("the retired customers-by-email lookup is absent from the code",
   !/customers\?email/.test(stripComments(BILLING)));
-check("the dev page sends no identity of any kind",
-  !/userId|user_id|customerId|\bemail\b/.test(SCRIPT.replace(/u\.email/g, "").replace(/\/\*[\s\S]*?\*\//g, "")));
+/* Assert the PAYLOAD, not the whole script. An earlier version grepped the
+ * entire script for "email", which failed the moment the local variable holding
+ * the signed-in user's own address for display gained a type annotation — a
+ * false positive that says nothing about what crosses the wire. What matters is
+ * the object literal handed to client.action(), so extract exactly that. */
+const PAYLOAD = (SCRIPT.match(
+  /client\.action\(api\.billing\.createCheckoutSession,\s*\{([\s\S]*?)\}\s*\)/,
+) || [])[1];
+check("the Convex action payload can be located", typeof PAYLOAD === "string");
+check("the payload is exactly { plan: 'plus-monthly' }",
+  (PAYLOAD || "").replace(/\s|,$/g, "").replace(/,$/, "") === "plan:'plus-monthly'");
+for (const forbidden of ["userId", "user_id", "customerId", "customer", "email", "price", "subscription", "token"]) {
+  check(`the payload carries no "${forbidden}"`, !(PAYLOAD || "").includes(forbidden));
+}
 check("the only credential the page sends is a Better Auth token",
   /ac\.convex\.token\(/.test(SCRIPT));
 

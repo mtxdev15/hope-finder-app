@@ -41,9 +41,19 @@ const MODE = 'signup';
       return u.pathname + u.search + u.hash;
     }
 
-    const mode = document.querySelector('.authpage').dataset.mode === 'signup' ? 'signup' : 'signin';
+    /* querySelector returns Element | null, and `dataset` exists only on
+       HTMLElement. Reading it straight through crashed the whole script if the
+       shell markup ever changed; defaulting to 'signin' degrades instead. */
+    const authPage = document.querySelector('.authpage');
+    const mode = (authPage instanceof HTMLElement && authPage.dataset.mode === 'signup')
+      ? 'signup'
+      : 'signin';
     initAuth().then(() => {
-      if (!isConfigured()) { document.getElementById('apMissing').hidden = false; return; }
+      if (!isConfigured()) {
+        const missing = document.getElementById('apMissing');
+        if (missing) missing.hidden = false;
+        return;
+      }
       if (isSignedIn()) { location.replace(returnTo()); return; }
       openAuthModal({ mode, returnTo: returnTo(), onSuccess: () => { location.href = returnTo(); } });
       const watch = setInterval(() => {

@@ -490,14 +490,41 @@ const GTM_ID = import.meta.env.PUBLIC_GTM_ID;
   });
 
   // Full-screen menu open/close.
+  /* All three elements are rendered together by this page. Guarding them once
+     here keeps the handlers below free of repeated null checks, and means a
+     markup change disables the menu rather than throwing partway through and
+     aborting the rest of this script — which would take the greeting and the
+     struggle chips down with it. */
   const menuBtn = document.getElementById('menuBtn');
   const menu = document.getElementById('heroMenu');
   const menuClose = document.getElementById('menuClose');
-  function openMenu(){ menu.querySelectorAll('.m-menu-item').forEach((el, i) => el.style.setProperty('--i', i)); menu.classList.add('open'); menu.setAttribute('aria-hidden', 'false'); menuBtn.setAttribute('aria-expanded', 'true'); }
-  function closeMenu(){ menu.classList.remove('open'); menu.setAttribute('aria-hidden', 'true'); menuBtn.setAttribute('aria-expanded', 'false'); }
-  menuBtn.addEventListener('click', openMenu);
-  menuClose.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.classList.contains('open')) closeMenu(); });
+  if (menuBtn && menu && menuClose) {
+    /* Bind the narrowed values. TypeScript does not carry a guard's narrowing
+       into a nested function declaration, because that body could run long
+       after the check; these consts are non-nullable by type, so the handlers
+       need no repeated checks and no assertions. */
+    const btnEl: HTMLElement = menuBtn;
+    const menuEl: HTMLElement = menu;
+
+    /* .style lives on HTMLElement, not Element, so the staggered-reveal index
+       needs the narrower type. setProperty takes a string. */
+    function openMenu(){
+      menuEl.querySelectorAll('.m-menu-item').forEach((el: Element, i: number) => {
+        if (el instanceof HTMLElement) el.style.setProperty('--i', String(i));
+      });
+      menuEl.classList.add('open');
+      menuEl.setAttribute('aria-hidden', 'false');
+      btnEl.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu(){
+      menuEl.classList.remove('open');
+      menuEl.setAttribute('aria-hidden', 'true');
+      btnEl.setAttribute('aria-expanded', 'false');
+    }
+    menuBtn.addEventListener('click', openMenu);
+    menuClose.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuEl.classList.contains('open')) closeMenu(); });
+  }
 
   // Greet a returning, signed-in user by name + part of day.
   try {

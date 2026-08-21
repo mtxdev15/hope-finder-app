@@ -91,16 +91,16 @@ export function getStaticPaths() {
    * converting this back to a static route. */
   if (import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_DEV_CONTROL === '1') {
     (async () => {
-      const $ = (id) => document.getElementById(id);
-      const out = (html) => {
+      const $ = (id: string) => document.getElementById(id);
+      const out = (html: string) => {
         const el = $('dbOut');
         if (!el) return;
         el.innerHTML = html;
         el.hidden = false;
       };
-      const esc = (s) =>
+      const esc = (s: unknown) =>
         String(s).replace(/[&<>"]/g, (c) =>
-          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+          (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }) as Record<string, string>)[c]);
 
       const auth = await import('../../app/declare/auth-store.js');
 
@@ -121,14 +121,14 @@ export function getStaticPaths() {
         return;
       }
 
-      const u = auth.currentUser() || {};
+      const u: { email?: string; name?: string } = auth.currentUser() || {};
       if (authEl) authEl.textContent = 'Signed in as ' + (u.email || u.name || 'this account') + '.';
       if (ctrl) ctrl.hidden = false;
 
       /* Everything billing-shaped lives inside the click handler: the Convex
        * client, the generated api, and the action call. Nothing is imported and
        * no request is made until the button is pressed. */
-      const btn = $('dbGo');
+      const btn = document.getElementById('dbGo') as HTMLButtonElement | null;
       if (!btn) return;
       btn.addEventListener('click', async () => {
         btn.disabled = true;
@@ -184,7 +184,7 @@ export function getStaticPaths() {
             btn.disabled = false;
           }
         } catch (e) {
-          out('<div class="db-err">' + esc((e && e.message) || e) + '</div>');
+          out('<div class="db-err">' + esc((e instanceof Error && e.message) || e) + '</div>');
           btn.disabled = false;
         }
       });
