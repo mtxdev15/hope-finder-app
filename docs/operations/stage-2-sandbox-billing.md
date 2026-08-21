@@ -164,23 +164,98 @@ A `400` from the dev endpoint means the environment gate passed and all three
 Worker secrets are present. A `500 Webhook not configured` means one is missing.
 That distinction identifies a whole class of problem in one request.
 
-## 6. Not yet created
+## 6. The development-only checkout control
+
+**Resume step 1, done.** `billing.createCheckoutSession` now has exactly one
+caller: `src/pages/dev/[control].astro`, reachable in development only at
+`http://localhost:4321/dev/billing-sandbox`.
+
+Until this page existed, production was protected *structurally* — the action had
+zero callers, so there was nothing to click. It is now protected *conditionally*,
+by two gates. That change in kind is why the page ships with its own suite,
+`scripts/verify-billing-dev-control.ts` (98 checks).
+
+### The two gates
+
+| | Gate | Mechanism |
+|---|---|---|
+| A | route existence | dynamic route; `getStaticPaths` returns `[]` unless `import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_DEV_CONTROL === '1'`, so `dist/dev/` is never generated |
+| B | code existence | the same check, written with **inline literals** inside the client script, so Vite folds it to `if (false)` and esbuild drops the body including all three dynamic imports |
+
+`import.meta.env.DEV` is the load-bearing half of both. This tree contains
+`.env.local`, and **Vite loads `.env.local` in every mode, production builds
+included** — so the public flag alone is not a gate. A stray
+`PUBLIC_BILLING_DEV_CONTROL=1` in a Cloudflare Pages build setting, in CI, or in
+`.env.local` would otherwise ship a working Checkout button. `DEV` is false in
+every `astro build`. Same convention as the Journey pacing-lock bypass in
+`src/pages/journey.astro`.
+
+Verified three ways, all automated:
+
+| Condition | Result |
+|---|---|
+| `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` | `/dev/billing-sandbox` → **200**, button renders |
+| `npm run dev` with the flag absent | `/dev/billing-sandbox` → **404** |
+| `PUBLIC_BILLING_DEV_CONTROL=1 npx astro build` | 12 pages, **no `dist/dev/`**; none of 140 text files in `dist/` contains `createCheckoutSession`, `plus-monthly`, `billing-sandbox`, the button label, or the flag name |
+
+The third row is the one that matters: the build is deliberately **hostile**, run
+with the flag on, because that is the shape a real accident takes.
+
+### The entire client-to-Convex payload
+
+```js
+await client.action(api.billing.createCheckoutSession, { plan: 'plus-monthly' });
+```
+
+A hardcoded literal, and nothing else. No Price id, no user id, no email, no
+customer id, no subscription id, not even `lang`. The only other thing crossing
+the wire is the Better Auth JWT set via `client.setAuth(token)`. This is
+enforced by the action's own args validator — `{ plan, lang }` — so there is no
+field to spoof, and the suite asserts that validator has not grown one.
+
+`src/pages/pricing.astro` is unchanged and stays non-transactional: the public
+Plus CTA is still a `disabled` "Opening soon" button, the page loads no script,
+and the suite asserts both.
+
+### What a click would create, and has not
+
+Only in sandbox `acct_1TmENuLShxhb4mBz`, and only after Jeff clicks:
+
+1. **Stripe Customer** — only if `billingCustomers` holds no mapping. Email from
+   the authenticated profile, `metadata[userId]`, `metadata[environment]=sandbox`,
+   idempotency key `cust:<userId>`.
+2. **Convex `billingCustomers` row** — the userId to customer mapping.
+3. **Stripe Checkout Session** — `mode=subscription`, one line item
+   `price_1U6hytLShxhb4mBzduppVOya`, `client_reference_id=<userId>`,
+   `automatic_tax[enabled]=false`, five provenance fields on both `metadata` and
+   `subscription_data[metadata]`, idempotency key
+   `co:<userId>:plus_monthly:<5-minute bucket>`.
+
+No Subscription, Invoice, PaymentIntent or PaymentMethod exists until the hosted
+Checkout form is completed with a test card. The page displays the returned URL
+and **does not navigate to it** — creating a session and opening Checkout are two
+separate, deliberate clicks, so the second one is never an accident of the first.
+
+## 7. Not yet created
 
 - Stripe Customer, Subscription, Checkout Session
 - Billing Portal configuration
 - any live-mode object
-- frontend wiring — the pricing CTA is still a disabled "Opening soon" button and
-  `createCheckoutSession` still has no caller
+- annual checkout — the dev control is monthly only
+- any production billing CTA — the pricing page CTA is still a disabled
+  "Opening soon" button
 
 The webhook parser's field readers remain **provisional**: they accept both known
 locations for subscription period bounds and the invoice-to-subscription link.
 They must be narrowed only against real payloads captured at the pinned version,
 which requires a real subscription and has not happened yet.
 
-## 7. Related
+## 8. Related
 
 - `docs/architecture/cross-platform-subscriptions.md` — provider neutrality, the runtime split
 - `docs/implementation/release-c1-phase4-entitlements.md` — grace window, tax deferral, commercial decisions
 - `scripts/verify-webhook-signature.ts` — 34 signature checks
 - `scripts/verify-plus-classification.ts` — 44 classification checks
+- `scripts/verify-billing-dev-control.ts` — 98 checks on the dev checkout control
+  (build `dist/` first, with the flag ON)
 - `docs/operations/retired-webhook-secret-hygiene.md` — the retired donation flow

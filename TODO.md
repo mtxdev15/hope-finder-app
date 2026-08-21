@@ -144,12 +144,20 @@ Nothing in live mode has been created or touched. Full record in
       Stripe credential
 - [x] Webhook signature diagnostics added and deployed
 - [x] PR #20 remains the active Stage 2 review surface
+- [x] **Resume step 1 — development-only authenticated monthly checkout control**
+      (`src/pages/dev/[control].astro`, dev URL `/dev/billing-sandbox`).
+      `billing.createCheckoutSession` now has exactly one caller. Two gates keep
+      it out of production: a dynamic route that generates zero pages, and an
+      inline-literal `import.meta.env.DEV` check that Vite folds away. Proven by
+      `scripts/verify-billing-dev-control.ts` (98 checks) against a **hostile**
+      build made with `PUBLIC_BILLING_DEV_CONTROL=1`. Nothing has been clicked.
 
 ### Intentionally not completed
 
 None of these are oversights. Each is a deliberate stop.
 
-- [ ] No authenticated checkout UI has been added
+- [ ] No checkout control exists in production. The dev-only one has never been
+      clicked, so it has created nothing
 - [ ] No Stripe Customer has been created
 - [ ] No real Checkout Session has been created through the app
 - [ ] No Subscription or invoice has been created
@@ -165,11 +173,12 @@ None of these are oversights. Each is a deliberate stop.
 
 When Stage 2 resumes, in this order:
 
-1. **Build a development-only authenticated monthly checkout control.**
-   - calls `billing.createCheckoutSession`
-   - the browser may send only the alias `plus-monthly` — never a Price id
-   - the authenticated user and the Stripe Price resolve entirely server-side
-   - the control must be **unavailable in production**
+1. ~~**Build a development-only authenticated monthly checkout control.**~~
+   **DONE.** `src/pages/dev/[control].astro`. Enable with
+   `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`, then open
+   `http://localhost:4321/dev/billing-sandbox`. The browser sends only
+   `{ plan: 'plus-monthly' }`; the user, the Price and the Customer all resolve
+   server-side in Convex. See `docs/operations/stage-2-sandbox-billing.md` §6.
 2. **Create one sandbox monthly Checkout Session through the actual app**, not
    through the API directly. The point is to exercise the real path.
 3. **Complete a test subscription payment.**

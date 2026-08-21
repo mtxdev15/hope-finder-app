@@ -1,0 +1,234 @@
+---
+/* Stage 2 resume step 1 — the ONLY caller of billing.createCheckoutSession.
+ *
+ * WHY THIS PAGE EXISTS
+ * Until now `convex/billing.ts` had zero callers anywhere in the repo, so
+ * production was protected structurally: there was nothing to click. This page
+ * gives the action a caller for the first time, which means the protection
+ * stops being structural and becomes conditional. That is the whole reason for
+ * the two gates below and for scripts/verify-billing-dev-control.ts.
+ *
+ * WHY A DYNAMIC ROUTE FOR A SINGLE PAGE
+ * A plain src/pages/dev/billing-sandbox.astro would still be GENERATED in a
+ * production build — an empty shell, but a real URL. A dynamic route whose
+ * getStaticPaths returns [] generates nothing at all, so `dist/dev/` does not
+ * exist. That turns "is the control absent from production?" into a binary,
+ * greppable fact instead of an inspection of page contents.
+ *
+ * WHY `import.meta.env.DEV` IS THE LOAD-BEARING HALF
+ * This tree contains .env.local, and Vite loads .env.local in EVERY mode,
+ * production builds included. So the public flag alone is not a gate: a stray
+ * PUBLIC_BILLING_DEV_CONTROL=1 in .env.local, in CI, or in a Cloudflare Pages
+ * build setting would ship a live Checkout control. DEV is false in every
+ * `astro build`, so a production build cannot contain this page even when the
+ * flag is deliberately set to 1. Verified both ways by the test suite, which
+ * runs against a build made with the flag ON.
+ *
+ * Same convention as the Journey pacing-lock bypass in src/pages/journey.astro.
+ *
+ * To enable locally:
+ *   PUBLIC_BILLING_DEV_CONTROL=1 npm run dev
+ *   http://localhost:4321/dev/billing-sandbox
+ * or put the flag in .env.development.local, which Vite loads ONLY in dev mode.
+ * Do NOT use .env.local, and do not add it to Cloudflare Pages build settings.
+ */
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+
+/* GATE A — route existence, decided at build time. */
+export function getStaticPaths() {
+  const enabled =
+    import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_DEV_CONTROL === '1';
+  return enabled ? [{ params: { control: 'billing-sandbox' } }] : [];
+}
+---
+<DeclareLayout
+  title="Declare — dev: sandbox billing"
+  description="Development-only Stripe sandbox checkout control."
+  activeTab=""
+  noindex={true}
+>
+  <main class="devbill">
+    <div class="db-in">
+      <div class="db-tag">Development only</div>
+      <h1>Plus monthly checkout</h1>
+      <p class="db-sub">
+        Stage 2 resume step 1. The browser sends one constant string,
+        <code>plus-monthly</code>. The authenticated user, the Stripe Price and
+        the Customer are all resolved server side inside Convex.
+      </p>
+
+      <div class="db-strip">
+        Sandbox account <code>acct_1TmENuLShxhb4mBz</code>, test mode. Nothing on
+        this page can charge a card.
+      </div>
+
+      <div id="dbAuth" class="db-auth">Checking your session&hellip;</div>
+
+      <div id="dbControl" class="db-control" hidden>
+        <!-- The disclaimer IS the label, so no future layout edit can separate
+             the two. The fine print says what the button does. -->
+        <button id="dbGo" type="button" class="db-btn">Stripe sandbox — no real charge</button>
+        <div class="db-fine">
+          Opens one $8.99/month Plus Checkout Session in Stripe test mode.
+        </div>
+      </div>
+
+      <div id="dbOut" class="db-out" hidden></div>
+    </div>
+  </main>
+</DeclareLayout>
+
+<script>
+  /* GATE B — code existence.
+   *
+   * The condition is written with the literals inline rather than through a
+   * frontmatter variable, on purpose: Vite substitutes them at transform time,
+   * so in any production build this folds to `if (false)` and esbuild drops the
+   * entire body — including the dynamic imports, so no Convex or billing chunk
+   * is emitted either. Must stay in sync with getStaticPaths above.
+   *
+   * Gate A alone would be enough today. Gate B is what survives someone later
+   * converting this back to a static route. */
+  if (import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_DEV_CONTROL === '1') {
+    (async () => {
+      const $ = (id) => document.getElementById(id);
+      const out = (html) => {
+        const el = $('dbOut');
+        if (!el) return;
+        el.innerHTML = html;
+        el.hidden = false;
+      };
+      const esc = (s) =>
+        String(s).replace(/[&<>"]/g, (c) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+      const auth = await import('../../app/declare/auth-store.js');
+
+      /* Session state only. This makes no Stripe call and creates nothing. */
+      await auth.initAuth().catch(() => {});
+      const authEl = $('dbAuth');
+      const ctrl = $('dbControl');
+
+      if (!auth.isConfigured()) {
+        if (authEl) authEl.textContent =
+          'PUBLIC_CONVEX_SITE_URL is not set, so there is no session to authenticate.';
+        return;
+      }
+      if (!auth.isSignedIn()) {
+        if (authEl) authEl.innerHTML =
+          'Not signed in. Checkout requires an authenticated user. ' +
+          '<a href="/signin">Sign in</a>, then return here.';
+        return;
+      }
+
+      const u = auth.currentUser() || {};
+      if (authEl) authEl.textContent = 'Signed in as ' + (u.email || u.name || 'this account') + '.';
+      if (ctrl) ctrl.hidden = false;
+
+      /* Everything billing-shaped lives inside the click handler: the Convex
+       * client, the generated api, and the action call. Nothing is imported and
+       * no request is made until the button is pressed. */
+      const btn = $('dbGo');
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        out('Creating a Checkout Session&hellip;');
+        try {
+          const { ConvexHttpClient } = await import('convex/browser');
+          const { api } = await import('../../../convex/_generated/api');
+
+          const convexUrl = import.meta.env.PUBLIC_CONVEX_URL || '';
+          if (!convexUrl) {
+            out('PUBLIC_CONVEX_URL is not set.');
+            btn.disabled = false;
+            return;
+          }
+
+          /* Better Auth mints the Convex JWT. This is the ONLY identity that
+           * crosses the wire; there is no userId, email or customer id to send,
+           * and no argument on the action that could carry one. */
+          const ac = auth.getAuthClient();
+          const tok = ac && ac.convex
+            ? await ac.convex.token({ fetchOptions: { throw: false } })
+            : null;
+          const token = (tok && tok.data && tok.data.token) || null;
+          if (!token) {
+            out('No Convex token. The session may have expired — sign in again.');
+            btn.disabled = false;
+            return;
+          }
+
+          const client = new ConvexHttpClient(convexUrl);
+          client.setAuth(token);
+
+          /* THE ENTIRE PAYLOAD. A hardcoded alias, nothing else. No Price id,
+           * no user id, no email, no customer id, no subscription id, no lang. */
+          const res = await client.action(api.billing.createCheckoutSession, {
+            plan: 'plus-monthly',
+          });
+
+          if (res && res.url) {
+            /* Deliberately NOT navigated. Creating a session and opening
+             * Checkout stay two separate, deliberate clicks. */
+            out(
+              '<div class="db-ok">Checkout Session created.</div>' +
+              '<div class="db-url">' + esc(res.url) + '</div>' +
+              '<a class="db-open" href="' + esc(res.url) + '" target="_blank" rel="noopener noreferrer">' +
+              'Open Stripe Checkout in a new tab</a>'
+            );
+          } else {
+            /* Error codes are rendered verbatim: this is a diagnostic surface,
+             * not a user-facing one. */
+            out('<div class="db-err">' + esc((res && res.error) || 'no-response') +
+                (res && res.status ? ' (' + esc(res.status) + ')' : '') + '</div>');
+            btn.disabled = false;
+          }
+        } catch (e) {
+          out('<div class="db-err">' + esc((e && e.message) || e) + '</div>');
+          btn.disabled = false;
+        }
+      });
+    })();
+  }
+</script>
+
+<style>
+  .devbill { position: relative; min-height: 100dvh; padding: 24px 0 96px; }
+  .db-in { width: min(560px, calc(100% - 32px)); margin: 0 auto; }
+  .db-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #13211A; background: var(--gold);
+    padding: 4px 10px; border-radius: 100px;
+  }
+  .devbill h1 {
+    font-family: 'Cormorant Garamond', serif; font-size: 30px; line-height: 1.15;
+    color: var(--text); font-weight: 500; margin: 14px 0 0;
+  }
+  .db-sub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 10px 0 0; }
+  .db-sub code, .db-strip code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .db-strip {
+    margin-top: 18px; padding: 12px 14px; border: 1px solid var(--gold);
+    border-radius: 12px; font-size: 12.5px; line-height: 1.55; color: var(--text2);
+  }
+  .db-auth { margin-top: 18px; font-size: 13.5px; line-height: 1.6; color: var(--text2); }
+  .db-auth a { color: var(--goldd); font-weight: 600; }
+  .db-control { margin-top: 18px; }
+  .db-btn {
+    width: 100%; padding: 15px 18px; border-radius: 14px; border: 1px solid var(--gold);
+    background: var(--gold); color: #13211A; font-size: 15px; font-weight: 700;
+    cursor: pointer; line-height: 1.3;
+  }
+  .db-btn[disabled] { opacity: .55; cursor: not-allowed; }
+  .db-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; margin-top: 9px; }
+  .db-out {
+    margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--surface); font-size: 13px; line-height: 1.6; color: var(--text2);
+  }
+  .db-ok { font-weight: 600; color: var(--text); }
+  .db-err { font-weight: 600; color: #E4736B; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .db-url {
+    margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; word-break: break-all; color: var(--muted);
+  }
+  .db-open { display: inline-block; margin-top: 12px; font-size: 13.5px; font-weight: 600; color: var(--goldd); }
+</style>
