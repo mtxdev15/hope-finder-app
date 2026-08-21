@@ -229,6 +229,48 @@ When Stage 2 resumes, in this order:
       work is complete and stable. Documentation-only for now; no navigation code, labels,
       routes, analytics, SEO, GTM or Search Console changes have been made.
 
+      **Sequencing decision — 2026-08-21.** Do **not** begin this migration inside PR #20
+      or during the current billing and type-check cleanup. Finish the Stage 2
+      billing/type-check plan first. After PR #20 is merged or otherwise closed, create a
+      dedicated navigation planning branch. This is in addition to the Spanish-Journey
+      gate above, not a replacement for it.
+
+      Five things must be settled on that branch **before any implementation begins**:
+
+      1. Reconcile this route map with the approved app.declareandbelieve.com split plan
+         below — they currently disagree (see finding 2).
+      2. Decide the canonical account route: `/you` or `/profile`.
+      3. Decide the canonical authentication route: `/signin` or `/login`.
+      4. Include `/journey`→`/journeys` and `/vault`→`/saved` in the final unified map;
+         the app.* plan predates both and omits them.
+      5. Resolve the `/declare` static-asset namespace collision before renaming
+         `/today`→`/declare` (see finding 1).
+
+      The eventual migration must be **coordinated across all of it in one pass**: English
+      and Spanish tab labels; page and file routes; one-hop permanent redirects; active
+      states and accessibility; internal and deep links; Journey-resume and Saved-content
+      links; authentication **and billing** return paths; canonical, hreflang, sitemap,
+      robots, metadata and Open Graph URLs; GTM, GA, funnels, conversions and historical
+      analytics mapping; Cloudflare redirects and Search Console verification; and mobile
+      tab bar, tablet rail and desktop sidebar parity. The detailed requirements for each
+      are already specified further down this item — this list is the scope, not a second
+      copy of the spec.
+
+      One dependency worth naming because nothing else records it: Stage 2 billing builds
+      Checkout `success_url` and `cancel_url` from `SITE_URL` in `convex/billing.ts`, and
+      those point at `/checkout/success` and `/checkout/cancelled`, which do not exist as
+      routes yet. Whoever builds those routes and whoever renames routes are touching the
+      same return-path surface, so the billing return paths must be part of the unified
+      map rather than discovered afterwards.
+
+      **Changing only Word→Bible or Vault→Saved is not implementation and is not
+      completion.** (Restated here because it is the tempting subset; the guardrail at the
+      end of this item says the same thing.)
+
+      The **mast-avatar duplicate-navigation question** (see "🔧 In progress / immediate")
+      stays a separate sitewide decision. Do not bundle it into this route migration or
+      into the current type-cleanup work.
+
       **Approved tab bar:** Bible · Journeys · Declare · Saved · You
 
       **Intended route migration:** `/word`→`/bible`, `/journey`→`/journeys`,
