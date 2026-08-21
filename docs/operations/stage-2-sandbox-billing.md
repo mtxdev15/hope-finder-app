@@ -293,9 +293,10 @@ field to spoof, and the suite asserts that validator has not grown one.
 Plus CTA is still a `disabled` "Opening soon" button, the page loads no script,
 and the suite asserts both.
 
-### What a click would create, and has not
+### What the click creates
 
-Only in sandbox `acct_1TmENuLShxhb4mBz`, and only after Jeff clicks:
+Predicted before resume step 2, and confirmed by it. Only in sandbox
+`acct_1TmENuLShxhb4mBz`, and only on a click:
 
 1. **Stripe Customer** — only if `billingCustomers` holds no mapping. Email from
    the authenticated profile, `metadata[userId]`, `metadata[environment]=sandbox`,
@@ -311,6 +312,82 @@ No Subscription, Invoice, PaymentIntent or PaymentMethod exists until the hosted
 Checkout form is completed with a test card. The page displays the returned URL
 and **does not navigate to it** — creating a session and opening Checkout are two
 separate, deliberate clicks, so the second one is never an accident of the first.
+
+### 6.6 Finding an app-created Checkout Session in the Stripe Dashboard
+
+**Current verified sandbox Checkout Session:**
+
+```
+cs_test_a1Ge895PE7oCtkOrGBEmAOopfj9IVSAEMSlrbKyTCFrNcWsSE197IYMjmN
+```
+
+Related Customer: `cus_V7BLkBE2Tz1hPY`.
+
+#### The navigation that works
+
+```
+Stripe Dashboard
+  → select sandbox "Declare checkout dev"
+  → Workbench
+  → Inspector
+  → paste the Checkout Session ID into the "Inspecting" field
+  → select "Checkout Session" in the Data map
+  → Overview
+  → Object data
+```
+
+Then find the provenance keys by searching **within Object data** for
+`metadata`.
+
+#### What does not work, and why it is written down
+
+Three dead ends cost time on the first attempt. They are recorded so the second
+attempt does not repeat them.
+
+| Path | Outcome |
+|---|---|
+| Global Dashboard search | **Did not return this Checkout Session.** Do not conclude the session does not exist. |
+| Workbench → Webhooks | Shows **webhook deliveries**, not Checkout Session records. A session created by the app emits no webhook event at all, so this view is empty by design and is not evidence of anything. |
+| Workbench → **Inspector** | **The reliable location.** Use this one. |
+
+The related Stripe **Customer appears in the Inspector's left-side Data map**
+alongside the Checkout Session, so both objects are inspectable from one paste
+without a second lookup.
+
+**Do not use "Edit in API Explorer" for read-only verification.** It stages a
+mutation against a live object, and the whole point of this pass is that nothing
+is modified. Inspector → Overview → Object data is read-only.
+
+#### Why the Dashboard is currently the only way to read the metadata
+
+The Stripe MCP server blanket-redacts the `metadata` field on Checkout Sessions
+and Customers, returning the literal string `"[REDACTED]"` whether the object is
+populated or empty. It does **not** redact `metadata` on Price objects, which is
+how we know the redaction is per-object-type rather than value-dependent — so
+`"[REDACTED]"` proves nothing either way about presence.
+
+Customer metadata can still be proven without reading it, by searching instead:
+
+```
+GetCustomersSearch  metadata['userId']:'<id>' AND metadata['environment']:'sandbox'
+```
+
+A match proves both values; run a deliberately corrupted id as a control to show
+the query is not simply permissive. There is no equivalent search endpoint for
+Checkout Sessions, which is why the Inspector fills that gap.
+
+Note also that `subscription_data` is **never** echoed back on a Checkout
+Session object in any tool, Dashboard included. It exists only as a create-time
+parameter and first becomes readable on the Subscription itself, at resume
+step 3.
+
+#### What must never be recorded
+
+The Session **id** is safe to write down and is recorded above. The **hosted
+Checkout URL is not**, and is deliberately absent from this repository: it opens
+a live payment flow for anyone holding it. The same applies to the customer
+email, the Convex user id, customer names, phone numbers and addresses, and any
+token, key or secret.
 
 ## 7. Not yet created
 
