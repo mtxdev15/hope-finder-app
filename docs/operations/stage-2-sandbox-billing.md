@@ -1,8 +1,11 @@
 # Stage 2 — sandbox billing, verified
 
-**Status: the Stripe → Worker → Convex webhook path is verified end to end in
-the sandbox.** No Customer, Subscription, Checkout Session or Portal
-configuration exists yet, and nothing in live mode has been touched.
+**Status: resume steps 1 and 2 are complete.** The Stripe → Worker → Convex
+webhook path is verified end to end in the sandbox, the development-only
+checkout control exists, and one Customer and one open Checkout Session have
+been created through the real app. **No Subscription, invoice, PaymentIntent or
+payment exists, no Portal configuration exists, and nothing in live mode has
+been touched.**
 
 Recorded 2026-08-21.
 
@@ -389,9 +392,109 @@ a live payment flow for anyone holding it. The same applies to the customer
 email, the Convex user id, customer names, phone numbers and addresses, and any
 token, key or secret.
 
+### 6.7 Resume step 2, verified
+
+The authenticated user clicked the dev control **once** on 2026-08-21. Read-only
+verification followed; nothing was modified, opened, expired or completed.
+
+| Object | Id |
+|---|---|
+| Checkout Session | `cs_test_a1Ge895PE7oCtkOrGBEmAOopfj9IVSAEMSlrbKyTCFrNcWsSE197IYMjmN` |
+| Customer | `cus_V7BLkBE2Tz1hPY` — **created**, not reused |
+
+The user id, email, name, phone and hosted Checkout URL are deliberately not
+recorded here. See the closing note in §6.6.
+
+#### Configuration, as read back from Stripe
+
+| Check | Value |
+|---|---|
+| Account | `acct_1TmENuLShxhb4mBz` *Declare checkout dev* |
+| `livemode` | `false` |
+| `mode` | `subscription` |
+| `status` | `open` |
+| `payment_status` | `unpaid` |
+| Price | `price_1U6hytLShxhb4mBzduppVOya`, lookup key `plus_monthly_usd_v1` |
+| Amount | `amount_total: 899` `usd` = **$8.99** |
+| Product | `prod_V6voPpxBKesWPc`, "Declare Plus" |
+| Line items | exactly one, quantity 1 |
+| `automatic_tax.enabled` | `false` |
+| Trial | none — Price `recurring.trial_period_days: null`, `interval: month` |
+| `success_url` | `http://localhost:4321/checkout/success?session_id={CHECKOUT_SESSION_ID}` |
+| `cancel_url` | `http://localhost:4321/checkout/cancelled?plan=plus-monthly` |
+
+The localhost return URLs are correct for this phase and follow directly from the
+temporary `SITE_URL` in §6.5.
+
+#### Ownership was derived from the authenticated user
+
+Three independent records carry the same Convex user id. That agreement is the
+proof, since no browser input could have set all three:
+
+1. Checkout Session `client_reference_id`
+2. Stripe Customer `metadata['userId']`
+3. Convex `billingCustomers.userId` on `good-dotterel-906`
+
+Point 2 was established **without reading the value**, using the search technique
+in §6.6: `metadata['userId']:'<id>' AND metadata['environment']:'sandbox'` matched
+exactly this Customer and nothing else, while a control query with a deliberately
+corrupted id returned an empty set. A search that matches everything would prove
+nothing, so the control is what makes the positive result meaningful.
+
+Timestamps corroborate a single click: Customer `18:15:20 UTC`, Session
+`18:15:21`, Convex mapping `18:15:21.174`.
+
+#### Convex dev state
+
+| Table | Result |
+|---|---|
+| `billingCustomers` | exactly **one** row, mapping the user to `cus_V7BLkBE2Tz1hPY` |
+| `subscriptions` | **empty** |
+| `billingEvents` | **empty** |
+
+`billingEvents` being empty is correct, not a gap: creating a Checkout Session
+emits no webhook event, so there was nothing for the Worker to forward. Reading
+it as a failure would send someone debugging a working system.
+
+#### No Subscription and no payment
+
+| Probe | Result |
+|---|---|
+| Subscriptions, `status: all`, whole sandbox | **0** |
+| Invoices for this Customer | **0** |
+| PaymentIntents for this Customer | **0** |
+| Session `subscription` / `invoice` / `payment_intent` | all `null` |
+| Customer `balance` / `delinquent` / `next_invoice_sequence` | `0` / `false` / `1` |
+| Convex `subscriptions` | empty |
+
+`next_invoice_sequence: 1` is independent evidence that no invoice has ever been
+issued to this Customer, separate from the invoice list being empty.
+
+#### Two things this pass did NOT prove
+
+Recorded because the tables above would otherwise imply more than was verified.
+
+1. **The Session's provenance metadata was not read.** The Stripe MCP server
+   redacts it, as explained in §6.6, and there is no search endpoint for Checkout
+   Sessions. `client_reference_id` being set is strong circumstantial evidence,
+   since `convex/billing.ts` writes it into the same request the provenance loop
+   populates, but circumstantial is not verified. Read it in the Dashboard via
+   §6.6 if certainty is wanted now.
+2. **`subscription_data.metadata` is not verifiable by anyone yet.** Stripe never
+   echoes `subscription_data` back on a Checkout Session; it becomes readable on
+   the Subscription, at resume step 3. The same limit applies to any
+   `subscription_data` trial setting, so "no trial" above rests on the Price
+   carrying none and on `convex/billing.ts` sending no trial parameter.
+
+Neither gap is dangerous in the direction that matters. If the provenance were
+missing, `classifyPlusSubscription` rejects at webhook time with
+`provenance-source` or `plan-metadata-missing` and grants nothing. The failure
+mode is refusing a legitimate purchase, never granting an illegitimate one.
+
 ## 7. Not yet created
 
-- Stripe Customer, Subscription, Checkout Session
+- Subscription, invoice, PaymentIntent, PaymentMethod, payment — none exist
+  (a Customer and one **open, unpaid** Checkout Session do; see §6.7)
 - Billing Portal configuration
 - any live-mode object
 - annual checkout — the dev control is monthly only
