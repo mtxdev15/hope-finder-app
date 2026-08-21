@@ -42,6 +42,28 @@ subscription: it exercises signature verification, the shared-secret handshake,
 the event filter and the acknowledge path without creating or mutating any
 account state.
 
+### Deployed dev Worker version
+
+| | |
+|---|---|
+| Service | `hope-finder-worker-dev` |
+| Version | **`95ca744d-71c4-4fe7-b505-e5ddcefe0d96`** |
+| Carries | the signature-diagnostics patch (structured rejection reasons, secret trim, header-part trim) |
+
+**Re-verified after that deploy: `checkout.session.expired` → `HTTP 200 ok`.**
+
+This is the regression that matters. Changing `verifyStripeSignature` from a
+boolean to `{ ok, reason }` touched the single function standing between the
+public internet and every billing state change, so the path was re-exercised
+against a real Stripe-signed event rather than trusted to the offline suite
+alone. A green delivery on this version proves the refactor preserved
+verification behaviour end to end, not just in `scripts/verify-webhook-signature.ts`.
+
+Recording the version id matters because `wrangler secret put` also creates a
+new Worker version. Without an id written down, "the dev Worker" is ambiguous
+between a code deploy and a secret change, and the two have very different
+implications when something breaks.
+
 ## 3. Configuration — names only, no values
 
 ### Convex dev `good-dotterel-906`
@@ -92,6 +114,13 @@ response opaque — telling an unauthenticated caller *which* check failed would
 hand them an oracle. The signing secret is now also trimmed at the call site: a
 trailing newline from a piped `wrangler secret put` is invisible in every
 dashboard and fails identically to a wrong secret.
+
+**Shipped** in dev Worker version `95ca744d-71c4-4fe7-b505-e5ddcefe0d96` and
+re-verified with a live Stripe-signed event. Note that neither hardening change
+would have prevented this particular incident, which was a secret rotated
+between two deliveries. What they change is that the next failure is readable
+from `wrangler tail` rather than requiring offline crypto extraction and a live
+probe.
 
 ### 4.2 `503` → Worker `500 Downstream error`
 
