@@ -1,11 +1,14 @@
 # Stage 2 — sandbox billing, verified
 
-**Status: resume steps 1 and 2 are complete.** The Stripe → Worker → Convex
-webhook path is verified end to end in the sandbox, the development-only
-checkout control exists, and one Customer and one open Checkout Session have
-been created through the real app. **No Subscription, invoice, PaymentIntent or
-payment exists, no Portal configuration exists, and nothing in live mode has
-been touched.**
+**Status: resume steps 1, 2 and 3 are complete.** A monthly Plus subscription
+has been purchased end to end through the real app in the sandbox: Checkout,
+payment, all three webhooks, and the Convex entitlement. The provisional field
+readers are now confirmed against real pinned-version payloads (§6.8).
+**No Portal configuration exists, no annual plan has been exercised, and
+nothing in live mode has been touched.**
+
+> **Open item:** two earlier Checkout Sessions are still `open` and still
+> payable. See the finding at the end of §6.8.
 
 Recorded 2026-08-21.
 
@@ -470,7 +473,9 @@ it as a failure would send someone debugging a working system.
 `next_invoice_sequence: 1` is independent evidence that no invoice has ever been
 issued to this Customer, separate from the invoice list being empty.
 
-#### Two things this pass did NOT prove
+#### Two things this pass did not prove
+
+> Both were resolved at resume step 3. See §6.8.
 
 Recorded because the tables above would otherwise imply more than was verified.
 
@@ -491,20 +496,176 @@ missing, `classifyPlusSubscription` rejects at webhook time with
 `provenance-source` or `plan-metadata-missing` and grants nothing. The failure
 mode is refusing a legitimate purchase, never granting an illegitimate one.
 
+### 6.8 Resume step 3, verified — the purchase works end to end
+
+The hosted sandbox Checkout was completed with a test card on 2026-08-21.
+Stripe redirected to `http://localhost:4321/checkout/success`, which **404s
+because that route does not exist yet**. That is expected at this stage and is
+listed in §7. The redirect is cosmetic; every record below was created by the
+webhook path, not by the return URL.
+
+| Object | Id |
+|---|---|
+| Checkout Session (completed) | `cs_test_a1Xb8jTcxo2YB7OMyYZqBfUTomLEAdFwLvA3mSSLLaY0T9c3xhiRHi2sLk` |
+| Customer | `cus_V7BLkBE2Tz1hPY` — **reused**, not recreated |
+| Subscription | `sub_1U6yXVLShxhb4mBzedFqJMQ0` |
+| Invoice | `in_1U6yXULShxhb4mBzLJTRiksn`, number `NZWTK7MY-0001` |
+| PaymentIntent | `pi_3U6yXULShxhb4mBz0Gk4PDBe` |
+| Subscription item | `si_V7CxTE1NcDXn0s` |
+
+Session `complete` / `paid`, subscription `active`, invoice `paid`
+(`amount_paid: 899`, `billing_reason: subscription_create`, `attempt_count: 0`),
+PaymentIntent `succeeded`. No trial, `automatic_tax.enabled: false`,
+`cancel_at_period_end: false`. Period `2026-08-21 19:55:44Z` →
+`2026-09-21 19:55:44Z`. Exactly one Customer and one Subscription exist in the
+whole sandbox.
+
+**`subscription_data.metadata` is confirmed**, closing the gap §6.7 left open.
+All five provenance fields were proven in one search, with a corrupted-user-id
+control returning empty:
+
+```
+metadata['plan']:'plus_monthly'
+  AND metadata['source']:'convex.billing.createCheckoutSession'
+  AND metadata['billing_schema_version']:'1'
+  AND metadata['environment']:'sandbox'
+  AND metadata['userId']:'<authenticated user id>'
+```
+
+#### Webhook delivery
+
+| Event | Event id | Convex |
+|---|---|---|
+| `invoice.paid` | `evt_1U6yXXLShxhb4mBzUZb7PHPc` | 200, applied `19:55:47.627Z` |
+| `customer.subscription.created` | `evt_1U6yXXLShxhb4mBz9PRMd8FS` | 200, applied `19:55:48.010Z` |
+| `checkout.session.completed` | `evt_1U6yXXLShxhb4mBzin7ueTRg` | 200, applied `19:55:48.189Z` |
+| `customer.subscription.updated` | — | **none generated** |
+
+`customer.subscription.updated` **is** among the endpoint's 8 enabled events, so
+its absence means Stripe did not generate one during completion. Not a missed
+delivery.
+
+**The events arrived out of order.** `invoice.paid` landed *before*
+`customer.subscription.created`. The ordering guard in `applyWebhook` compares
+`eventCreated` against `lastProviderEventAt` and the final state is correct.
+Anyone who assumes Stripe delivers lifecycle events in causal order will write a
+bug; this run is the evidence that it does not.
+
+Delivery codes are read from the **Convex** side: a `billingEvents` row exists
+only after `applyWebhook` completes, and the handler then returns 200. The
+Stripe Events API is **not exposed by the Stripe MCP server** (`GetEvents`
+returns "Operation is not available", which is the server not offering it, not a
+permission gap), so Stripe's own delivery log must be read in the Dashboard via
+Workbench → Webhooks — the one thing §6.6 notes that view is genuinely for.
+
+#### Convex dev `good-dotterel-906`
+
+One `subscriptions` row: `provider: stripe`, `planKey: plus_monthly`,
+`environment: sandbox`, `tier: plus`, `status: active`, `cancelAtPeriodEnd:
+false`, `billingInterval: month`. `stripeCustomerId`, `stripeSubscriptionId`,
+`stripePriceId`, `latestInvoiceId`, `currentPeriodStart` and `currentPeriodEnd`
+all match Stripe exactly. `billingCustomers` was **reused** — still the row
+created at step 2, untouched. `billingEvents` holds three rows, one per event,
+deduplicated structurally by the `by_provider_event` check that returns
+`{ ok: true, deduped: true }` before any work.
+
+The client contract exposes no provider identifier. An unauthenticated
+`getMyEntitlements` returns exactly twelve keys — `tier`, `subscriptionStatus`,
+`paymentNeedsAttention`, `graceEndsAt`, `provider`, `planKey`,
+`duplicateProviders`, `accountDay`, `timezone`, `limits`, `usage`, `remaining` —
+and no `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`,
+`latestInvoiceId`, `metadataUserId` or `userId`. `provider` is the enum
+`"stripe"`, not an id.
+
+For the signed-in account the resolver yields **Plus** deterministically:
+`interpret` matches `status === "active"` with `cancelAtPeriodEnd: false`, and
+`resolveAcrossProviders` over one row gives `provider: "stripe"`, `planKey:
+"plus_monthly"`, `duplicateProviders: false`. This one line is **derived from
+the code and the row, not executed** — the Convex CLI cannot supply a user
+identity — so it is the only claim here that a signed-in page load would
+strengthen.
+
+#### Field shapes under `2026-06-24.dahlia`
+
+| What | Location |
+|---|---|
+| Subscription period start/end | **`subscription.items.data[0].current_period_start` / `.current_period_end`** — absent from the subscription root |
+| Invoice → subscription | **`invoice.parent.subscription_details.subscription`** — no top-level `invoice.subscription` |
+| Checkout Session → subscription | `session.subscription`, top level, plain string. Unmoved. |
+| Cancellation state | `subscription.cancel_at_period_end`, with `cancel_at`, `canceled_at`, `cancellation_details`. Top level, unmoved. |
+
+**Both provisional readers took their fallback branch, and both were right.**
+`readPeriod` fell through `sub.current_period_start` (absent) to the item;
+`readInvoiceSubscriptionId` fell through `obj.subscription` (absent) to
+`obj.parent.subscription_details.subscription`.
+
+Had either assumed the older location, this purchase would have written a row
+with **no period bounds** — and both the `past_due` grace window and the
+cancel-at-period-end rule read `currentPeriodEnd`. Accepting both locations
+rather than guessing one is what made this run succeed on the first attempt.
+
+One limit worth stating: the MCP read tool cannot set `Stripe-Version`, so the
+shapes above are what the MCP client's version returned. What proves the
+*pinned* behaviour is the Convex row, populated from
+`stripeApi.fetchSubscription`, which sends `Stripe-Version: 2026-06-24.dahlia`
+on every request.
+
+#### Finding: two Checkout Sessions are still open and still payable
+
+| Session | Created | Status | Expires |
+|---|---|---|---|
+| `cs_test_a1Ge895P…` | 18:15:21Z | **open** | 2026-08-22 18:15:21Z |
+| `cs_test_a1oSCrSX…` | 19:32:08Z | **open** | 2026-08-22 19:49:21Z |
+| `cs_test_a1Xb8jTc…` | 19:49:21Z | complete, paid | — |
+
+Three sessions from three clicks is expected: the idempotency key buckets on a
+five-minute window and the clicks were 77 and 17 minutes apart, and at each
+click no subscription row existed yet, so the duplicate guard correctly allowed
+a retry. No duplicate Customer or Subscription was created.
+
+The risk is what happens next. Both open sessions still have live hosted URLs
+for roughly 22 hours, both carry genuine provenance metadata, and nothing
+expires them now that a subscription is active. **If either is completed, Stripe
+creates a second active subscription on the same Customer and bills $8.99
+twice.** The webhook would accept it, because the provenance is real. Worse,
+`applyWebhook` falls back to a `by_user_provider` lookup, so it would
+**overwrite the same row**, repointing `stripeSubscriptionId` at the new
+subscription: Convex would show one tidy row reading Plus while Stripe billed
+twice and the first subscription became invisible to us.
+
+The double-purchase guard lives only in `createCheckoutSession`, never at
+webhook time. A fourth click is now correctly refused with `already-subscribed`,
+but a session minted *before* the subscription existed bypasses that guard
+entirely.
+
+Not yet acted on. Two options: let both expire naturally and simply do not open
+them, or expire them deliberately, which is a Stripe write. The durable fix is a
+webhook-time guard that refuses a second Stripe subscription for a user who
+already holds an active one rather than silently overwriting. No code has been
+changed.
+
 ## 7. Not yet created
 
-- Subscription, invoice, PaymentIntent, PaymentMethod, payment — none exist
-  (a Customer and one **open, unpaid** Checkout Session do; see §6.7)
+One Customer, one Subscription, one paid invoice and one successful
+PaymentIntent now exist in the sandbox (§6.8). Still absent:
+
 - Billing Portal configuration
 - any live-mode object
-- annual checkout — the dev control is monthly only
+- annual checkout — the dev control is monthly only, and the annual Price has
+  never been exercised
+- cancellation — `cancel_at_period_end` has never been set, so
+  `customer.subscription.updated` and `customer.subscription.deleted` remain
+  unexercised
 - any production billing CTA — the pricing page CTA is still a disabled
   "Opening soon" button
+- `/checkout/success` and `/checkout/cancelled` — neither route exists, so a
+  completed payment currently lands on a 404
 
-The webhook parser's field readers remain **provisional**: they accept both known
-locations for subscription period bounds and the invoice-to-subscription link.
-They must be narrowed only against real payloads captured at the pinned version,
-which requires a real subscription and has not happened yet.
+The webhook parser's field readers are **no longer unconfirmed**. Resume step 3
+captured real payloads at the pinned version and both readers took their
+fallback branch, correctly (§6.8). They may now be narrowed. That narrowing is
+resume step 6 and has deliberately not been done in the same pass as the
+verification that justifies it.
 
 ## 8. Related
 
