@@ -115,6 +115,95 @@ Done items move to the bottom or get deleted.
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
 
+## Deferred — Stripe sandbox checkout and subscription validation
+
+**Paused at a verified checkpoint, 2026-08-21.** Everything below is sandbox-only.
+Nothing in live mode has been created or touched. Full record in
+`docs/operations/stage-2-sandbox-billing.md`; PR #20 is the active review surface.
+
+### Completed
+
+- [x] Stripe sandbox account confirmed: **Declare checkout dev** (`acct_1TmENuLShxhb4mBz`)
+- [x] Sandbox Product created: `prod_V6voPpxBKesWPc`
+- [x] Monthly Price created: `price_1U6hytLShxhb4mBzduppVOya` — 899 usd/month
+- [x] Annual Price created: `price_1U6i0TLShxhb4mBzAldYiOcA` — 7999 usd/year
+- [x] Sandbox webhook endpoint created: `we_1U6iKwLShxhb4mBzE0uOMDR2`
+      - targets the **isolated dev Worker**:
+        `https://hope-finder-worker-dev.thinktoro.workers.dev/billing/webhook`
+      - API version pinned to **`2026-06-24.dahlia`**
+      - forwards to Convex dev deployment **`good-dotterel-906`**
+- [x] Dev Worker version verified: **`95ca744d-71c4-4fe7-b505-e5ddcefe0d96`**
+- [x] `checkout.session.expired` verified end to end: **HTTP 200 `ok`**
+- [x] Provider-neutral Stripe / App Store entitlement architecture documented
+      (`docs/architecture/cross-platform-subscriptions.md`)
+- [x] Recurring-donation contamination bug fixed (C2). A recurring gift is also
+      `mode: subscription`, so mode alone could have granted Plus to a donor
+- [x] Stripe API access moved entirely into Convex (C5). One credential, one
+      runtime, one pinned API version
+- [x] Worker reduced to signature verification and event forwarding. It holds no
+      Stripe credential
+- [x] Webhook signature diagnostics added and deployed
+- [x] PR #20 remains the active Stage 2 review surface
+
+### Intentionally not completed
+
+None of these are oversights. Each is a deliberate stop.
+
+- [ ] No authenticated checkout UI has been added
+- [ ] No Stripe Customer has been created
+- [ ] No real Checkout Session has been created through the app
+- [ ] No Subscription or invoice has been created
+- [ ] No test payment has been completed
+- [ ] No Billing Portal configuration or session exists
+- [ ] No annual checkout UI exists
+- [ ] No production billing CTA is enabled — the pricing page CTA is still a
+      disabled "Opening soon" button
+- [ ] No live Stripe Product, Price, webhook or secret has been created
+- [ ] No StoreKit or App Store Connect product has been created
+
+### Resume point
+
+When Stage 2 resumes, in this order:
+
+1. **Build a development-only authenticated monthly checkout control.**
+   - calls `billing.createCheckoutSession`
+   - the browser may send only the alias `plus-monthly` — never a Price id
+   - the authenticated user and the Stripe Price resolve entirely server-side
+   - the control must be **unavailable in production**
+2. **Create one sandbox monthly Checkout Session through the actual app**, not
+   through the API directly. The point is to exercise the real path.
+3. **Complete a test subscription payment.**
+4. **Capture real payloads** for the pinned API version.
+5. **Verify against those payloads:**
+   - Checkout Session ownership
+   - Customer mapping
+   - subscription period fields
+   - invoice-to-subscription relationship
+   - metadata provenance
+   - cancellation state
+   - entitlement activation
+6. **Narrow the provisional webhook field readers only after reviewing the
+   captured payloads.** They currently accept both known locations for
+   subscription period bounds and the invoice-to-subscription link. Tolerating
+   both is the absence of a guess — narrowing them from anything other than a
+   real payload would reintroduce one.
+7. Test **annual** checkout and **cancellation** after monthly succeeds.
+8. Configure and test the **Stripe Customer Portal last.**
+
+### Guardrails
+
+- Do not reuse archived donation Products, Prices, sessions or metadata. Seven
+  archived gift sessions and two archived gift Products remain in the sandbox and
+  are permanent negative test fixtures, not building material.
+- Do not point sandbox webhooks at the production Worker.
+- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
+  asserted by `scripts/verify-plus-classification.ts`.
+- Do not enable production checkout without a separate live-promotion approval.
+- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
+- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
+  source of truth.
+
+
 ## ✅ Verify on the live site (manual)
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
       password-reset email (Resend).
