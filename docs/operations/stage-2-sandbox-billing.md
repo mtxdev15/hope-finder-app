@@ -74,7 +74,7 @@ implications when something breaks.
 | `BILLING_WEBHOOK_SECRET` | shared secret, Worker → Convex |
 | `STRIPE_PLUS_MONTHLY_PRICE_ID` | `price_1U6hytLShxhb4mBzduppVOya` |
 | `STRIPE_PLUS_ANNUAL_PRICE_ID` | `price_1U6i0TLShxhb4mBzAldYiOcA` |
-| `SITE_URL` | `https://feat-declare-checkout-dev.hope-finder-app.pages.dev` |
+| `SITE_URL` | **temporarily `http://localhost:4321`** for local auth, see §6.5. Revert value: `https://feat-declare-checkout-dev.hope-finder-app.pages.dev` |
 
 ### Worker dev `hope-finder-worker-dev`
 
@@ -200,6 +200,82 @@ Verified three ways, all automated:
 
 The third row is the one that matters: the build is deliberately **hostile**, run
 with the flag on, because that is the shape a real accident takes.
+
+### Manual verification, passed
+
+Verified by Jeff on 2026-08-21 at `http://localhost:4321/dev/billing-sandbox`.
+
+| Check | Result |
+|---|---|
+| signed-out state | checkout control **hidden** |
+| signed-in state | button renders, reading `Stripe sandbox — no real charge` |
+| Safari Network cleared, page reloaded, filtered for `createCheckoutSession` | **no requests** |
+| the button | **not clicked** |
+| Stripe | no Customer, Checkout Session, Subscription, invoice or payment created |
+
+The Network row is the one the offline suite cannot produce. Section 6 of
+`scripts/verify-billing-dev-control.ts` proves *structurally* that the action
+call sits inside the click handler and that nothing binds to `DOMContentLoaded`,
+a timer, or a form submit. Only a real page load in a real browser proves it
+*behaviourally*. Both now exist, and they agree.
+
+### 6.5 Local authentication, and the temporary env change it needed
+
+Signing in at `http://localhost:4321` failed at first:
+
+```
+Origin http://localhost:4321 is not allowed by Access-Control-Allow-Origin
+Fetch API cannot load https://good-dotterel-906.convex.site/api/auth/get-session
+```
+
+**Cause.** The auth CORS allow-list is derived entirely from `trustedOrigins` in
+`convex/auth.ts:19`, which is `[process.env.SITE_URL]`. One entry, and there is
+no second list to edit: with `registerRoutes(http, createAuth, { cors: true })`
+the component computes its allowed origins as `trustedOrigins.concat([])`
+(`@convex-dev/better-auth/dist/client/create-client.js:283-303`). The
+`crossDomain({ siteUrl })` plugin reads the same variable.
+
+Proven with a live preflight. Same server, same second, only the origin differs:
+
+| Preflight `Origin:` | Response | `access-control-allow-origin` |
+|---|---|---|
+| `http://localhost:4321` | 204 | **absent** |
+| `https://feat-declare-checkout-dev.hope-finder-app.pages.dev` | 204 | present |
+
+That is why the browser reports a blocked fetch on a 204: the preflight succeeds
+as an HTTP request while carrying no origin grant.
+
+**Fix applied: an environment variable on Convex dev only.** No code change, no
+`convex dev` push, no deploy.
+
+> **Convex dev `good-dotterel-906` currently has
+> `SITE_URL = http://localhost:4321`.** This is a temporary development value.
+
+Revert when local work ends:
+
+```bash
+cd /Users/jeff/dev/projects/hope-finder-app
+npx convex env set SITE_URL https://feat-declare-checkout-dev.hope-finder-app.pages.dev
+```
+
+**Development only, by construction.** `npx convex env set` targets whatever
+`CONVEX_DEPLOYMENT` in `.env.local` selects, which is `dev:good-dotterel-906`.
+Production `keen-hamster-650` holds its own `SITE_URL` and was not touched.
+Localhost is not present in any production configuration and must never be added
+to one.
+
+Two consequences hold while the value stays local:
+
+1. `trustedOrigins` has exactly one entry, so this **swaps** the allowed origin
+   rather than adding to it. The Cloudflare Pages preview
+   `feat-declare-checkout-dev.hope-finder-app.pages.dev` will fail CORS the same
+   way until the revert above is run.
+2. `convex/billing.ts:51` builds the Checkout `success_url` and `cancel_url` from
+   the same variable, so a session created from the dev control returns to
+   localhost. For resume step 2 that is what we want. Note separately that
+   `/checkout/success` and `/checkout/cancelled` do not exist as pages yet, so
+   that return lands on a 404 regardless of origin. It surfaces at resume step 3,
+   not before.
 
 ### The entire client-to-Convex payload
 
