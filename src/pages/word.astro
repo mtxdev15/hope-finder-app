@@ -597,7 +597,9 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
     let compare = false, cmpSet = ['KJV', 'WEB'];
     let reqId = 0;
 
-    function openReader(book, usfm, chaps, chap) {
+    /* `chap` is optional: omitting it opens the chapter PICKER instead of
+       jumping straight into a chapter — see `if (chap)` below. */
+    function openReader(book, usfm, chaps, chap?: number) {
       curBook = book; curUsfm = usfm; curChaps = chaps || 1; compare = false;
       reader.classList.add('open');
       rbook.textContent = bookNameES(book);
@@ -645,7 +647,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       });
     }
     /* reading view (optionally scrolled to a verse) */
-    function readChapter(ch, toVerse) {
+    /* `toVerse` is optional: omitting it lands at the top of the chapter
+       rather than seeking to a verse — see `if (toVerse)` below.
+       `null` is part of the contract, not an accident: two call sites pass
+       `parseInt(...) || null` and `… ? wantVerse : null` to mean "no verse",
+       and `if (toVerse)` treats null and undefined identically. */
+    function readChapter(ch, toVerse?: number | null) {
       curChap = ch;
       chapPick.hidden = true; versePick.hidden = true; rbody.hidden = false;
       readctl.hidden = false; rtrans.hidden = false;
@@ -729,7 +736,8 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       return null;
     }
     // Rest a verse just below the controls. Shared by verse-jump and the re-render restore.
-    function scrollToVerseN(n, opts) {
+    /* `opts` is optional — the very next line defaults it. */
+    function scrollToVerseN(n, opts?: { smooth?: boolean; flash?: boolean }) {
       opts = opts || {};
       const el = rbody.querySelector('[data-n="' + n + '"]'); if (!el) return false;
       const tr = el.getBoundingClientRect(), cr = rscroll.getBoundingClientRect();
@@ -752,7 +760,12 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
       if (uniq.length) { rcopyright.innerHTML = uniq.map((c) => '<div>' + esc(c) + '</div>').join(''); rcopyright.hidden = false; }
       else { rcopyright.hidden = true; rcopyright.innerHTML = ''; }
     }
-    function renderBody(keepN) {
+    /* `keepN` is optional: omitting it means "do not restore scroll", which
+       is what a fresh chapter render wants — see `if (keepN)` below.
+       It is a STRING, not a number: every caller passes topVerseN(), which
+       returns getAttribute('data-n'). It is only ever concatenated into a
+       selector, so string is the real contract. */
+    function renderBody(keepN?: string | null) {
       const myReq = ++reqId;
       rbody.innerHTML = loadingPanel(); rcopyright.hidden = true;
       if (!compare) {
@@ -992,7 +1005,7 @@ const chev = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
           window.DeclareShare.open({ type: 'verse', text: shareTxt, ref: shareRef + ' · ' + shareTrans, url: location.href, save: saveItem });
         } else {
           sharePrev.innerHTML = '<div class="sp-v">“' + esc(shareTxt) + '”</div><div class="sp-r">' + esc(shareRef) + ' · ' + shareTrans + '</div>';
-          $('shSystem').style.display = navigator.share ? '' : 'none';
+          $('shSystem').style.display = typeof navigator.share === 'function' ? '' : 'none';
           sharesheet.classList.add('open');
         }
       });

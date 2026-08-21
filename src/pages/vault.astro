@@ -262,7 +262,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
 
     /* ---- premium motion: scroll-reveal (staggered) + parallax on verse-image covers ---- */
-    const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const REDUCED = !!(typeof window.matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches);
     let vIO = null, pPhotos = [], pTick = false;
     function animateVault() {
       const scope = document.querySelector('.vault');

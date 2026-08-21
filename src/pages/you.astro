@@ -268,7 +268,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         }
       })();
       const d = daysWith(P);
-      $('yDays').textContent = d;
+      $('yDays').textContent = String(d);
       $('yDaysLbl').textContent = d === 1 ? tY('you.dayWith','day with Declare') : tY('you.daysWith','days with Declare');
       const items = sIn ? listItems() : [];
       const words = items.filter((i) => i.type === 'word').length;
@@ -543,7 +543,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       $('ymBody').innerHTML = cfg.body;
       const inp = $('ymInput');
       if (k === 'about') {
-        const upd = () => { $('ymCount').textContent = 280 - inp.value.length; };
+        const upd = () => { $('ymCount').textContent = String(280 - inp.value.length); };
         inp.addEventListener('input', upd); upd();
       }
       openModal();
@@ -563,7 +563,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           const count = $('ymBody').querySelectorAll('.ychip.on').length;
           if (!on && count >= 6) return;
           c.classList.toggle('on');
-          $('ymCount').textContent = $('ymBody').querySelectorAll('.ychip.on').length;
+          $('ymCount').textContent = String($('ymBody').querySelectorAll('.ychip.on').length);
         });
       });
       openModal();
@@ -1081,7 +1081,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       acts += detailHome ? navActs(c) : chipA('Directions', gmapsDir(c), DICONS.pin);
       $('yfdActions').innerHTML = acts;
     }
-    function openDetail(c, home) {
+    /* `home` is optional: omitting it means this is a search RESULT rather
+       than the saved home church — see `!!home` and `if (home)` below. */
+    function openDetail(c, home?: boolean) {
       detailPlace = c; detailHome = !!home;
       // paint instantly from what we already know, then enrich from Google
       $('yfdName').innerHTML = esc(c.name || '') + (home ? ' <span class="ybadge home">Home</span>' : '');
