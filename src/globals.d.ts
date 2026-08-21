@@ -57,12 +57,28 @@ declare global {
     /** FUMS analytics beacon (Faithlife/Bible API usage tracking). */
     fums?: (event: string, token: string) => void;
 
-    /* Spanish lookup tables, each a plain string map keyed by the English
-       source text. Loaded per page; absent when the page has no Spanish. */
-    __I18N_STRINGS?: Record<string, string>;
-    __I18N_BIBLE_ES?: Record<string, string>;
+    /* Spanish lookup tables. Loaded per page; absent when the page has no
+       Spanish. Shapes read from the files that assign them — they are NOT all
+       flat string maps, which an earlier version of this file assumed. */
+
+    /** public/declare/i18n-strings.js:5 — keyed by LANGUAGE first. `es` is
+     *  optional because i18n.js:34 guards it (`d.es && d.es[key]`). */
+    __I18N_STRINGS?: { es?: Record<string, string> };
+    /** public/declare/i18n-bible-es.js:4 — three separate maps, not one. */
+    __I18N_BIBLE_ES?: {
+      groups: Record<string, string>;
+      books: Record<string, string>;
+      tags: Record<string, string>;
+    };
+    /** public/declare/i18n-strings.js:568 / :525 — genuinely flat string maps,
+     *  keyed by the English source text. */
     __I18N_CHIP_ES?: Record<string, string>;
     __I18N_STRUGGLES_ES?: Record<string, string>;
+    /* NOTE: __I18N_JOURNEY_ES is ALSO mis-declared here — public/declare/
+       i18n-journey-es.js:6 assigns { from, to, line } objects, not strings.
+       Left alone deliberately: its only reader is journey.astro, which is
+       excluded from the scoped check, so correcting it here could not be
+       verified by that check. Fix it with journey.astro. */
     __I18N_JOURNEY_ES?: Record<string, string>;
   }
 
@@ -71,7 +87,9 @@ declare global {
      real one — declaring it is more honest than casting at each of the 16 use
      sites. */
   interface Element {
-    __en?: string;
+    /** Set as `el.__en = el.textContent` (i18n.js:39 and word.astro's
+     *  localizeLibrary), so it carries textContent's own nullability. */
+    __en?: string | null;
   }
 }
 
