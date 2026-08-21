@@ -39,7 +39,9 @@ declare global {
     DeclareShare?: {
       open: (opts: {
         type: string;
-        text: string;
+        /** Optional: public/declare/share.js reads it as `if (p.text) return
+         *  p.text;` and composes a default message when it is absent. */
+        text?: string;
         ref?: string;
         subtitle?: string;
         url?: string;

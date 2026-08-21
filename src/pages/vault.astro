@@ -97,16 +97,98 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       if (!el) throw new Error('vault: missing #' + id);
       return el;
     };
-    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const tV = (k, fb) => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
-    function collLabel(name){ try { if (!(window.I18N?.lang() === 'es')) return name; var b = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones', 'Journey Reflections':'Reflexiones de camino' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
-    const TYPES = {
+    /* An <input> that the page markup guarantees. Same contract as $(), one
+       level narrower: it throws rather than returning a broadly-typed element
+       whose .value every caller would then have to re-narrow. */
+    const $input = (id: string): HTMLInputElement => {
+      const el = $(id);
+      if (!(el instanceof HTMLInputElement)) throw new Error('vault: #' + id + ' is not an <input>');
+      return el;
+    };
+
+    /* ── The Vault's own shapes ──────────────────────────────────────────
+       vault-store.js is untyped JavaScript, so these describe what this page
+       actually reads. Every field is transcribed from the code below, not
+       invented: a field is optional here only where the code already guards
+       it with `||` or `if`. */
+    type TruthType = 'verse' | 'declaration' | 'prayer' | 'journeyReflection';
+
+    /** One row as the Vault DISPLAYS it, after a stored item is exploded. */
+    interface Truth {
+      parentId: string;
+      type: TruthType;
+      /** Optional on purpose: every consumer below already reads it as
+       *  `(t.body || '')`, so absent is a state this page handles rather than
+       *  one it assumes away. */
+      body?: string;
+      coll: string;
+      ts: number;
+      parentKind: string;
+      vref?: string;
+      trans?: string;
+      day?: number;
+      journeyTitle?: string;
+      bgKind?: string;
+      bgSrc?: string;
+      bgBy?: string;
+      bgByLink?: string;
+      bgColor?: string;
+      bgPhotoId?: string;
+    }
+
+    /** One row as vault-store.js STORES it, before explosion. */
+    interface StoreItem {
+      id: string;
+      type: string;
+      ts: number;
+      updatedTs?: number;
+      text?: string;
+      ref?: string;
+      prayer?: string;
+      translation?: string;
+      struggle?: string;
+      day?: number;
+      journeyTitle?: string;
+      verses?: Array<{ text: string; ref: string }>;
+      declarations?: string[];
+      bgKind?: string;
+      bgSrc?: string;
+      bgBy?: string;
+      bgByLink?: string;
+      bgColor?: string;
+      bgPhotoId?: string;
+    }
+
+    /** A shelf: either a user collection or an auto group built from `coll`. */
+    interface Coll {
+      name: string;
+      kind?: string | null;
+      ts?: number;
+      mine?: boolean;
+      recent?: number;
+      items?: Truth[];
+    }
+
+    /** What autoGroups() returns: a Coll that always has its items and
+     *  recency, unlike a user collection read back from the store. */
+    interface Group extends Coll {
+      items: Truth[];
+      recent: number;
+    }
+
+    const esc = (s?: string | null): string => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const tV = (k: string, fb: string): string => { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } };
+    function collLabel(name: string): string { try { if (!(window.I18N?.lang() === 'es')) return name; var b: Record<string, string> = { 'Saved':'Guardados', 'Declarations':'Declaraciones', 'Saved verses':'Versículos guardados', 'Prayers':'Oraciones', 'Journey Reflections':'Reflexiones de camino' }; if (b[name]) return b[name]; var c = (window.__I18N_CHIP_ES||{})[name]; if (c) return c; var s = (window.__I18N_STRUGGLES_ES||{})[name]; if (s) return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){} return name; }
+    /* Keyed by Truth['type'], and read with a computed key, so it needs an
+       index signature. The getters are intentional: the label must re-resolve
+       each read so a language toggle repaints without a reload. */
+    const TYPES: Record<string, { readonly label: string; tagt: string }> = {
       verse: { get label(){ return tV('vault.tScripture','Scripture'); }, tagt: '#E8C97A' },
       declaration: { get label(){ return tV('vault.tDeclaration','Declaration'); }, tagt: '#E0A45A' },
       prayer: { get label(){ return tV('vault.tPrayer','Prayer'); }, tagt: '#9BD0A8' },
       journeyReflection: { get label(){ return tV('vault.tReflection','Journey Reflection'); }, tagt: '#9BD0A8' },
     };
-    function relTime(ts) {
+    function relTime(ts: number): string {
       // Clamp to 0 so a clock-skewed/future ts never renders a negative "ago."
       const diffMs = Math.max(0, Date.now() - ts);
       const d = diffMs / 86400000;
@@ -131,11 +213,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       { re: /anger|rage|bitter|resent/i, struggle: 'Anger', to: 'Peace' },
       { re: /burnout|exhaust|overwhelm|weary/i, struggle: 'Burnout', to: 'Rest' },
     ];
-    const journeyFor = (name) => JOURNEYS.find((j) => j.re.test(name || '')) || null;
+    const journeyFor = (name: string): { re: RegExp; struggle: string; to: string } | null =>
+      JOURNEYS.find((j) => j.re.test(name || '')) || null;
 
     /* Spanish display for the journey card (mirrors the English wording above).
        Display only — the /journey localStorage handoff keeps the English struggle. */
-    const JRN_ES = {
+    const JRN_ES: Record<string, { s: string; to: string }> = {
       'Shame & Guilt': { s: 'Vergüenza y culpa', to: 'Amado de Dios' },
       'Fear & Anxiety': { s: 'Miedo y ansiedad', to: 'Paz' },
       'Grief & Loss': { s: 'Duelo y pérdida', to: 'Consuelo' },
@@ -144,19 +227,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       'Anger': { s: 'Ira', to: 'Paz' },
       'Burnout': { s: 'Agotamiento', to: 'Descanso' },
     };
-    const jrnLabel = (j) => { try { if (window.I18N?.lang() === 'es' && JRN_ES[j.struggle]) return JRN_ES[j.struggle]; } catch (e) {} return { s: j.struggle, to: j.to }; };
+    const jrnLabel = (j: { struggle: string; to: string }): { s: string; to: string } => { try { if (window.I18N?.lang() === 'es' && JRN_ES[j.struggle]) return JRN_ES[j.struggle]; } catch (e) {} return { s: j.struggle, to: j.to }; };
 
     /* ---- explode store items into display TRUTHS (the real user data) ----
        word (from /today)  -> its verses + declarations + prayer, coll = struggle
        verse (from reader) -> one truth, coll = "Saved verses"
        prayer              -> one truth, coll = its struggle or "Prayers" */
-    let truths = [], userColls = [];
-    function rebuild() {
+    let truths: Truth[] = [], userColls: Coll[] = [];
+    function rebuild(): void {
       truths = [];
-      listItems().forEach((it) => {
+      listItems().forEach((it: StoreItem) => {
         if (it.type === 'word') {
-          (it.verses || []).forEach((v) => truths.push({ parentId: it.id, type: 'verse', body: v.text, vref: v.ref, coll: it.struggle || 'Saved', trans: it.translation, ts: it.ts, parentKind: 'word' }));
-          (it.declarations || []).forEach((d) => truths.push({ parentId: it.id, type: 'declaration', body: d, coll: it.struggle || 'Saved', ts: it.ts, parentKind: 'word' }));
+          (it.verses || []).forEach((v: { text: string; ref: string }) => truths.push({ parentId: it.id, type: 'verse', body: v.text, vref: v.ref, coll: it.struggle || 'Saved', trans: it.translation, ts: it.ts, parentKind: 'word' }));
+          (it.declarations || []).forEach((d: string) => truths.push({ parentId: it.id, type: 'declaration', body: d, coll: it.struggle || 'Saved', ts: it.ts, parentKind: 'word' }));
           if (it.prayer) truths.push({ parentId: it.id, type: 'prayer', body: it.prayer, coll: it.struggle || 'Saved', ts: it.ts, parentKind: 'word' });
         } else if (it.type === 'verse' || it.type === 'declaration') {
           truths.push({ parentId: it.id, type: it.type, body: it.text, vref: it.ref, coll: it.type === 'declaration' ? 'Declarations' : 'Saved verses', trans: it.translation, ts: it.ts, parentKind: it.type,
@@ -176,25 +259,25 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }
 
     let query = '';
-    const matches = (t) => !query || ((t.body || '') + ' ' + (t.vref || '') + ' ' + (t.coll || '')).toLowerCase().includes(query.toLowerCase());
-    function collTruths(c) {
+    const matches = (t: Truth): boolean => !query || ((t.body || '') + ' ' + (t.vref || '') + ' ' + (t.coll || '')).toLowerCase().includes(query.toLowerCase());
+    function collTruths(c: Coll): Truth[] {
       if (c.kind) return truths.filter((t) => t.type === c.kind && matches(t));
       return truths.filter((t) => (t.coll || 'Saved') === c.name && matches(t));
     }
     /* groups for the shelves: auto groups (by coll) + user collections */
-    function autoGroups() {
-      const map = {}, order = [];
+    function autoGroups(): Group[] {
+      const map: Record<string, Truth[]> = {}, order: string[] = [];
       truths.filter(matches).forEach((t) => {
         const k = t.coll || 'Saved';
         if (!map[k]) { map[k] = []; order.push(k); }
         map[k].push(t);
       });
-      return order.map((k) => ({ name: k, kind: null, items: map[k], mine: false, recent: map[k].reduce((m, x) => Math.max(m, x.ts), 0) }))
+      return order.map((k) => ({ name: k, kind: null, items: map[k], mine: false, recent: map[k].reduce((m: number, x: Truth) => Math.max(m, x.ts), 0) }))
         .sort((a, b) => b.recent - a.recent);
     }
 
     /* ---- shelf cards (design bcard) ---- */
-    function bcard(c, count, top) {
+    function bcard(c: Coll, count: number, top: Truth | null): string {
       const cfg = TYPES[top ? top.type : 'verse'] || TYPES.verse;
       const body = top ? (top.body || '').replace(/[“”"]/g, '') : tV('vault.nothingYet','Nothing here yet — add truths as you save them.');
       let sparks = '';
@@ -207,7 +290,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     const createCard = () => '<button class="createcard vrv" id="cc-create"><span class="cc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="cc-t">' + tV('vault.newColl','New collection') + '</span></button>';
 
     /* Re-open a saved truth in the Card Studio (re-share), preserving its saved background. */
-    function reshareTruth(t) {
+    function reshareTruth(t: Truth | undefined): void {
       if (!t) return;
       const stype = t.type === 'verse' ? 'verse' : t.type === 'declaration' ? 'declaration' : 'reading';
       const bg = t.bgKind === 'photo' && t.bgSrc ? { kind: 'photo', src: t.bgSrc, by: t.bgBy, byLink: t.bgByLink, id: t.bgPhotoId }
@@ -219,7 +302,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
     /* Verse-image cards: saved cards that carry a photo background, shown as cover-image
        tiles in their own "Verse images" rail. Tapping re-opens the card in the Studio. */
-    function imgCard(t, i) {
+    function imgCard(t: Truth, i: number): string {
       const q = (t.body || '').replace(/[“”"]/g, '');
       return '<button class="bcard imgcard vrv" data-vimg="' + i + '">'
         + '<img class="ic-photo" src="' + esc(t.bgSrc) + '" loading="lazy" alt="" />'
@@ -227,12 +310,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         + '<div class="ic-body"><div class="ic-quote">“' + esc(q.slice(0, 90)) + (q.length > 90 ? '…' : '') + '”</div>'
         + '<div class="ic-ref">' + esc(t.vref || '') + '</div></div></button>';
     }
-    function shelf(title, cardsHtml, delay) {
+    function shelf(title: string, cardsHtml: string, delay: number): string {
       if (!cardsHtml) return '';
       return '<section class="shelf"><div class="shelf-h vrv"><span class="t">' + title + '</span></div><div class="rail">' + cardsHtml + '</div></section>';
     }
 
-    function render() {
+    function render(): void {
       rebuild();
       const empty = !truths.length && !userColls.length;
       $('vempty').hidden = !empty;
@@ -255,8 +338,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       html += shelf(tV('vault.shYourColl','Your collections'), yoursHtml, d);
       if (query && !groups.length && !vimgs.length) html = '<div class="empty-note">' + tV('vault.noMatch','Nothing matches your search.') + '</div>' + shelf(tV('vault.shYourColl','Your collections'), yoursHtml, 0);
       $('shelves').innerHTML = html;
-      $('shelves').querySelectorAll('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll), b.dataset.kind || null); });
-      $('shelves').querySelectorAll('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[+b.dataset.vimg]); });
+      /* data-coll and data-vimg are written by bcard()/imgCard() above, so
+         they are always present; the fallbacks only cover markup that this
+         file itself would have to stop emitting. Number() is exactly what the
+         unary + did, including NaN for a missing attribute. */
+      $('shelves').querySelectorAll<HTMLElement>('.bcard[data-coll]').forEach((b) => { b.onclick = () => openFocus(decodeURIComponent(b.dataset.coll ?? ''), b.dataset.kind || null); });
+      $('shelves').querySelectorAll<HTMLElement>('.imgcard').forEach((b) => { b.onclick = () => reshareTruth(vimgs[Number(b.dataset.vimg)]); });
       const cc = document.getElementById('cc-create'); if (cc) cc.onclick = openCreate;
       animateVault();
     }
@@ -264,38 +351,50 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     /* ---- premium motion: scroll-reveal (staggered) + parallax on verse-image covers ---- */
     const REDUCED = !!(typeof window.matchMedia === 'function'
       && matchMedia('(prefers-reduced-motion: reduce)').matches);
-    let vIO = null, pPhotos = [], pTick = false;
-    function animateVault() {
+    let vIO: IntersectionObserver | null = null, pPhotos: HTMLElement[] = [], pTick = false;
+    function animateVault(): void {
       const scope = document.querySelector('.vault');
       if (!scope) return;
       // per-rail stagger: each card reveals a beat after the previous
       scope.querySelectorAll('.rail').forEach((rail) => {
         let n = 0;
-        Array.prototype.forEach.call(rail.children, (el) => { if (el.classList.contains('vrv')) el.style.setProperty('--i', n++); });
+        /* Both HTMLElement and SVGElement carry .style, so the guard admits
+           exactly what the untyped call did — n still advances only for .vrv. */
+        Array.from(rail.children).forEach((el) => {
+          if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) return;
+          if (el.classList.contains('vrv')) el.style.setProperty('--i', String(n++));
+        });
       });
       const els = scope.querySelectorAll('.vrv');
       if (REDUCED || !('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('in')); refreshParallax(); return; }
       if (vIO) vIO.disconnect();
-      vIO = new IntersectionObserver((entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); vIO.unobserve(e.target); } });
+      /* Bound to a local const so the callback holds the observer it belongs
+         to. Reading the mutable `vIO` from inside would also have been correct
+         today, but only because nothing reassigns it between construction and
+         the first callback — a fact the next edit could quietly break. */
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
       }, { rootMargin: '0px 0px -8% 0px', threshold: 0 });
+      vIO = io;
       const vh = window.innerHeight || 0;
       els.forEach((el) => {
         if (el.classList.contains('in')) return;
         const r = el.getBoundingClientRect();
         if (r.top < vh * 0.96 && r.bottom > 0) requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
-        else vIO.observe(el);
+        else io.observe(el);
       });
       refreshParallax();
     }
-    function refreshParallax() {
-      pPhotos = Array.prototype.slice.call(document.querySelectorAll('.vault .imgcard .ic-photo'));
+    function refreshParallax(): void {
+      pPhotos = Array.from(document.querySelectorAll<HTMLElement>('.vault .imgcard .ic-photo'));
       if (!REDUCED && pPhotos.length) onParallax();
     }
-    function onParallax() {
+    function onParallax(): void {
       const vh = window.innerHeight || 1;
       for (let i = 0; i < pPhotos.length; i++) {
-        const img = pPhotos[i], card = img.parentElement, r = card.getBoundingClientRect();
+        const img = pPhotos[i], card = img.parentElement;
+        if (!card) continue; // an attached .ic-photo always has one
+        const r = card.getBoundingClientRect();
         if (r.bottom < -60 || r.top > vh + 60) continue;
         const off = ((r.top + r.height / 2) - vh / 2) / vh; // -0.5 .. 0.5
         img.style.transform = 'translateY(' + (off * 30).toFixed(1) + 'px)';
@@ -307,21 +406,21 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     }, { passive: true });
 
     /* ---- focus view ---- */
-    const READ_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Revelations': 'Revelation' };
-    function readLink(vref) {
+    const READ_ALIASES: Record<string, string> = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Revelations': 'Revelation' };
+    function readLink(vref?: string): string {
       const m = (vref || '').match(/^(.*?)\s+(\d+)\s*:\s*(\d+)/);
       if (!m) return '/word';
       const book = READ_ALIASES[m[1].trim()] || m[1].trim();
       return '/word?book=' + encodeURIComponent(book) + '&chapter=' + m[2] + '&verse=' + m[3];
     }
-    let focusList = [];
-    function openFocus(name, kind) {
+    let focusList: Truth[] = [];
+    function openFocus(name: string, kind: string | null): void {
       const c = kind ? { name, kind } : (userColls.find((x) => x.name === name && !x.kind) || { name, kind: null });
       focusList = collTruths(c);
       const jrn = journeyFor(name);
       $('focusTi').textContent = name;
       $('focusSu').textContent = focusList.length + (focusList.length === 1 ? ' truth' : ' truths');
-      let html = focusList.map((t, i) => {
+      let html = focusList.map((t: Truth, i: number) => {
         const cfg = TYPES[t.type] || TYPES.verse;
         let foot = '';
         if (t.vref) {
@@ -382,16 +481,16 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       });
       const del = document.getElementById('collDelete');
       if (del) del.onclick = () => { removeCollection(name); toast(tV('vault.collRemoved','Collection removed')); closeFocus(); render(); };
-      $('focusIn').querySelectorAll('.ft-share').forEach((b) => {
-        b.onclick = (e) => { e.stopPropagation(); reshareTruth(focusList[+b.dataset.i]); };
+      $('focusIn').querySelectorAll<HTMLElement>('.ft-share').forEach((b) => {
+        b.onclick = (e: MouseEvent) => { e.stopPropagation(); reshareTruth(focusList[Number(b.dataset.i)]); };
       });
       // Copy a reflection out as plain text. Uses the async Clipboard API where
       // available (it needs a secure context), with a select-and-execCommand
       // fallback so this still works over plain http on a LAN/dev origin.
-      $('focusIn').querySelectorAll('.ft-copy').forEach((b) => {
-        b.onclick = async (e) => {
+      $('focusIn').querySelectorAll<HTMLElement>('.ft-copy').forEach((b) => {
+        b.onclick = async (e: MouseEvent) => {
           e.stopPropagation();
-          const txt = focusList[+b.dataset.i].body || '';
+          const txt = focusList[Number(b.dataset.i)].body || '';
           let ok = false;
           try {
             if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(txt); ok = true; }
@@ -413,15 +512,19 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       // Cancel, then writes through upsertItem() with the SAME clientId — so it
       // updates the one item for that Journey day (and re-mirrors to Convex for
       // signed-in users) instead of ever creating a second row.
-      $('focusIn').querySelectorAll('.ft-edit').forEach((b) => {
-        b.onclick = (e) => {
+      $('focusIn').querySelectorAll<HTMLElement>('.ft-edit').forEach((b) => {
+        b.onclick = (e: MouseEvent) => {
           e.stopPropagation();
-          const idx = +b.dataset.i;
+          const idx = Number(b.dataset.i);
           const t = focusList[idx];
-          const card = $('focusIn').querySelector('.ftruth[data-ti="' + idx + '"]');
+          const card = $('focusIn').querySelector<HTMLElement>('.ftruth[data-ti="' + idx + '"]');
           if (!card || card.querySelector('.ft-editwrap')) return; // already editing
-          const bodyEl = card.querySelector('.ft-body');
-          const actsEl = card.querySelector('.ft-acts');
+          const bodyEl = card.querySelector<HTMLElement>('.ft-body');
+          const actsEl = card.querySelector<HTMLElement>('.ft-acts');
+          /* .ft-body and its parent are emitted together with .ft-edit, so this
+             only guards markup this file would have to stop producing. It used
+             to throw on the next line instead. */
+          if (!bodyEl || !bodyEl.parentNode) return;
           bodyEl.style.display = 'none';
           if (actsEl) actsEl.style.display = 'none';
           const wrap = document.createElement('div');
@@ -443,8 +546,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           bodyEl.parentNode.insertBefore(wrap, bodyEl.nextSibling);
           ta.focus();
           const restore = () => { wrap.remove(); bodyEl.style.display = ''; if (actsEl) actsEl.style.display = ''; };
-          cancel.onclick = (ev) => { ev.stopPropagation(); restore(); };
-          save.onclick = (ev) => {
+          cancel.onclick = (ev: MouseEvent) => { ev.stopPropagation(); restore(); };
+          save.onclick = (ev: MouseEvent) => {
             ev.stopPropagation();
             const next = (ta.value || '').replace(/^\s+|\s+$/g, '');
             if (!next) { toast(tV('vault.reflectionEmpty', 'A reflection can’t be empty')); ta.focus(); return; }
@@ -459,10 +562,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           };
         };
       });
-      $('focusIn').querySelectorAll('.ft-del').forEach((b) => {
-        b.onclick = (e) => {
+      $('focusIn').querySelectorAll<HTMLElement>('.ft-del').forEach((b) => {
+        b.onclick = (e: MouseEvent) => {
           e.stopPropagation();
-          const t = focusList[+b.dataset.i];
+          const t = focusList[Number(b.dataset.i)];
           removeItem(t.parentId);
           toast(t.parentKind === 'word' ? tV('vault.wordRemoved','Word removed from Vault') : tV('vault.itemRemoved','Removed from Vault'));
           render();
@@ -472,69 +575,81 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       });
       $('focus').classList.add('show');
     }
-    function closeFocus() { $('focus').classList.remove('show'); }
+    function closeFocus(): void { $('focus').classList.remove('show'); }
     $('focusBack').onclick = closeFocus;
 
     /* ---- share stack (lazy, shared pattern) ---- */
-    let shareStack = null;
-    function loadShareStack() {
+    let shareStack: Promise<void> | null = null;
+    function loadShareStack(): Promise<void> {
       if (shareStack) return shareStack;
-      shareStack = new Promise((resolve) => {
+      shareStack = new Promise<void>((resolve) => {
         ['/declare/share.css?v=3.16.0', '/declare/card-studio.css?v=3.16.0'].forEach((href) => {
           const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
         });
         const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js?v=3.16.0';
-        s1.onload = () => { const s2 = document.createElement('script'); s2.src = '/declare/share.js?v=3.16.0'; s2.onload = resolve; document.head.appendChild(s2); };
-        s1.onerror = resolve;
+        s1.onload = () => { const s2 = document.createElement('script'); s2.src = '/declare/share.js?v=3.16.0'; s2.onload = () => resolve(); document.head.appendChild(s2); };
+        s1.onerror = () => resolve();
         document.head.appendChild(s1);
       });
       return shareStack;
     }
 
     /* ---- New collection sheet ---- */
-    let pendingMode = null, pendingKind = 'verse';
-    function openCreate() {
+    let pendingMode: string | null = null, pendingKind = 'verse';
+    function openCreate(): void {
       // gate before they invest in naming it
       if (!ensureSignedIn('Create a free account to build your own collections.')) return;
       $('createStep1').classList.remove('hidden'); $('createStep2').classList.add('hidden');
       $('createSheet').classList.add('open'); $('vscrim').classList.add('open');
     }
-    function closeSheet() { $('createSheet').classList.remove('open'); $('vscrim').classList.remove('open'); }
+    function closeSheet(): void { $('createSheet').classList.remove('open'); $('vscrim').classList.remove('open'); }
     $('vscrim').onclick = closeSheet;
-    document.querySelectorAll('.opt').forEach((o) => {
+    document.querySelectorAll<HTMLElement>('.opt').forEach((o) => {
       o.onclick = () => {
-        pendingMode = o.dataset.mode;
-        const titles = { type: 'By kind', blank: 'Name your collection' };
-        const subs = { type: 'We’ll gather every truth of one kind, automatically.', blank: 'Give it a name you’ll recognize.' };
-        $('step2Title').textContent = titles[pendingMode];
-        $('step2Sub').textContent = subs[pendingMode];
+        /* Every .opt in the markup carries data-mode, so this is the same value
+           the untyped read produced. */
+        pendingMode = o.dataset.mode ?? null;
+        const titles: Record<string, string> = { type: 'By kind', blank: 'Name your collection' };
+        const subs: Record<string, string> = { type: 'We’ll gather every truth of one kind, automatically.', blank: 'Give it a name you’ll recognize.' };
+        $('step2Title').textContent = pendingMode ? titles[pendingMode] : '';
+        $('step2Sub').textContent = pendingMode ? subs[pendingMode] : '';
         $('kindRow').classList.toggle('hidden', pendingMode !== 'type');
         $('createStep1').classList.add('hidden'); $('createStep2').classList.remove('hidden');
-        $('collName').value = pendingMode === 'type' ? 'My scriptures' : '';
-        setTimeout(() => $('collName').focus(), 60);
+        $input('collName').value = pendingMode === 'type' ? 'My scriptures' : '';
+        setTimeout(() => $input('collName').focus(), 60);
       };
     });
-    $('kindRow').addEventListener('click', (e) => {
-      const b = e.target.closest('.kbtn'); if (!b) return;
+    $('kindRow').addEventListener('click', (e: Event) => {
+      /* closest() lives on Element, and e.target is typed EventTarget. The
+         guard is the same check the browser was making implicitly — a click
+         whose target is not an Element cannot match .kbtn anyway. */
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const b = target.closest<HTMLElement>('.kbtn'); if (!b) return;
       $('kindRow').querySelectorAll('.kbtn').forEach((x) => x.classList.remove('on'));
-      b.classList.add('on'); pendingKind = b.dataset.kind;
-      const names = { verse: 'My scriptures', declaration: 'My declarations', prayer: 'My prayers' };
-      if (!$('collName').value || Object.values(names).includes($('collName').value)) $('collName').value = names[pendingKind];
+      b.classList.add('on'); pendingKind = b.dataset.kind ?? pendingKind;
+      const names: Record<string, string> = { verse: 'My scriptures', declaration: 'My declarations', prayer: 'My prayers' };
+      const nameField = $input('collName');
+      if (!nameField.value || Object.values(names).includes(nameField.value)) nameField.value = names[pendingKind];
     });
     $('createBack').onclick = () => { $('createStep2').classList.add('hidden'); $('createStep1').classList.remove('hidden'); };
     $('createGo').onclick = () => {
-      const nm = ($('collName').value || '').trim() || 'New collection';
+      const nm = ($input('collName').value || '').trim() || 'New collection';
       addCollection(nm, pendingMode === 'type' ? pendingKind : null);
-      closeSheet(); $('collName').value = '';
+      closeSheet(); $input('collName').value = '';
       toast('“' + nm + '” ' + tV('vault.created','created'));
       render();
     };
 
-    let _tt;
-    function toast(m) { const t = $('vtoast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
+    let _tt: ReturnType<typeof setTimeout> | undefined;
+    function toast(m: string): void { const t = $('vtoast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
-    let st;
-    $('search').addEventListener('input', function () { query = this.value; clearTimeout(st); st = setTimeout(render, 90); });
+    let st: ReturnType<typeof setTimeout> | undefined;
+    /* `this` inside a non-arrow listener is the element, which TypeScript types
+       as the broad EventTarget. Holding the input in a const is the same
+       element every time and reads plainly. */
+    const searchField = $input('search');
+    searchField.addEventListener('input', () => { query = searchField.value; clearTimeout(st); st = setTimeout(render, 90); });
 
     render();
     // re-render when the account's Vault syncs in from Convex
