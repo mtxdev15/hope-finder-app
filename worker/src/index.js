@@ -381,28 +381,47 @@ function timingSafeEqualHex(a, b) {
   return r === 0;
 }
 
+/* Returns { ok: true } or { ok: false, reason }.
+ *
+ * WHY A REASON AND NOT A BOOLEAN
+ * Four genuinely different failures used to collapse into one opaque
+ * `400 Invalid signature`: no header, malformed header, stale timestamp, and no
+ * matching v1. During the first sandbox delivery that ambiguity turned a
+ * one-line answer into an hour of probing, because nothing distinguished "the
+ * stored secret is wrong" from "this event is too old".
+ *
+ * The reason is for OUR logs only. It must never reach the HTTP response:
+ * telling an unauthenticated caller which check failed hands them an oracle
+ * for probing the endpoint. The caller always sees the same opaque 400. */
 async function verifyStripeSignature(payload, sigHeader, secret) {
-  if (!sigHeader) return false;
+  if (!sigHeader) return { ok: false, reason: 'no-header' };
+  if (!secret) return { ok: false, reason: 'no-secret' };
   let t = '';
   const v1 = [];
-  sigHeader.split(',').forEach((part) => {
+  sigHeader.split(',').forEach((raw) => {
+    // Stripe sends "t=…,v1=…" with no spaces, but proxies and tooling
+    // sometimes normalise a comma list to "t=…, v1=…". An untrimmed " v1"
+    // never matches, so the signature is silently unfindable.
+    const part = raw.trim();
     const i = part.indexOf('=');
     if (i < 0) return;
     const k = part.slice(0, i), val = part.slice(i + 1);
     if (k === 't') t = val;
     else if (k === 'v1') v1.push(val);
   });
-  if (!t || !v1.length) return false;
+  if (!t || !v1.length) return { ok: false, reason: 'malformed-header' };
   // replay protection: reject events older than 5 minutes
   const age = Math.abs(Date.now() / 1000 - Number(t));
-  if (!Number.isFinite(age) || age > 300) return false;
+  if (!Number.isFinite(age) || age > 300) return { ok: false, reason: 'stale-timestamp' };
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
   );
   const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(t + '.' + payload));
   const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return v1.some((sig) => timingSafeEqualHex(sig, expected));
+  return v1.some((sig) => timingSafeEqualHex(sig, expected))
+    ? { ok: true }
+    : { ok: false, reason: 'no-matching-v1' };
 }
 
 /* ===== Plus subscription webhook (Release C1 Phase 3, revised Stage 2) ==========
@@ -464,12 +483,21 @@ async function handleBillingWebhook(request, env) {
     return new Response('Payload too large', { status: 413 });
   }
 
-  const ok = await verifyStripeSignature(
+  const verdict = await verifyStripeSignature(
     payload,
     request.headers.get('Stripe-Signature'),
-    env.STRIPE_BILLING_WEBHOOK_SECRET,
+    /* Defensive trim. A trailing newline from a piped `wrangler secret put`
+     * is invisible in every dashboard and every `secret list`, and fails
+     * verification identically to a wrong secret. Stripe signing secrets never
+     * contain leading or trailing whitespace, so trimming can only help. */
+    (env.STRIPE_BILLING_WEBHOOK_SECRET || '').trim(),
   );
-  if (!ok) return new Response('Invalid signature', { status: 400 });
+  if (!verdict.ok) {
+    // Reason to the log ONLY. The response stays opaque — see the note on
+    // verifyStripeSignature about not handing out an oracle.
+    console.log('[billing/webhook] rejected reason=' + verdict.reason);
+    return new Response('Invalid signature', { status: 400 });
+  }
 
   // Shape check only — enough to reject junk, not enough to interpret it.
   // Deciding what the event MEANS is Convex's job, not this Worker's.
