@@ -1380,6 +1380,140 @@ Banning the word would have meant renaming a safety function to satisfy a grep,
 so the assertion now proves no session can be created and that every occurrence
 of the word belongs to the guard.
 
+## 6.14 Account redesign and visual verification, 2026-08-22
+
+**No Stripe request, Portal session, Checkout session, billing mutation or
+deployment occurred during this work.** It is a UI change plus a visual pass.
+
+### Why the first visual pass stopped
+
+The subscription-visibility pass (§6.13) verified everything except one item:
+the Plus identity badge **computed as gold** — text `#9A7A24` (`--goldd`) on a
+`#C9A84C` (`--gold`) border and fill.
+
+The root cause was a **class collision**, not the colour that was written. The
+badge reused `.ybadge`, which already belongs to the church-finder "Home"
+marker later in the same stylesheet, and that rule sets `--goldd`. Rewriting the
+colours in place did nothing: the source read forest while the browser still
+painted `#9A7A24`, with only height and background coming from the new rule.
+
+This is why the instruction to verify **computed** values rather than CSS source
+mattered. A source-only check passed against a rule the browser never applied.
+
+### The fix, and why it is semantic
+
+The Plus badge now has its own class, `.yplus`. The church-finder badge is
+untouched. Computed values, read from the live page in both themes:
+
+| | light | dark |
+|---|---|---|
+| text | `rgb(34,56,46)` | `rgb(243,239,230)` |
+| border | `rgba(34,56,46,.16)` | `rgba(244,239,230,.2)` |
+| height / size / weight | 22px / 10px / 600 | same |
+| gradient, shadow, filter, icon | none | none |
+
+Gold remains a Declare brand colour. It must not be what says "this account
+pays" — that reads as a reward trinket, and it conflates two different things:
+
+- **PLUS** says who you are — membership
+- **ACTIVE / Cancels / Payment needs attention** say how billing is — lifecycle
+
+The badge still appears for a subscriber whose payment needs attention, because
+they are still a member, and it never says "Active".
+
+### The account hierarchy
+
+`/you` had grown into a two-column rail plus eleven equally-weighted cards. A
+subscriber returning from the Portal had to hunt for their own plan. It is now
+one calm centred column, capped at 1040px, in a deliberate order:
+
+`identity → Plan & billing → Your Formation → Account → Experience →
+Privacy & support → Mobile app → Sign out`
+
+A single column rather than a rail keeps reading order and visual order
+identical at every width, which makes the mobile stack correct without a second
+set of rules. The card grid became grouped rows — one action each, title,
+description, chevron.
+
+Every existing capability was preserved. Three real additions: Privacy and Terms
+rows (routes that existed but were unreachable from this page), a Sign out row
+wired to the existing `signOut()` (previously buried two taps inside the auth
+modal), and a Mobile app row that is visibly disabled and labelled **Coming
+soon** — no store link, no QR, no waitlist, because none of those exist.
+
+### Your Formation
+
+The Declare-specific section, built only from data the app already holds and
+linking only to routes that exist:
+
+| Card | Source | Destination |
+|---|---|---|
+| What you are walking through | `db_active_journey` | `/journey` |
+| Truths you are carrying | vault `listItems()` | `/vault` |
+| Fruit from your Journeys | `db_journeys_done` | `/journey` |
+
+**No gamification of any kind**: no streaks, XP, scores, trophies, achievements,
+percentages of spiritual growth, or "you missed a day". Where a real number
+exists it is shown; where one does not, the card carries an invitation rather
+than an invented statistic. No new backend aggregation was added.
+
+The four per-device counts the old rail showed — words kept, verses saved,
+highlights, collections — are restored here rather than dropped. Losing them
+also broke the page with `missing #yStats` on load; caught in the browser.
+
+### Visual verification results
+
+Commit tested `7e6bec5` + this branch, against Convex dev `good-dotterel-906`,
+on the real active monthly Plus account.
+
+| Check | Result |
+|---|---|
+| Badge computed colours (light) | **PASS** — forest, no gold |
+| Badge computed colours (dark) | **PASS** — cream, no gold |
+| Badge hidden until load, accessible name, never "Active" | **PASS** |
+| Section order identity → plan → formation → settings | **PASS** |
+| Plan & Billing above the fold | **PASS** (mobile top 249px) |
+| Formation shows real data, no gamification | **PASS** |
+| All 14 setting rows real or labelled Coming soon | **PASS** |
+| Desktop 1440 light / dark | **PASS** |
+| Desktop 1024 | **PASS** |
+| Mobile 390 light / dark | **PASS** |
+| No horizontal overflow, no clipped dates | **PASS** |
+| 44×44 targets, visible focus, one h1 | **PASS** |
+| Keyboard order monotonic | **PASS** (after fixing the `.appearance` regression) |
+| Checkout success + `session_id` stripping | **PASS** |
+| Pricing current-plan, no second Checkout | **PASS** |
+| Spanish pricing re-test | **NOT RE-TESTED** — see below |
+| Signed-out success and pricing | **NOT TESTED** — see below |
+| No Stripe request / no billing mutation | **PASS** |
+
+**Spanish was deliberately not re-tested in-browser.** Switching locale calls
+`setLang`, which triggers the app's `userdata:set` preference sync — a Convex
+write. The previous pass caused exactly that write, and this pass was instructed
+not to repeat it. The Spanish strings are asserted by the suites, and the
+Spanish surfaces passed in the browser during §6.13.
+
+**Signed-out remains untested.** Playwright attaches to the authenticated Canary
+profile and storage is shared across its tabs; an independent signed-out context
+needs a separate isolated browser instance. The QA profile was not signed out to
+manufacture one.
+
+### Regression coverage
+
+`scripts/verify-account-profile-hybrid.ts` — 163 checks. Five mutations applied,
+each caught, all restored byte-identical:
+
+| Mutation | Caught by |
+|---|---|
+| gold badge styling restored | 4 checks |
+| Plan & Billing moved below settings | 3 checks |
+| Plus badge shown during loading | 2 checks |
+| fake formation streak added | 1 check |
+| dead-end settings row added | 1 check |
+
+Convex billing tables byte-identical before and after: `subscriptions` 1,
+`billingCustomers` 1, `billingEvents` 3, matching sha256 on all three.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful

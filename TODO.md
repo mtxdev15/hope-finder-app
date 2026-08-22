@@ -327,6 +327,25 @@ When Stage 2 resumes, in this order:
    until the period actually ends, so cancelling does not free that account
    quickly.
 
+### Account experience
+
+- [x] **Plus identity badge is no longer gold** (2026-08-22, §6.14). Root cause
+      was a `.ybadge` class collision with the church-finder "Home" marker, not
+      the colour written; the badge now has its own `.yplus` class. Verified by
+      COMPUTED browser values in both themes, not CSS source.
+- [x] **`/you` redesigned to the hybrid hierarchy** — identity, Plan & billing,
+      Your Formation, Account, Experience, Privacy & support, Mobile app, Sign
+      out. One centred column, grouped rows, every existing capability kept.
+- [x] **Your Formation added** — built only from existing data
+      (`db_active_journey`, vault `listItems()`, `db_journeys_done`) and linking
+      only to existing routes. No streaks, scores, XP or achievements.
+- [x] **Local visual verification passed** across 390 / 1024 / 1440 in light and
+      dark, plus checkout success and pricing (§6.14).
+- [ ] Spanish `/you` and `/pricing` re-verified in-browser — deliberately skipped
+      this pass because switching locale writes Convex data via `userdata:set`
+- [ ] Signed-out success and pricing verified in an isolated browser context
+- [ ] Production-like visual verification from merged main
+
 ### Guardrails
 
 - Do not reuse archived donation Products, Prices, sessions or metadata. Seven
