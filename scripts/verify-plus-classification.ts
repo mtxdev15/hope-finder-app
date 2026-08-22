@@ -538,8 +538,11 @@ check("replay is refused before any write",
     SUBS_SRC.indexOf("const fields = {"));
 check("an older event never overwrites newer state",
   /if \(args\.eventCreated < existing\.lastProviderEventAt\)/.test(SUBS_SRC));
+/* recordEvent now carries the outcome, so this pins that too: the event is
+ * still recorded and then dropped, and it is recorded AS stale rather than
+ * being indistinguishable from an ordinary apply. */
 check("a stale event is recorded, then dropped",
-  /await recordEvent\(\);\s*\n\s*return \{ ok: true, stale: true \}/.test(SUBS_SRC));
+  /await recordEvent\("stale"\);\s*\n\s*return \{ ok: true, stale: true \}/.test(SUBS_SRC));
 check("dedup is indexed, not a table scan", /by_provider_event/.test(SUBS_SRC));
 check("every applied event is recorded", /insert\("billingEvents"/.test(SUBS_SRC));
 

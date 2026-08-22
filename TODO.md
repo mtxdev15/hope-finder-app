@@ -200,6 +200,25 @@ When Stage 2 resumes, in this order:
    payloads showed neither moved. `verify-plus-classification.ts` grew 44 -> 96
    checks and the new assertions were mutation-tested. See
    `docs/operations/stage-2-sandbox-billing.md` §6.9.
+6b. ~~**Add the duplicate-subscription webhook guard.**~~ **DONE.** A webhook
+   for a DIFFERENT Stripe subscription id can no longer replace a nonterminal
+   one for the same user. The checkout-time guard in `billing.ts` could not
+   cover this: a Session minted before the first subscription existed stays
+   payable for 24 hours, and completing it later produces a second real
+   subscription that guard never saw — after which `applyWebhook` would have
+   repointed the canonical row in place, leaving one tidy Convex row reading
+   Plus while Stripe billed twice. The guard lives in `applyWebhook`, the one
+   mutation that writes the `subscriptions` table, with the decision in the
+   dependency-free `convex/subscriptionGuard.ts`. Conflicts leave the canonical
+   row untouched, record `outcome: "duplicate-subscription-conflict"` on the
+   event, log for alerting, and return 200 so Stripe stops retrying.
+   `verify-duplicate-subscription-guard.ts`, 71 checks, mutation-tested both
+   ways. **It protects Convex state; it does NOT cancel or refund a duplicate
+   Stripe charge** — that remediation is manual and documented in
+   `docs/operations/stage-2-sandbox-billing.md` §6.10.
+
+   *Further Checkout Session testing is now unblocked by this guard, but the
+   remaining items below are still outstanding.*
 7. Test **annual** checkout and **cancellation** after monthly succeeds.
 8. Configure and test the **Stripe Customer Portal last.**
 

@@ -711,10 +711,142 @@ something else.
 new assertions fail. A test that passes against both the fixed and the broken
 code proves nothing, so this was checked rather than assumed.
 
+### 6.10 The duplicate-subscription guard
+
+The finding at the end of §6.8 is now closed in code.
+
+#### The failure mode
+
+`createCheckoutSession` already refuses a second purchase while a live
+subscription exists. **That guard runs at checkout time, and checkout time is
+too early.** A Checkout Session minted *before* the first subscription existed
+stays payable for 24 hours. Completing it later creates a genuine second Stripe
+subscription that the checkout guard never saw, because when that Session was
+created there was nothing to refuse.
+
+What happened next was the real damage. `applyWebhook` resolved which row to
+write by falling back to `by_user_provider`, so a webhook carrying subscription
+**B** would `patch` the row holding subscription **A**, repointing
+`stripeSubscriptionId` in place. The result would have looked healthy: one tidy
+Convex row reading Plus, while Stripe billed twice and subscription A became
+invisible to us — absent from every read, unreachable through the Portal
+mapping, and impossible to reconcile from our own data.
+
+That is why checkout-creation protection alone is insufficient, and why the
+guard had to move to webhook time.
+
+#### Where it lives
+
+`convex/subscriptions.ts` → `applyWebhook`, which is the **single mutation that
+writes the `subscriptions` table** and the single call site `convex/http.ts`
+uses for all seven billing events. Putting the check anywhere else — in
+`createCheckoutSession`, in the Worker, or in one event branch — would leave
+the other paths open.
+
+The decision itself lives in `convex/subscriptionGuard.ts`, deliberately
+dependency-free so the regression suite imports and executes the real function
+rather than grepping for it. The Worker is unchanged and remains a
+signature-verification and relay boundary; Convex stays authoritative.
+
+#### The invariant
+
+For one authenticated user and `provider: "stripe"`, a webhook resolving to a
+**different** Stripe subscription id than the one already stored is refused
+unless the stored subscription is genuinely finished.
+
+**Statuses that permit replacement**, transcribed from what `billing.ts`
+already treats as "finished, a new Checkout is the right answer" rather than
+invented here:
+
+| Status | Why replaceable |
+|---|---|
+| `canceled` | in `ALLOWS_NEW_CHECKOUT` |
+| `incomplete_expired` | in `ALLOWS_NEW_CHECKOUT` |
+| `ended` | in `ALLOWS_NEW_CHECKOUT` |
+| `incomplete` | `billing.ts` lets it fall through — "their last attempt never completed, so a fresh Checkout Session is the correct recovery" |
+
+`incomplete` being replaceable is load-bearing, not an oversight: it is the
+documented retry path. If it were treated as nonterminal, this guard would
+break the one recovery flow `billing.ts` explicitly supports.
+
+**Everything else is nonterminal**, including `active`, `trialing`, `past_due`,
+`unpaid`, and any status we do not recognise. `past_due` and `unpaid` are
+deliberately *not* terminal because `entitlements.interpret` still grants Plus
+through the 3-day grace window — they are recoverable, not finished. An
+unrecognised status is nonterminal because `billing.ts` refuses to guess at one
+and so does this.
+
+A row with `cancelAtPeriodEnd` set is also nonterminal unless its status is
+already `canceled`: they hold Plus through `currentPeriodEnd`, which is the
+same check `billing.ts` makes independently of the status set.
+
+#### What a conflict does, and does not do
+
+On conflict the canonical row is **left entirely untouched** — customer id,
+subscription id, price id, period, status, invoice id, tier, plan and
+cancellation state all unchanged. No second canonical Stripe row is created,
+and no entitlement is granted from the incoming subscription.
+
+The event is **acknowledged with a 200** so Stripe stops retrying an event we
+will never apply, and recorded exactly once in `billingEvents` with
+`outcome: "duplicate-subscription-conflict"` plus the canonical and incoming
+subscription ids and the user association. A structured line is logged for
+alerting, carrying the event id but **not** the subscription ids — `http.ts`
+already established that provider ids do not belong in logs, and the event id
+is the key that finds the row holding them.
+
+Deduplication is unchanged: the `(provider, eventId)` replay check still runs
+first and remains authoritative, so re-delivering a conflict event returns the
+deduped result without recording a second conflict or touching state.
+
+#### What it deliberately does NOT do
+
+**It protects our state. It does not touch Stripe.** No cancellation, no
+refund, no credit note, no invoice change, no Stripe write API call of any
+kind. A duplicate charge is a money decision that belongs to a human
+remediation policy, not to a webhook handler running unattended.
+
+So if Stripe ever does create a duplicate subscription, this guard prevents
+silent Convex corruption but **the customer is still being billed twice** until
+someone acts. The remediation is manual and still required:
+
+1. Find the conflict row in `billingEvents`
+   (`outcome = "duplicate-subscription-conflict"`) — it names both subscription
+   ids and the user.
+2. Confirm in Stripe which subscription is genuinely duplicative.
+3. Cancel the duplicate in the Stripe Dashboard and refund or credit the
+   charge, according to whatever policy is in force.
+4. Only then decide whether the canonical row should change; it will not have
+   moved on its own.
+
+#### Regression coverage
+
+`scripts/verify-duplicate-subscription-guard.ts`, 71 checks. The decision is
+imported from `subscriptionGuard.ts` and executed — a copy would prove nothing
+about the deployed path and a source grep would pass against a guard that never
+runs. Covers the allow cases, every nonterminal status, cancel-at-period-end,
+unrecognised and empty statuses, a missing incoming id, all four replaceable
+statuses, out-of-order arrival in all three orders, and the source-level
+guarantees that the guard precedes both writes and that dedup and the
+entitlement contract are unchanged.
+
+**Mutation-tested both ways.** Neutering the decision fails 22 behavioural
+assertions; deleting the call site from `applyWebhook` fails 6 source-level
+ones. Both were restored and the suite returns to 71/71.
+
+#### Schema
+
+`billingEvents` gains `outcome`, `conflictReason`, `canonicalSubscriptionId`,
+`incomingSubscriptionId` and `userId`. **All optional**, so the three existing
+sandbox rows stay valid; nothing was migrated or rewritten, and an absent
+`outcome` reads as the ordinary applied path. None of it is reachable from
+`getMyEntitlements`, which never queries this table.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
-PaymentIntent now exist in the sandbox (§6.8). Still absent:
+PaymentIntent now exist in the sandbox (§6.8). The duplicate-subscription
+webhook guard is now in place (§6.10). Still absent:
 
 - Billing Portal configuration
 - any live-mode object
