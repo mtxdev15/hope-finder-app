@@ -340,7 +340,26 @@ When Stage 2 resumes, in this order:
          (`src/app/declare/plan-display.js`) so the three surfaces cannot drift.
          `verify-subscription-visibility.ts`, 374 checks, four mutations caught.
          **No Stripe lifecycle test was performed.**
-   - [ ] test annual Checkout with a **separate sandbox QA account**
+   - [x] **test annual Checkout with a separate sandbox QA account** — DONE
+         2026-08-22 (§6.17), on commit `203a800` against `good-dotterel-906`.
+         No Convex redeploy was needed. Subchecks:
+         - [x] successful annual sandbox payment ($79.99/year, test card, one
+               Checkout Session, one submit that actually charged)
+         - [x] webhook ingestion — `checkout.session.completed`,
+               `customer.subscription.created` and `invoice.paid`, each with a
+               new provider event id and `outcome: applied`, no conflicts
+         - [x] annual entitlement — `planKey: plus_annual`, `tier: plus`,
+               `status: active`, `billingInterval: year`,
+               `cancelAtPeriodEnd: false`, period end present
+         - [x] account display — `/you` shows "Annual plan · Renews August 22,
+               2027", non-gold PLUS badge, benefits, Manage billing
+         - [x] pricing behaviour — Plus marked current, duplicate Checkout
+               blocked, zero enabled purchase controls
+         - [x] Portal visibility — annual subscription, $79.99/year, matching
+               renewal date, paid invoice, no plan switching or quantity
+         **The monthly subscriber was not used and is byte-identical.**
+         Public billing remains intentionally inactive: `/pricing` has no annual
+         control, so the existing development-only control was used.
    - [ ] production Portal activation
 
    **Do not use the current active monthly subscriber for annual Checkout.**

@@ -1751,6 +1751,164 @@ fails closed correctly during that window — it shows "We could not load your p
 right now" with a retry rather than a false Free state — but it is not a state
 worth verifying against. Restart once more before reading results.
 
+## 6.17 Annual Checkout, verified end to end, 2026-08-22
+
+**The first complete annual Plus purchase.** Commit tested `203a800`, against
+Convex development `good-dotterel-906`. **No Convex redeployment was needed** —
+the only Convex change since the deployed `2df0ba7` is the generated type map,
+which adds no callable function.
+
+### A separate authorized QA account was used
+
+The existing monthly subscriber was **not used, signed out, or modified**. A
+second authorized QA account, on an address the owner controls, was signed in
+through a separate Chrome Canary profile.
+
+Before Checkout it was verified privately that this account:
+
+- is a **different application user** from the monthly subscriber
+- resolved as **signed-in Free** — `tier: free`, `subscriptionStatus: none`,
+  `planKey: null`, `provider: null`, not guest, not unavailable, not ambiguous
+- had **no** `billingCustomers` mapping and **no** canonical subscription
+- showed no monthly-subscriber data anywhere on the page
+
+Identities were compared by exact string equality against the known monthly
+address, never printed. An earlier "unrecognised account" reading was a false
+alarm from a regex that swallowed a trailing sentence period; the corrected
+check matched the annual QA account exactly.
+
+### Public billing remains intentionally inactive
+
+`/pricing` has **no annual purchase control at all** — zero occurrences of the
+annual alias — and its only Plus CTA is the disabled "Opening soon" button.
+Public billing was never activated, and this test did not activate it.
+
+The annual purchase was therefore initiated through the existing
+**development-only** control at `/dev/billing-sandbox`, which requires
+`PUBLIC_BILLING_DEV_CONTROL=1`. That is a deliberate fallback, recorded here
+because it is the honest description of how annual was exercised. `/pricing` was
+verified only for its Free state before purchase and its current-Plus state
+after.
+
+### The annual Price, validated before purchase
+
+`active`, `livemode: false`, USD, `interval: year`, `interval_count: 1`,
+`usage_type: licensed`, **$79.99** matching the application's published annual
+copy, attached to the same active **Declare Plus** product as monthly, no trial,
+tax behaviour consistent with Stage 2.
+
+### Exactly one Checkout Session
+
+The browser payload was exactly:
+
+```json
+{ "plan": "plus-annual" }
+```
+
+No Price id, Customer id, Subscription id, user id or return URL — there is no
+such argument on the deployed action. One `/api/action` call, and the control
+disabled itself on click so a second session could not be started.
+
+Hosted Checkout showed **Declare checkout dev**, a Sandbox badge, "Subscribe to
+Declare Plus", **$79.99 per year**, one line item, no trial, no donation item,
+no monthly Price, and the separate QA account's email.
+
+*(Stripe also renders "$6.67 / month billed annually" as an annualised helper
+line. It is presentational, not a monthly Price.)*
+
+### One sandbox payment
+
+Paid once with Stripe's standard sandbox test card. **No real card was used and
+no card details are recorded anywhere in this repository.**
+
+Worth recording: the first submit did **not** charge anything. Checkout returned
+a `Required` validation error because this configuration requires a phone
+number, and the form never submitted. Filling that field and submitting was
+therefore not a retry of an uncertain payment — no PaymentIntent existed yet.
+
+### Checkout success
+
+Redirect landed on `/checkout/success` with the query string already stripped.
+The real `session_id` appears in **no** DOM, localStorage, sessionStorage or
+cookie, and was never transmitted onward. The page showed:
+
+> **Welcome to Declare Plus**
+> Annual plan · Renews August 22, 2027
+
+with *Continue to Declare* and *View my plan* → `/you#plan-billing`.
+
+### Webhook ingestion
+
+All three expected events arrived and converged in about four seconds, each with
+a distinct new provider event id and `outcome: "applied"`:
+
+| Event | Outcome |
+|---|---|
+| `checkout.session.completed` | applied |
+| `customer.subscription.created` | applied |
+| `invoice.paid` | applied |
+
+Zero duplicate-subscription conflicts. `billingEvents` 6 → 9, all ids distinct.
+
+### Convex provisioning
+
+`subscriptions` 1 → 2, `billingCustomers` 1 → 2, across **two distinct users**.
+The new canonical row:
+
+| Field | Value |
+|---|---|
+| `planKey` | `plus_annual` |
+| `tier` | `plus` |
+| `status` | `active` |
+| `billingInterval` | `year` |
+| `cancelAtPeriodEnd` | `false` |
+| `periodEndAt` | present — August 22, 2027 |
+
+### Stripe objects
+
+New Customer, new annual Subscription, one paid Invoice. Subscription:
+`livemode false`, `active`, `interval year × 1`, `$79.99 USD`, quantity 1, one
+item, `cancel_at null`, `cancel_at_period_end false`, `canceled_at null`,
+`ended_at null`, no trial, no discount, `pending_update null`. Invoice: **paid**,
+$79.99 fully paid, `billing_reason: subscription_create`, one line
+"1 × Declare Plus (at $79.99 / year)", no proration, **zero credit notes**, no
+refund. Exactly two active subscriptions in the sandbox — no second annual.
+
+### Application surfaces
+
+`/you` — **Declare Plus · ACTIVE · Annual plan · Renews August 22, 2027**, all
+three benefits, Manage billing present, PLUS badge visible and **not gold** and
+never saying "Active". No monthly cadence, no cancellation wording, no
+payment-attention message, no raw enum, no Stripe identifier.
+
+`/pricing` — Plus marked **Your current plan**, Free not marked, CTA hidden and
+disabled, zero enabled purchase controls, manage path to `/you#plan-billing`.
+
+### Billing Portal
+
+Exactly one Portal session, created by a deliberate single click. The browser
+sent an empty payload; Convex resolved the correct annual Customer server-side.
+The Portal showed **Declare Plus · $79.99 per year · next billing August 22,
+2027** — matching `/you` exactly — with the paid invoice listed, payment-method
+management and cancellation available per configuration, and **no** plan
+switching or quantity controls. Nothing in the Portal was changed, and the
+return action landed back on `/you`.
+
+### The monthly subscriber is untouched
+
+Its canonical row is **byte-identical** before and after — still
+`plus_monthly / active / cancelAtPeriodEnd: true`, period end September 21,
+2026 — and its customer mapping is unchanged. No cross-account mapping occurred.
+
+`usageCounters`, `journeySlots` and `accountSettings` are byte-identical.
+`userData` grew by two rows, both belonging solely to the **new** QA user
+(`declare-lang`, `declare-profile-v1`); all twenty pre-existing rows are
+unmodified.
+
+No refund, credit, plan switch, payment-method change after purchase, invoice
+interaction, customer-data edit, cancellation, second Checkout, second Portal
+session, Worker or Convex deployment, or environment change occurred.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
