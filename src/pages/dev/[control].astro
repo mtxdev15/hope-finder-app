@@ -65,15 +65,60 @@ export function getStaticPaths() {
       <div id="dbAuth" class="db-auth">Checking your session&hellip;</div>
 
       <div id="dbControl" class="db-control" hidden>
-        <!-- The disclaimer IS the label, so no future layout edit can separate
-             the two. The fine print says what the button does. -->
+        <!-- The disclaimer IS the label on each control, so no future layout
+             edit can separate a purchase button from its warning. -->
         <button id="dbGo" type="button" class="db-btn">Stripe sandbox — no real charge</button>
         <div class="db-fine">
           Opens one $8.99/month Plus Checkout Session in Stripe test mode.
         </div>
+
+        <button id="dbGoAnnual" type="button" class="db-btn db-btn-2">Stripe sandbox — no real charge</button>
+        <div class="db-fine">
+          Opens one $79.99/year Plus Checkout Session in Stripe test mode.
+        </div>
+
+        <!-- The one thing a tester must read before touching annual. -->
+        <div class="db-warn" role="note">
+          <strong>Do not buy annual on an account that already has an active
+          subscription.</strong> The sandbox account holding the active monthly
+          Plus subscription must not be used here. Use a separate sandbox QA
+          account, or wait until that monthly subscription is genuinely
+          terminal. Convex refuses a second purchase and the webhook guard
+          refuses to repoint the row, but Stripe would still bill twice —
+          neither guard cancels or refunds anything.
+        </div>
+
+        <button id="dbPortal" type="button" class="db-btn db-btn-3">Open the Stripe Billing Portal</button>
+        <div class="db-fine">
+          Creates a Portal session for your own account only. The Customer is
+          resolved server-side from our stored mapping; the browser sends
+          nothing.
+        </div>
       </div>
 
       <div id="dbOut" class="db-out" hidden></div>
+
+      <!-- ===== Read-only lifecycle inspector =====
+           Reads the NORMAL entitlement response and nothing else. It writes
+           nothing, mutates nothing, and shows no provider identifier. -->
+      <section id="dbInspect" class="db-inspect" hidden aria-labelledby="dbInspectH">
+        <h2 id="dbInspectH" class="db-ih">Entitlement state</h2>
+        <div class="db-irow">
+          <button id="dbRefresh" type="button" class="db-btn db-btn-ghost">Refresh</button>
+          <label class="db-watch">
+            <input type="checkbox" id="dbWatch" />
+            <span>Watch for changes (bounded)</span>
+          </label>
+        </div>
+        <dl class="db-fields" id="dbFields" role="status" aria-live="polite"></dl>
+        <p class="db-note">
+          Provider-neutral fields only, straight from <code>getMyEntitlements</code>.
+          No Customer, Subscription, Price, invoice, event or Session id is read
+          or shown. Note that cancel-at-period-end is <em>not</em> part of this
+          contract, so a scheduled cancellation still reads as
+          <code>active</code> here until Stripe moves the status.
+        </p>
+      </section>
     </div>
   </main>
 </DeclareLayout>
@@ -103,6 +148,9 @@ export function getStaticPaths() {
           (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }) as Record<string, string>)[c]);
 
       const auth = await import('../../app/declare/auth-store.js');
+      const data = await import('../../app/declare/convex-data.js');
+      const { projectEntitlement, INSPECTOR_FIELDS, refreshExhausted, REFRESH_INTERVAL_MS } =
+        await import('../../app/declare/billing-inspector.js');
 
       /* Session state only. This makes no Stripe call and creates nothing. */
       await auth.initAuth().catch(() => {});
@@ -125,69 +173,152 @@ export function getStaticPaths() {
       if (authEl) authEl.textContent = 'Signed in as ' + (u.email || u.name || 'this account') + '.';
       if (ctrl) ctrl.hidden = false;
 
-      /* Everything billing-shaped lives inside the click handler: the Convex
-       * client, the generated api, and the action call. Nothing is imported and
-       * no request is made until the button is pressed. */
+      /* Everything billing-shaped lives inside the click handlers: the Convex
+       * client, the generated api, and the action calls. Nothing is imported
+       * and no request is made until a button is pressed. */
       const btn = document.getElementById('dbGo') as HTMLButtonElement | null;
-      if (!btn) return;
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
+      const btnAnnual = document.getElementById('dbGoAnnual') as HTMLButtonElement | null;
+      const btnPortal = document.getElementById('dbPortal') as HTMLButtonElement | null;
+      if (!btn || !btnAnnual || !btnPortal) return;
+
+      /* One authenticated Convex client, built on demand. Better Auth mints the
+       * JWT, and that token is the ONLY identity that crosses the wire: there
+       * is no userId, email, customer id or price id to send, and no argument
+       * on either action that could carry one. */
+      async function connect() {
+        const { ConvexHttpClient } = await import('convex/browser');
+        const { api } = await import('../../../convex/_generated/api');
+        const convexUrl = import.meta.env.PUBLIC_CONVEX_URL || '';
+        if (!convexUrl) { out('PUBLIC_CONVEX_URL is not set.'); return null; }
+        const ac = auth.getAuthClient();
+        const tok = ac && ac.convex
+          ? await ac.convex.token({ fetchOptions: { throw: false } })
+          : null;
+        const token = (tok && tok.data && tok.data.token) || null;
+        if (!token) {
+          out('No Convex token. The session may have expired — sign in again.');
+          return null;
+        }
+        const client = new ConvexHttpClient(convexUrl);
+        client.setAuth(token);
+        return { client, api };
+      }
+
+      /* Error codes are rendered verbatim: this is a diagnostic surface, not a
+       * user-facing one. `already-subscribed` is the EXPECTED answer when the
+       * account already holds a live subscription — that is Convex refusing a
+       * second purchase, working as designed. */
+      function fail(b: HTMLButtonElement, res: any) {
+        out('<div class="db-err">' + esc((res && res.error) || 'no-response') +
+            (res && res.status ? ' (' + esc(res.status) + ')' : '') + '</div>');
+        b.disabled = false;
+      }
+
+      /* Deliberately NOT navigated. Creating a session and opening the hosted
+       * page stay two separate, deliberate clicks. */
+      function offer(kind: string, url: string, label: string) {
+        out(
+          '<div class="db-ok">' + esc(kind) + ' created.</div>' +
+          '<div class="db-url">' + esc(url) + '</div>' +
+          '<a class="db-open" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' +
+          esc(label) + '</a>'
+        );
+      }
+
+      /* ONE Checkout implementation for both plans. The alias is a hardcoded
+       * literal at each call site below — never read from the DOM, a dataset,
+       * or the URL — so the browser cannot name anything but these two. The
+       * Stripe Price for each is resolved server-side in Convex from
+       * STRIPE_PLUS_MONTHLY_PRICE_ID / STRIPE_PLUS_ANNUAL_PRICE_ID. */
+      async function startCheckout(b: HTMLButtonElement, plan: 'plus-monthly' | 'plus-annual') {
+        b.disabled = true;
         out('Creating a Checkout Session&hellip;');
         try {
-          const { ConvexHttpClient } = await import('convex/browser');
-          const { api } = await import('../../../convex/_generated/api');
-
-          const convexUrl = import.meta.env.PUBLIC_CONVEX_URL || '';
-          if (!convexUrl) {
-            out('PUBLIC_CONVEX_URL is not set.');
-            btn.disabled = false;
-            return;
-          }
-
-          /* Better Auth mints the Convex JWT. This is the ONLY identity that
-           * crosses the wire; there is no userId, email or customer id to send,
-           * and no argument on the action that could carry one. */
-          const ac = auth.getAuthClient();
-          const tok = ac && ac.convex
-            ? await ac.convex.token({ fetchOptions: { throw: false } })
-            : null;
-          const token = (tok && tok.data && tok.data.token) || null;
-          if (!token) {
-            out('No Convex token. The session may have expired — sign in again.');
-            btn.disabled = false;
-            return;
-          }
-
-          const client = new ConvexHttpClient(convexUrl);
-          client.setAuth(token);
-
-          /* THE ENTIRE PAYLOAD. A hardcoded alias, nothing else. No Price id,
-           * no user id, no email, no customer id, no subscription id, no lang. */
-          const res = await client.action(api.billing.createCheckoutSession, {
-            plan: 'plus-monthly',
-          });
-
-          if (res && res.url) {
-            /* Deliberately NOT navigated. Creating a session and opening
-             * Checkout stay two separate, deliberate clicks. */
-            out(
-              '<div class="db-ok">Checkout Session created.</div>' +
-              '<div class="db-url">' + esc(res.url) + '</div>' +
-              '<a class="db-open" href="' + esc(res.url) + '" target="_blank" rel="noopener noreferrer">' +
-              'Open Stripe Checkout in a new tab</a>'
-            );
-          } else {
-            /* Error codes are rendered verbatim: this is a diagnostic surface,
-             * not a user-facing one. */
-            out('<div class="db-err">' + esc((res && res.error) || 'no-response') +
-                (res && res.status ? ' (' + esc(res.status) + ')' : '') + '</div>');
-            btn.disabled = false;
-          }
+          const c = await connect();
+          if (!c) { b.disabled = false; return; }
+          const res = await c.client.action(c.api.billing.createCheckoutSession, { plan });
+          if (res && res.url) offer('Checkout Session', res.url, 'Open Stripe Checkout in a new tab');
+          else fail(b, res);
         } catch (e) {
           out('<div class="db-err">' + esc((e instanceof Error && e.message) || e) + '</div>');
-          btn.disabled = false;
+          b.disabled = false;
+        }
+      }
+
+      btn.addEventListener('click', () => startCheckout(btn, 'plus-monthly'));
+      btnAnnual.addEventListener('click', () => startCheckout(btnAnnual, 'plus-annual'));
+
+      /* Billing Portal. The action takes NO customer argument — Convex resolves
+       * the Stripe Customer from our own billingCustomers mapping for the
+       * authenticated user, and answers `no-subscription` when there is none.
+       * The browser sends an empty payload. */
+      btnPortal.addEventListener('click', async () => {
+        btnPortal.disabled = true;
+        out('Creating a Billing Portal session&hellip;');
+        try {
+          const c = await connect();
+          if (!c) { btnPortal.disabled = false; return; }
+          const res = await c.client.action(c.api.billing.createPortalSession, {});
+          if (res && res.url) offer('Portal session', res.url, 'Open the Billing Portal in a new tab');
+          else fail(btnPortal, res);
+        } catch (e) {
+          out('<div class="db-err">' + esc((e instanceof Error && e.message) || e) + '</div>');
+          btnPortal.disabled = false;
         }
       });
+
+      /* ── Read-only lifecycle inspector ─────────────────────────────────
+       * Reads the NORMAL entitlement response and renders a PROJECTION of it.
+       * The projection is an allowlist (billing-inspector.js), so a field it
+       * does not name cannot reach the page even if the contract widens later.
+       * Nothing here mutates anything. */
+      const inspect = document.getElementById('dbInspect');
+      if (inspect) inspect.hidden = false;
+      const fieldsEl = document.getElementById('dbFields');
+      let watchTicks = 0;
+      let watchTimer: ReturnType<typeof setTimeout> | undefined;
+      let reading = false;
+
+      async function readState(): Promise<void> {
+        if (reading) return;               // single-flight
+        reading = true;
+        let ent = null;
+        try { ent = await data.myEntitlements(); } catch (e) { ent = null; }
+        reading = false;
+        if (!fieldsEl) return;
+        /* The allowlist in billing-inspector.js is what decides which keys
+           exist here; this only names the shape it returns. */
+        const view: Record<string, unknown> | null = projectEntitlement(ent);
+        if (!view) { fieldsEl.innerHTML = '<dt>state</dt><dd>unavailable</dd>'; return; }
+        fieldsEl.innerHTML = INSPECTOR_FIELDS
+          .filter((k: string) => Object.prototype.hasOwnProperty.call(view, k))
+          .map((k: string) => '<dt>' + esc(k) + '</dt><dd>' + esc(JSON.stringify(view[k])) + '</dd>')
+          .join('');
+      }
+
+      const refreshBtn = document.getElementById('dbRefresh');
+      if (refreshBtn) refreshBtn.addEventListener('click', () => { readState(); });
+
+      const watchBox = document.getElementById('dbWatch');
+      function tickWatch(): void {
+        if (refreshExhausted(watchTicks)) {
+          if (watchBox instanceof HTMLInputElement) watchBox.checked = false;
+          return;
+        }
+        watchTicks += 1;
+        readState();
+        watchTimer = setTimeout(tickWatch, REFRESH_INTERVAL_MS);
+      }
+      if (watchBox instanceof HTMLInputElement) {
+        watchBox.addEventListener('change', () => {
+          clearTimeout(watchTimer);
+          watchTicks = 0;
+          if (watchBox.checked) tickWatch();
+        });
+      }
+      document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(watchTimer); });
+      window.addEventListener('pagehide', () => clearTimeout(watchTimer));
+      readState();
     })();
   }
 </script>
@@ -231,4 +362,18 @@ export function getStaticPaths() {
     font-size: 11.5px; word-break: break-all; color: var(--muted);
   }
   .db-open { display: inline-block; margin-top: 12px; font-size: 13.5px; font-weight: 600; color: var(--goldd); }
+  .db-btn-2, .db-btn-3 { margin-top: 18px; }
+  .db-btn-3 { background: transparent; color: var(--text); border-color: var(--line2); }
+  .db-btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); width: auto; min-height: 44px; padding: 10px 18px; font-size: 14px; }
+  .db-warn { margin-top: 16px; padding: 12px 14px; border: 1px solid #E4736B; border-radius: 12px; font-size: 12.5px; line-height: 1.6; color: var(--text2); text-align: left; }
+  .db-warn strong { color: #E4736B; }
+  .db-inspect { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .db-ih { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 500; color: var(--text); margin: 0; }
+  .db-irow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .db-watch { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .db-fields { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 16px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .db-fields dt { color: var(--muted); }
+  .db-fields dd { margin: 0; color: var(--text); word-break: break-word; }
+  .db-note { font-size: 11.5px; line-height: 1.6; color: var(--muted); margin-top: 16px; text-align: left; }
+  .db-btn:focus-visible, .db-open:focus-visible, .db-watch:focus-within { outline: 2px solid var(--gold); outline-offset: 3px; }
 </style>

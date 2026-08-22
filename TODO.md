@@ -162,8 +162,15 @@ None of these are oversights. Each is a deliberate stop.
 - [ ] No real Checkout Session has been created through the app
 - [ ] No Subscription or invoice has been created
 - [ ] No test payment has been completed
-- [ ] No Billing Portal configuration or session exists
-- [ ] No annual checkout UI exists
+- [x] Sandbox Billing Portal **configuration** is complete and verified
+      (2026-08-22, §6.12.1) — active default, sandbox-only
+- [ ] No Portal **session** has been created or opened. Configuration is not
+      validation: return to `/you`, cancellation, payment-method updates and
+      invoice history are all still unexercised
+- [ ] No annual Checkout Session has been created. The annual dev control now
+      exists (resume step 6d); the annual Price has never been exercised
+- [ ] No cancellation has been performed and no payment failure has been
+      simulated
 - [ ] No production billing CTA is enabled — the pricing page CTA is still a
       disabled "Opening soon" button
 - [ ] No live Stripe Product, Price, webhook or secret has been created
@@ -231,8 +238,75 @@ When Stage 2 resumes, in this order:
    Stripe call, never auto-retries, and allowlists `?plan=`. Neither page
    activates public billing. `verify-checkout-return-pages.ts`, 118 checks,
    mutation-tested. See `docs/operations/stage-2-sandbox-billing.md` §6.11.
-7. Test **annual** checkout and **cancellation** after monthly succeeds.
-8. Configure and test the **Stripe Customer Portal last.**
+6d. ~~**Prepare the annual, Portal and lifecycle controls.**~~ **DONE — built
+   and tested, never exercised.** Three controls on `/dev/billing-sandbox`:
+   annual Checkout (`{ plan: 'plus-annual' }` and nothing else), Billing Portal
+   (an **empty** payload — Convex resolves the Customer from our own mapping),
+   and a read-only lifecycle inspector that renders an allowlist projection so
+   no Stripe identifier can reach the screen. Annual did not fork the Checkout
+   path: one implementation, the plan typed as a closed two-member union, the
+   alias a hardcoded literal at each call site. `createPortalSession` already
+   existed and already met every requirement, so no Convex change was needed —
+   only a caller and the tests that pin it.
+   `verify-billing-lifecycle-controls.ts` (149 checks) plus
+   `verify-billing-dev-control.ts` (98 -> 136), four mutations applied and each
+   caught. See `docs/operations/stage-2-sandbox-billing.md` §6.12.
+
+   **Nothing here has been run against Stripe.** No annual Session, no Portal
+   session, no cancellation, no payment failure, no deployment.
+
+   **Do not exercise annual on the account holding the active monthly
+   subscription.** Convex refuses a second purchase and the webhook guard
+   refuses to repoint the row, but **neither cancels or refunds** — Stripe would
+   still bill twice. Use a separate sandbox QA account, or wait until the
+   monthly subscription is genuinely terminal.
+
+   *Known gap:* `getMyEntitlements` does not surface `cancelAtPeriodEnd`, so a
+   scheduled cancellation still reads as `active` in the inspector. Confirm
+   cancellation in the Stripe Dashboard. Surfacing that field is an
+   entitlement-contract change, deliberately out of scope.
+7. ~~**Configure and read back the Stripe sandbox Billing Portal settings.**~~
+   **DONE 2026-08-22.** The active default configuration exists in **Declare
+   checkout dev** and was verified through read-only Stripe API responses:
+   `active=true`, `is_default=true`, `livemode=false`, one configuration
+   returned. Plan switching and quantity updates disabled, cancellation enabled
+   at `at_period_end`, cancellation reasons enabled, payment-method updates
+   enabled, invoice history enabled. Retention coupons are
+   **NOT EXPOSED BY READ API** — they are a Dashboard deflection feature and do
+   not appear on the configuration object, so absence was not read as proof.
+   `proration_behavior` is `none`, correct for end-of-period cancellation.
+   Full result in `docs/operations/stage-2-sandbox-billing.md` §6.12.1.
+
+   `is_default` matters because `createPortalSession` sends no `configuration`
+   parameter, so Stripe uses the account default.
+
+   **Configuration is not validation.** Everything below is still outstanding.
+
+8. **Validate the Portal and the rest of the lifecycle.** None of this has been
+   exercised:
+
+   - [ ] deploy the PR #23 code to Convex development after merge
+   - [ ] create and open a sandbox Portal session
+   - [ ] verify Portal return to `/you`
+   - [ ] verify the Portal resolves the authenticated user's server-side
+         Customer mapping
+   - [ ] schedule cancellation at period end
+   - [ ] verify `customer.subscription.updated`
+   - [ ] verify the canonical subscription remains active until the period ends
+   - [ ] verify eventual `customer.subscription.deleted`
+   - [ ] verify payment-method updates
+   - [ ] verify invoice history
+   - [ ] verify payment-failure / payment-attention behaviour
+   - [ ] test annual Checkout with a **separate sandbox QA account**
+   - [ ] production Portal activation
+
+   **Do not use the current active monthly subscriber for annual Checkout.**
+   Convex refuses a second purchase and the webhook guard refuses to repoint the
+   row, but **neither cancels or refunds** — Stripe would still bill twice. Use a
+   separate sandbox QA account, or wait until that monthly subscription is
+   genuinely terminal. Note that end-of-period cancellation leaves it `active`
+   until the period actually ends, so cancelling does not free that account
+   quickly.
 
 ### Guardrails
 
