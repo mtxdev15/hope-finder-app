@@ -241,7 +241,17 @@ check("the success page creates no Checkout or Portal session",
 section("6. The persistent Plan & Billing section");
 
 check("the stable anchor exists", /id="plan-billing"/.test(YOU));
-check("it is a real section with a heading", /<section class="pbcard[^>]*id="plan-billing"/.test(YOU));
+/* UPDATED for the account redesign. This matched the plan card being ITSELF a
+ * <section class="pbcard">. It is now a labelled <section> containing an <h2>
+ * and the card, which is stronger semantics, not weaker: the heading is real
+ * text in the outline rather than an aria-label on a card. The property —
+ * "the plan lives in a real, headed, labelled section" — is asserted directly. */
+check("the plan card sits inside a labelled section",
+  /<section class="ysec" aria-labelledby="yPlanH">[\s\S]{0,400}id="plan-billing"/.test(YOU));
+check("that section carries a real heading element",
+  /<h2 class="ysec-h serif" id="yPlanH"[^>]*>/.test(YOU));
+check("the card is still labelled by its plan name",
+  /id="plan-billing"[^>]*aria-labelledby="pbTitle"/.test(YOU));
 check("it is not behind a developer flag",
   !/import\.meta\.env\.DEV[\s\S]{0,400}plan-billing/.test(YOU));
 check("it reads the normal entitlement query", /myEntitlements/.test(YOU));
