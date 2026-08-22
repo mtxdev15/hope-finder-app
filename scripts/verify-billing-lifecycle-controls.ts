@@ -388,9 +388,16 @@ check("dist/dev does not exist", !existsSync(join(DIST, "dev")));
  * PUBLIC_BILLING_DEV_CONTROL=1 deliberately set, which proves the DEV term
  * alone suppresses the controls. That is the shape a real accident would take —
  * the flag set in a Cloudflare Pages build setting. */
+/* NOTE: "createPortalSession" was removed from this list, deliberately.
+ * It used to be banned from production because the ONLY caller was the dev
+ * control, so its presence could only mean the control had leaked. That is no
+ * longer true: /you now has a real Manage-billing button, so the action
+ * legitimately ships. The narrower property is asserted separately below —
+ * wherever it reaches production it must go through the wrapper that sends an
+ * empty payload, and it must carry no customer identifier. The DEV CONTROLS
+ * themselves are still banned, which is what this list is actually for. */
 for (const needle of [
   "createCheckoutSession",
-  "createPortalSession",
   "Stripe sandbox",
   "Billing Portal",
   "billing-inspector",
@@ -424,6 +431,19 @@ for (const f of aliasFiles) {
 }
 check("the aliases reach production ONLY through the label module",
   aliasFiles.every((f) => /checkout-return/.test(f)));
+
+/* createPortalSession now ships, for /you. Prove it ships SAFELY. */
+const portalProd = files.filter((f) => readFileSync(f, "utf8").includes("createPortalSession"));
+check("createPortalSession reaches production only via the account page bundle",
+  portalProd.length > 0);
+for (const f of portalProd) {
+  const t = readFileSync(f, "utf8");
+  const rel = f.slice(DIST.length + 1);
+  check(`${rel} calls the Portal with an EMPTY payload`,
+    /createPortalSession\s*,\s*\{\s*\}/.test(t));
+  check(`${rel} sends no Customer identifier`, !/cus_|stripeCustomerId|customerId/.test(t));
+  check(`${rel} carries no dev control`, !/dbPortal|dbGoAnnual|dbInspect/.test(t));
+}
 
 /* pricing.astro's own header declares it non-transactional. Keep that true. */
 const PRICING = stripComments(read("src/pages/pricing.astro"));

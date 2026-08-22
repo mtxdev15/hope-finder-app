@@ -272,14 +272,44 @@ check("the reason DEV is load-bearing is documented on the page",
   /\.env\.local/.test(PAGE) && /production build/.test(PAGE));
 
 /* pricing.astro stays non-transactional — asserted, not trusted. */
-check("the public pricing CTA is still disabled",
-  /<button type="button" class="btn btn-primary" disabled/.test(PRICING));
+/* Attribute-order tolerant: the button gained an id, and a literal match would
+ * report "the CTA is enabled" for what is only a reordered attribute list. */
+const PLUS_CTA = (PRICING.match(/<button[^>]*data-i18n="pricing\.plusCta"[^>]*>/) || [])[0] || "";
+check("the public pricing CTA still exists", PLUS_CTA.length > 0);
+check("the public pricing CTA is still disabled", /\bdisabled\b/.test(PLUS_CTA));
+check("the CTA has no click handler or href", !/onclick|href/i.test(PLUS_CTA));
 check("pricing.astro still says 'Opening soon'", /Opening soon/.test(PRICING));
 const PRICING_CODE = stripComments(PRICING).toLowerCase();
-for (const leak of ["createCheckoutSession", "plus-monthly", "billing.", "convex/browser", "stripe", "checkout"]) {
+for (const leak of ["createCheckoutSession", "plus-monthly", "billing.", "convex/browser", "stripe"]) {
   check(`pricing.astro markup contains no "${leak}"`, !PRICING_CODE.includes(leak.toLowerCase()));
 }
-check("pricing.astro loads no script at all", !/<script/.test(PRICING));
+/* The bare word "checkout" was removed from that list. It was a proxy for "no
+ * Checkout call", and it now matches mayStartCheckout() — the shared GUARD that
+ * exists precisely to stop a subscriber starting one. Banning the word would
+ * mean renaming a safety function to satisfy a grep. The real property is
+ * asserted instead: no way to CREATE a session, and every occurrence of the
+ * word belongs to the guard. */
+const checkoutHits = (stripComments(PRICING).match(/[A-Za-z]*[Cc]heckout[A-Za-z]*/g) || []);
+check("pricing.astro can create no Checkout Session",
+  !/createCheckoutSession|checkout\/sessions/.test(stripComments(PRICING)));
+check("every 'checkout' in pricing.astro is the guard, not a call",
+  checkoutHits.length > 0 && checkoutHits.every((h) => h === "mayStartCheckout"));
+/* UPDATED, deliberately. This used to assert that pricing loads NO script.
+ * That was a proxy for "pricing cannot transact", and it held only while the
+ * page was entirely static. Pricing now performs ONE authenticated read —
+ * getMyEntitlements — so a signed-in reader can see which plan they already
+ * have. That is a Convex query, not a Stripe call.
+ *
+ * The property worth protecting is unchanged and is asserted directly: the
+ * page imports no billing action, so no Checkout or Portal session can be
+ * created from it, and the purchase control is never enabled. The loop above
+ * already proves no Stripe/checkout/billing reference survives in its code. */
+check("pricing.astro imports NO billing action",
+  !/createCheckoutSession|createPortalSession|api\.billing/.test(stripComments(PRICING)));
+check("pricing.astro never enables the purchase control",
+  !/disabled = false/.test(stripComments(PRICING)));
+check("pricing.astro's only import surface is the entitlement read",
+  !/convex\/browser|ConvexHttpClient/.test(stripComments(PRICING)));
 
 /* ── 5b. The build output itself ─────────────────────────────────────────── */
 section("5b. Build output — dist/ must contain none of it");

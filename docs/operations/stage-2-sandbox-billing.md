@@ -1240,6 +1240,146 @@ Configuration is not validation. Every one of these remains unexercised:
 **Portal lifecycle validation remains incomplete until a real sandbox Portal
 session is tested.**
 
+## 6.13 Subscription visibility, 2026-08-22
+
+**No Stripe lifecycle test was performed during this implementation.** No
+Portal session, no Checkout, no cancellation, no payment-method change, no
+deployment. This section records code, not a transaction.
+
+### What the Portal smoke test actually exposed
+
+§6.12.2 recorded it as a footnote and it deserves better: the Portal returns
+subscribers to `/you`, and `/you` told them nothing. `you.astro` never called
+`getMyEntitlements`. A paying subscriber landed on their own account page and
+could not see that they had a plan, what it cost, when it renewed, or how to
+get back into billing.
+
+That was not a page bug. `getMyEntitlements` already resolved the facts and
+then dropped three of them before returning.
+
+### The contract, extended
+
+| Field | Type | Why |
+|---|---|---|
+| `periodEndAt` | ms or null | the renewal / end date, in ms so the browser formats it with the existing locale |
+| `cancelAtPeriodEnd` | boolean | the difference between "Renews" and "Cancels" on screen |
+| `billingInterval` | `month` \| `year` \| null | monthly or annual, from the value the webhook already stores |
+
+All three are provider-neutral: a timestamp, a boolean, an interval enum. **No
+Stripe Customer, Subscription, Price, invoice, event or Session id enters the
+response**, and none of these can address another account. They are read from
+the same row that won the tier — never merged across providers — and reported
+only while that row grants Plus, so a lapsed row cannot leave a stale renewal
+date on screen.
+
+### One interpretation, three surfaces
+
+`src/app/declare/plan-display.js` is the single mapping from entitlement
+response to display state, dependency-free so the suite executes it. Three
+surfaces interpreting the same response independently drift, and the drift is
+always the same shape: one page saying billing is fine while another says it
+needs attention. `checkout-return.js` now delegates to it rather than deciding
+for itself.
+
+Every ambiguous input **fails closed**:
+
+- a null or unrecognised response is `unavailable`, **never `free`** — telling a
+  paying subscriber they have nothing is the failure this exists to prevent
+- payment attention **outranks** active, so a failing card in the grace window
+  can never render as "Active"
+- an unrecognised status on a Plus tier resolves to attention, not health
+- two providers billing one account resolves to ambiguous rather than silently
+  picking one
+- `mayStartCheckout()` is false for `loading` and `unavailable`, so a failed
+  entitlement read can never unlock a purchase control
+
+### The three surfaces
+
+**`/checkout/success`** — the confirmed state says *Welcome to Declare Plus*,
+names what Plus opens up, and shows cadence and renewal date when present.
+Primary action continues to Declare; secondary goes to `/you#plan-billing`. No
+price is repeated: pricing owns the amount.
+
+Every prior security property is intact. `session_id` is still never read for a
+decision, rendered, stored, logged or sent; its presence is noticed only so it
+can be stripped from the visible URL. Confirmation still comes only from
+`getMyEntitlements`, polled bounded and single-flight. The welcome cannot appear
+while payment needs attention or while confirmation is unresolved.
+
+**`/you`** — a persistent Plan & Billing card at the stable `#plan-billing`
+anchor, which is exactly where the Portal returns people. States: active,
+cancellation-scheduled, payment-attention, free, loading, unavailable, and
+multi-provider ambiguity. Loading never renders Free. Cancellation-scheduled
+says **Cancels**, never Renews.
+
+Manage billing is click-only and single-flight — disabled the moment it is
+pressed and left disabled while in flight, so a double tap cannot mint two
+Portal sessions. It goes through `openBillingPortal()`, which sends `{}`; the
+deployed action has no customer, subscription, user or return-url argument to
+carry.
+
+**`/pricing`** — marks Free as *Current plan* for a signed-in free reader and
+Plus as *Your current plan* for a subscriber, replacing the CTA with a link to
+`/you#plan-billing`. The page stays **non-transactional**: it imports no billing
+action, so no Checkout or Portal session can be created from it, and the CTA
+remains the disabled "Opening soon" button for everyone — hidden, never
+enabled, for a subscriber. The entitlement read fails closed.
+
+There is **no `/es/precios` route in this tree**. Only `/pricing` exists,
+reached as `/pricing?lang=es` through the runtime `data-i18n` +
+`i18n-strings.js` convention. That existing surface is what was updated; the
+localized route belongs to the release branch.
+
+### The badge is identity, not proof of healthy billing
+
+A restrained `PLUS` text badge sits beside the name on `/you`. No crown, no gold
+treatment, no confetti. Hidden until entitlement loading completes so it never
+flashes for a free account.
+
+**A subscriber whose payment needs attention keeps the badge** — they are still
+a subscriber — and the badge never says "Active". The Plan & Billing card below
+carries the lifecycle truth. The badge is never the only indication of state.
+
+### What stays with Stripe
+
+The Portal remains the billing-management system: payment-method details,
+invoices, cancellation actions and billing-address changes all live there. The
+app shows plan identity, lifecycle status, benefits, dates and the safe entry
+point. It deliberately does **not** duplicate sensitive Stripe billing data —
+no card, no address, no invoice line, no identifier.
+
+### Regression coverage
+
+`scripts/verify-subscription-visibility.ts` — 374 checks. The shared module is
+imported and executed, not restated. Four mutations applied and each caught
+before restoring:
+
+| Mutation | Caught by |
+|---|---|
+| payment attention renders as Active | 1 check |
+| cancel-at-period-end renders as "Renews" | 1 check |
+| the Plus pricing CTA may start Checkout | 2 checks |
+| the `/you` Plan & Billing section removed | 3 checks |
+
+Two **existing** assertions were updated deliberately, because they encoded the
+old world rather than a property worth keeping:
+
+- *"pricing.astro loads no script at all"* was a proxy for "pricing cannot
+  transact", true only while the page was static. Pricing now performs one
+  authenticated read. The real property is asserted directly: no billing action
+  is imported and the purchase control is never enabled.
+- *"no production file contains `createPortalSession`"* held only while the dev
+  control was its only caller. `/you` now has a real Manage-billing button, so
+  it legitimately ships. The narrower property replaces it: wherever it reaches
+  production it must go through the empty-payload wrapper and carry no customer
+  identifier.
+
+A third assertion banned the bare word `checkout` in pricing, which now matches
+`mayStartCheckout()` — the guard that exists to stop a subscriber starting one.
+Banning the word would have meant renaming a safety function to satisfy a grep,
+so the assertion now proves no session can be created and that every occurrence
+of the word belongs to the guard.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
