@@ -275,9 +275,17 @@ function walk(dir: string, out: string[] = []): string[] {
 const files = walk(DIST);
 check("dist/ contains files to inspect", files.length > 0);
 
+/* NOTE on "plus-monthly": the bare alias is no longer a fingerprint of this
+   control. src/app/declare/checkout-return.js ships an ALLOWLIST keyed by it
+   so /checkout/cancelled can name the plan a reader was looking at — a lookup
+   table with no action attached. What must stay absent from production is a
+   Checkout TRIGGER, so the fingerprint below is the alias in payload position
+   (`plan:"plus-monthly"`), which is what this page's action call compiles to
+   and what the allowlist can never produce. */
 const FORBIDDEN = [
   "createCheckoutSession",
-  "plus-monthly",
+  'plan:"plus-monthly"',
+  "plan:'plus-monthly'",
   "billing-sandbox",
   "Stripe sandbox — no real charge",
   "PUBLIC_BILLING_DEV_CONTROL",

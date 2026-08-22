@@ -158,5 +158,14 @@ export async function reviewsSubmit(payload) { return (await ensure()) ? runMuta
 export async function reviewsListApprovedPublic() { return (await ensure()) ? runQuery(apiRef.reviews.listApprovedPublic, {}) : null; }
 export async function reviewsMine() { return (await ensure()) ? runQuery(apiRef.reviews.myReview, {}) : null; }
 
+/* ── entitlements (the account's own tier) ──────────────────────────────────
+   The ONLY confirmation the checkout success page trusts. Server-resolved from
+   the session; no userId is sent and none could be. Fails soft like every other
+   helper here, and the success page treats null as "not yet", never as
+   "confirmed". */
+export async function myEntitlements() {
+  return (await ensure()) ? runQuery(apiRef.entitlements.getMyEntitlements, {}) : null;
+}
+
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }

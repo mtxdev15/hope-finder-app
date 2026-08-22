@@ -219,6 +219,18 @@ When Stage 2 resumes, in this order:
 
    *Further Checkout Session testing is now unblocked by this guard, but the
    remaining items below are still outstanding.*
+6c. ~~**Build the checkout return pages.**~~ **DONE.** `/checkout/success` and
+   `/checkout/cancelled` exist; a completed payment no longer lands on a 404.
+   The success page treats `session_id` as UNTRUSTED — it observes only that
+   the parameter exists, strips it from the visible URL with
+   `history.replaceState`, and never renders, stores, logs or sends it.
+   Confirmation comes only from `getMyEntitlements`, polled on a bound (~2s
+   interval, ~30s cap, single-flight, stops when hidden or confirmed).
+   `paymentNeedsAttention` never renders as success, and the timeout state
+   explicitly says not to pay again. The cancelled page is inert: no Convex or
+   Stripe call, never auto-retries, and allowlists `?plan=`. Neither page
+   activates public billing. `verify-checkout-return-pages.ts`, 118 checks,
+   mutation-tested. See `docs/operations/stage-2-sandbox-billing.md` §6.11.
 7. Test **annual** checkout and **cancellation** after monthly succeeds.
 8. Configure and test the **Stripe Customer Portal last.**
 
