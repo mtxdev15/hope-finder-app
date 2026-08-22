@@ -341,10 +341,15 @@ When Stage 2 resumes, in this order:
       only to existing routes. No streaks, scores, XP or achievements.
 - [x] **Local visual verification passed** across 390 / 1024 / 1440 in light and
       dark, plus checkout success and pricing (§6.14).
-- [ ] Spanish `/you` and `/pricing` re-verified in-browser — deliberately skipped
-      this pass because switching locale writes Convex data via `userdata:set`
+- [x] **Final visual verification from merged main** (2026-08-22, commit
+      `2408b5d`, §6.15). Badge computed non-gold in both themes, hierarchy
+      verified by measured position, Plan & Billing / Your Formation / grouped
+      settings all pass, 1440 / 1024 / 390 in light and dark, checkout-success
+      and pricing regressions green. **No Convex redeploy was needed — PR #26
+      contained no Convex code.**
+- [ ] Spanish `/you` and `/pricing` verified in-browser — still skipped, because
+      switching locale writes Convex data via `userdata:set`
 - [ ] Signed-out success and pricing verified in an isolated browser context
-- [ ] Production-like visual verification from merged main
 
 ### Guardrails
 

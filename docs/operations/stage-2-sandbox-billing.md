@@ -1514,6 +1514,137 @@ each caught, all restored byte-identical:
 Convex billing tables byte-identical before and after: `subscriptions` 1,
 `billingCustomers` 1, `billingEvents` 3, matching sha256 on all three.
 
+## 6.15 Final visual verification from merged main, 2026-08-22
+
+**No Convex redeployment was performed or required.** PR #26 contained no Convex
+code — `convex/` was untouched and `convex/_generated` unchanged — so the
+deployment from §6.13 still matches the entitlement contract under test.
+
+**No Stripe request, Portal session, Checkout session, billing mutation or
+deployment occurred.**
+
+Tested commit **`2408b5d`** (the PR #26 merge) against Convex dev
+`good-dotterel-906`, on the real active monthly Plus account.
+
+### A stale Vite cache had to be cleared, and that is worth recording
+
+A dev server started fresh from `2408b5d` still returned
+`504 (Outdated Optimize Dep)` on `node_modules/.vite/deps/convex_browser.js`.
+A fresh process was not enough because Vite reuses `node_modules/.vite` across
+restarts. Removing `node_modules/.vite` and `.astro` and restarting resolved it.
+
+This is the third time this cache has produced a false failure in this project.
+**When verifying billing UI locally, clear `node_modules/.vite` if the console
+shows a 504 on `convex_browser.js`** — otherwise the entitlement read silently
+fails and every plan surface reads "unavailable".
+
+The remaining 504 on `astro/runtime/client/dev-toolbar/entrypoint.js` is Astro's
+dev toolbar. It is cosmetic and unrelated to the app.
+
+### The Plus badge, computed from the live page
+
+The check that stopped the first pass. Read from the browser, not from CSS:
+
+| | light | dark |
+|---|---|---|
+| color | `rgb(34, 56, 46)` | `rgb(243, 239, 230)` |
+| border | `rgba(34, 56, 46, .16)` | `rgba(244, 239, 230, .2)` |
+| background | 5% forest | 5% cream |
+| height / font-size / weight | 22px / 10px / 600 | same |
+| letter-spacing / radius | 1px / 6px | same |
+| background-image / box-shadow / filter | none | none |
+| child icons | 0 | 0 |
+
+No `#C9A84C`, no `#9A7A24`, and a warm-hue test (red > green > blue with a clear
+spread) returns **false** for text, border and background in both themes. Label
+is `PLUS`, accessible name is *Declare Plus subscriber*, and it never says
+"Active".
+
+**The `.ybadge` collision is resolved through `.yplus`.** The Plus badge no
+longer shares a class with the church-finder "Home" marker, whose rule sets
+`--goldd` and sits later in the stylesheet. That rule and its three markers are
+untouched. This was invisible to source review — the CSS read forest while the
+browser painted `#9A7A24` — which is why computed verification was required.
+
+### Account hierarchy
+
+Verified by measured document position, not by reading the file:
+
+`identity 96 → Plan & Billing 285 → Your Formation 610 → Account 973 →
+Experience 1526 → Privacy & Support 1943 → Mobile App 2405 → Sign out 2565`
+
+One `h1`, content column 940px at 1440 (capped at 1040), two `nav` elements
+inside the flow — both the Theme and Language segmented controls, no duplicate
+landmark.
+
+### Plan & Billing
+
+`Declare Plus` · `ACTIVE` · `Monthly plan · Renews September 21, 2026` · all
+three benefits · `Manage billing` visible and **not clicked**. Resolved state
+`plus-active`, `aria-busy="false"`. No raw enum, no Stripe identifier, no
+payment method or billing address. Status chip is separate from the PLUS badge.
+
+### Your Formation
+
+Heading *Your Formation*, directly after Plan & Billing, with real live values:
+
+| Card | Value | Destination |
+|---|---|---|
+| What you are walking through | Day 4 | `/journey` |
+| Truths you are carrying | 3 | `/vault` |
+| Fruit from your Journeys | 1 | `/journey` |
+
+Word-boundary scan of the rendered page for `streak`, `xp`, `score`, `trophy`,
+`achievement`, `leaderboard`, `points`: **none**. The restored per-device counts
+render without console errors.
+
+### Grouped settings
+
+All 14 rows present, **zero dead ends**, zero undersized targets. Mobile App
+labelled *Coming soon* with no App Store, Play Store or QR. Privacy → `/privacy`,
+Terms → `/terms`, Sign out present and wired but **not activated**.
+
+### Responsive and theme
+
+| Width | Light | Dark | Notes |
+|---|---|---|---|
+| 1440×900 | PASS | PASS | content 940px, formation 3-up |
+| 1024×768 | PASS | PASS | content 721px |
+| 390×844 | PASS | PASS | formation 1-up, Plan & Billing at 249px |
+
+No horizontal overflow, no clipped renewal date or email, keyboard order
+monotonic, all targets ≥44px, bottom navigation intact, badge non-gold at every
+size. Themes were switched with the app's own control and **restored to the
+account's original `light`**; the persisted value is unchanged.
+
+### Regressions
+
+Checkout success: URL cleaned to `/checkout/success`; the placeholder is not in
+the DOM, localStorage, sessionStorage or cookies, and was never transmitted
+onward; *Welcome to Declare Plus* with `Monthly plan · Renews September 21,
+2026`; *View my plan* navigates to `/you#plan-billing`. No payment-attention copy.
+
+Pricing: Plus marked *Your current plan*, Free not marked, CTA hidden **and**
+disabled, manage link to `/you#plan-billing`, zero enabled purchase controls, no
+raw enum or identifier.
+
+### Not tested
+
+- **Spanish authenticated visual state — NOT TESTED.** Switching locale calls
+  `setLang`, which triggers the `userdata:set` Convex write. The automated
+  localization assertions cover the strings instead.
+- **Signed-out checkout success and pricing — NOT TESTED.** Playwright attaches
+  to the authenticated Canary profile and storage is shared across its tabs. The
+  QA account was not signed out to manufacture the state.
+
+### State unchanged
+
+No `createPortalSession`, no `createCheckoutSession`, no Stripe host, no
+`/api/action`, no `/api/mutation`, no `userdata:set`. Billing tables
+byte-identical to the pre-verification baseline — `subscriptions` 1,
+`billingCustomers` 1, `billingEvents` 3, matching sha256 on all three — and the
+`declare-lang` distribution is unchanged.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
