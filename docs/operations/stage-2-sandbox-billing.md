@@ -1909,6 +1909,133 @@ No refund, credit, plan switch, payment-method change after purchase, invoice
 interaction, customer-data edit, cancellation, second Checkout, second Portal
 session, Worker or Convex deployment, or environment change occurred.
 
+## 6.18 Payment-method update, verified 2026-08-22
+
+Commit tested `7ab6321`, against Convex development `good-dotterel-906`. **No
+deployment was required** — the only Convex change since the deployed `2df0ba7`
+is the generated type map.
+
+Performed on the **annual QA account**. The monthly subscriber was not used,
+signed into, or modified.
+
+### The precedence problem this test had to prove
+
+Stripe resolves the payment method for a subscription's next invoice in order:
+
+```
+subscription.default_payment_method        <- wins if set
+  else customer.invoice_settings.default_payment_method
+    else older fallback sources
+```
+
+Attaching a new card proves nothing on its own. If the Portal had only updated
+the **customer** default while the **subscription override** still pointed at
+the old card, the old card would still be charged — silently.
+
+That risk was real here. Before the test:
+
+| | Before |
+|---|---|
+| `subscription.default_payment_method` | **set** — the sandbox Visa from Checkout |
+| `customer.invoice_settings.default_payment_method` | `null` |
+
+So the subscription override was the effective method, and it was the thing that
+had to change.
+
+### The result: Acceptable result B
+
+One Portal session, one replacement, sandbox **Visa → sandbox Mastercard**. No
+real card was used and no card details are recorded anywhere in this repository.
+
+| | After |
+|---|---|
+| `subscription.default_payment_method` | **`null`** — override cleared |
+| `customer.invoice_settings.default_payment_method` | **the new method** (different id) |
+
+The Portal cleared the subscription-level override *and* set the customer
+default to the new method. By the precedence chain above, the next annual
+invoice resolves to the new Mastercard. The failure case — a stale subscription
+override outranking a correct customer default — did not occur.
+
+The old sandbox Visa **remains attached but non-default**. The Portal listed the
+new Mastercard explicitly as **Default**.
+
+### One Portal session, nothing else touched
+
+The browser sent an empty payload; Convex resolved the annual Customer
+server-side from the authenticated user. No Customer, Subscription or
+PaymentMethod identifier crossed the wire, and no return URL.
+
+Subscription after the change: `livemode false`, `active`, `year × 1`,
+`cancel_at null`, `cancel_at_period_end false`, `ended_at null`, period end
+**unchanged** (August 22, 2027), same `latest_invoice`, `pending_update null`.
+
+The customer has **exactly one** invoice — the original paid one from Checkout.
+No new invoice, no charge, no proration, no refund, and zero credit notes. The
+existing invoice was **not opened or downloaded**; that remains its own separate
+TODO.
+
+### A subscribed event DID fire, and that is correct
+
+The expectation going in was that `billingEvents` would stay at 9, because the
+endpoint does not subscribe to `payment_method.attached`,
+`payment_method.detached`, `payment_method.updated`, `customer.updated` or
+`setup_intent.succeeded`.
+
+It went **9 → 10**, and the reason is sound: clearing the subscription-level
+`default_payment_method` is a modification of the subscription object, so Stripe
+emitted **`customer.subscription.updated`** — a type this endpoint has always
+subscribed to, because cancellation handling needs it.
+
+Convex handled it correctly. The canonical annual row changed **only** in
+`lastProviderEventAt` and `updatedAt`; `planKey`, `tier`, `status`,
+`billingInterval`, `cancelAtPeriodEnd` and `currentPeriodEnd` are all unchanged.
+`outcome: "applied"`, no conflict, no duplicate row.
+
+**Worth remembering:** a Portal payment-method change can produce a
+`customer.subscription.updated` webhook whenever it clears a subscription-level
+override. Entitlement is correctly unaffected, but the event is not noise to be
+ignored — it is the same event type cancellation uses.
+
+### Application surfaces unchanged
+
+`/you` still reads **Declare Plus · ACTIVE · Annual plan · Renews August 22,
+2027**, with all three benefits, the non-gold PLUS badge, and no
+payment-attention state. **No card brand, no last four digits and no
+PaymentMethod identifier appear anywhere in the application** — the entitlement
+contract carries none of them, and nothing on the page renders them.
+
+`/pricing` still marks Plus as **Your current plan** with zero enabled purchase
+controls and no payment-method leakage.
+
+### Cross-account safety
+
+The monthly canonical row and its customer mapping are **byte-identical**, still
+`plus_monthly / active / cancelAtPeriodEnd: true`, ending September 21, 2026. Its
+payment method was not touched. The two Customer mappings remain distinct and no
+PaymentMethod was attached across accounts.
+
+`billingCustomers`, `usageCounters`, `journeySlots`, `accountSettings` and
+`userData` are all byte-identical.
+
+### Tooling limits, recorded honestly
+
+Two checks could **not** be observed with the available read-only tooling, and
+are reported as such rather than assumed:
+
+- **The upcoming-invoice preview.** This MCP server exposes no upcoming-invoice
+  or invoice-preview operation, so the effective method was proven from the
+  precedence chain (`subscription.default_payment_method` is null, therefore the
+  customer default applies) rather than from a preview object.
+- **The Stripe event-type list.** No events operation is exposed, so the
+  `setup_intent.*` / `payment_method.attached` / `customer.updated` activity
+  could not be enumerated directly. Their *absence from Convex* is consistent
+  with the endpoint not subscribing to them.
+
+PaymentMethod objects also cannot be listed through this server, so "a new
+Mastercard is attached" rests on the Portal display and on the customer default
+pointing at a different PaymentMethod id than before.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
