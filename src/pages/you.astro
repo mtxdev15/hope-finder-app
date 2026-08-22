@@ -32,6 +32,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <input type="file" id="yAvFile" accept="image/*" hidden />
             <button type="button" class="yav-remove" id="yAvRemove" hidden>Remove photo</button>
             <div class="yname serif" id="yName">Friend</div>
+            {/* Identity, not a billing claim. Hidden until entitlement loading
+                completes, so it never flashes for a free account. A subscriber
+                whose payment needs attention keeps it — the Plan & Billing card
+                below carries the lifecycle truth, and the badge never says
+                "Active". No crown, no gold. */}
+            <span class="ybadge" id="yPlusBadge" hidden data-i18n-aria="you.plusBadgeAria"
+                  aria-label="Declare Plus subscriber">PLUS</span>
             <div class="yrole" id="yRole" data-i18n="you.roleGuest">Guest &middot; not signed in</div>
             <div class="ydivider"></div>
             <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl" data-i18n="you.dayWith">day with Declare</span></div>
@@ -57,6 +64,28 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
             <div class="ylbl" data-i18n="you.askMeAbout">Ask me about</div>
             <div class="ychips" id="yChips"></div>
           </div>
+
+          {/* ── Plan & billing ────────────────────────────────────────────
+              The gap the Portal smoke test exposed: the Portal returns
+              subscribers HERE, and this page used to tell them nothing about
+              what they hold. One restrained card, not a billing dashboard —
+              Stripe's Portal keeps the payment methods, invoices, cancellation
+              actions and billing address. This shows plan identity, lifecycle
+              state, dates and the single safe way in. */}
+          <div class="yhead yhead2 m-rise"><h2 class="serif" data-i18n="you.planBillingH">Plan &amp; billing</h2></div>
+          <section class="pbcard m-rise" id="plan-billing" aria-labelledby="pbTitle" aria-busy="true">
+            <div class="pb-top">
+              <div class="pb-id">
+                <div class="pb-nm serif" id="pbTitle" data-i18n="plan.loadingName">Loading your plan</div>
+                <div class="pb-meta" id="pbMeta" hidden></div>
+              </div>
+              {/* Status is a labelled chip AND a word, never colour alone. */}
+              <span class="pb-state" id="pbState" hidden></span>
+            </div>
+            <ul class="pb-list" id="pbList" hidden></ul>
+            <p class="pb-msg" id="pbMsg" role="status" hidden></p>
+            <div class="pb-acts" id="pbActs"></div>
+          </section>
 
           <div class="yhead yhead2 m-rise"><h2 class="serif" data-i18n="you.yourApp">Your app</h2></div>
           <div class="yhub m-rise" id="yHub">
@@ -220,7 +249,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { noteSubmitted } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit, reviewsMine } from '../app/declare/convex-data.js';
+    import { reviewsSubmit, reviewsMine, myEntitlements, openBillingPortal } from '../app/declare/convex-data.js';
+    import {
+      planState, showsPlusBadge, showsManageBilling, periodLabelKey,
+      cadenceKey, formatPeriodEnd, planNameKey, STATE_LABEL_KEYS,
+    } from '../app/declare/plan-display.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* Every id passed to $() is rendered unconditionally by this page, so a
@@ -1266,6 +1299,195 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     onChange(renderRail);
     // refresh the whole profile (name, church, interests) when it syncs in
     onAccountSync(() => { P = getProfile(); renderRail(); renderFacts(); renderChips(); renderChurchHub(); });
+
+    /* ── Plan & billing ────────────────────────────────────────────────────
+       Renders ONE state from the shared helper in plan-display.js. The states
+       are deliberately distinct, because the ways they can be got wrong are the
+       ways that matter: telling a cancelled subscriber their plan renews,
+       telling a failing card it is Active, or telling a paying subscriber they
+       are on Free because a read happened to fail.
+
+       Reads getMyEntitlements only. No Stripe id, no localStorage, no URL. */
+    type PbEls = {
+      card: HTMLElement; nm: HTMLElement; meta: HTMLElement; state: HTMLElement;
+      list: HTMLElement; msg: HTMLElement; acts: HTMLElement; badge: HTMLElement | null;
+    };
+    /* Resolved once, with a single guard, so every later use is non-null. */
+    function pbEls(): PbEls | null {
+      const card = document.getElementById('plan-billing');
+      const nm = document.getElementById('pbTitle');
+      const meta = document.getElementById('pbMeta');
+      const state = document.getElementById('pbState');
+      const list = document.getElementById('pbList');
+      const msg = document.getElementById('pbMsg');
+      const acts = document.getElementById('pbActs');
+      if (!card || !nm || !meta || !state || !list || !msg || !acts) return null;
+      return { card, nm, meta, state, list, msg, acts, badge: document.getElementById('yPlusBadge') };
+    }
+
+    /* I18N.t already falls back to its second argument. */
+    const pbT = (k: string, fallback: string): string =>
+      window.I18N ? window.I18N.t(k, fallback) : fallback;
+
+    const PB_FALLBACK: Record<string, string> = {
+      'plan.plusName': 'Declare Plus',
+      'plan.freeName': 'Free plan',
+      'plan.loadingName': 'Loading your plan',
+      'plan.stateActive': 'ACTIVE',
+      'plan.stateCancelling': 'ENDING',
+      'plan.stateAttention': 'NEEDS ATTENTION',
+      'plan.stateAmbiguous': 'NEEDS REVIEW',
+      'plan.stateFree': 'FREE',
+      'plan.monthly': 'Monthly plan',
+      'plan.annual': 'Annual plan',
+      'plan.renews': 'Renews',
+      'plan.cancels': 'Cancels',
+      'plan.manage': 'Manage billing',
+      'plan.upgrade': 'Upgrade to Plus',
+      'plan.retry': 'Try again',
+      'plan.unavailableMsg': 'We could not load your plan right now.',
+      'plan.cancellingMsg': 'Your Plus access remains available until then.',
+      'plan.attentionMsg': 'Something about your payment needs a second look. You still have access while we sort it out.',
+      'plan.ambiguousMsg': 'This account looks like it is being billed in more than one place. Open billing to review it, or contact support and we will sort it out.',
+      'plan.b1': 'Unlimited Gentle Guidance',
+      'plan.b2': 'Unlimited Journeys',
+      'plan.b3': 'Unlimited active Journeys',
+      'plan.portalErr': 'We could not open billing just now. Please try again.',
+      'plan.noSub': 'There is no subscription on this account yet.',
+      'plan.freeGuidance': 'Gentle Guidance left today',
+      'plan.freeSlots': 'active Journey slots left',
+    };
+    const pbTx = (k: string): string => pbT(k, PB_FALLBACK[k] || '');
+
+    function pbButton(label: string, onClick: (b: HTMLButtonElement) => void, variant: string): HTMLButtonElement {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pb-btn ' + variant;
+      b.textContent = label;
+      b.addEventListener('click', () => onClick(b));
+      return b;
+    }
+    function pbLink(label: string, href: string): HTMLAnchorElement {
+      const a = document.createElement('a');
+      a.className = 'pb-btn pb-primary';
+      a.href = href;
+      a.textContent = label;
+      return a;
+    }
+
+    /* Single-flight and click-only. Disabled the moment it is pressed and left
+       disabled while the request is in flight, so a double tap cannot mint two
+       Portal sessions. Sends nothing — see openBillingPortal(). */
+    let pbPortalBusy = false;
+    async function pbManageBilling(btn: HTMLButtonElement): Promise<void> {
+      if (pbPortalBusy) return;
+      pbPortalBusy = true;
+      btn.disabled = true;
+      const els = pbEls();
+      try {
+        const res = await openBillingPortal();
+        if (res && res.url) { window.location.href = res.url; return; }
+        if (els) {
+          els.msg.textContent = res && res.error === 'no-subscription'
+            ? pbTx('plan.noSub') : pbTx('plan.portalErr');
+          els.msg.hidden = false;
+        }
+      } catch (e) {
+        if (els) { els.msg.textContent = pbTx('plan.portalErr'); els.msg.hidden = false; }
+      }
+      pbPortalBusy = false;
+      btn.disabled = false;
+    }
+
+    function pbRender(ent: any, opts?: { loading?: boolean }): void {
+      const els = pbEls();
+      if (!els) return;
+      const state: string = planState(ent, opts);
+      const lang: string = window.I18N ? window.I18N.lang() : 'en';
+
+      els.card.setAttribute('data-plan-state', state);
+      els.card.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+
+      /* Badge: identity only, and never before loading completes. */
+      if (els.badge) els.badge.hidden = !showsPlusBadge(state);
+
+      els.nm.textContent = state === 'loading'
+        ? pbTx('plan.loadingName') : pbTx(planNameKey(state));
+
+      /* Status chip. Absent while loading, so nothing claims a state we do not
+         have yet. A WORD, never colour alone. */
+      const stateKey = STATE_LABEL_KEYS[state];
+      if (stateKey && state !== 'loading' && state !== 'guest') {
+        els.state.textContent = pbTx(stateKey);
+        els.state.hidden = false;
+      } else { els.state.hidden = true; }
+
+      /* Cadence and the date. The word in front of the date comes from the
+         shared helper, so a scheduled cancellation can never read "Renews".
+         No date is shown when we do not have one. */
+      const bits: string[] = [];
+      const ck = cadenceKey(ent);
+      if (ck && state.indexOf('plus-') === 0) bits.push(pbTx(ck));
+      const pk = periodLabelKey(state);
+      const when = formatPeriodEnd(ent && ent.periodEndAt, lang);
+      if (pk && when) bits.push(pbTx(pk) + ' ' + when);
+      if (bits.length) { els.meta.textContent = bits.join(' \u00b7 '); els.meta.hidden = false; }
+      else { els.meta.hidden = true; }
+
+      /* Benefits, or the free plan's real remaining allowance. */
+      els.list.innerHTML = '';
+      if (state.indexOf('plus-') === 0) {
+        for (const k of ['plan.b1', 'plan.b2', 'plan.b3']) {
+          const li = document.createElement('li'); li.textContent = pbTx(k); els.list.appendChild(li);
+        }
+        els.list.hidden = false;
+      } else if (state === 'free' && ent && ent.remaining) {
+        const r = ent.remaining;
+        const rows: string[] = [];
+        if (typeof r.gentleGuidanceToday === 'number') {
+          rows.push(r.gentleGuidanceToday + ' ' + pbTx('plan.freeGuidance'));
+        }
+        if (typeof r.activeJourneySlots === 'number') {
+          rows.push(r.activeJourneySlots + ' ' + pbTx('plan.freeSlots'));
+        }
+        for (const text of rows) {
+          const li = document.createElement('li'); li.textContent = text; els.list.appendChild(li);
+        }
+        els.list.hidden = rows.length === 0;
+      } else { els.list.hidden = true; }
+
+      /* Message line. */
+      const MSG: Record<string, string> = {
+        'plus-cancelling': 'plan.cancellingMsg',
+        'plus-attention': 'plan.attentionMsg',
+        'plus-ambiguous': 'plan.ambiguousMsg',
+        unavailable: 'plan.unavailableMsg',
+      };
+      const msgKey = MSG[state];
+      if (msgKey) { els.msg.textContent = pbTx(msgKey); els.msg.hidden = false; }
+      else { els.msg.hidden = true; }
+
+      /* Actions. */
+      els.acts.innerHTML = '';
+      if (showsManageBilling(state)) {
+        els.acts.appendChild(pbButton(pbTx('plan.manage'), pbManageBilling, 'pb-primary'));
+      } else if (state === 'free' || state === 'guest') {
+        els.acts.appendChild(pbLink(pbTx('plan.upgrade'), '/pricing'));
+      } else if (state === 'unavailable') {
+        els.acts.appendChild(pbButton(pbTx('plan.retry'), () => { pbLoad(); }, 'pb-ghost'));
+      }
+    }
+
+    async function pbLoad(): Promise<void> {
+      /* Loading never renders Free — that is the bug this guards against. */
+      pbRender(null, { loading: true });
+      let ent: any = null;
+      try { ent = await myEntitlements(); } catch (e) { ent = null; }
+      pbRender(ent);
+    }
+    pbLoad();
+    try { onAuthChange(() => { pbLoad(); }); } catch (e) {}
+
   </script>
 
   <style is:global>
@@ -1379,6 +1601,44 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .ychip.add:hover { background: color-mix(in srgb, var(--gold) 8%, transparent); }
 
     /* hub cards (Airbnb account grid) */
+    /* ── Plan & billing ──────────────────────────────────────────────────
+       One restrained card on the existing surface/line tokens. No gradient, no
+       glass, no glow, no crown, no gold treatment. Status is a bordered chip
+       with a WORD in it, so it never depends on colour alone. */
+    .you .pbcard { margin-top: 18px; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 18px; box-shadow: var(--card-shadow); padding: 18px 16px; }
+    .you .pb-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .you .pb-nm { font-size: 19px; font-weight: 500; color: var(--text); line-height: 1.2; }
+    .you .pb-meta { font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+    .you .pb-state { flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+      padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted);
+      white-space: nowrap; }
+    .you .pbcard[data-plan-state="plus-active"] .pb-state {
+      color: var(--goldd); border-color: color-mix(in srgb, var(--gold) 45%, var(--line2)); }
+    .you .pbcard[data-plan-state="plus-attention"] .pb-state,
+    .you .pbcard[data-plan-state="plus-ambiguous"] .pb-state { color: #E4736B; border-color: #E4736B; }
+    .you .pb-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+    .you .pb-list li { position: relative; padding-left: 18px; font-size: 13px; color: var(--text2); line-height: 1.5; }
+    .you .pb-list li::before { content: ""; position: absolute; left: 3px; top: .55em; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--line2); }
+    .you .pb-msg { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 14px 0 0; }
+    .you .pb-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .you .pb-acts:empty { margin-top: 0; }
+    .you .pb-btn { display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; min-width: 44px; padding: 11px 18px; border-radius: 14px;
+      font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+      border: 1px solid var(--line2); background: transparent; color: var(--text); }
+    .you .pb-primary { background: var(--gold); border-color: var(--gold); color: #13211A; }
+    .you .pb-btn:disabled { opacity: .55; cursor: default; }
+    .you .pb-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    @media (hover: hover) { .you .pb-btn:hover:not(:disabled) { filter: brightness(1.06); } }
+
+    /* Identity badge. Text, not ornament. */
+    .you .ybadge { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700;
+      letter-spacing: .14em; padding: 3px 8px; border-radius: 999px;
+      color: var(--goldd); border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line2));
+      background: color-mix(in srgb, var(--gold) 10%, transparent); }
+
     .you .yhub { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 18px; }
     .you .yhubcard { display: block; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--card-shadow);
       padding: 18px; cursor: pointer; font-family: inherit; text-decoration: none; transition: transform .3s cubic-bezier(.22, 1, .36, 1), border-color .25s ease, box-shadow .3s ease; }

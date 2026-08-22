@@ -306,10 +306,16 @@ When Stage 2 resumes, in this order:
    - [ ] actually update a payment method
    - [ ] open or download an invoice
    - [ ] verify payment-failure / payment-attention behaviour
-   - [ ] surface entitlement state on `/you` and add a "Manage billing" entry
-         point — the Portal returns subscribers there and the page currently
-         shows them no plan, no status and no way back into billing
-         (`you.astro` never calls `getMyEntitlements`; §6.12.2)
+   - [x] **surface entitlement state and add a billing entry point** — DONE
+         2026-08-22 (§6.13). `getMyEntitlements` now returns `periodEndAt`,
+         `cancelAtPeriodEnd` and `billingInterval`; `/checkout/success` welcomes
+         confirmed subscribers; `/you` has a persistent Plan & Billing card at
+         `#plan-billing` with a click-only, single-flight Manage billing button;
+         `/pricing` reflects the authenticated current plan and stays
+         non-transactional. One shared interpreter
+         (`src/app/declare/plan-display.js`) so the three surfaces cannot drift.
+         `verify-subscription-visibility.ts`, 374 checks, four mutations caught.
+         **No Stripe lifecycle test was performed.**
    - [ ] test annual Checkout with a **separate sandbox QA account**
    - [ ] production Portal activation
 

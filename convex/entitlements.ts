@@ -42,6 +42,23 @@ export type Resolved = {
   /* More than one provider is independently billing this account. Someone is
    * paying twice. Computed here, never trusted from a client. */
   duplicateProviders: boolean;
+  /* ── Lifecycle facts the account UI needs (C-visibility) ──────────────────
+   * Added so the app can answer "which plan, is it active, monthly or annual,
+   * when does it renew or end" WITHOUT sending anyone to Stripe. Every one is
+   * provider-neutral: a millisecond timestamp, a boolean, and an interval enum.
+   * None is a Stripe identifier, and none can address another account.
+   *
+   * periodEndAt is milliseconds (the row stores Stripe seconds) so the browser
+   * can format it with the existing locale without a second conversion. It is
+   * null when we have no period, which the UI must render as "no date" rather
+   * than inventing one.
+   *
+   * cancelAtPeriodEnd is the difference between "Renews" and "Cancels" on
+   * screen. It was already read by `interpret` internally; it simply was never
+   * returned, which is exactly the gap the Portal smoke test exposed. */
+  periodEndAt: number | null;
+  cancelAtPeriodEnd: boolean;
+  billingInterval: "month" | "year" | null;
   accountDay: string;
   timezone: string;
   limits: ReturnType<typeof definitionFor>["limits"];
@@ -119,6 +136,9 @@ function resolveAcrossProviders(rows: any[], now: number) {
       provider: null as Resolved["provider"],
       planKey: null as Resolved["planKey"],
       duplicateProviders: false,
+      periodEndAt: null as number | null,
+      cancelAtPeriodEnd: false,
+      billingInterval: null as Resolved["billingInterval"],
     };
   }
 
@@ -149,6 +169,21 @@ function resolveAcrossProviders(rows: any[], now: number) {
     provider: (winner.verdict.tier === "plus" ? winner.row.provider : null) as Resolved["provider"],
     planKey: (winner.verdict.tier === "plus" ? winner.row.planKey : null) as Resolved["planKey"],
     duplicateProviders: payingProviders.size > 1,
+    /* Taken from the SAME row that won the tier, never merged across rows: a
+     * period end from one provider paired with a plan from another would be a
+     * date that describes nothing. Reported only while that row grants Plus,
+     * so a lapsed row cannot leave a stale renewal date on screen. */
+    periodEndAt:
+      winner.verdict.tier === "plus" && winner.row.currentPeriodEnd
+        ? winner.row.currentPeriodEnd * 1000
+        : null,
+    cancelAtPeriodEnd:
+      winner.verdict.tier === "plus" ? winner.row.cancelAtPeriodEnd === true : false,
+    billingInterval: (winner.verdict.tier === "plus" && winner.row.billingInterval === "year"
+      ? "year"
+      : winner.verdict.tier === "plus" && winner.row.billingInterval === "month"
+        ? "month"
+        : null) as Resolved["billingInterval"],
   };
 }
 
@@ -167,8 +202,10 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
   const timezone = settings?.timezone || "UTC";
   const accountDay = clampForward(dayKeyInZone(now, timezone), settings?.lastAccountDay);
 
-  const { tier, status, needsAttention, graceEndsAt, provider, planKey, duplicateProviders } =
-    resolveAcrossProviders(subs, now);
+  const {
+    tier, status, needsAttention, graceEndsAt, provider, planKey, duplicateProviders,
+    periodEndAt, cancelAtPeriodEnd, billingInterval,
+  } = resolveAcrossProviders(subs, now);
   const def = definitionFor(tier);
 
   const counter = await ctx.db
@@ -200,6 +237,9 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
     provider,
     planKey,
     duplicateProviders,
+    periodEndAt,
+    cancelAtPeriodEnd,
+    billingInterval,
     accountDay,
     timezone,
     limits: def.limits,
@@ -232,6 +272,9 @@ export const getMyEntitlements = query({
         provider: null,
         planKey: null,
         duplicateProviders: false,
+        periodEndAt: null,
+        cancelAtPeriodEnd: false,
+        billingInterval: null,
         accountDay: dayKeyInZone(now, "UTC"),
         timezone: "UTC",
         limits: def.limits,

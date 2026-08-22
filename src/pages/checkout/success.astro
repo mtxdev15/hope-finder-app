@@ -60,13 +60,18 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
           <span class="cor-tick" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
           </span>
-          <h2 class="cor-t" data-i18n="checkout.confirmedT">Your Plus subscription is active</h2>
-          <p class="cor-d" data-i18n="checkout.confirmedD">
-            Everything Plus opens up is ready for you now.
+          <h2 class="cor-t" data-i18n="checkout.welcomePlusT">Welcome to Declare Plus</h2>
+          <p class="cor-d" data-i18n="checkout.welcomePlusD">
+            Your subscription is active. You now have unlimited Gentle Guidance and unlimited Journeys.
           </p>
+          {/* Cadence and renewal date, filled only when the entitlement response
+              actually carries them. No price is repeated here: pricing owns the
+              amount, and a second hardcoded copy goes stale silently. */}
+          <p class="cor-cadence" id="corCadence" hidden></p>
+
           <div class="cor-acts">
-            <a class="cor-btn cor-primary" href="/today" data-i18n="checkout.continue">Continue</a>
-            <a class="cor-btn cor-ghost" href="/you" data-i18n="checkout.viewAccount">View your account</a>
+            <a class="cor-btn cor-primary" href="/today" data-i18n="checkout.continueToDeclare">Continue to Declare</a>
+            <a class="cor-btn cor-ghost" href="/you#plan-billing" data-i18n="checkout.viewMyPlan">View my plan</a>
           </div>
         </section>
 
@@ -108,6 +113,7 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
     stateForEntitlement,
     pollExhausted,
   } from '../../app/declare/checkout-return.js';
+  import { cadenceKey, formatPeriodEnd, planState, periodLabelKey } from '../../app/declare/plan-display.js';
 
   /* FIRST, before anything else can read or log it: take session_id out of the
      visible URL. We only ever ask WHETHER it was there — the value is not
@@ -126,6 +132,28 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
   const STATES = ['stPending', 'stSignedOut', 'stConfirmed', 'stAttention', 'stTimeout'];
   function show(id: string): void {
     STATES.forEach((s) => { const el = $(s); if (el) el.hidden = s !== id; });
+  }
+
+  /* Cadence and renewal date, from the SAME response that confirmed Plus.
+     Rendered only when present — a missing date shows no date rather than a
+     placeholder that looks real. The word in front of the date comes from the
+     shared helper, so a scheduled cancellation can never read "Renews". */
+  function renderCadence(ent: any): void {
+    const el = $('corCadence');
+    if (!el) return;
+    /* I18N.t already falls back, and I18N.lang is a FUNCTION. */
+    const tr = (k: string, fallback: string): string =>
+      window.I18N ? window.I18N.t(k, fallback) : fallback;
+    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+    const ck = cadenceKey(ent);
+    const parts: string[] = [];
+    if (ck) parts.push(tr(ck, ck === 'plan.annual' ? 'Annual plan' : 'Monthly plan'));
+    const pk = periodLabelKey(planState(ent));
+    const when = formatPeriodEnd(ent && ent.periodEndAt, lang);
+    if (pk && when) parts.push(tr(pk, pk === 'plan.cancels' ? 'Cancels' : 'Renews') + ' ' + when);
+    if (!parts.length) return;
+    el.textContent = parts.join(' \u00b7 ');
+    el.hidden = false;
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -149,7 +177,7 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
     if (stopped) return;
 
     const state = stateForEntitlement(ent);
-    if (state === 'confirmed') { show('stConfirmed'); stop(); return; }
+    if (state === 'confirmed') { renderCadence(ent); show('stConfirmed'); stop(); return; }
     if (state === 'attention') { show('stAttention'); stop(); return; }
 
     attempts += 1;
@@ -190,6 +218,7 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
   .cor-card { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 30px 22px; }
   .cor-t { font-family: 'Cormorant Garamond', serif; font-size: 24px; line-height: 1.2; color: var(--text); font-weight: 500; margin: 14px 0 0; }
   .cor-d { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 42ch; }
+  .cor-cadence { font-size: 13px; line-height: 1.6; color: var(--text2); margin: 12px auto 0; }
   .cor-acts { margin-top: 22px; display: grid; gap: 10px; }
   .cor-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 12px 18px; border-radius: 14px; font-size: 15px; font-weight: 600; text-decoration: none; }
   .cor-primary { background: var(--gold); color: #13211A; border: 1px solid var(--gold); }

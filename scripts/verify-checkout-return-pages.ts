@@ -103,7 +103,22 @@ check("the page creates no Checkout Session", !/createCheckoutSession/.test(SUCC
 check("the page runs no mutation", !/runMutation|\.mutation\(/.test(SUCCESS_JS));
 
 /* The real decision function, executed. */
-check("tier plus -> confirmed", stateForEntitlement({ tier: "plus" }) === "confirmed");
+/* TIGHTENED, deliberately. This used to assert that a bare `{ tier: "plus" }`
+ * confirms. It no longer does, and that is the point: stateForEntitlement now
+ * delegates to plan-display.js, where a Plus tier carrying no recognised
+ * subscriptionStatus is LESS information than one carrying "active", so it
+ * fails closed instead of claiming health. The realistic response — which is
+ * what getMyEntitlements actually returns — still confirms. */
+check("active plus -> confirmed",
+  stateForEntitlement({ tier: "plus", subscriptionStatus: "active" }) === "confirmed");
+check("plus with NO status does not confirm",
+  stateForEntitlement({ tier: "plus" }) !== "confirmed");
+check("plus with an unrecognised status does not confirm",
+  stateForEntitlement({ tier: "plus", subscriptionStatus: "who_knows" }) !== "confirmed");
+check("cancel-at-period-end still confirms — they paid for the period",
+  stateForEntitlement({ tier: "plus", subscriptionStatus: "active", cancelAtPeriodEnd: true }) === "confirmed");
+check("two providers billing is NOT success",
+  stateForEntitlement({ tier: "plus", subscriptionStatus: "active", duplicateProviders: true }) === "attention");
 check("tier free -> pending", stateForEntitlement({ tier: "free" }) === "pending");
 check("guest -> pending", stateForEntitlement({ tier: "guest" }) === "pending");
 check("null response -> pending, never confirmed",
