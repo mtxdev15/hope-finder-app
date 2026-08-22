@@ -47,7 +47,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
                   gold stays a brand colour, but it must not be what says
                   "this account pays". PLUS identifies membership; ACTIVE,
                   Cancels and Payment needs attention live in the plan card. */}
-              <span class="ybadge" id="yPlusBadge" hidden data-i18n-aria="you.plusBadgeAria"
+              <span class="yplus" id="yPlusBadge" hidden data-i18n-aria="you.plusBadgeAria"
                     aria-label="Declare Plus subscriber">PLUS</span>
             </div>
             <div class="yrole" id="yRole" data-i18n="you.roleGuest">Guest &middot; not signed in</div>
@@ -83,6 +83,17 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           <h2 class="ysec-h serif" id="yFormH" data-i18n="you.formationH">Your Formation</h2>
           <p class="ysec-d" data-i18n="you.formationD">Revisit what you are walking through and the truths you are carrying.</p>
           <div class="yform" id="yFormation"></div>
+
+          {/* The real per-device counts this page has always shown — words
+              kept, verses saved, highlights, collections. They were in the old
+              rail; they belong here, with the rest of what has been formed.
+              Kept as-is so renderRail() and its existing strings still drive
+              them: this section MOVED a capability, it did not replace one. */}
+          <div class="ydevice m-rise">
+            <div class="yd-h" data-i18n="you.onThisDevice">Saved on this device</div>
+            <ul class="yc-list" id="yStats"></ul>
+            <div class="yd-note" data-i18n="you.savedNote">Your words, verses and highlights live safely on this device. Signing in keeps them tied to you.</div>
+          </div>
         </section>
 
         {/* ── 4. Account ──────────────────────────────────────────────── */}
@@ -123,7 +134,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         <section class="ysec" aria-labelledby="yExpH">
           <h2 class="ysec-h serif" id="yExpH" data-i18n="you.experienceH">Experience</h2>
           <div class="yrows m-rise">
-            <div class="yrow yrow-static">
+            {/* Keeps the existing `.appearance` class: the segmented-control
+                styling in this stylesheet is written as `.appearance .themectl`,
+                and dropping it left the control absolutely positioned — which
+                is what put the theme buttons BELOW the language buttons in the
+                keyboard order. Stacks rather than sitting inline, because the
+                control is full width by design. */}
+            <div class="yrow yrow-static yrow-stack appearance">
               <span class="yrow-m">
                 <span class="yrow-t" data-i18n="you.appearance">Appearance</span>
                 <span class="yrow-d" data-i18n="you.appearanceD">Dark is home. Choose what fits the hour.</span>
@@ -134,7 +151,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
                 <button data-mode="system" data-i18n="you.themeAuto">Auto</button>
               </nav>
             </div>
-            <div class="yrow yrow-static">
+            <div class="yrow yrow-static yrow-stack appearance">
               <span class="yrow-m">
                 <span class="yrow-t" data-i18n="you.language">Language</span>
                 <span class="yrow-d" data-i18n="you.languageD">Read Declare in English or Spanish.</span>
@@ -1826,6 +1843,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yrow[disabled] { cursor: default; opacity: .72; }
     @media (hover: hover) { .you .yrow:not(.yrow-static):not([disabled]):hover {
       background: color-mix(in srgb, var(--text) 4%, transparent); } }
+    /* Rows that host a full-width control stack instead of sitting inline. */
+    .you .yrow-stack { display: block; }
+    .you .yrow-stack .yrow-m { display: block; }
+
     .you .ysoon { flex: none; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
       text-transform: uppercase; color: var(--muted); border: 1px solid var(--line2);
       border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
@@ -1841,6 +1862,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .yfcard:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     @media (hover: hover) { .you .yfcard:hover {
       border-color: color-mix(in srgb, var(--text) 18%, var(--line)); } }
+
+    /* On-this-device counts, carried over from the retired rail. */
+    .you .ydevice { margin-top: 12px; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 16px; padding: 16px; box-shadow: var(--card-shadow); }
+    .you .yd-h { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .you .yd-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 10px; }
 
     /* Sign out -- separated from ordinary preferences on purpose. */
     .you .ysignout { display: inline-flex; align-items: center; justify-content: center;
@@ -1894,8 +1921,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        and those live in the plan card below.
 
        Forest text on a hairline border, no meaningful fill, no icon, no
-       gradient, no glow, no reward shadow. */
-    .you .ybadge { display: inline-flex; align-items: center; height: 22px;
+       gradient, no glow, no reward shadow.
+
+       NOT called .ybadge on purpose: that class already belongs to the
+       church-finder "Home" marker further down this stylesheet, which sets
+       gold and would win on cascade order. The first computed-style check
+       caught exactly that -- the source looked correct while the browser
+       still painted #9A7A24. Its own class makes the collision impossible. */
+    .you .yplus { display: inline-flex; align-items: center; height: 22px;
       font-size: 10px; font-weight: 600; letter-spacing: .1em; padding: 0 8px;
       border-radius: 6px; white-space: nowrap;
       color: var(--text); border: 1px solid var(--line2);
