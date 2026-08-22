@@ -263,8 +263,69 @@ When Stage 2 resumes, in this order:
    scheduled cancellation still reads as `active` in the inspector. Confirm
    cancellation in the Stripe Dashboard. Surfacing that field is an
    entitlement-contract change, deliberately out of scope.
-7. **Configure the Billing Portal in the Stripe Dashboard.** This must happen
-   before the Portal control can do anything — the first click fails without it.
+7. **Configure the Billing Portal in the Stripe Dashboard.** *Paused here
+   2026-08-21 — this is the active resume point.* Must happen before the Portal
+   control can do anything; the first click fails without it.
+
+   **This one cannot be automated.** The `stripe-sandbox` MCP server exposes
+   only `GetBillingPortalConfigurations` and
+   `GetBillingPortalConfigurationsConfiguration` — both GET. There is no create
+   or update operation, and `PostBillingPortalConfigurations` answers
+   *"Operation is not available"*, which means the server does not expose it
+   rather than the restricted key lacking scope. Widening the key would not
+   help. Configure it by hand in the Dashboard.
+
+   **Before-state, read from the API 2026-08-21:**
+   `GET /v1/billing_portal/configurations` returned `{"data": []}` on
+   `acct_1TmENuLShxhb4mBz` (**Declare checkout dev**). Zero configurations — the
+   portal has never been touched in this sandbox.
+
+   **Navigation:** account picker -> Sandboxes -> Declare checkout dev ->
+   Settings -> Billing -> Customer portal. Confirm the page shows the sandbox
+   before changing anything.
+
+   **Settings to apply:**
+
+   | Setting | Value |
+   |---|---|
+   | Plan switching | Off |
+   | Quantity updates | Off |
+   | Subscription cancellation | **On** |
+   | Cancellation timing | End of billing period |
+   | Cancellation reason | On |
+   | Retention coupons | Off |
+   | Payment-method updates | **On** |
+   | Invoice history | **On** |
+
+   This gives cancellation and payment-method testing without enabling untested
+   upgrades, downgrades, quantities or proration.
+
+   **Why the Dashboard is the only place this can happen:** `createPortalSession`
+   sends **no** `configuration` parameter, so Stripe uses the account's
+   **default** configuration — and saving the Dashboard settings is what creates
+   that default. This is the right arrangement and needs no code change, but it
+   does mean an API-created configuration would not be picked up.
+
+   If the Dashboard asks for a **default redirect link**, any valid URL will do.
+   Our code always sends `return_url` explicitly (`SITE_URL` + `/you`), so the
+   Dashboard value is never used.
+
+   **The lifecycle is already handled.** `convex/http.ts` handles both
+   `customer.subscription.updated` and `customer.subscription.deleted`, and
+   stores `cancel_at_period_end` and `canceled_at`. End-of-period cancellation
+   produces the `updated` event first and the `deleted` event at period end;
+   both will land in Convex correctly.
+
+   **Plan around this:** end-of-period cancellation leaves the subscription
+   `active` until the period actually ends, so cancelling the existing monthly
+   subscriber does **not** free that account for annual testing for up to a
+   month. The separate sandbox QA account is the faster route to annual.
+
+   **When it is saved:** re-read `GET /v1/billing_portal/configurations` and
+   verify all eight settings against the table above, then record the result in
+   `docs/operations/stage-2-sandbox-billing.md` §6.12. That read-back is a
+   better verification artifact than a screenshot, and it diffs against the
+   empty before-state recorded here.
 8. **Verify annual checkout, cancellation and payment failure** using the
    controls from step 6d, on a separate sandbox QA account.
 
