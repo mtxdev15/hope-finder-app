@@ -319,10 +319,14 @@ When Stage 2 resumes, in this order:
    - [ ] verify the subscription remains active for the entire remaining period
    - [ ] verify terminal `customer.subscription.deleted` at the real period end
    - [ ] verify access changes at terminal cancellation
-   - [ ] commit the regenerated `convex/_generated/api.d.ts` — `convex dev --once`
-         registers the new `stripeCancellation` module in the type map; PR #28
-         shipped without it because codegen never ran on that branch. Two lines,
-         deterministic, zero callable functions added
+   - [x] **commit the regenerated `convex/_generated/api.d.ts`** — done
+         2026-08-22. Regenerated from merged main with `npx convex codegen`, so
+         `stripeCancellation` is now represented in the generated module map.
+         Two lines: one `import type` and one entry in `fullApi`. It adds **no
+         remotely callable Convex function** — the module exports only ordinary
+         TypeScript helpers and declares no query, mutation, action or HTTP
+         action, and the deployment still attributes zero functions to it. No
+         deployment was required: `convex codegen` writes local files only.
    - [ ] actually update a payment method
    - [ ] open or download an invoice
    - [ ] verify payment-failure / payment-attention behaviour

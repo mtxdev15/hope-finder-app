@@ -21,6 +21,7 @@ import type * as journeyTranslateCore from "../journeyTranslateCore.js";
 import type * as plusPlans from "../plusPlans.js";
 import type * as reviews from "../reviews.js";
 import type * as stripeApi from "../stripeApi.js";
+import type * as stripeCancellation from "../stripeCancellation.js";
 import type * as subscriptionGuard from "../subscriptionGuard.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as usage from "../usage.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   plusPlans: typeof plusPlans;
   reviews: typeof reviews;
   stripeApi: typeof stripeApi;
+  stripeCancellation: typeof stripeCancellation;
   subscriptionGuard: typeof subscriptionGuard;
   subscriptions: typeof subscriptions;
   usage: typeof usage;
