@@ -217,6 +217,28 @@ export default defineSchema({
     eventId: v.string(), // Stripe evt_… / Apple notificationUUID
     type: v.string(),
     processedAt: v.number(),
+
+    /* How the event was resolved. OPTIONAL so the rows written before this
+       field existed stay valid — they are not migrated or rewritten, and an
+       absent outcome reads as the ordinary applied path. Explicit fields
+       rather than prose so an alert can query them. */
+    outcome: v.optional(
+      v.union(
+        v.literal("applied"),
+        v.literal("stale"),
+        v.literal("unmatched"),
+        v.literal("duplicate-subscription-conflict"),
+      ),
+    ),
+    /* Set only on a duplicate-subscription conflict. Enough to identify what
+       happened without reopening Stripe: which subscription we kept, which one
+       we refused, and whose account it was. No secret, no hosted URL, no
+       payment method, no charge id, no email, no profile data — and none of it
+       is readable through getMyEntitlements, which never queries this table. */
+    conflictReason: v.optional(v.string()),
+    canonicalSubscriptionId: v.optional(v.string()),
+    incomingSubscriptionId: v.optional(v.string()),
+    userId: v.optional(v.string()),
   }).index("by_provider_event", ["provider", "eventId"]),
 
   /* ===== Entitlements & usage (Release C1 Phase 4) ============================

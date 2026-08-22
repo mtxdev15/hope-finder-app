@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { classifyIncomingSubscription } from "./subscriptionGuard";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -168,6 +169,13 @@ export const linkCustomer = internalMutation({
  *
  * 4. ENVIRONMENT — carried on the row, so a sandbox purchase cannot grant Plus
  *    in production.
+ *
+ * 5. ONE CANONICAL STRIPE SUBSCRIPTION — a webhook for a DIFFERENT Stripe
+ *    subscription id must never repoint the row holding a live one. The
+ *    checkout-time guard in billing.ts cannot cover this: a Session minted
+ *    before the first subscription existed stays payable for 24 hours, and
+ *    completing it later produces a second real subscription the checkout
+ *    guard never saw. See subscriptionGuard.ts.
  */
 export const applyWebhook = internalMutation({
   args: {
@@ -204,12 +212,25 @@ export const applyWebhook = internalMutation({
       .first();
     if (seen) return { ok: true, deduped: true };
 
-    const recordEvent = async () => {
+    type EventOutcome = "applied" | "stale" | "unmatched" | "duplicate-subscription-conflict";
+    type ConflictDetail = {
+      conflictReason: string;
+      canonicalSubscriptionId: string;
+      incomingSubscriptionId?: string;
+      userId: string;
+    };
+    /* Still exactly one row per (provider, eventId) — the replay check above is
+       unchanged and remains authoritative. This only records HOW the event
+       resolved, so a conflict is visible rather than indistinguishable from an
+       ordinary apply. */
+    const recordEvent = async (outcome: EventOutcome, detail?: ConflictDetail) => {
       await ctx.db.insert("billingEvents", {
         provider: args.provider,
         eventId: args.eventId,
         type: args.eventType,
         processedAt: Date.now(),
+        outcome,
+        ...(detail ?? {}),
       });
     };
 
@@ -248,8 +269,62 @@ export const applyWebhook = internalMutation({
       // Nothing to attach this to. Record the event so the provider stops
       // retrying, but do not invent an owner — guessing here is how one
       // account's subscription lands on another's.
-      await recordEvent();
+      await recordEvent("unmatched");
       return { ok: true, unmatched: true };
+    }
+
+    // Scoped by provider: a Stripe event must never overwrite an Apple row.
+    // Resolved BEFORE the customer mapping below, so a conflicting event can
+    // return having written nothing but its own event record.
+    const existing =
+      bySub ??
+      (await ctx.db
+        .query("subscriptions")
+        .withIndex("by_user_provider", (q) =>
+          q.eq("userId", userId as string).eq("provider", args.provider),
+        )
+        .first());
+
+    /* 3. ONE CANONICAL STRIPE SUBSCRIPTION.
+     *
+     * Runs inside this mutation, which Convex serialises per document, so two
+     * different subscription ids arriving together cannot both win: the first
+     * transaction to commit becomes canonical and the second reads it here and
+     * conflicts. That is why the check lives in the mutation rather than as a
+     * read-then-write in the caller, where the two could interleave.
+     *
+     * Every event type reaches this point — http.ts calls applyWebhook exactly
+     * once, for all seven — so invoice.paid arriving before
+     * customer.subscription.created is decided the same way as any other. */
+    const verdict = classifyIncomingSubscription({
+      provider: args.provider,
+      existing: existing ?? null,
+      incomingSubscriptionId: args.stripeSubscriptionId ?? null,
+    });
+    if (!verdict.ok) {
+      /* Structured and alertable, and deliberately WITHOUT the subscription
+       * ids: http.ts already established that provider ids have no business in
+       * logs. The ids are on the billingEvents row this writes, keyed by the
+       * event id printed here, which is how an operator finds them. */
+      console.log(
+        "[billing] duplicate-subscription-conflict provider=" + args.provider +
+          " event=" + args.eventId +
+          " type=" + args.eventType +
+          " existingStatus=" + verdict.existingStatus +
+          " — canonical subscription left unchanged; detail on the billingEvents row",
+      );
+      await recordEvent("duplicate-subscription-conflict", {
+        conflictReason: verdict.reason,
+        canonicalSubscriptionId: verdict.canonicalSubscriptionId,
+        ...(verdict.incomingSubscriptionId
+          ? { incomingSubscriptionId: verdict.incomingSubscriptionId }
+          : {}),
+        userId,
+      });
+      /* Acknowledged, not applied. Returning 200 stops Stripe retrying an
+       * event we will never apply; the conflict is durable on the event row
+       * and in the log rather than in a retry queue. */
+      return { ok: true, duplicateSubscription: true };
     }
 
     // Keep the Stripe customer mapping current for future portal lookups.
@@ -268,20 +343,11 @@ export const applyWebhook = internalMutation({
     }
 
     const now = Date.now();
-    // Scoped by provider: a Stripe event must never overwrite an Apple row.
-    const existing =
-      bySub ??
-      (await ctx.db
-        .query("subscriptions")
-        .withIndex("by_user_provider", (q) =>
-          q.eq("userId", userId as string).eq("provider", args.provider),
-        )
-        .first());
 
-    // 3. Ordering: never let an older event overwrite newer state.
+    // 4. Ordering: never let an older event overwrite newer state.
     if (existing && typeof existing.lastProviderEventAt === "number") {
       if (args.eventCreated < existing.lastProviderEventAt) {
-        await recordEvent();
+        await recordEvent("stale");
         return { ok: true, stale: true };
       }
     }
@@ -330,7 +396,7 @@ export const applyWebhook = internalMutation({
 
     // Recorded last: if anything above throws, the provider retries and we
     // reprocess rather than marking an event done that never applied.
-    await recordEvent();
+    await recordEvent("applied");
     return { ok: true };
   },
 });
