@@ -21,136 +21,218 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     <div class="topglow" aria-hidden="true"></div>
     <div class="you-col">
 
-      <div class="ygrid">
-        {/* ───── left rail: profile card + on-this-device card (Airbnb rail) ───── */}
-        <aside class="yrail">
-          <div class="ycard yprofile m-rise">
-            <div class="yav-wrap">
-              <button class="yav" id="yAvatar" type="button" aria-label="Add or change your photo" data-i18n-aria="you.photoAria"><span id="yAvText" class="serif">✝</span></button>
-              <span class="yav-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+      {/* ── Account experience, in a deliberate order ─────────────────────
+          1 identity · 2 plan · 3 formation · 4 account · 5 experience
+          6 privacy & support · 7 mobile app · 8 sign out
+
+          A subscriber must see who they are and what they hold BEFORE any
+          secondary setting. The old two-column rail buried the plan beside the
+          profile; a single centred column keeps the reading order and the
+          visual order the same on every width, which is also what makes the
+          mobile stack correct for free. */}
+      <div class="yflow">
+
+        {/* ── 1. Identity ─────────────────────────────────────────────── */}
+        <section class="ysec yident m-rise" aria-labelledby="yName">
+          <div class="yav-wrap">
+            <button class="yav" id="yAvatar" type="button" aria-label="Add or change your photo" data-i18n-aria="you.photoAria"><span id="yAvText" class="serif">✝</span></button>
+            <span class="yav-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+          </div>
+          <input type="file" id="yAvFile" accept="image/*" hidden />
+          <button type="button" class="yav-remove" id="yAvRemove" hidden>Remove photo</button>
+          <div class="yid-txt">
+            <div class="yid-line">
+              <h1 class="yname serif" id="yName">Friend</h1>
+              {/* MEMBERSHIP identity, not billing health. Deliberately NOT gold:
+                  gold stays a brand colour, but it must not be what says
+                  "this account pays". PLUS identifies membership; ACTIVE,
+                  Cancels and Payment needs attention live in the plan card. */}
+              <span class="ybadge" id="yPlusBadge" hidden data-i18n-aria="you.plusBadgeAria"
+                    aria-label="Declare Plus subscriber">PLUS</span>
             </div>
-            <input type="file" id="yAvFile" accept="image/*" hidden />
-            <button type="button" class="yav-remove" id="yAvRemove" hidden>Remove photo</button>
-            <div class="yname serif" id="yName">Friend</div>
-            {/* Identity, not a billing claim. Hidden until entitlement loading
-                completes, so it never flashes for a free account. A subscriber
-                whose payment needs attention keeps it — the Plan & Billing card
-                below carries the lifecycle truth, and the badge never says
-                "Active". No crown, no gold. */}
-            <span class="ybadge" id="yPlusBadge" hidden data-i18n-aria="you.plusBadgeAria"
-                  aria-label="Declare Plus subscriber">PLUS</span>
             <div class="yrole" id="yRole" data-i18n="you.roleGuest">Guest &middot; not signed in</div>
-            <div class="ydivider"></div>
             <div class="ystat"><b id="yDays">1</b><span id="yDaysLbl" data-i18n="you.dayWith">day with Declare</span></div>
           </div>
+        </section>
 
-          <div class="ycard yconfirm m-rise">
-            <div class="yc-h" data-i18n="you.onThisDevice">Saved on this device</div>
-            <ul class="yc-list" id="yStats"></ul>
-            <div class="yc-note" data-i18n="you.savedNote">Your words, verses and highlights live safely on this device. Signing in keeps them tied to you.</div>
-          </div>
-        </aside>
-
-        {/* ───── right: About you (icon-fact grid + chips), then the hub ───── */}
-        <section class="ymain">
-          <div class="yhead m-rise">
-            <h1 class="serif" data-i18n="you.aboutYou">About you</h1>
-            <p data-i18n="you.aboutYouSub">What you share here stays on this device — it simply makes Declare feel like yours.</p>
-          </div>
-
-          <div class="yfacts m-rise" id="yFacts"></div>
-
-          <div class="ychips-wrap m-rise">
-            <div class="ylbl" data-i18n="you.askMeAbout">Ask me about</div>
-            <div class="ychips" id="yChips"></div>
-          </div>
-
-          {/* ── Plan & billing ────────────────────────────────────────────
-              The gap the Portal smoke test exposed: the Portal returns
-              subscribers HERE, and this page used to tell them nothing about
-              what they hold. One restrained card, not a billing dashboard —
-              Stripe's Portal keeps the payment methods, invoices, cancellation
-              actions and billing address. This shows plan identity, lifecycle
-              state, dates and the single safe way in. */}
-          <div class="yhead yhead2 m-rise"><h2 class="serif" data-i18n="you.planBillingH">Plan &amp; billing</h2></div>
-          <section class="pbcard m-rise" id="plan-billing" aria-labelledby="pbTitle" aria-busy="true">
+        {/* ── 2. Plan & billing ───────────────────────────────────────── */}
+        <section class="ysec" aria-labelledby="yPlanH">
+          <h2 class="ysec-h serif" id="yPlanH" data-i18n="you.planBillingH">Plan &amp; billing</h2>
+          <div class="pbcard m-rise" id="plan-billing" aria-labelledby="pbTitle" aria-busy="true">
             <div class="pb-top">
               <div class="pb-id">
                 <div class="pb-nm serif" id="pbTitle" data-i18n="plan.loadingName">Loading your plan</div>
                 <div class="pb-meta" id="pbMeta" hidden></div>
               </div>
-              {/* Status is a labelled chip AND a word, never colour alone. */}
               <span class="pb-state" id="pbState" hidden></span>
             </div>
             <ul class="pb-list" id="pbList" hidden></ul>
             <p class="pb-msg" id="pbMsg" role="status" hidden></p>
             <div class="pb-acts" id="pbActs"></div>
-          </section>
+          </div>
+        </section>
 
-          <div class="yhead yhead2 m-rise"><h2 class="serif" data-i18n="you.yourApp">Your app</h2></div>
-          <div class="yhub m-rise" id="yHub">
-            <div class="yhubcard appearance">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path></svg></div>
-              <div class="yh-t" data-i18n="you.appearance">Appearance</div>
-              <div class="yh-d" data-i18n="you.appearanceD">Dark is home. Choose what fits the hour.</div>
+        {/* ── 3. Your Formation ───────────────────────────────────────────
+            The Declare-specific section. Reflective, never gamified: no
+            streaks, no scores, no achievements, no "you missed a day". Every
+            item is built from data the app ALREADY holds and links only to a
+            route that already exists. Where a real number exists it is shown;
+            where one does not, the card carries an invitation instead of an
+            invented statistic. */}
+        <section class="ysec" aria-labelledby="yFormH">
+          <h2 class="ysec-h serif" id="yFormH" data-i18n="you.formationH">Your Formation</h2>
+          <p class="ysec-d" data-i18n="you.formationD">Revisit what you are walking through and the truths you are carrying.</p>
+          <div class="yform" id="yFormation"></div>
+        </section>
+
+        {/* ── 4. Account ──────────────────────────────────────────────── */}
+        <section class="ysec" aria-labelledby="yAccH">
+          <h2 class="ysec-h serif" id="yAccH" data-i18n="you.accountH">Account</h2>
+          <p class="ysec-d" data-i18n="you.aboutYouSub">What you share here stays on this device — it simply makes Declare feel like yours.</p>
+          <div class="yfacts m-rise" id="yFacts"></div>
+          <div class="ychips-wrap m-rise">
+            <div class="ylbl" data-i18n="you.askMeAbout">Ask me about</div>
+            <div class="ychips" id="yChips"></div>
+          </div>
+          <div class="yrows m-rise" id="yHub">
+            <button class="yrow" id="hubAuth">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.signSecurity">Sign-in &amp; security</span>
+                <span class="yrow-d" id="hubAuthD" data-i18n="you.signInKeep">Sign in to keep what God gives you</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </button>
+            <a class="yrow" href="#plan-billing">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.planBillingH">Plan &amp; billing</span>
+                <span class="yrow-d" data-i18n="you.planRowD">See what you hold and manage billing</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+            <a class="yrow" href="/pricing">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.plans">Plans</span>
+                <span class="yrow-d" data-i18n="you.plansD">What’s free, and what Plus adds</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+          </div>
+        </section>
+
+        {/* ── 5. Experience ───────────────────────────────────────────── */}
+        <section class="ysec" aria-labelledby="yExpH">
+          <h2 class="ysec-h serif" id="yExpH" data-i18n="you.experienceH">Experience</h2>
+          <div class="yrows m-rise">
+            <div class="yrow yrow-static">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.appearance">Appearance</span>
+                <span class="yrow-d" data-i18n="you.appearanceD">Dark is home. Choose what fits the hour.</span>
+              </span>
               <nav class="themectl" aria-label="Theme">
                 <button data-mode="light" data-i18n="you.themeLight">Light</button>
                 <button data-mode="dark" data-i18n="you.themeDark">Dark</button>
                 <button data-mode="system" data-i18n="you.themeAuto">Auto</button>
               </nav>
             </div>
-            <div class="yhubcard appearance">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div>
-              <div class="yh-t" data-i18n="you.language">Language</div>
-              <div class="yh-d" data-i18n="you.languageD">Read Declare in English or Spanish.</div>
+            <div class="yrow yrow-static">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.language">Language</span>
+                <span class="yrow-d" data-i18n="you.languageD">Read Declare in English or Spanish.</span>
+              </span>
               <nav class="langctl" id="langCtl" aria-label="Language">
-                <button type="button" data-lang="en">English</button>
-                <button type="button" data-lang="es">Español</button>
+                <button data-lang="en" data-i18n="you.langEn">English</button>
+                <button data-lang="es" data-i18n="you.langEs">Español</button>
               </nav>
             </div>
-            <button class="yhubcard" id="hubChurch">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"></path></svg></div>
-              <div class="yh-t" data-i18n="you.findChurch">Find a church</div>
-              <div class="yh-d" id="hubChurchD" data-i18n="you.findChurchD">Discover a fellowship near you</div>
+            <button class="yrow" id="hubChurch">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.findChurch">Find a church</span>
+                <span class="yrow-d" id="hubChurchD" data-i18n="you.findChurchD">Discover a fellowship near you</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
             </button>
-            <button class="yhubcard" data-soon>
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></div>
-              <div class="yh-t" data-i18n="you.reminders">Reminders &amp; notifications</div>
-              <div class="yh-d"><span data-i18n="you.remindersD">A daily nudge back to the Word</span> <span class="ybadge" data-i18n="you.soon">Soon</span></div>
+            {/* Genuinely not built yet, so it is visibly disabled and labelled —
+                never a row that looks live and does nothing. */}
+            <button class="yrow" data-soon disabled aria-disabled="true">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.reminders">Reminders &amp; notifications</span>
+                <span class="yrow-d" data-i18n="you.remindersD">A daily nudge back to the Word</span>
+              </span>
+              <span class="ysoon" data-i18n="you.soon">Coming soon</span>
             </button>
-            <button class="yhubcard" id="hubAuth">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></div>
-              <div class="yh-t" data-i18n="you.signSecurity">Sign-in &amp; security</div>
-              <div class="yh-d" id="hubAuthD" data-i18n="you.signInKeep">Sign in to keep what God gives you</div>
-            </button>
-            <a class="yhubcard" href="/help" data-i18n-href="/es/ayuda">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.3 9.3a2.8 2.8 0 0 1 5.3 1c0 1.8-2.6 2.1-2.6 4"></path><path d="M12 17.4h.01"></path></svg></div>
-              <div class="yh-t" data-i18n="you.help">Help &amp; support</div>
-              <div class="yh-d" data-i18n="you.helpD">Answers, contact, and help when you need it</div>
-            </a>
-            <a class="yhubcard" href="/pricing">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5.5-8.8 11-8.8 11s-8.8-5.5-8.8-11a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9z"></path></svg></div>
-              <div class="yh-t" data-i18n="you.plans">Plans</div>
-              <div class="yh-d" data-i18n="you.plansD">What’s free, and what Plus adds</div>
-            </a>
-            <button class="yhubcard" id="yRateCard">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-5.6 3 1.1-6.3L3 9.6l6.3-.9L12 3l2.7 5.7 6.3.9-4.5 4.4 1.1 6.3z"></path></svg></div>
-              <div class="yh-t" data-i18n="you.rate">Rate Declare</div>
-              <div class="yh-d" data-i18n="you.rateD">Tell us how it has met you</div>
-            </button>
-            <button class="yhubcard" id="yWhatsNew">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.3 4.3 1.9-4.3 1.9L12 15l-1.9-4.3L5.8 9l4.3-1.9L12 3z"></path><path d="M18.5 13.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg></div>
-              <div class="yh-t" data-i18n="you.whatsNew">What&rsquo;s new</div>
-              <div class="yh-d" data-i18n="you.whatsNewD">Updates, improvements, and fixes</div>
-            </button>
-            <a class="yhubcard" href="/struggles" data-i18n-href="/es/luchas">
-              <div class="yh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.2-8.4C1 9.3 2.5 6 6 6c2 0 3 1.2 3.8 2.3C10.6 7.2 11.6 6 13.7 6c3.5 0 5 3.3 3.2 6.6C18.7 16.4 12 21 12 21z"></path><path d="M12 8.5v5M9.5 11h5" stroke-width="1.4"></path></svg></div>
-              <div class="yh-t" data-i18n="you.strugglesCard">Struggles</div>
-              <div class="yh-d" data-i18n="you.strugglesCardD">Read what God says about what you carry</div>
-            </a>
           </div>
+        </section>
 
-          <!-- Giving History card removed with the donation product (hotfix). -->
+        {/* ── 6. Privacy & support ────────────────────────────────────── */}
+        <section class="ysec" aria-labelledby="yHelpH">
+          <h2 class="ysec-h serif" id="yHelpH" data-i18n="you.privacySupportH">Privacy &amp; support</h2>
+          <div class="yrows m-rise">
+            <a class="yrow" href="/help" data-i18n-href="/es/ayuda">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.help">Help &amp; support</span>
+                <span class="yrow-d" data-i18n="you.helpD">Answers, contact, and help when you need it</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+            <a class="yrow" href="/struggles" data-i18n-href="/es/luchas">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.strugglesCard">Struggles</span>
+                <span class="yrow-d" data-i18n="you.strugglesCardD">Read what God says about what you carry</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+            <a class="yrow" href="/privacy" data-i18n-href="/es/privacidad">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.privacy">Privacy</span>
+                <span class="yrow-d" data-i18n="you.privacyD">How your words and data are handled</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+            <a class="yrow" href="/terms" data-i18n-href="/es/terminos">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.terms">Terms</span>
+                <span class="yrow-d" data-i18n="you.termsD">The agreement for using Declare</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </a>
+            <button class="yrow" id="yRateCard">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.rate">Rate Declare</span>
+                <span class="yrow-d" data-i18n="you.rateD">Tell us how it has met you</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </button>
+            <button class="yrow" id="yWhatsNew">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.whatsNew">What’s new</span>
+                <span class="yrow-d" data-i18n="you.whatsNewD">Updates, improvements, and fixes</span>
+              </span>
+              <span class="yrow-x" aria-hidden="true">›</span>
+            </button>
+          </div>
+        </section>
+
+        {/* ── 7. Mobile app ───────────────────────────────────────────── */}
+        <section class="ysec" aria-labelledby="yAppH">
+          <h2 class="ysec-h serif" id="yAppH" data-i18n="you.mobileAppH">Mobile app</h2>
+          <div class="yrows m-rise">
+            {/* No store link, no QR, no waitlist — none of those exist yet, and
+                a button that goes nowhere is worse than an honest label. */}
+            <div class="yrow yrow-static" id="yMobileApp">
+              <span class="yrow-m">
+                <span class="yrow-t" data-i18n="you.mobileAppT">Declare &amp; Believe mobile app</span>
+                <span class="yrow-d" data-i18n="you.mobileAppD">The same Word, on your phone.</span>
+              </span>
+              <span class="ysoon" data-i18n="you.soon">Coming soon</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 8. Sign out ─────────────────────────────────────────────── */}
+        <section class="ysec ysec-end" aria-labelledby="ySessH">
+          <h2 class="ysec-h sr-only" id="ySessH" data-i18n="you.sessionH">Session</h2>
+          <button class="ysignout" id="ySignOut" hidden data-i18n="you.signOut">Sign out</button>
+        </section>
 
           <div class="yver m-fade" id="yVer">DECLARE &middot; VERSION 3.19.1</div>
         </section>
@@ -1488,6 +1570,107 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     pbLoad();
     try { onAuthChange(() => { pbLoad(); }); } catch (e) {}
 
+  
+    /* ── Your Formation ────────────────────────────────────────────────────
+       Built ONLY from data the app already holds:
+         db_active_journey   which Journey is growing   -> /journey
+         db_journeys_done    rooted Journeys            -> /journey
+         vault listItems()   saved verses and words     -> /vault
+       Every destination is a route that exists today. Nothing here counts
+       streaks, scores, XP or achievements, and nothing says "you missed a
+       day" — this is for revisiting, not for scoring a walk with God.
+
+       Where a real number exists it is shown. Where one does not, the card
+       carries an invitation instead of an invented statistic. */
+    function yfRead(key: string): any {
+      try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
+      catch (e) { return null; }
+    }
+
+    function yfRender() {
+      const host = document.getElementById('yFormation');
+      if (!host) return;
+      const t = (k: string, fb: string): string => (window.I18N ? window.I18N.t(k, fb) : fb);
+
+      /* Active Journey. The stored shape is {id, day, ...} or a null tombstone. */
+      const act = yfRead('db_active_journey');
+      const activeId = act && typeof act === 'object' && act.id ? String(act.id) : null;
+      const activeDay = act && typeof act.day === 'number' ? act.day : null;
+
+      /* Rooted Journeys — a union of ids, so its length is a real count. */
+      const done = yfRead('db_journeys_done');
+      const doneCount = Array.isArray(done) ? done.length : 0;
+
+      /* Saved truths, from the vault the user can already open. */
+      let savedCount = 0;
+      try { savedCount = listItems().length; } catch (e) { savedCount = 0; }
+
+      const cards = [];
+
+      cards.push({
+        label: t('you.formWalking', 'What you are walking through'),
+        value: activeId
+          ? (activeDay ? t('you.formDay', 'Day') + ' ' + activeDay : t('you.formInProgress', 'In progress'))
+          : t('you.formBegin', 'Begin a Journey'),
+        note: activeId
+          ? t('you.formContinue', 'Continue where you left off')
+          : t('you.formBeginD', 'Walk through what you are carrying'),
+        href: '/journey',
+      });
+
+      cards.push({
+        label: t('you.formTruths', 'Truths you are carrying'),
+        value: savedCount > 0 ? String(savedCount) : t('you.formSaveFirst', 'Nothing saved yet'),
+        note: savedCount > 0
+          ? t('you.formTruthsD', 'Verses and words you kept')
+          : t('you.formTruthsEmpty', 'Keep what God gives you'),
+        href: '/vault',
+      });
+
+      cards.push({
+        label: t('you.formFruit', 'Fruit from your Journeys'),
+        value: doneCount > 0 ? String(doneCount) : t('you.formFruitNone', 'Not yet'),
+        note: doneCount > 0
+          ? t('you.formFruitD', 'Journeys you have rooted')
+          : t('you.formFruitEmpty', 'Finish a Journey to see it here'),
+        href: '/journey',
+      });
+
+      host.innerHTML = '';
+      for (const c of cards) {
+        const a = document.createElement('a');
+        a.className = 'yfcard';
+        a.href = c.href;
+        const l = document.createElement('span'); l.className = 'yf-l'; l.textContent = c.label;
+        const v = document.createElement('span'); v.className = 'yf-v serif'; v.textContent = c.value;
+        const n = document.createElement('span'); n.className = 'yf-n'; n.textContent = c.note;
+        a.append(l, v, n);
+        host.appendChild(a);
+      }
+    }
+    yfRender();
+    try { onAccountSync(() => yfRender()); } catch (e) {}
+
+    /* ── Sign out ──────────────────────────────────────────────────────────
+       A real row for a real action, shown only when there IS a session to end.
+       The existing modal path still works; this simply stops sign-out being
+       buried two taps deep. */
+    (function wireSignOut() {
+      const btn = document.getElementById('ySignOut');
+      if (!(btn instanceof HTMLButtonElement)) return;
+      const sync = () => { btn.hidden = !(isConfigured() && isSignedIn()); };
+      sync();
+      try { onAuthChange(sync); } catch (e) {}
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { await signOut(); } catch (e) {}
+        btn.disabled = false;
+        sync();
+        try { renderAuth(); } catch (e) {}
+        try { toast(tY('you.signedOut', 'Signed out on this device.')); } catch (e) {}
+      });
+    })();
+
   </script>
 
   <style is:global>
@@ -1496,7 +1679,6 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        ────────────────────────────────────────────────────────────────── */
     .you { position: relative; min-height: 100dvh; }
     .you .you-col { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 10px 20px 130px; }
-    .you .ygrid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 
     /* rail cards */
     .you .ycard { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--card-shadow); padding: 24px; }
@@ -1605,6 +1787,77 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        One restrained card on the existing surface/line tokens. No gradient, no
        glass, no glow, no crown, no gold treatment. Status is a bordered chip
        with a WORD in it, so it never depends on colour alone. */
+    /* ── Account flow: one calm centred column ────────────────────────────
+       A single column keeps reading order and visual order identical at every
+       width, which is what makes the mobile stack correct without a second set
+       of rules. Editorial width, not a dashboard grid. */
+    .you .yflow { width: min(1040px, 100%); margin: 0 auto; display: grid; gap: 30px; }
+    .you .ysec-h { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500;
+      color: var(--text); margin: 0 0 4px; letter-spacing: .01em; }
+    .you .ysec-d { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 0 0 14px; max-width: 56ch; }
+    .you .ysec-end { margin-top: 8px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .you .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    .you .yident { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .you .yid-txt { min-width: 0; }
+    .you .yid-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .you .yname { font-size: 26px; line-height: 1.15; margin: 0; font-weight: 500; }
+    /* The account email can be long; it wraps rather than pushing the page. */
+    .you .yrole { font-size: 13px; color: var(--muted); margin-top: 3px;
+      overflow-wrap: anywhere; word-break: break-word; }
+    .you .ystat { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+    .you .ystat b { color: var(--text); font-weight: 600; }
+
+    /* Grouped setting rows -- familiar, scannable, one action each. */
+    .you .yrows { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 16px; overflow: hidden; box-shadow: var(--card-shadow); }
+    .you .yrow { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      width: 100%; min-height: 60px; padding: 13px 16px; text-align: left; text-decoration: none;
+      background: transparent; border: 0; border-top: 1px solid var(--line);
+      color: var(--text); cursor: pointer; font: inherit; }
+    .you .yrows > :first-child { border-top: 0; }
+    .you .yrow-static { cursor: default; }
+    .you .yrow-m { display: grid; gap: 2px; min-width: 0; }
+    .you .yrow-t { font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .you .yrow-d { font-size: 12.5px; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+    .you .yrow-x { flex: none; color: var(--muted); font-size: 18px; line-height: 1; }
+    .you .yrow:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+    .you .yrow[disabled] { cursor: default; opacity: .72; }
+    @media (hover: hover) { .you .yrow:not(.yrow-static):not([disabled]):hover {
+      background: color-mix(in srgb, var(--text) 4%, transparent); } }
+    .you .ysoon { flex: none; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); border: 1px solid var(--line2);
+      border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+
+    /* Formation -- reflective cards, never a scoreboard. */
+    .you .yform { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .you .yfcard { display: grid; gap: 4px; padding: 16px; text-decoration: none;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      box-shadow: var(--card-shadow); min-height: 44px; }
+    .you .yf-l { font-size: 12px; color: var(--muted); }
+    .you .yf-v { font-size: 21px; font-weight: 500; color: var(--text); line-height: 1.2; }
+    .you .yf-n { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+    .you .yfcard:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    @media (hover: hover) { .you .yfcard:hover {
+      border-color: color-mix(in srgb, var(--text) 18%, var(--line)); } }
+
+    /* Sign out -- separated from ordinary preferences on purpose. */
+    .you .ysignout { display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; min-width: 44px; padding: 12px 22px; border-radius: 14px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      background: transparent; color: var(--text); border: 1px solid var(--line2); }
+    .you .ysignout:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+    @media (min-width: 760px) {
+      .you .yform { grid-template-columns: repeat(3, 1fr); }
+      .you .yname { font-size: 30px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .you .m-rise, .you .m-fade { animation: none !important; transition: none !important;
+        transform: none !important; opacity: 1 !important; }
+    }
+
     .you .pbcard { margin-top: 18px; background: var(--surface); border: 1px solid var(--line);
       border-radius: 18px; box-shadow: var(--card-shadow); padding: 18px 16px; }
     .you .pb-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -1633,11 +1886,20 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     .you .pb-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     @media (hover: hover) { .you .pb-btn:hover:not(:disabled) { filter: brightness(1.06); } }
 
-    /* Identity badge. Text, not ornament. */
-    .you .ybadge { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700;
-      letter-spacing: .14em; padding: 3px 8px; border-radius: 999px;
-      color: var(--goldd); border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line2));
-      background: color-mix(in srgb, var(--gold) 10%, transparent); }
+    /* ── Membership identity badge ────────────────────────────────────────
+       DELIBERATELY NOT GOLD. Gold remains a Declare brand colour, but it must
+       not be the thing that says "this account pays" -- that reads as a reward
+       trinket, and it conflates membership with billing health. PLUS says who
+       you are; ACTIVE / Cancels / Payment needs attention say how billing is,
+       and those live in the plan card below.
+
+       Forest text on a hairline border, no meaningful fill, no icon, no
+       gradient, no glow, no reward shadow. */
+    .you .ybadge { display: inline-flex; align-items: center; height: 22px;
+      font-size: 10px; font-weight: 600; letter-spacing: .1em; padding: 0 8px;
+      border-radius: 6px; white-space: nowrap;
+      color: var(--text); border: 1px solid var(--line2);
+      background: color-mix(in srgb, var(--text) 5%, transparent); }
 
     .you .yhub { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 18px; }
     .you .yhubcard { display: block; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--card-shadow);
@@ -1816,8 +2078,6 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* ===== DESKTOP: the Airbnb two-zone layout ===== */
     @media (min-width: 860px) {
       .you .you-col { padding-top: 96px; }
-      .you .ygrid { grid-template-columns: 320px 1fr; gap: 34px; align-items: start; }
-      .you .yrail { position: sticky; top: 90px; display: flex; flex-direction: column; gap: 16px; }
       .you .yfacts { grid-template-columns: 1fr 1fr; column-gap: 28px; }
       .you .yhub { grid-template-columns: 1fr 1fr; }
       .you .yfinder { top: 60px; z-index: 20; }
