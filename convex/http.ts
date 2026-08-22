@@ -9,6 +9,7 @@ import {
   environmentForSecret,
   stampedUserId,
 } from "./plusPlans";
+import { deriveCancelAtPeriodEnd } from "./stripeCancellation";
 
 const http = httpRouter();
 
@@ -242,9 +243,22 @@ http.route({
         : {}),
       ...(period.start != null ? { currentPeriodStart: period.start } : {}),
       ...(period.end != null ? { currentPeriodEnd: period.end } : {}),
-      ...(typeof sub.cancel_at_period_end === "boolean"
-        ? { cancelAtPeriodEnd: sub.cancel_at_period_end }
-        : {}),
+      /* NOT `sub.cancel_at_period_end` alone. Under 2026-06-24.dahlia with
+       * flexible billing, an end-of-period cancellation sets `cancel_at` to the
+       * period end and leaves the boolean FALSE — see stripeCancellation.ts for
+       * the real payload that proved it. Reading only the boolean stored
+       * `false` for a cancelled subscriber, so the account page said "Renews"
+       * on the very date the plan ends.
+       *
+       * Sent unconditionally, never spread-omitted: a subscription that stops
+       * being scheduled to cancel must be able to write `false` back over a
+       * stored `true`, which a field that disappears cannot do. */
+      cancelAtPeriodEnd: deriveCancelAtPeriodEnd({
+        status: sub.status,
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+        cancelAt: sub.cancel_at,
+        currentPeriodEnd: period.end,
+      }),
       ...(typeof sub.canceled_at === "number" ? { canceledAt: sub.canceled_at } : {}),
       ...(typeof sub.trial_end === "number" ? { trialEnd: sub.trial_end } : {}),
       ...(asId(sub.latest_invoice) ? { latestInvoiceId: asId(sub.latest_invoice) as string } : {}),

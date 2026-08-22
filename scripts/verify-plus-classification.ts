@@ -459,8 +459,26 @@ check("the pinned version is named where the readers are defined",
 /* ── 8e. Unchanged by design ─────────────────────────────────────────────── */
 check("Checkout Session subscription reader is UNCHANGED (session.subscription)",
   /subscriptionId = asId\(obj\.subscription\);/.test(HTTP));
-check("cancel_at_period_end still read at the subscription root",
-  /typeof sub\.cancel_at_period_end === "boolean"/.test(HTTP));
+/* UPDATED by the C6 cancellation finding, deliberately.
+ *
+ * This asserted that `cancel_at_period_end` is read at the subscription root
+ * with a `typeof === "boolean"` guard. That was true, and it was ALSO the bug:
+ * the root boolean was the ONLY thing read. Under 2026-06-24.dahlia with
+ * flexible billing, an end-of-period cancellation leaves that boolean FALSE and
+ * expresses the schedule in `cancel_at` instead, so Convex stored "not
+ * cancelling" for a cancelled subscriber.
+ *
+ * The field did not move — the root boolean is still consulted, and is still
+ * authoritative when true. What changed is that it is no longer sufficient on
+ * its own. Both signals are now asserted, at the place that reads them. */
+check("the root cancel_at_period_end is still consulted",
+  /cancelAtPeriodEnd: sub\.cancel_at_period_end,/.test(HTTP));
+check("cancel_at is ALSO consulted, at the subscription root",
+  /cancelAt: sub\.cancel_at,/.test(HTTP));
+check("both are fed through the shared normalizer, not compared inline",
+  /cancelAtPeriodEnd: deriveCancelAtPeriodEnd\(\{/.test(HTTP));
+check("the normalizer compares cancel_at against the item period end",
+  /currentPeriodEnd: period\.end,/.test(HTTP));
 check("canceled_at still read at the subscription root",
   /typeof sub\.canceled_at === "number"/.test(HTTP));
 
