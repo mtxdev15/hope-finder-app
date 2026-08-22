@@ -1,0 +1,210 @@
+---
+/* /checkout/success — where Stripe sends a completed Checkout.
+ *
+ * THE SECURITY MODEL
+ * This page confirms NOTHING from the redirect. Stripe appends
+ * `?session_id={CHECKOUT_SESSION_ID}` (see convex/billing.ts), and that value
+ * is attacker-supplied as far as this page is concerned — anyone can type a
+ * session id into the URL bar. It is never read for a decision, never
+ * rendered, never stored, never logged and never sent anywhere. The page only
+ * notices that the parameter EXISTS, strips it from the visible URL, and then
+ * asks Convex what the account actually holds.
+ *
+ * Convex entitlement state is the only thing that says "you have Plus", and it
+ * only becomes true when the signed webhook path has run. That is the whole
+ * point: a subscription is confirmed by Stripe talking to our Worker, not by a
+ * browser arriving at a URL.
+ *
+ * The page performs no Stripe call, opens no Checkout Session, and writes
+ * nothing.
+ */
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+---
+<DeclareLayout
+  title="Declare — Subscription"
+  description="Confirming your Declare Plus subscription."
+  activeTab=""
+  noindex={true}
+>
+  <main class="cor">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="cor-in">
+      <h1 class="cor-h serif" data-i18n="checkout.successH">Thank you</h1>
+
+      {/* One live region for every state, so a screen reader is told what
+          changed without the page mounting a second landmark. */}
+      <div class="cor-card" id="corCard" role="status" aria-live="polite">
+        {/* PENDING — the state the page opens in. */}
+        <section class="cor-state" id="stPending">
+          <span class="cor-spin" aria-hidden="true"></span>
+          <h2 class="cor-t" data-i18n="checkout.confirmingT">Confirming your subscription</h2>
+          <p class="cor-d" data-i18n="checkout.confirmingD">
+            Stripe is letting us know your payment went through. This usually takes a few seconds.
+          </p>
+        </section>
+
+        {/* SIGNED OUT — nothing to confirm against until there is a session. */}
+        <section class="cor-state" id="stSignedOut" hidden>
+          <h2 class="cor-t" data-i18n="checkout.signedOutT">Sign in to confirm your subscription</h2>
+          <p class="cor-d" data-i18n="checkout.signedOutD">
+            Your subscription is tied to your account. Sign in and we will confirm it here.
+          </p>
+          <div class="cor-acts">
+            <a class="cor-btn cor-primary" id="corSignin" href="/signin" data-i18n="checkout.signIn">Sign in</a>
+            <a class="cor-btn cor-ghost" href="/today" data-i18n="checkout.notNow">Not now</a>
+          </div>
+        </section>
+
+        {/* CONFIRMED — the account genuinely holds Plus. */}
+        <section class="cor-state" id="stConfirmed" hidden>
+          <span class="cor-tick" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+          </span>
+          <h2 class="cor-t" data-i18n="checkout.confirmedT">Your Plus subscription is active</h2>
+          <p class="cor-d" data-i18n="checkout.confirmedD">
+            Everything Plus opens up is ready for you now.
+          </p>
+          <div class="cor-acts">
+            <a class="cor-btn cor-primary" href="/today" data-i18n="checkout.continue">Continue</a>
+            <a class="cor-btn cor-ghost" href="/you" data-i18n="checkout.viewAccount">View your account</a>
+          </div>
+        </section>
+
+        {/* ATTENTION — never claim the subscription is active here. */}
+        <section class="cor-state" id="stAttention" hidden>
+          <h2 class="cor-t" data-i18n="checkout.attentionT">Your billing needs attention</h2>
+          <p class="cor-d" data-i18n="checkout.attentionD">
+            Something about the payment needs a second look. Your account page has the details.
+          </p>
+          <div class="cor-acts">
+            <a class="cor-btn cor-primary" href="/you" data-i18n="checkout.viewAccount">View your account</a>
+            <a class="cor-btn cor-ghost" href="/today" data-i18n="checkout.notNow">Not now</a>
+          </div>
+        </section>
+
+        {/* TIMED OUT — still possibly in flight. Never suggest paying again. */}
+        <section class="cor-state" id="stTimeout" hidden>
+          <h2 class="cor-t" data-i18n="checkout.timeoutT">Still confirming</h2>
+          <p class="cor-d" data-i18n="checkout.timeoutD">
+            This is taking longer than usual, and that is usually nothing to worry about. Your
+            account page will show the subscription once it lands. There is no need to pay again.
+          </p>
+          <div class="cor-acts">
+            <a class="cor-btn cor-primary" href="/you" data-i18n="checkout.viewAccount">View your account</a>
+            <a class="cor-btn cor-ghost" href="/today" data-i18n="checkout.notNow">Not now</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</DeclareLayout>
+
+<script>
+  import { initAuth, isConfigured, isSignedIn } from '../../app/declare/auth-store.js';
+  import { myEntitlements } from '../../app/declare/convex-data.js';
+  import {
+    POLL_INTERVAL_MS,
+    MAX_POLLS,
+    stateForEntitlement,
+    pollExhausted,
+  } from '../../app/declare/checkout-return.js';
+
+  /* FIRST, before anything else can read or log it: take session_id out of the
+     visible URL. We only ever ask WHETHER it was there — the value is not
+     assigned to a variable, not rendered, not stored and not sent anywhere.
+     replaceState keeps this out of history too, so a Back tap or a shared URL
+     does not carry it. */
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.has('session_id')) {
+      url.searchParams.delete('session_id');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+    }
+  } catch (e) {}
+
+  const $ = (id: string): HTMLElement | null => document.getElementById(id);
+  const STATES = ['stPending', 'stSignedOut', 'stConfirmed', 'stAttention', 'stTimeout'];
+  function show(id: string): void {
+    STATES.forEach((s) => { const el = $(s); if (el) el.hidden = s !== id; });
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let attempts = 0;
+  let inFlight = false;   // never two entitlement reads at once
+  let stopped = false;
+
+  function stop(): void {
+    stopped = true;
+    clearTimeout(timer);
+  }
+
+  async function tick(): Promise<void> {
+    /* One request at a time. Without this, a slow response plus the interval
+       would stack reads on top of each other. */
+    if (stopped || inFlight) return;
+    inFlight = true;
+    let ent = null;
+    try { ent = await myEntitlements(); } catch (e) { ent = null; }
+    inFlight = false;
+    if (stopped) return;
+
+    const state = stateForEntitlement(ent);
+    if (state === 'confirmed') { show('stConfirmed'); stop(); return; }
+    if (state === 'attention') { show('stAttention'); stop(); return; }
+
+    attempts += 1;
+    if (pollExhausted(attempts)) { show('stTimeout'); stop(); return; }
+    timer = setTimeout(tick, POLL_INTERVAL_MS);
+  }
+
+  /* Stop while the tab is hidden and resume when it comes back, so a page left
+     open in a background tab is not quietly polling. */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { clearTimeout(timer); }
+    else if (!stopped) { timer = setTimeout(tick, POLL_INTERVAL_MS); }
+  });
+  window.addEventListener('pagehide', stop);
+
+  (async () => {
+    await initAuth().catch(() => {});
+    if (!isConfigured() || !isSignedIn()) {
+      /* Come back here after signing in, using the same ?return= contract
+         signin.astro and auth-modal.js already share. */
+      const back = $('corSignin');
+      if (back instanceof HTMLAnchorElement) {
+        back.href = '/signin?return=' + encodeURIComponent('/checkout/success');
+      }
+      show('stSignedOut');
+      stop();
+      return;
+    }
+    show('stPending');
+    tick();
+  })();
+</script>
+
+<style>
+  .cor { position: relative; min-height: 100dvh; display: flex; align-items: center; padding: 24px 0 96px; }
+  .cor-in { width: min(560px, calc(100% - 32px)); margin: 0 auto; text-align: center; }
+  .cor-h { font-family: 'Cormorant Garamond', serif; font-size: 32px; line-height: 1.15; color: var(--text); font-weight: 500; }
+  .cor-card { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 30px 22px; }
+  .cor-t { font-family: 'Cormorant Garamond', serif; font-size: 24px; line-height: 1.2; color: var(--text); font-weight: 500; margin: 14px 0 0; }
+  .cor-d { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 42ch; }
+  .cor-acts { margin-top: 22px; display: grid; gap: 10px; }
+  .cor-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 12px 18px; border-radius: 14px; font-size: 15px; font-weight: 600; text-decoration: none; }
+  .cor-primary { background: var(--gold); color: #13211A; border: 1px solid var(--gold); }
+  .cor-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); }
+  .cor-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .cor-tick { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: rgba(155, 208, 168, .14); color: #9BD0A8; }
+  .cor-tick svg { width: 24px; height: 24px; }
+  .cor-spin { display: inline-block; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line2); border-top-color: var(--gold); animation: cor-spin 900ms linear infinite; }
+  @keyframes cor-spin { to { transform: rotate(360deg); } }
+  /* Reduced motion: hold a still ring rather than spinning it. */
+  @media (prefers-reduced-motion: reduce) {
+    .cor-spin { animation: none; border-top-color: var(--line2); }
+  }
+  @media (min-width: 560px) {
+    .cor-acts { grid-auto-flow: column; justify-content: center; }
+    .cor-btn { min-width: 190px; }
+  }
+</style>

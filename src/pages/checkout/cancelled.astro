@@ -1,0 +1,86 @@
+---
+/* /checkout/cancelled — where Stripe sends a Checkout the reader backed out of.
+ *
+ * This page is deliberately inert. It calls no Stripe API, runs no Convex
+ * query or mutation, writes nothing, and never re-opens or resumes a Checkout
+ * Session. Landing here is not evidence of anything except that the reader
+ * left the hosted form, so the copy does not claim a charge did or did not
+ * happen — only that THIS page confirmed no new subscription.
+ *
+ * convex/billing.ts appends `?plan=<alias>` so returning to pricing does not
+ * lose their selection. That value arrives in the query string, so it is
+ * allowlisted before it can reach the page: see checkout-return.js.
+ */
+import DeclareLayout from '../../layouts/DeclareLayout.astro';
+---
+<DeclareLayout
+  title="Declare — Checkout cancelled"
+  description="Checkout was cancelled. Nothing was started."
+  activeTab=""
+  noindex={true}
+>
+  <main class="cor">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="cor-in">
+      <h1 class="cor-h serif" data-i18n="checkout.cancelledH">Checkout cancelled</h1>
+
+      <div class="cor-card" role="status" aria-live="polite">
+        <h2 class="cor-t" data-i18n="checkout.cancelledT">Nothing was started</h2>
+        <p class="cor-d" data-i18n="checkout.cancelledD">
+          You left the payment form, so this page did not start a subscription. If you meant to
+          subscribe you can pick up where you left off whenever you are ready.
+        </p>
+        {/* Filled in only for an allowlisted plan; stays empty otherwise. */}
+        <p class="cor-plan" id="corPlan" hidden></p>
+
+        <div class="cor-acts">
+          <a class="cor-btn cor-primary" href="/pricing" data-i18n="checkout.seePlans">See plans</a>
+          <a class="cor-btn cor-ghost" href="/today" data-i18n="checkout.backToApp">Back to Declare</a>
+        </div>
+        <p class="cor-fine" data-i18n="checkout.cancelledFine">
+          If you think you were charged, your account page will always show what you actually hold.
+        </p>
+        <a class="cor-link" href="/you" data-i18n="checkout.viewAccount">View your account</a>
+      </div>
+    </div>
+  </main>
+</DeclareLayout>
+
+<script>
+  import { planLabel } from '../../app/declare/checkout-return.js';
+
+  /* The ONLY thing read from the query string, and it is allowlisted before it
+     is used. An unrecognised value resolves to null and this block stays
+     hidden — the raw parameter is never rendered, so nothing an attacker can
+     put in the URL reaches the page. */
+  try {
+    const raw = new URLSearchParams(location.search).get('plan');
+    const label = planLabel(raw);
+    const el = document.getElementById('corPlan');
+    if (label && el) {
+      el.textContent = 'You were looking at ' + label + '.';
+      el.hidden = false;
+    }
+  } catch (e) {}
+</script>
+
+<style>
+  .cor { position: relative; min-height: 100dvh; display: flex; align-items: center; padding: 24px 0 96px; }
+  .cor-in { width: min(560px, calc(100% - 32px)); margin: 0 auto; text-align: center; }
+  .cor-h { font-family: 'Cormorant Garamond', serif; font-size: 32px; line-height: 1.15; color: var(--text); font-weight: 500; }
+  .cor-card { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 30px 22px; }
+  .cor-t { font-family: 'Cormorant Garamond', serif; font-size: 24px; line-height: 1.2; color: var(--text); font-weight: 500; margin: 0; }
+  .cor-d { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 42ch; }
+  .cor-plan { font-size: 13px; line-height: 1.6; color: var(--text2); margin: 10px auto 0; }
+  .cor-acts { margin-top: 22px; display: grid; gap: 10px; }
+  .cor-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 12px 18px; border-radius: 14px; font-size: 15px; font-weight: 600; text-decoration: none; }
+  .cor-primary { background: var(--gold); color: #13211A; border: 1px solid var(--gold); }
+  .cor-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); }
+  .cor-btn:focus-visible, .cor-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .cor-fine { font-size: 12px; line-height: 1.55; color: var(--muted); margin: 20px auto 0; max-width: 40ch; }
+  .cor-link { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; font-size: 13.5px; font-weight: 600; color: var(--goldd); }
+  @media (min-width: 560px) {
+    .cor-acts { grid-auto-flow: column; justify-content: center; }
+    .cor-btn { min-width: 190px; }
+  }
+</style>

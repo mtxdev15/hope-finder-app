@@ -842,6 +842,90 @@ sandbox rows stay valid; nothing was migrated or rewritten, and an absent
 `outcome` reads as the ordinary applied path. None of it is reachable from
 `getMyEntitlements`, which never queries this table.
 
+### 6.11 The checkout return pages
+
+`/checkout/success` and `/checkout/cancelled` now exist. Until this, a
+completed sandbox payment redirected to a 404 — §6.8 recorded that, and it is
+now closed.
+
+| Route | File |
+|---|---|
+| `/checkout/success` | `src/pages/checkout/success.astro` |
+| `/checkout/cancelled` | `src/pages/checkout/cancelled.astro` |
+
+Both are the exact URLs `convex/billing.ts` already sends people to, and the
+suite asserts that pairing so a rename on either side fails loudly rather than
+producing another 404.
+
+#### The success page confirms only from Convex
+
+Stripe appends `?session_id={CHECKOUT_SESSION_ID}`. **That value is treated as
+untrusted** — anyone can type a session id into the URL bar, so it proves
+nothing about payment. The page:
+
+- observes only that the parameter EXISTS, never reads its value;
+- removes it from the visible URL with `history.replaceState`, so Back and a
+  shared link do not carry it;
+- never renders, stores, logs or transmits it.
+
+Entitlement is confirmed **only** by `getMyEntitlements`, which becomes Plus
+only after the signed webhook path has run. A subscription is confirmed by
+Stripe talking to our Worker, not by a browser arriving at a URL.
+
+The page performs no Stripe call, opens no Checkout Session, and writes
+nothing.
+
+#### States
+
+| State | When | Behaviour |
+|---|---|---|
+| Signed out | no session | Links to `/signin?return=/checkout/success` using the existing `?return=` contract |
+| Confirming | authenticated, not yet Plus | Polls `getMyEntitlements` |
+| Confirmed | `tier === "plus"` | Continue to `/today`, or view `/you` |
+| Needs attention | `paymentNeedsAttention` | Points at the account page and **never claims the subscription is active** |
+| Timed out | bound reached | Says confirmation may still be processing and explicitly that **there is no need to pay again** |
+
+`paymentNeedsAttention` wins over `tier === "plus"`, so a failing card can
+never render as success.
+
+**Polling is bounded**: roughly every 2 seconds, for roughly 30 seconds, with a
+single-flight guard so a slow response cannot stack requests, stopping on
+confirmation, on the attention state, when the tab is hidden, and on
+`pagehide`. It never creates a Checkout Session.
+
+#### The cancelled page is inert
+
+It states Checkout was cancelled and that **this page** did not start a
+subscription. It deliberately does **not** claim whether a charge occurred —
+landing here is not evidence either way, and the account page is the honest
+answer. It runs no Convex query or mutation, makes no Stripe call, and **never
+auto-retries or resumes Checkout**.
+
+The `?plan=` parameter is **allowlisted** before use (`plus-monthly`,
+`plus-annual`). An unrecognised value renders nothing rather than echoing
+attacker-chosen text back onto the page.
+
+#### Neither page activates public billing
+
+The public pricing CTA is still a disabled "Opening soon" button, and the
+production build still contains no Checkout trigger. One nuance worth
+recording: the string `plus-monthly` now DOES ship to production, as an
+allowlist key in `src/app/declare/checkout-return.js` so the cancelled page can
+name a plan. It is a lookup table with no action attached, so the build
+assertions in both `verify-billing-dev-control.ts` and
+`verify-checkout-return-pages.ts` were narrowed from the bare alias to the
+alias in **payload position** (`plan:"plus-monthly"`), which is what a real
+Convex action call compiles to and what an allowlist can never produce.
+
+#### Regression coverage
+
+`scripts/verify-checkout-return-pages.ts`, 118 checks, importing and executing
+the real decisions from `checkout-return.js` rather than restating them.
+
+**Mutation-tested both security-critical properties.** Making the success page
+trust `session_id` fails 3 assertions; removing the polling bound fails 1. Both
+restored, suite back to 118/118.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
@@ -857,8 +941,7 @@ webhook guard is now in place (§6.10). Still absent:
   unexercised
 - any production billing CTA — the pricing page CTA is still a disabled
   "Opening soon" button
-- `/checkout/success` and `/checkout/cancelled` — neither route exists, so a
-  completed payment currently lands on a 404
+- ~~`/checkout/success` and `/checkout/cancelled`~~ — **both now exist** (§6.11)
 
 The webhook parser's field readers are **narrowed and pinned** (§6.9). Resume
 step 6 is done.
