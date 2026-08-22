@@ -140,6 +140,7 @@ export function formatPeriodEnd(ms, lang) {
 /* Human labels, keyed so the existing i18n layer can translate them. Raw enum
  * values (`plus_monthly`, `past_due`, `cancel_at_period_end`) must never reach
  * the screen, so there is no passthrough branch here. */
+/** @type {Record<string, string>} */
 export const STATE_LABEL_KEYS = {
   'plus-active': 'plan.stateActive',
   'plus-cancelling': 'plan.stateCancelling',

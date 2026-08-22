@@ -169,3 +169,25 @@ export async function myEntitlements() {
 
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
+
+/* ── Stripe Billing Portal ────────────────────────────────────────────────
+ * The ONE place the app asks for a Portal session, so the empty payload is a
+ * property of the wrapper rather than something each caller has to remember.
+ *
+ * The browser sends `{}`. It cannot send a Stripe Customer id, a Subscription
+ * id, a user id or a return URL, because the deployed action has no such
+ * argument — it accepts `lang` only, resolves the Customer from our own
+ * billingCustomers mapping for the authenticated user, and builds return_url
+ * from SITE_URL server-side.
+ *
+ * The retired donation portal resolved its customer from a browser-supplied
+ * email, which meant submitting someone else's address opened THEIR billing
+ * portal. Sending nothing is what makes that class of bug unrepresentable.
+ *
+ * Returns { url } on success, { error } for a handled refusal
+ * (`no-subscription`, `not-authenticated`, `billing-not-configured`,
+ * `stripe-error`), or null when the client is unavailable. Callers must treat
+ * null as "unknown", never as success. */
+export async function openBillingPortal() {
+  return (await ensure()) ? runAction(apiRef.billing.createPortalSession, {}) : null;
+}

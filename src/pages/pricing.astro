@@ -11,6 +11,16 @@
 // NON-TRANSACTIONAL BY CONSTRUCTION: there is no Checkout call, no Stripe
 // reference, and no enabled purchase control anywhere on this page.
 //
+// It DOES now perform one authenticated read — getMyEntitlements — so a
+// signed-in reader can see which plan they are already on. That is a Convex
+// query, not a Stripe call: no billing action is imported, no Portal or
+// Checkout session can be created from here, and the Plus CTA remains the
+// disabled "Opening soon" button for everyone. A Plus subscriber is routed to
+// /you#plan-billing, which owns the Portal entry point.
+//
+// The read FAILS CLOSED: if entitlement state is unknown, no card is marked as
+// current and nothing becomes purchasable.
+//
 // Spanish uses main's existing runtime convention (data-i18n + i18n-strings.js
 // with the declare-lang cookie), reached as /pricing?lang=es. The localized
 // /es/precios route belongs to the release branch and is not ported here.
@@ -35,7 +45,9 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           <div class="psub" data-i18n="pricing.psub">The Word, your declarations, your Journey and your Vault cost nothing and always will.</div>
         </div>
 
-        <section class="pcard rise d2">
+        <section class="pcard rise d2" id="pcFree">
+          {/* Filled in only for a signed-in reader whose plan we actually know. */}
+          <div class="pc-cur" id="pcFreeCur" hidden data-i18n="pricing.currentPlan">Current plan</div>
           <div class="pc-nm" data-i18n="pricing.freeNm">Free</div>
           <div class="pc-pr"><span class="pc-amt">$0</span></div>
           <div class="pc-note" data-i18n="pricing.freeNote">No card. No trial that quietly ends.</div>
@@ -48,15 +60,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           <div class="pc-cta"><a class="btn btn-ghost" href="/create-account" data-i18n="pricing.freeCta">Create a free account</a></div>
         </section>
 
-        <section class="pcard pc-plus rise d3">
+        <section class="pcard pc-plus rise d3" id="pcPlus">
+          <div class="pc-cur" id="pcPlusCur" hidden data-i18n="pricing.yourCurrentPlan">Your current plan</div>
           <div class="pc-tag" data-i18n="pricing.plusNm">Plus</div>
           <div class="pc-nm" data-i18n="pricing.plusNm2">Plus</div>
           <div class="pc-pr"><span class="pc-amt">$8.99</span><span class="pc-per" data-i18n="pricing.perMonth">/ month</span></div>
           <div class="pc-note" data-i18n="pricing.plusYear">or $79.99 a year</div>
           <div class="pc-cta">
             <!-- Disabled by construction. No handler, no href, no network call. -->
-            <button type="button" class="btn btn-primary" disabled data-i18n="pricing.plusCta">Opening soon</button>
-            <div class="pc-fine" data-i18n="pricing.plusFine">Plus is not open yet. Nothing here charges you.</div>
+            <button type="button" class="btn btn-primary" id="pcPlusCta" disabled data-i18n="pricing.plusCta">Opening soon</button>
+            <a class="btn btn-ghost" id="pcPlusManage" href="/you#plan-billing" hidden data-i18n="pricing.manageBilling">Manage billing</a>
+            <div class="pc-fine" id="pcPlusFine" data-i18n="pricing.plusFine">Plus is not open yet. Nothing here charges you.</div>
+            <div class="pc-life" id="pcPlusLife" role="status" hidden></div>
           </div>
         </section>
 
@@ -84,7 +99,71 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     </div>
   </main>
 
+<script>
+  /* Reflect the signed-in reader's CURRENT plan. Read-only.
+   *
+   * This page imports no billing action and can create no Checkout or Portal
+   * session. A subscriber is routed to /you#plan-billing, which owns that.
+   *
+   * FAILS CLOSED, which is the whole point: while entitlement state is loading,
+   * unknown, or ambiguous, neither card is marked current and nothing changes.
+   * A failed read must never make a purchase control appear. */
+  import { myEntitlements } from '../app/declare/convex-data.js';
+  import { planState, mayStartCheckout } from '../app/declare/plan-display.js';
+
+  const pel = (id: string) => document.getElementById(id);
+  const ptr = (k: string, fallback: string): string =>
+    window.I18N ? window.I18N.t(k, fallback) : fallback;
+
+  (async () => {
+    let ent = null;
+    try { ent = await myEntitlements(); } catch (e) { ent = null; }
+    const state = planState(ent);
+
+    /* Unknown or still resolving: leave the page exactly as served. */
+    if (state === 'loading' || state === 'unavailable' || state === 'guest') return;
+
+    if (state === 'free') {
+      const cur = pel('pcFreeCur');
+      if (cur) cur.hidden = false;
+      return;
+    }
+    if (!state.startsWith('plus-')) return;
+
+    /* A confirmed subscriber. Mark Plus as theirs and take the purchase control
+       off the page entirely — hidden, and never re-enabled. */
+    const cur = pel('pcPlusCur');
+    if (cur) cur.hidden = false;
+    const cta = pel('pcPlusCta');
+    if (cta instanceof HTMLButtonElement) { cta.disabled = true; cta.hidden = true; }
+    const fine = pel('pcPlusFine');
+    if (fine) fine.hidden = true;
+    const manage = pel('pcPlusManage');
+    if (manage) manage.hidden = false;
+
+    /* Show the real lifecycle, not "Active", when it is not simply active. */
+    const life = pel('pcPlusLife');
+    if (life && state !== 'plus-active') {
+      life.textContent =
+        state === 'plus-cancelling'
+          ? ptr('plan.cancellingMsg', 'Your Plus access remains available until the end of the period.')
+          : state === 'plus-attention'
+            ? ptr('plan.attentionMsg', 'Something about your payment needs a second look.')
+            : ptr('plan.ambiguousMsg', 'This account looks like it is being billed in more than one place.');
+      life.hidden = false;
+    }
+
+    /* Belt and braces: a subscriber must not be able to start Checkout. */
+    if (!mayStartCheckout(state) && cta instanceof HTMLButtonElement) cta.disabled = true;
+  })();
+</script>
+
   <style is:global>
+  .pc-cur { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 999px; margin-bottom: 10px;
+    color: var(--goldd); border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line2));
+    background: color-mix(in srgb, var(--gold) 10%, transparent); }
+  .pc-life { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin-top: 10px; }
     .pricing { position: relative; min-height: 100dvh; }
     .pricing .in { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 0 20px 120px; }
     .pricing .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }

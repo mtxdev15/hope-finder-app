@@ -16,6 +16,8 @@
 /* Polling bounds for the success page's "confirming" state. Bounded on purpose:
  * an unbounded poll on a page a user may leave open is a slow request leak, and
  * webhook confirmation either lands in seconds or needs a human to look. */
+import { planState } from './plan-display.js';
+
 export const POLL_INTERVAL_MS = 2000;
 export const POLL_TIMEOUT_MS = 30000;
 export const MAX_POLLS = Math.floor(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
@@ -47,13 +49,20 @@ export function planLabel(raw) {
  *   attention  the account needs to fix billing — never claim success here
  *   pending    not yet; keep waiting within the bound
  *
+ * DELEGATES to plan-display.js rather than deciding for itself. Before this,
+ * the success page and the account page interpreted the same response with
+ * two separate rule sets, which is how one surface ends up saying billing is
+ * fine while another says it needs attention. There is now one rule set.
+ *
  * A null response (offline, signed out mid-poll, a soft failure in
  * convex-data.js) is `pending`, not `confirmed` and not an error: the honest
  * answer is that we do not know yet. */
 export function stateForEntitlement(ent) {
-  if (!ent || typeof ent !== 'object') return 'pending';
-  if (ent.paymentNeedsAttention === true) return 'attention';
-  if (ent.tier === 'plus') return 'confirmed';
+  const state = planState(ent);
+  /* Ambiguity is not success. Two providers billing one account must not show
+     a clean "Welcome to Declare Plus". */
+  if (state === 'plus-attention' || state === 'plus-ambiguous') return 'attention';
+  if (state === 'plus-active' || state === 'plus-cancelling') return 'confirmed';
   return 'pending';
 }
 
