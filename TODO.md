@@ -162,9 +162,11 @@ None of these are oversights. Each is a deliberate stop.
 - [ ] No real Checkout Session has been created through the app
 - [ ] No Subscription or invoice has been created
 - [ ] No test payment has been completed
-- [ ] No Billing Portal **configuration** exists in the Stripe Dashboard, and no
-      Portal session has been created. The dev control to open one now exists
-      (resume step 6d) and will fail until the Portal is configured
+- [x] Sandbox Billing Portal **configuration** is complete and verified
+      (2026-08-22, §6.12.1) — active default, sandbox-only
+- [ ] No Portal **session** has been created or opened. Configuration is not
+      validation: return to `/you`, cancellation, payment-method updates and
+      invoice history are all still unexercised
 - [ ] No annual Checkout Session has been created. The annual dev control now
       exists (resume step 6d); the annual Price has never been exercised
 - [ ] No cancellation has been performed and no payment failure has been
@@ -263,71 +265,48 @@ When Stage 2 resumes, in this order:
    scheduled cancellation still reads as `active` in the inspector. Confirm
    cancellation in the Stripe Dashboard. Surfacing that field is an
    entitlement-contract change, deliberately out of scope.
-7. **Configure the Billing Portal in the Stripe Dashboard.** *Paused here
-   2026-08-21 — this is the active resume point.* Must happen before the Portal
-   control can do anything; the first click fails without it.
+7. ~~**Configure and read back the Stripe sandbox Billing Portal settings.**~~
+   **DONE 2026-08-22.** The active default configuration exists in **Declare
+   checkout dev** and was verified through read-only Stripe API responses:
+   `active=true`, `is_default=true`, `livemode=false`, one configuration
+   returned. Plan switching and quantity updates disabled, cancellation enabled
+   at `at_period_end`, cancellation reasons enabled, payment-method updates
+   enabled, invoice history enabled. Retention coupons are
+   **NOT EXPOSED BY READ API** — they are a Dashboard deflection feature and do
+   not appear on the configuration object, so absence was not read as proof.
+   `proration_behavior` is `none`, correct for end-of-period cancellation.
+   Full result in `docs/operations/stage-2-sandbox-billing.md` §6.12.1.
 
-   **This one cannot be automated.** The `stripe-sandbox` MCP server exposes
-   only `GetBillingPortalConfigurations` and
-   `GetBillingPortalConfigurationsConfiguration` — both GET. There is no create
-   or update operation, and `PostBillingPortalConfigurations` answers
-   *"Operation is not available"*, which means the server does not expose it
-   rather than the restricted key lacking scope. Widening the key would not
-   help. Configure it by hand in the Dashboard.
+   `is_default` matters because `createPortalSession` sends no `configuration`
+   parameter, so Stripe uses the account default.
 
-   **Before-state, read from the API 2026-08-21:**
-   `GET /v1/billing_portal/configurations` returned `{"data": []}` on
-   `acct_1TmENuLShxhb4mBz` (**Declare checkout dev**). Zero configurations — the
-   portal has never been touched in this sandbox.
+   **Configuration is not validation.** Everything below is still outstanding.
 
-   **Navigation:** account picker -> Sandboxes -> Declare checkout dev ->
-   Settings -> Billing -> Customer portal. Confirm the page shows the sandbox
-   before changing anything.
+8. **Validate the Portal and the rest of the lifecycle.** None of this has been
+   exercised:
 
-   **Settings to apply:**
+   - [ ] deploy the PR #23 code to Convex development after merge
+   - [ ] create and open a sandbox Portal session
+   - [ ] verify Portal return to `/you`
+   - [ ] verify the Portal resolves the authenticated user's server-side
+         Customer mapping
+   - [ ] schedule cancellation at period end
+   - [ ] verify `customer.subscription.updated`
+   - [ ] verify the canonical subscription remains active until the period ends
+   - [ ] verify eventual `customer.subscription.deleted`
+   - [ ] verify payment-method updates
+   - [ ] verify invoice history
+   - [ ] verify payment-failure / payment-attention behaviour
+   - [ ] test annual Checkout with a **separate sandbox QA account**
+   - [ ] production Portal activation
 
-   | Setting | Value |
-   |---|---|
-   | Plan switching | Off |
-   | Quantity updates | Off |
-   | Subscription cancellation | **On** |
-   | Cancellation timing | End of billing period |
-   | Cancellation reason | On |
-   | Retention coupons | Off |
-   | Payment-method updates | **On** |
-   | Invoice history | **On** |
-
-   This gives cancellation and payment-method testing without enabling untested
-   upgrades, downgrades, quantities or proration.
-
-   **Why the Dashboard is the only place this can happen:** `createPortalSession`
-   sends **no** `configuration` parameter, so Stripe uses the account's
-   **default** configuration — and saving the Dashboard settings is what creates
-   that default. This is the right arrangement and needs no code change, but it
-   does mean an API-created configuration would not be picked up.
-
-   If the Dashboard asks for a **default redirect link**, any valid URL will do.
-   Our code always sends `return_url` explicitly (`SITE_URL` + `/you`), so the
-   Dashboard value is never used.
-
-   **The lifecycle is already handled.** `convex/http.ts` handles both
-   `customer.subscription.updated` and `customer.subscription.deleted`, and
-   stores `cancel_at_period_end` and `canceled_at`. End-of-period cancellation
-   produces the `updated` event first and the `deleted` event at period end;
-   both will land in Convex correctly.
-
-   **Plan around this:** end-of-period cancellation leaves the subscription
-   `active` until the period actually ends, so cancelling the existing monthly
-   subscriber does **not** free that account for annual testing for up to a
-   month. The separate sandbox QA account is the faster route to annual.
-
-   **When it is saved:** re-read `GET /v1/billing_portal/configurations` and
-   verify all eight settings against the table above, then record the result in
-   `docs/operations/stage-2-sandbox-billing.md` §6.12. That read-back is a
-   better verification artifact than a screenshot, and it diffs against the
-   empty before-state recorded here.
-8. **Verify annual checkout, cancellation and payment failure** using the
-   controls from step 6d, on a separate sandbox QA account.
+   **Do not use the current active monthly subscriber for annual Checkout.**
+   Convex refuses a second purchase and the webhook guard refuses to repoint the
+   row, but **neither cancels or refunds** — Stripe would still bill twice. Use a
+   separate sandbox QA account, or wait until that monthly subscription is
+   genuinely terminal. Note that end-of-period cancellation leaves it `active`
+   until the period actually ends, so cancelling does not free that account
+   quickly.
 
 ### Guardrails
 

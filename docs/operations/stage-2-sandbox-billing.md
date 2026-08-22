@@ -1053,14 +1053,103 @@ way: click-reachable spans are computed by brace-walking, and every invocation o
 Convex client import and the generated api import must fall inside one. The
 refresh timer is proven unable to reach any of them.
 
+#### 6.12.1 The Portal configuration, verified 2026-08-22
+
+**The sandbox Portal configuration is complete.** Read back through the
+read-only Stripe API on 2026-08-22.
+
+**Historical before-state, preserved:** on 2026-08-21,
+`GET /v1/billing_portal/configurations` returned `{"data": []}` — zero
+configurations, the portal untouched in this sandbox. That was the
+before-state, **not** the current state. It is kept here because it is what the
+after-state diffs against, and because the empty response was itself verified
+three ways (unfiltered, `active=true`, `is_default=true`) plus a control read
+that proved the credential was not merely blind.
+
+**After-state.** One configuration returned, `has_more: false`. It is the
+**active default**:
+
+| Property | Value |
+|---|---|
+| `active` | `true` |
+| `is_default` | `true` |
+| `livemode` | `false` |
+
+The configuration was also retrieved directly by id, and the retrieved object
+was compared field-by-field against the listed object — they match exactly.
+
+`is_default` is the load-bearing one. `createPortalSession` sends **no**
+`configuration` parameter, so Stripe uses the account default. An active but
+non-default configuration would not have been authoritative.
+
+**The eight settings, verified programmatically rather than by eye:**
+
+| # | Setting | Intended | API field | Result |
+|---|---|---|---|---|
+| 1 | Plan switching | Off | `subscription_update.enabled = false`, `default_allowed_updates` has no `price` | **PASS** |
+| 2 | Quantity updates | Off | `default_allowed_updates` has no `quantity`; updates disabled | **PASS** |
+| 3 | Subscription cancellation | On | `subscription_cancel.enabled = true` | **PASS** |
+| 4 | Cancellation timing | End of period | `subscription_cancel.mode = "at_period_end"` | **PASS** |
+| 5 | Cancellation reasons | On | `cancellation_reason.enabled = true` | **PASS** |
+| 6 | Retention coupons | Off | none | **NOT EXPOSED BY READ API** |
+| 7 | Payment-method updates | On | `payment_method_update.enabled = true` | **PASS** |
+| 8 | Invoice history | On | `invoice_history.enabled = true` | **PASS** |
+
+**Reported, not gated:**
+
+- `subscription_cancel.proration_behavior` — `none`. Correct for end-of-period
+  cancellation: the reader keeps what they paid for through the period, and no
+  proration credit or invoice is generated.
+- `cancellation_reason.options` — `too_expensive`, `switched_service`, `unused`,
+  `other`, `missing_features`. The standard list, not narrowed.
+- `cancellation_reason.feedback_options` — empty.
+- `subscription_update.default_allowed_updates` — empty, which is what makes
+  settings 1 and 2 pass together.
+
+**Retention coupons: `NOT EXPOSED BY READ API`, deliberately not PASS.** The
+complete object was searched recursively across every key name and every string
+value for `retention`, `coupon`, `deflection`, `offer` and `discount`. There
+were no matches. Retention coupons are a Dashboard cancellation-deflection
+feature and do not appear on the configuration object at all, so absence proves
+nothing — inferring PASS from a missing field would be reading a guarantee that
+was never returned.
+
+**Present in the response but not among the eight:**
+
+- `customer_update.enabled = true`, allowing `name`, `email`, `address`,
+  `phone`. Stripe's default. Worth stating why it is safe: our Customer
+  resolution goes through the stored `userId` -> `stripeCustomerId` mapping, so
+  a reader changing their email in the Portal cannot repoint anything. The
+  retired `customers?email=` lookup stays closed (§6.12).
+- `subscription_pause.enabled = false`
+- `login_page.enabled = false`
+- `default_return_url = null` — harmless, because `createPortalSession` always
+  sends `return_url` explicitly (`SITE_URL` + `/you`).
+
+The configuration id is deliberately **not** recorded here.
+
 #### Still not done
 
+Configuration is not validation. Every one of these remains unexercised:
+
+- **No Billing Portal session has been created or opened**
+- Portal **return to `/you`** has not been verified
+- The Portal resolving the authenticated user's server-side Customer mapping has
+  not been exercised against a real session
+- **Cancellation has not been exercised** — `cancel_at_period_end` has still
+  never been set
+- No `customer.subscription.updated` has been observed **from a Portal action**
+- Terminal cancellation (`customer.subscription.deleted`) has not been exercised
+- **Payment-method updating** has not been exercised
+- **Invoice-history behaviour** has not been exercised
+- **Payment-failure / payment-attention** behaviour has not been simulated
 - No annual Checkout Session has been created
-- No Portal session has been created, and the **Portal has never been configured
-  in the Stripe Dashboard** — the first click will fail until it is
-- No cancellation has been performed
-- No payment failure has been simulated
+- **Production Portal configuration remains untouched.** Live mode was not
+  accessed at any point in this verification
 - Nothing has been deployed; Convex dev and both Workers are untouched
+
+**Portal lifecycle validation remains incomplete until a real sandbox Portal
+session is tested.**
 
 ## 7. Not yet created
 
@@ -1068,9 +1157,10 @@ One Customer, one Subscription, one paid invoice and one successful
 PaymentIntent now exist in the sandbox (§6.8). The duplicate-subscription
 webhook guard is now in place (§6.10). Still absent:
 
-- **Billing Portal configuration** — the dev control to open a Portal session
-  now exists (§6.12), but the Portal itself has never been configured in the
-  Stripe Dashboard, so the first click will fail until it is
+- ~~Billing Portal **configuration**~~ — **now complete and verified** in the
+  sandbox (§6.12.1). What is still absent is Portal **validation**: no session
+  has been created or opened, and no cancellation, payment-method update or
+  invoice-history interaction has been exercised
 - any live-mode object
 - annual checkout **verification** — the control exists (§6.12) but no annual
   Checkout Session has been created, and the annual Price has never been
