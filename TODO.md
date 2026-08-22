@@ -282,21 +282,34 @@ When Stage 2 resumes, in this order:
 
    **Configuration is not validation.** Everything below is still outstanding.
 
-8. **Validate the Portal and the rest of the lifecycle.** None of this has been
-   exercised:
+8. **Validate the Portal and the rest of the lifecycle.** **Portal smoke
+   testing is COMPLETE (2026-08-22, §6.12.2); Portal lifecycle validation is
+   NOT.** One session was created through the app, the hosted page rendered the
+   configured controls, and the return to `/you` worked. Nothing was cancelled,
+   changed or paid. The remaining items:
 
-   - [ ] deploy the PR #23 code to Convex development after merge
-   - [ ] create and open a sandbox Portal session
-   - [ ] verify Portal return to `/you`
-   - [ ] verify the Portal resolves the authenticated user's server-side
-         Customer mapping
+   - [x] deploy the PR #23 code to Convex development after merge
+         (2026-08-22, `good-dotterel-906`)
+   - [x] create and open one sandbox Portal session (2026-08-22, §6.12.2)
+   - [x] verify Portal return to `/you` — exact path, no Stripe id appended,
+         session survived
+   - [x] verify the Portal resolves the authenticated user's server-side
+         Customer mapping — browser sent `{}`; the deployed action accepts
+         `lang` only
+   - [x] verify invoice-history visibility (present, not opened)
+   - [x] verify payment-method management control visibility (present, not used)
+   - [x] verify cancellation control visibility (present, not used)
    - [ ] schedule cancellation at period end
    - [ ] verify `customer.subscription.updated`
    - [ ] verify the canonical subscription remains active until the period ends
    - [ ] verify eventual `customer.subscription.deleted`
-   - [ ] verify payment-method updates
-   - [ ] verify invoice history
+   - [ ] actually update a payment method
+   - [ ] open or download an invoice
    - [ ] verify payment-failure / payment-attention behaviour
+   - [ ] surface entitlement state on `/you` and add a "Manage billing" entry
+         point — the Portal returns subscribers there and the page currently
+         shows them no plan, no status and no way back into billing
+         (`you.astro` never calls `getMyEntitlements`; §6.12.2)
    - [ ] test annual Checkout with a **separate sandbox QA account**
    - [ ] production Portal activation
 

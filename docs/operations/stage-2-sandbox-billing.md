@@ -1128,14 +1128,103 @@ was never returned.
 
 The configuration id is deliberately **not** recorded here.
 
+#### 6.12.2 Portal smoke test, 2026-08-22
+
+**One Billing Portal session was created through the authenticated application
+path.** That is the only Stripe write this test performed.
+
+```
+authenticated browser (local dev, signed-in QA account)
+  -> Convex billing.createPortalSession   (payload: {} )
+  -> server-side billingCustomers lookup by userId
+  -> Stripe Billing Portal session
+```
+
+**The browser supplied no Customer identifier.** The deployed action's signature
+was read back from `npx convex function-spec` before the click: it accepts
+`lang` only. There is no `customer`, `customerId`, `userId`, `subscription` or
+`return_url` argument to send. The dev control sent an empty payload.
+
+The Portal then opened showing **this account's own** existing subscription,
+which is the end-to-end proof that Convex resolved the right Customer from the
+stored `userId` -> `stripeCustomerId` mapping. Nothing the browser sent could
+have selected it.
+
+**Duplicate activation is prevented.** The control disabled itself on click and
+stayed disabled after success, so a second session cannot be created by clicking
+again. Exactly one session exists.
+
+**Observed on the hosted Portal** (Stripe-hosted, "Powered by Stripe",
+business shown as *Declare checkout dev* with a **Sandbox** badge):
+
+| Control | Expected | Observed |
+|---|---|---|
+| Current subscription | visible | Declare Plus, $8.99/month, with next billing date |
+| Invoice history | visible | one paid $8.99 entry |
+| Payment-method management | visible, unused | masked card shown, "Add payment method" present |
+| Cancellation | visible, unused | "Cancel subscription" present |
+| Plan switching | **absent** | not offered |
+| Quantity adjustment | **absent** | not offered |
+
+Plan switching and quantity controls being absent is §6.12.1's
+`subscription_update.enabled = false` and empty `default_allowed_updates`
+showing up in the rendered product, not just in the API response.
+
+Nothing was clicked beyond the return action: no cancellation, no
+payment-method change, no invoice opened, no customer information edited.
+
+**Return path.** Using the Portal's own return action, not browser Back, the
+Portal returned to exactly `/you`. No query string, no Stripe object id appended
+to the application URL, no hosted Portal URL left visible. The session survived
+the round trip and the account page rendered normally.
+
+**Entitlement unchanged across the round trip.** The lifecycle inspector read
+identically before and after: `tier: plus`, `subscriptionStatus: active`,
+`planKey: plus_monthly`, `provider: stripe`, `paymentNeedsAttention: false`,
+`duplicateProviders: false`. No Stripe identifier appeared in it at any point,
+which is the allowlist projection working against live data.
+
+**Convex billing tables unchanged.** Captured before and after with the same
+read-only procedure and compared by hash:
+
+| Table | Before | After | Byte-identical |
+|---|---|---|---|
+| `subscriptions` | 1 | 1 | yes |
+| `billingCustomers` | 1 | 1 | yes |
+| `billingEvents` | 3 | 3 | yes |
+
+Byte-identical is a stronger claim than equal counts: no row was added, removed
+**or modified**. No webhook event was produced, because creating a Portal session
+is not a subscription mutation. No conflict event exists.
+
+A Portal session object now exists transiently in Stripe. That is expected and is
+not a change to any subscription, customer, payment method or invoice.
+
+The Portal session URL, the Portal configuration id, and all Customer,
+Subscription and invoice identifiers are deliberately **not** recorded here.
+
+##### Finding: `/you` does not surface entitlement state
+
+The Portal returns subscribers to `/you`, and `/you` currently tells them
+nothing about their subscription. `src/pages/you.astro` never calls
+`getMyEntitlements`; the only occurrence of the word "Plus" on the page is the
+static *Plans* link to `/pricing`. So a returning subscriber sees no plan, no
+status, and no route back into billing management.
+
+This did not affect the smoke test — the entitlement is intact and was verified
+through the inspector — but it is a real gap to close before billing is public,
+and it is the natural place for a "Manage billing" entry point that calls
+`createPortalSession`. Recorded here rather than fixed, because this branch is
+documentation-only.
+
 #### Still not done
 
 Configuration is not validation. Every one of these remains unexercised:
 
-- **No Billing Portal session has been created or opened**
-- Portal **return to `/you`** has not been verified
-- The Portal resolving the authenticated user's server-side Customer mapping has
-  not been exercised against a real session
+- ~~No Billing Portal session has been created or opened~~ — **done** (§6.12.2)
+- ~~Portal return to `/you`~~ — **verified** (§6.12.2)
+- ~~Server-side Customer resolution against a real session~~ — **verified**
+  (§6.12.2)
 - **Cancellation has not been exercised** — `cancel_at_period_end` has still
   never been set
 - No `customer.subscription.updated` has been observed **from a Portal action**
