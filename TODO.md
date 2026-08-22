@@ -327,7 +327,18 @@ When Stage 2 resumes, in this order:
          TypeScript helpers and declares no query, mutation, action or HTTP
          action, and the deployment still attributes zero functions to it. No
          deployment was required: `convex codegen` writes local files only.
-   - [ ] actually update a payment method
+   - [x] **actually update a payment method** — DONE 2026-08-22 (§6.18), on the
+         **annual QA account**; the monthly subscriber was untouched and is
+         byte-identical. One Portal session, one replacement, sandbox Visa →
+         sandbox Mastercard, no real card. The subscription-level
+         `default_payment_method` override was **cleared** and the customer
+         default now points at the new method, so the next annual invoice
+         resolves to it (Acceptable result B). No charge, no new invoice, no
+         refund or credit, renewal date unchanged.
+         *Note:* clearing the override fired a real `customer.subscription.updated`
+         webhook (`billingEvents` 9 → 10, `outcome: applied`), which changed only
+         `lastProviderEventAt` / `updatedAt` on the canonical row. Expected and
+         benign — that type is subscribed because cancellation needs it.
    - [ ] open or download an invoice
    - [ ] verify payment-failure / payment-attention behaviour
    - [x] **surface entitlement state and add a billing entry point** — DONE
