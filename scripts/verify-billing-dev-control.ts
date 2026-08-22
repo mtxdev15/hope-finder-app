@@ -12,7 +12,7 @@
  *   1. an unauthenticated caller cannot invoke checkout
  *   2. the browser cannot supply a Stripe Price id
  *   3. the browser cannot supply anyone's identity, its own or another's
- *   4. the control can name only `plus-monthly`
+ *   4. the controls can name only `plus-monthly` and `plus-annual`
  *   5. the control cannot render or run in production
  *   6. nothing fires on page load
  *
@@ -172,20 +172,29 @@ check("the retired customers-by-email lookup is absent from the code",
  * the signed-in user's own address for display gained a type annotation — a
  * false positive that says nothing about what crosses the wire. What matters is
  * the object literal handed to client.action(), so extract exactly that. */
+/* Both plans go through ONE Checkout implementation, so there is one payload
+ * expression and the alias arrives as its parameter. Assert the payload shape
+ * AND that the only values that parameter can ever take are the two literals
+ * at the call sites. */
 const PAYLOAD = (SCRIPT.match(
-  /client\.action\(api\.billing\.createCheckoutSession,\s*\{([\s\S]*?)\}\s*\)/,
+  /client\.action\(c?\.?api\.billing\.createCheckoutSession,\s*\{([\s\S]*?)\}\s*\)/,
 ) || [])[1];
 check("the Convex action payload can be located", typeof PAYLOAD === "string");
-check("the payload is exactly { plan: 'plus-monthly' }",
-  (PAYLOAD || "").replace(/\s|,$/g, "").replace(/,$/, "") === "plan:'plus-monthly'");
+check("the payload is exactly { plan }", (PAYLOAD || "").trim() === "plan");
 for (const forbidden of ["userId", "user_id", "customerId", "customer", "email", "price", "subscription", "token"]) {
   check(`the payload carries no "${forbidden}"`, !(PAYLOAD || "").includes(forbidden));
 }
+/* The plan parameter is typed as a closed union, so nothing else is even
+ * representable. */
+check("the plan parameter is a closed two-member union",
+  /plan: 'plus-monthly' \| 'plus-annual'/.test(SCRIPT));
+check("the alias is never read from the DOM, a dataset or the URL",
+  !/dataset\.plan|getAttribute\('data-plan'\)|searchParams\.get\('plan'\)/.test(SCRIPT));
 check("the only credential the page sends is a Better Auth token",
   /ac\.convex\.token\(/.test(SCRIPT));
 
-/* ── 4. Only plus-monthly ────────────────────────────────────────────────── */
-section("4. Only plus-monthly is accepted");
+/* ── 4. Only the two approved aliases ────────────────────────────────────── */
+section("4. Only plus-monthly and plus-annual are accepted");
 
 check("plus-monthly resolves to the canonical plus_monthly",
   planKeyForAlias("plus-monthly") === "plus_monthly");
@@ -205,14 +214,39 @@ for (const bad of [
 }
 check("an unknown alias fails closed with unknown-plan",
   /if \(!planKey\) return \{ error: "unknown-plan" \}/.test(CHECKOUT));
-check("the page sends the literal 'plus-monthly'",
-  /plan: 'plus-monthly'/.test(SCRIPT));
-check("the alias appears exactly once, as a constant",
-  (SCRIPT.match(/'plus-monthly'/g) || []).length === 1);
-check("the page never mentions plus-annual",
-  !/plus-annual/.test(PAGE));
+check("plus-annual resolves to the canonical plus_annual",
+  planKeyForAlias("plus-annual") === "plus_annual");
+check("plus_annual is bound to STRIPE_PLUS_ANNUAL_PRICE_ID",
+  PLAN_CATALOG.plus_annual.envVar === "STRIPE_PLUS_ANNUAL_PRICE_ID");
+check("plus_annual is a yearly interval", PLAN_CATALOG.plus_annual.interval === "year");
+
+check("the monthly control sends the literal 'plus-monthly'",
+  /startCheckout\(btn, 'plus-monthly'\)/.test(SCRIPT));
+check("the annual control sends the literal 'plus-annual'",
+  /startCheckout\(btnAnnual, 'plus-annual'\)/.test(SCRIPT));
+/* Rather than counting occurrences (which any edit perturbs), read the actual
+ * arguments at the call sites and assert the SET. */
+const CALL_ALIASES = [...SCRIPT.matchAll(/startCheckout\((?:btn|btnAnnual), '([^']*)'\)/g)]
+  .map((m) => m[1]).sort();
+check("startCheckout is called at exactly two sites", CALL_ALIASES.length === 2);
+check("those sites name exactly plus-monthly and plus-annual",
+  CALL_ALIASES.join(",") === "plus-annual,plus-monthly");
+check("there is ONE Checkout implementation, not two",
+  (SCRIPT.match(/createCheckoutSession/g) || []).length === 1);
 check("the page sends no lang argument either",
   !/lang:/.test(SCRIPT));
+
+/* The annual control must carry the warning that stops a tester buying annual
+ * on the account that already holds the active monthly subscription. */
+/* Prose is line-wrapped in the markup, so collapse whitespace before matching.
+ * Asserting on the raw source would make a reflow look like a deleted warning. */
+const PROSE = PAGE.replace(/\s+/g, " ");
+check("the annual control warns against reusing an active subscriber",
+  /already has an active subscription/i.test(PROSE));
+check("the warning names the QA-account requirement",
+  /separate sandbox QA account/i.test(PROSE));
+check("the warning is honest that neither guard refunds",
+  /neither guard cancels or refunds anything/i.test(PROSE));
 
 /* ── 5. Cannot render or run in production ───────────────────────────────── */
 section("5. The control cannot render or run in production");
@@ -298,33 +332,103 @@ for (const needle of FORBIDDEN) {
 }
 
 /* ── 6. Nothing fires on page load ───────────────────────────────────────── */
-section("6. No checkout request fires on page load");
+section("6. Nothing that creates a Stripe object can fire without a click");
 
-const [clickStart, clickEnd] = spanAfter(SCRIPT, "addEventListener('click'");
-const insideClick = (needle: string) => {
-  const i = SCRIPT.indexOf(needle);
-  return i > clickStart && i < clickEnd;
+/* WHY THIS SECTION WAS REWRITTEN
+ * It used to assert "there is exactly one click listener" and "no setTimeout
+ * appears anywhere". Those were never the property — they were proxies that
+ * happened to hold while the page had a single button and no timer. The page
+ * now has three controls and a bounded auto-refresh, so the proxies are false
+ * while the PROPERTY is still true and still worth proving.
+ *
+ * The property: every code path that can create a Stripe object is reachable
+ * ONLY from a click. Page load and the refresh timer may perform an entitlement
+ * READ and nothing more.
+ *
+ * So: define the click-reachable spans, then require every dangerous token to
+ * live inside one of them. */
+
+/* Body span of a named function, and the single-line span of an arrow listener. */
+function fnSpan(marker: string): [number, number] { return spanAfter(SCRIPT, marker); }
+function lineSpan(marker: string): [number, number] {
+  const i = SCRIPT.indexOf(marker);
+  return [i, i + marker.length];
+}
+
+const CLICK_REACHABLE: Array<[number, number]> = [
+  fnSpan("async function startCheckout"),          // both Checkout paths
+  fnSpan("btnPortal.addEventListener('click'"),    // the Portal path
+  fnSpan("async function connect"),                // the client + api imports
+  lineSpan("btn.addEventListener('click', () => startCheckout(btn, 'plus-monthly'));"),
+  lineSpan("btnAnnual.addEventListener('click', () => startCheckout(btnAnnual, 'plus-annual'));"),
+];
+/* A function DECLARATION is not a call — `async function connect() {` does not
+ * invoke anything — so declaration sites are excluded and only invocations are
+ * required to sit inside a click-reachable span. */
+const isDeclaration = (i: number): boolean => /function\s+$/.test(SCRIPT.slice(Math.max(0, i - 20), i));
+const reachableOnlyByClick = (needle: string): boolean => {
+  const hits: number[] = [];
+  for (let i = SCRIPT.indexOf(needle); i !== -1; i = SCRIPT.indexOf(needle, i + 1)) {
+    if (!isDeclaration(i)) hits.push(i);
+  }
+  return hits.length > 0 && hits.every((i) => CLICK_REACHABLE.some(([a, b]) => i > a && i < b));
 };
+/* Guard the guard: if the declaration filter ever swallowed EVERY site, the
+ * check above would pass vacuously. Pin the real call counts. */
+check("startCheckout has exactly two invocations",
+  (SCRIPT.match(/startCheckout\((?!b:)/g) || []).length === 2);
+check("connect has exactly two invocations",
+  (SCRIPT.match(/await connect\(\)/g) || []).length === 2);
 
-check("there is exactly one click listener on the control",
-  (SCRIPT.match(/addEventListener\('click'/g) || []).length === 1);
-check("createCheckoutSession appears exactly once",
-  (SCRIPT.match(/createCheckoutSession/g) || []).length === 1);
-check("createCheckoutSession is INSIDE the click handler",
-  insideClick("createCheckoutSession"));
-check("the Convex client is imported INSIDE the click handler",
-  insideClick("import('convex/browser')"));
-check("the generated api is imported INSIDE the click handler",
-  insideClick("_generated/api"));
-check("the Convex action call is INSIDE the click handler",
-  insideClick("client.action("));
+for (const needle of [
+  "createCheckoutSession",          // creates a Checkout Session
+  "createPortalSession",            // creates a Portal session
+  "startCheckout(",                 // the only route to the former
+  "connect()",                      // mints the authenticated client
+  "import('convex/browser')",       // the client itself
+  "_generated/api",                 // the action references
+]) {
+  check(`"${needle}" is reachable only from a click`, reachableOnlyByClick(needle));
+}
+
+/* The three click handlers are bound to the three real buttons and to nothing
+ * else, so "a click" means a deliberate press of a labelled control. */
+const CLICK_TARGETS = [...SCRIPT.matchAll(/(\w+)\.addEventListener\('click'/g)].map((m) => m[1]).sort();
+check("click handlers are bound to exactly btn, btnAnnual, btnPortal and dbRefresh",
+  CLICK_TARGETS.join(",") === "btn,btnAnnual,btnPortal,refreshBtn");
+
+/* THE TIMER. A timer now exists (the bounded watch), so the old blanket ban is
+ * gone. What replaces it is stronger: prove the timer callback cannot reach any
+ * of the tokens above. tickWatch may call readState and nothing else. */
+const TICK = blockAfter(SCRIPT, "function tickWatch");
+for (const banned of ["startCheckout", "connect(", "createCheckoutSession", "createPortalSession", "client.action"]) {
+  check(`the refresh timer cannot reach "${banned}"`, !TICK.includes(banned));
+}
+check("the refresh timer calls only readState", /readState\(\)/.test(TICK));
+check("setTimeout is used ONLY by the watch loop",
+  (SCRIPT.match(/setTimeout\(/g) || []).length === 1 && TICK.includes("setTimeout("));
+check("the watch is bounded, not open-ended", /refreshExhausted\(watchTicks\)/.test(TICK));
+
+/* readState is what runs at load and on the timer. It is a READ: it calls the
+ * entitlement query and holds no action call, no Convex client, no Stripe
+ * anything. This is the assertion that makes "load is safe" true. */
+const READ_STATE = blockAfter(SCRIPT, "async function readState");
+check("readState calls the entitlement READ", READ_STATE.includes("data.myEntitlements()"));
+for (const banned of ["client.action", "createCheckoutSession", "createPortalSession", "connect(", "convex/browser"]) {
+  check(`readState performs no "${banned}"`, !READ_STATE.includes(banned));
+}
+/* The inspector renders through the allowlist projection, never the raw
+ * response, so a widened entitlement contract cannot leak a new field. */
+check("readState renders through projectEntitlement", READ_STATE.includes("projectEntitlement(ent)"));
+check("readState never renders the raw response", !/esc\(JSON\.stringify\(ent/.test(READ_STATE));
+
 check("nothing is bound to DOMContentLoaded", !/DOMContentLoaded/.test(SCRIPT));
 check("nothing is bound to window.onload or load", !/onload|addEventListener\('load'/.test(SCRIPT));
-check("no timer can invoke it", !/setTimeout|setInterval|requestIdleCallback/.test(SCRIPT));
 check("no form submit path exists", !/<form|addEventListener\('submit'/.test(PAGE));
-/* Only the session lookup runs at load. That makes no Stripe call and creates
- * nothing — it is what decides whether to render the button at all. */
-check("only initAuth runs at load", SCRIPT.indexOf("initAuth()") < clickStart);
+/* Only session state and the entitlement read run at load. Neither makes a
+ * Stripe call nor creates anything. */
+check("initAuth runs before any control is wired",
+  SCRIPT.indexOf("auth.initAuth()") < SCRIPT.indexOf("async function startCheckout"));
 check("the returned Checkout URL is NOT auto-navigated",
   !/location\.href|location\.assign|location\.replace|window\.open/.test(SCRIPT));
 check("opening Checkout is a separate, deliberate second click",

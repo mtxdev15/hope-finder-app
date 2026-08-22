@@ -926,19 +926,159 @@ the real decisions from `checkout-return.js` rather than restating them.
 trust `session_id` fails 3 assertions; removing the polling bound fails 1. Both
 restored, suite back to 118/118.
 
+### 6.12 Annual, Portal and lifecycle controls — prepared, not exercised
+
+**Status: the code exists and is tested. None of it has been run against
+Stripe.** No annual Checkout Session, no Portal session, no cancellation and no
+payment failure has been created. This section records what was built and what
+is deliberately still outstanding, so the difference between "implemented" and
+"verified" stays visible.
+
+Three things arrive together because they are one testing surface: you cannot
+verify a cancellation without the Portal to cancel from, and you cannot see the
+result of either without something that reads lifecycle state back.
+
+#### What was added
+
+| Control | Where | What it does |
+|---|---|---|
+| Annual Checkout | `#dbGoAnnual` on `/dev/billing-sandbox` | Sends `{ plan: 'plus-annual' }` and nothing else |
+| Billing Portal | `#dbPortal` on the same page | Sends an **empty** payload |
+| Lifecycle inspector | `#dbInspect` on the same page | Read-only projection of the entitlement response |
+
+Both gates from §6.5 still apply unchanged — a dynamic route that generates zero
+pages, and an inline-literal `import.meta.env.DEV` check that Vite folds away.
+All three controls are absent from a production build made with
+`PUBLIC_BILLING_DEV_CONTROL=1` deliberately set.
+
+#### No Convex change was needed for the Portal
+
+`billing.createPortalSession` already existed and already satisfied every
+requirement: identity through `requireUser` before the Stripe secret is even
+read, the Customer resolved **only** from the `billingCustomers` mapping for the
+authenticated user, no customer argument on the action at all, `no-subscription`
+when there is no mapping, and a `return_url` built from `SITE_URL` + `/you`.
+The only thing missing was a caller. This change adds the caller and adds the
+tests that pin those properties, so a future edit cannot quietly weaken them.
+
+The retired donation portal resolved its customer with
+`GET /v1/customers?email=<browser-supplied>`, which meant submitting someone
+else's address opened **their** billing portal. That lookup is absent here and
+the suite asserts its absence against comment-stripped code.
+
+#### One Checkout implementation, two plans
+
+Annual did not fork the Checkout path. `startCheckout(button, plan)` is shared,
+`plan` is typed as the closed union `'plus-monthly' | 'plus-annual'`, and the
+alias is a hardcoded literal at each of the two call sites. It is never read
+from the DOM, a dataset or the URL. The Price is resolved server-side from
+`PLAN_CATALOG[planKey].envVar`, so naming a plan can never name an arbitrary
+Price or an arbitrary environment variable.
+
+#### The duplicate guard covers annual by construction
+
+Worth stating precisely, because it is stronger than it looks: the checkout-time
+guard queries by `(userId, provider)` and **never reads `planKey`**. It cannot
+distinguish monthly from annual. Annual is protected because the guard is blind
+to the plan, not because someone remembered to add annual to a list.
+
+#### The warning on the annual button
+
+The page carries a red warning against buying annual on the account that already
+holds the active monthly subscription, because **the guards protect Convex
+state, not the card**:
+
+- `createCheckoutSession` answers `already-subscribed` and refuses.
+- If a Session minted earlier is completed anyway, the §6.10 webhook guard
+  refuses to repoint the canonical row.
+- **Neither one cancels or refunds anything.** Stripe would still bill twice,
+  and remediation is manual.
+
+So annual must be exercised on a **separate sandbox QA account**, or after the
+existing monthly subscription is genuinely terminal.
+
+#### The inspector is an allowlist, not careful rendering
+
+`src/app/declare/billing-inspector.js` projects the entitlement response down to
+ten provider-neutral fields (`tier`, `subscriptionStatus`, `planKey`,
+`provider`, `paymentNeedsAttention`, `graceEndsAt`, `duplicateProviders`,
+`limits`, `usage`, `remaining`). The page renders what the projection returns,
+so a field the allowlist does not name cannot reach the screen — including a
+field added to the entitlement contract later. The suite runs the projection
+against a hostile object carrying `cus_`, `sub_`, `price_`, `in_`, `evt_` and
+`cs_` identifiers and asserts none survives.
+
+Auto-refresh is bounded at 40 ticks × 3s (~2 minutes) and stops when the tab is
+hidden. An unbounded poll left open in a tab is a slow request leak.
+
+**Known limitation, deliberately documented on the page:** `getMyEntitlements`
+does not surface `cancelAtPeriodEnd` — it is read only internally by
+`interpret`. A subscription scheduled to cancel therefore still reads as
+`active` in the inspector. Cancellation verification must be confirmed in the
+Stripe Dashboard, not from this panel alone. Surfacing that field is an
+entitlement-contract change and was out of scope here.
+
+#### Regression coverage
+
+`scripts/verify-billing-lifecycle-controls.ts` — 149 checks, and
+`scripts/verify-billing-dev-control.ts` grew to 136. Both need a build first:
+
+```bash
+PUBLIC_BILLING_DEV_CONTROL=1 npx astro build
+node scripts/verify-billing-lifecycle-controls.ts
+node scripts/verify-billing-dev-control.ts
+```
+
+The plan catalog and the inspector projection are **imported and executed**, not
+grepped. Source assertions cover only what is genuinely structural: call
+ordering, absent arguments, and build output.
+
+Four mutations were applied and each was caught before the code was restored:
+
+| Mutation | Caught by |
+|---|---|
+| `planKeyForAlias` accepts any string | 13 checks in the lifecycle suite, 6 in the dev-control suite |
+| Portal accepts a browser-supplied `customerId` | 4 checks |
+| A Checkout call escapes the click handler | 4 checks |
+| Both production gates removed, then rebuilt | 8 checks in the dev-control suite, 12 in the lifecycle suite |
+
+`verify-billing-dev-control.ts` §6 was **rewritten** as part of this change. It
+previously asserted "there is exactly one click listener" and "no `setTimeout`
+appears anywhere". Those were never the property — they were proxies that held
+only while the page had one button and no timer. The property is that every path
+which can create a Stripe object is reachable **only** from a click, and page
+load may perform an entitlement read and nothing more. It is now asserted that
+way: click-reachable spans are computed by brace-walking, and every invocation of
+`createCheckoutSession`, `createPortalSession`, `startCheckout`, `connect`, the
+Convex client import and the generated api import must fall inside one. The
+refresh timer is proven unable to reach any of them.
+
+#### Still not done
+
+- No annual Checkout Session has been created
+- No Portal session has been created, and the **Portal has never been configured
+  in the Stripe Dashboard** — the first click will fail until it is
+- No cancellation has been performed
+- No payment failure has been simulated
+- Nothing has been deployed; Convex dev and both Workers are untouched
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
 PaymentIntent now exist in the sandbox (§6.8). The duplicate-subscription
 webhook guard is now in place (§6.10). Still absent:
 
-- Billing Portal configuration
+- **Billing Portal configuration** — the dev control to open a Portal session
+  now exists (§6.12), but the Portal itself has never been configured in the
+  Stripe Dashboard, so the first click will fail until it is
 - any live-mode object
-- annual checkout — the dev control is monthly only, and the annual Price has
-  never been exercised
+- annual checkout **verification** — the control exists (§6.12) but no annual
+  Checkout Session has been created, and the annual Price has never been
+  exercised
 - cancellation — `cancel_at_period_end` has never been set, so
   `customer.subscription.updated` and `customer.subscription.deleted` remain
   unexercised
+- payment-failure handling — never simulated
 - any production billing CTA — the pricing page CTA is still a disabled
   "Opening soon" button
 - ~~`/checkout/success` and `/checkout/cancelled`~~ — **both now exist** (§6.11)
@@ -952,6 +1092,10 @@ step 6 is done.
 - `docs/implementation/release-c1-phase4-entitlements.md` — grace window, tax deferral, commercial decisions
 - `scripts/verify-webhook-signature.ts` — 34 signature checks
 - `scripts/verify-plus-classification.ts` — 44 classification checks
-- `scripts/verify-billing-dev-control.ts` — 98 checks on the dev checkout control
+- `scripts/verify-billing-dev-control.ts` — 136 checks on the dev checkout controls
   (build `dist/` first, with the flag ON)
+- `scripts/verify-billing-lifecycle-controls.ts` — 149 checks on annual, the
+  Portal and the lifecycle inspector (build `dist/` first, with the flag ON)
+- `scripts/verify-checkout-return-pages.ts` — 118 checks on the return pages
+- `scripts/verify-duplicate-subscription-guard.ts` — 71 checks on the webhook guard
 - `docs/operations/retired-webhook-secret-hygiene.md` — the retired donation flow
