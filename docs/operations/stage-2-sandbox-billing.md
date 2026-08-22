@@ -1645,6 +1645,112 @@ byte-identical to the pre-verification baseline — `subscriptions` 1,
 `billingCustomers` 1, `billingEvents` 3, matching sha256 on all three — and the
 `declare-lang` distribution is unchanged.
 
+## 6.16 Scheduled cancellation, reconciled and verified, 2026-08-22
+
+The C6 fix (PR #28, merged as `2df0ba7`) deployed to Convex development
+`good-dotterel-906` and verified end to end against the real sandbox
+subscription.
+
+### Why the two existing events were NOT replayed
+
+`applyWebhook` deduplicates on the provider event id:
+
+```
+.withIndex("by_provider_event", q => q.eq("provider", …).eq("eventId", …))
+if (seen) return { ok: true, deduped: true };
+```
+
+That returns **before any write**. Stripe's manual resend reuses the same event
+id, so resending either stored cancellation event would have been recognised as
+already processed and would have left the canonical row untouched. Stripe itself
+recommends deduplicating repeated deliveries by event id, so the dedup is
+correct and replaying it proves nothing.
+
+The smallest valid test was therefore to generate a **genuinely new** event.
+
+### The one Stripe write
+
+Exactly one sandbox subscription update, sending only:
+
+```
+cancel_at            = <the value Stripe already held>
+proration_behavior   = none
+```
+
+Nothing else was sent — no `cancel_at_period_end`, metadata, price, quantity,
+payment method, cancellation details, customer field, invoice setting, trial
+setting, collection method or billing-cycle anchor. **Cancellation was not
+toggled off and back on.**
+
+Stripe immediately afterwards: `status active`, `ended_at null`, `cancel_at`
+unchanged, `cancel_at_period_end false`, period end unchanged, `livemode false`,
+same plan and quantity, same latest invoice, `pending_update: null`. No invoice,
+proration, refund, credit or access change.
+
+**One field did move:** `canceled_at` was re-stamped, because re-asserting the
+schedule records when it was asserted. The substantive state is identical.
+
+### The new event
+
+Exactly **one** new `customer.subscription.updated`, with an event id distinct
+from all five previously stored ids, `outcome: "applied"`. It arrived within
+about four seconds. `billingEvents` went 5 → 6; all six ids remain distinct; no
+duplicate-subscription conflict was created; one canonical row throughout.
+
+### The canonical row, before and after
+
+| Field | Before | After |
+|---|---|---|
+| `cancelAtPeriodEnd` | `false` | **`true`** |
+| `canceledAt` | earlier request time | re-stamped |
+| `lastProviderEventAt`, `updatedAt` | — | advanced normally |
+| `provider`, `planKey`, `tier`, `status`, `currentPeriodEnd` | unchanged | unchanged |
+
+The deployed normalizer resolved `cancel_at === currentPeriodEnd` to
+`cancelAtPeriodEnd: true`, which is exactly what the old reader could not do.
+
+### The user-visible result
+
+`/you` Plan & Billing now renders:
+
+> **Declare Plus** · ENDING
+> Monthly plan · **Cancels September 21, 2026**
+> Your Plus access remains available until then.
+
+"Renews" is **absent**. The status chip reads ENDING rather than a healthy
+ACTIVE. All three benefits remain, Manage billing remains available (not
+clicked), the PLUS identity badge remains visible and does not say "Active", and
+no payment-attention message, raw enum or Stripe identifier appears.
+
+`/pricing` still marks Plus as **Your current plan**, the purchase control stays
+hidden and disabled with zero enabled purchase controls, the manage path points
+at `/you#plan-billing`, and the lifecycle line replaces renewal language with
+"Your Plus access remains available until the end of the period."
+
+### Deployment changed no data
+
+The Convex deployment itself left `subscriptions`, `billingCustomers` and
+`billingEvents` byte-identical. Across the whole pass, `billingCustomers`,
+`usageCounters`, `journeySlots`, `userData` and `accountSettings` are all
+byte-identical to the pre-deployment snapshots — no `userdata:set`, no Journey or
+Vault mutation, no customer or payment-method update, no invoice interaction, no
+Portal or Checkout session, no refund or credit.
+
+### Two operational notes
+
+`convex dev --once` regenerates `convex/_generated/api.d.ts` to register the new
+`stripeCancellation` module in the type map. The change is deterministic, adds
+**zero** callable functions to the deployment, and type checks pass with or
+without it. PR #28 shipped without it because codegen never ran on that branch,
+so it still needs a one-line follow-up commit.
+
+Clearing `node_modules/.vite` requires the dev server to be restarted **twice**:
+the first browser load after a cache clear triggers re-optimization, during which
+`convex_browser.js` 504s and the entitlement read fails. The Plan & Billing card
+fails closed correctly during that window — it shows "We could not load your plan
+right now" with a retry rather than a false Free state — but it is not a state
+worth verifying against. Restart once more before reading results.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
