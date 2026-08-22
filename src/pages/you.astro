@@ -238,13 +238,74 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       if (!el) throw new Error('you: missing #' + id);
       return el;
     };
-    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    /* Same contract as $(), one level narrower: the page's own markup
+       guarantees the tag, so a mismatch is a markup regression. */
+    function $as<T extends HTMLElement>(id: string, ctor: { new (): T }, what: string): T {
+      const el = $(id);
+      if (!(el instanceof ctor)) throw new Error('you: #' + id + ' is not ' + what);
+      return el;
+    }
 
-    let P = getProfile();
+    /* e.target is typed EventTarget, which has no closest(). Both uses below are
+       delegation on a container, so a non-Element target could never match the
+       selector anyway. */
+    function closestFrom<T extends HTMLElement>(e: Event, sel: string): T | null {
+      const t = e.target;
+      return t instanceof Element ? t.closest<T>(sel) : null;
+    }
+
+    /* ── This page's own shapes ──────────────────────────────────────────
+       profile-store.js is untyped JavaScript; its header documents the shape
+       and these are transcribed from it and from the reads below. Everything
+       is optional because getProfile() returns `{}` for a new device. */
+    interface Church { name: string; address?: string; placeId?: string; loc?: { lat: number; lng: number } }
+    interface Profile {
+      name?: string;
+      about?: string;
+      favoriteVerse?: string;
+      interests?: string[];
+      church?: Church | null;
+      avatar?: string;
+      since?: number;
+    }
+    /** The photo cropper's live geometry. Null whenever no crop is open. */
+    interface CropState { iw: number; ih: number; FRAME: number; baseScale: number; zoom: number; tx: number; ty: number; url: string }
+    /** What convex reviewsMine() returns for this account, or null. */
+    interface MyReview {
+      score_met_you: number;
+      score_the_word: number;
+      score_coming_back: number;
+      status: string;
+      isPublic?: boolean;
+      testimonial?: string;
+    }
+    /** What the church finder reads off a Google Places result — and off the
+     *  saved home church, which openDetail() accepts through the same door. */
+    interface PlaceLike {
+      name?: string;
+      vicinity?: string;
+      formatted_address?: string;
+      formatted_phone_number?: string;
+      website?: string;
+      place_id?: string;
+      rating?: number;
+      user_ratings_total?: number;
+      types?: string[];
+      opening_hours?: { weekday_text?: string[]; isOpen?: () => boolean | undefined };
+      photos?: Array<{ getUrl: (opts: { maxWidth: number; maxHeight: number }) => string }>;
+      geometry?: { location?: google.maps.LatLng };
+      /** Only on the SAVED home church, which doSetChurch() writes and
+       *  openDetail() accepts through the same door as a Places result. */
+      loc?: { lat: number; lng: number } | null;
+    }
+
+    const esc = (s?: string | null): string => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    let P: Profile = getProfile();
 
     /* ---------- toast ---------- */
-    let _tt;
-    function toast(m) { const t = $('yToast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
+    let _tt: ReturnType<typeof setTimeout> | undefined;
+    function toast(m: string): void { const t = $('yToast'); t.textContent = m; t.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
     // A signed-out device is a guest: show a clean slate (name, church, verse, about,
     // interests, photo, saved counts) no matter what is left in local storage. The data
@@ -252,14 +313,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     const signedInNow = () => isConfigured() && isSignedIn();
 
     /* ---------- rail: identity + real device stats ---------- */
-    function renderRail() {
+    function renderRail(): void {
       const sIn = signedInNow();
       const name = sIn ? (P.name || '').trim() : '';
       $('yName').textContent = name || tY('you.friend','Friend');
       $('yAvText').textContent = name ? name[0].toUpperCase() : '✝';
       // uploaded photo (if any) overlays the initial; remove-link shows only with one
       (function () {
-        const av = $('yAvatar'); let img = av.querySelector('.yav-img'); const rm = document.getElementById('yAvRemove');
+        const av = $('yAvatar'); let img = av.querySelector<HTMLImageElement>('.yav-img'); const rm = document.getElementById('yAvRemove');
         if (sIn && P.avatar) {
           if (!img) { img = document.createElement('img'); img.className = 'yav-img'; img.alt = ''; av.appendChild(img); }
           img.src = P.avatar; av.classList.add('has-photo'); if (rm) rm.hidden = false;
@@ -271,11 +332,11 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       $('yDays').textContent = String(d);
       $('yDaysLbl').textContent = d === 1 ? tY('you.dayWith','day with Declare') : tY('you.daysWith','days with Declare');
       const items = sIn ? listItems() : [];
-      const words = items.filter((i) => i.type === 'word').length;
-      const verses = items.filter((i) => i.type === 'verse').length;
+      const words = items.filter((i: { type: string }) => i.type === 'word').length;
+      const verses = items.filter((i: { type: string }) => i.type === 'verse').length;
       let hls = 0; if (sIn) { try { hls = Object.keys(JSON.parse(localStorage.getItem('declare-highlights') || '{}')).length; } catch (e) {} }
       const colls = sIn ? listCollections().length : 0;
-      const rows = [
+      const rows: Array<[number, string]> = [
         [words, words === 1 ? tY('you.wordKept','word received & kept') : tY('you.wordsKept','words received & kept')],
         [verses, verses === 1 ? tY('you.verseSaved','verse saved from the Word') : tY('you.versesSaved','verses saved from the Word')],
         [hls, hls === 1 ? tY('you.verseHl','verse highlighted') : tY('you.versesHl','verses highlighted')],
@@ -290,20 +351,21 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        A circular-masked stage; the image is dragged/zoomed beneath it and the framed
        square is exported at 256px JPEG to the device profile (syncs to the account,
        clears on sign-out like the rest of the personal data). ---------- */
-    let cropEl = null, cropState = null;
-    function clampCrop() {
+    let cropEl: HTMLElement | null = null, cropState: CropState | null = null;
+    function clampCrop(): void {
       const st = cropState; if (!st) return;
       const s = st.baseScale * st.zoom;
       st.tx = Math.min(0, Math.max(st.FRAME - st.iw * s, st.tx));
       st.ty = Math.min(0, Math.max(st.FRAME - st.ih * s, st.ty));
     }
-    function applyCrop() {
+    function applyCrop(): void {
       const st = cropState; if (!st || !cropEl) return;
       clampCrop();
       const s = st.baseScale * st.zoom;
-      cropEl.querySelector('#cropImg').style.transform = 'translate(' + st.tx + 'px,' + st.ty + 'px) scale(' + s + ')';
+      const img = cropEl.querySelector<HTMLElement>('#cropImg');
+      if (img) img.style.transform = 'translate(' + st.tx + 'px,' + st.ty + 'px) scale(' + s + ')';
     }
-    function zoomAt(z, ax, ay) {           // zoom around an anchor point (px, in stage coords)
+    function zoomAt(z: number, ax: number, ay: number): void {           // zoom around an anchor point (px, in stage coords)
       const st = cropState; if (!st) return;
       z = Math.min(3, Math.max(1, z));
       const sOld = st.baseScale * st.zoom, sNew = st.baseScale * z;
@@ -311,13 +373,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       st.zoom = z; st.tx = ax - ix * sNew; st.ty = ay - iy * sNew;
       applyCrop();
     }
-    function setZoom(z) { const st = cropState; if (st) zoomAt(z, st.FRAME / 2, st.FRAME / 2); }
-    function closeCropper() {
+    function setZoom(z: number): void { const st = cropState; if (st) zoomAt(z, st.FRAME / 2, st.FRAME / 2); }
+    function closeCropper(): void {
       if (cropEl) cropEl.hidden = true;
       if (cropState && cropState.url) { try { URL.revokeObjectURL(cropState.url); } catch (e) {} }
       cropState = null;
     }
-    function buildCropper() {
+    function buildCropper(): HTMLElement {
       if (cropEl) return cropEl;
       const el = document.createElement('div');
       el.className = 'cropper'; el.hidden = true;
@@ -331,13 +393,22 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         '</div>';
       document.body.appendChild(el);
       cropEl = el;
-      const stage = el.querySelector('#cropStage'), zoom = el.querySelector('#cropZoom');
+      /* Built by the innerHTML directly above, so a miss is a markup
+         regression in this same function rather than a runtime state. */
+      const stage = el.querySelector<HTMLElement>('#cropStage');
+      const zoom = el.querySelector<HTMLInputElement>('#cropZoom');
+      if (!stage || !zoom) return el;
+      /* TypeScript does not carry the guard's narrowing into the nested
+         function declarations below; these bind it explicitly. */
+      const stageEl: HTMLElement = stage;
+      const zoomEl: HTMLInputElement = zoom;
       // one finger drags; two fingers pinch-zoom (around the pinch centre) and pan together
-      const pointers = new Map();
-      let mode = 'idle', lastX = 0, lastY = 0, pinchDist0 = 1, pinchZoom0 = 1, pinchMid = null;
-      function pts() { const a = []; pointers.forEach(function (v) { a.push(v); }); return a; }
-      function stageXY(cx, cy) { const r = stage.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; }
-      stage.addEventListener('pointerdown', function (e) {
+      const pointers = new Map<number, { x: number; y: number }>();
+      let mode = 'idle', lastX = 0, lastY = 0, pinchDist0 = 1, pinchZoom0 = 1;
+      let pinchMid: { x: number; y: number } | null = null;
+      function pts(): Array<{ x: number; y: number }> { const a: Array<{ x: number; y: number }> = []; pointers.forEach(function (v) { a.push(v); }); return a; }
+      function stageXY(cx: number, cy: number) { const r = stageEl.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; }
+      stage.addEventListener('pointerdown', function (e: PointerEvent) {
         pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         try { stage.setPointerCapture(e.pointerId); } catch (_) {}
         if (pointers.size >= 2) {
@@ -346,10 +417,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           pinchMid = stageXY((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2); mode = 'pinch';
         } else { mode = 'drag'; lastX = e.clientX; lastY = e.clientY; }
       });
-      stage.addEventListener('pointermove', function (e) {
+      stage.addEventListener('pointermove', function (e: PointerEvent) {
         if (!pointers.has(e.pointerId) || !cropState) return;
         pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        if (mode === 'pinch' && pointers.size >= 2) {
+        if (mode === 'pinch' && pointers.size >= 2 && pinchMid) {
           const p = pts(), d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
           const m = stageXY((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2);
           cropState.tx += m.x - pinchMid.x; cropState.ty += m.y - pinchMid.y; pinchMid = m;   // pan with the fingers
@@ -358,32 +429,44 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           cropState.tx += e.clientX - lastX; cropState.ty += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; applyCrop();
         }
       });
-      function liftPointer(e) {
+      function liftPointer(e: PointerEvent): void {
         pointers.delete(e.pointerId);
         if (pointers.size === 1) { mode = 'drag'; const r = pts()[0]; lastX = r.x; lastY = r.y; }
         else if (pointers.size === 0) { mode = 'idle'; }
       }
       stage.addEventListener('pointerup', liftPointer);
       stage.addEventListener('pointercancel', liftPointer);
-      stage.addEventListener('wheel', function (e) { if (!cropState) return; e.preventDefault(); setZoom(cropState.zoom - e.deltaY * 0.0016); zoom.value = String(cropState.zoom); }, { passive: false });
+      stage.addEventListener('wheel', function (e: WheelEvent) { if (!cropState) return; e.preventDefault(); setZoom(cropState.zoom - e.deltaY * 0.0016); zoom.value = String(cropState.zoom); }, { passive: false });
       zoom.addEventListener('input', function () { setZoom(parseFloat(zoom.value)); });
-      el.querySelector('#cropCancel').addEventListener('click', closeCropper);
-      el.addEventListener('click', function (e) { if (e.target === el) closeCropper(); });
-      el.querySelector('#cropSave').addEventListener('click', function () {
+      const cancelBtn = el.querySelector('#cropCancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', closeCropper);
+      el.addEventListener('click', function (e: Event) { if (e.target === el) closeCropper(); });
+      const saveBtn = el.querySelector('#cropSave');
+      if (saveBtn) saveBtn.addEventListener('click', function () {
         const st = cropState; if (!st) return;
         const s = st.baseScale * st.zoom;
         const sx = -st.tx / s, sy = -st.ty / s, sSize = st.FRAME / s, OUT = 256;
         const c = document.createElement('canvas'); c.width = c.height = OUT;
         try {
-          c.getContext('2d').drawImage(el.querySelector('#cropImg'), sx, sy, sSize, sSize, 0, 0, OUT, OUT);
+          const ctx2d = c.getContext('2d');
+          const srcImg = el.querySelector<HTMLImageElement>('#cropImg');
+          /* Both come from this function's own innerHTML and a canvas created
+             two lines up; the old code threw here instead when either was
+             missing, and the surrounding catch already showed the same toast. */
+          if (!ctx2d || !srcImg) throw new Error('cropper markup missing');
+          ctx2d.drawImage(srcImg, sx, sy, sSize, sSize, 0, 0, OUT, OUT);
           P = setProfile({ avatar: c.toDataURL('image/jpeg', 0.85) }); renderRail();
           closeCropper(); toast('Looking good.');
         } catch (err) { toast("Couldn't save that image."); }
       });
       return el;
     }
-    function openCropper(file) {
-      const el = buildCropper(), img = el.querySelector('#cropImg'), stage = el.querySelector('#cropStage'), zoom = el.querySelector('#cropZoom');
+    function openCropper(file: Blob): void {
+      const el = buildCropper();
+      const img = el.querySelector<HTMLImageElement>('#cropImg');
+      const stage = el.querySelector<HTMLElement>('#cropStage');
+      const zoom = el.querySelector<HTMLInputElement>('#cropZoom');
+      if (!img || !stage || !zoom) return;
       const url = URL.createObjectURL(file);
       img.onload = function () {
         img.style.visibility = 'hidden'; el.hidden = false;
@@ -400,9 +483,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* tapping the avatar offers a native choice: take a photo (in-app camera, so it
        works on desktop too) or choose one (the OS picker, which on phones already
        shows Photo Library / Take Photo / Files). Both feed the cropper. */
-    let pmEl = null, camEl = null, camStream = null;
-    function closePhotoMenu() { if (pmEl) pmEl.hidden = true; }
-    function buildPhotoMenu() {
+    let pmEl: HTMLElement | null = null, camEl: HTMLElement | null = null, camStream: MediaStream | null = null;
+    function closePhotoMenu(): void { if (pmEl) pmEl.hidden = true; }
+    function buildPhotoMenu(): HTMLElement {
       if (pmEl) return pmEl;
       const el = document.createElement('div');
       el.className = 'cammodal'; el.hidden = true;
@@ -415,21 +498,25 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           '<button type="button" class="btn btn-ghost" id="pmCancel" style="width:100%;margin-top:8px;padding:13px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);background:transparent;border:1px solid var(--line2)">Cancel</button>' +
         '</div>';
       document.body.appendChild(el); pmEl = el;
-      el.querySelector('#pmCamera').addEventListener('click', function () { closePhotoMenu(); openCamera(); });
-      el.querySelector('#pmChoose').addEventListener('click', function () { closePhotoMenu(); $('yAvFile').click(); });
-      el.querySelector('#pmRemove').addEventListener('click', function () { closePhotoMenu(); P = setProfile({ avatar: '' }); renderRail(); toast('Photo removed.'); });
-      el.querySelector('#pmCancel').addEventListener('click', closePhotoMenu);
-      el.addEventListener('click', function (e) { if (e.target === el) closePhotoMenu(); });
+      /* Each of these ids is written by the innerHTML immediately above, so a
+         miss is a markup regression in this same function. */
+      const onClick = (sel: string, fn: () => void) => { const b = el.querySelector(sel); if (b) b.addEventListener('click', fn); };
+      onClick('#pmCamera', function () { closePhotoMenu(); openCamera(); });
+      onClick('#pmChoose', function () { closePhotoMenu(); $('yAvFile').click(); });
+      onClick('#pmRemove', function () { closePhotoMenu(); P = setProfile({ avatar: '' }); renderRail(); toast('Photo removed.'); });
+      onClick('#pmCancel', closePhotoMenu);
+      el.addEventListener('click', function (e: Event) { if (e.target === el) closePhotoMenu(); });
       return el;
     }
-    function openPhotoMenu() {
+    function openPhotoMenu(): void {
       const el = buildPhotoMenu();
-      el.querySelector('#pmRemove').hidden = !(P && P.avatar);
+      const remove = el.querySelector<HTMLElement>('#pmRemove');
+      if (remove) remove.hidden = !(P && P.avatar);
       el.hidden = false;
     }
-    function stopCam() { if (camStream) { try { camStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} camStream = null; } }
-    function closeCamera() { stopCam(); if (camEl) camEl.hidden = true; }
-    function buildCamera() {
+    function stopCam(): void { if (camStream) { try { camStream.getTracks().forEach(function (t: MediaStreamTrack) { t.stop(); }); } catch (e) {} camStream = null; } }
+    function closeCamera(): void { stopCam(); if (camEl) camEl.hidden = true; }
+    function buildCamera(): HTMLElement {
       if (camEl) return camEl;
       const el = document.createElement('div');
       el.className = 'cammodal'; el.hidden = true;
@@ -440,35 +527,41 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           '<div class="cam-actions"><button type="button" class="btn btn-ghost" id="camCancel">Cancel</button><button type="button" class="btn btn-primary" id="camShoot">Capture</button></div>' +
         '</div>';
       document.body.appendChild(el); camEl = el;
-      el.querySelector('#camCancel').addEventListener('click', closeCamera);
-      el.querySelector('#camShoot').addEventListener('click', function () {
-        const v = el.querySelector('#camVideo');
-        if (!v.videoWidth) { toast('The camera is still starting…'); return; }
+      const camCancel = el.querySelector('#camCancel');
+      if (camCancel) camCancel.addEventListener('click', closeCamera);
+      const camShoot = el.querySelector('#camShoot');
+      if (camShoot) camShoot.addEventListener('click', function () {
+        const v = el.querySelector<HTMLVideoElement>('#camVideo');
+        if (!v || !v.videoWidth) { toast('The camera is still starting…'); return; }
         const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight;
         const ctx = cv.getContext('2d');
+        if (!ctx) { toast("Couldn't capture that."); return; }
         ctx.translate(cv.width, 0); ctx.scale(-1, 1);   // mirror to match the selfie preview
         ctx.drawImage(v, 0, 0);
         cv.toBlob(function (blob) { closeCamera(); if (blob) openCropper(blob); else toast("Couldn't capture that."); }, 'image/jpeg', 0.92);
       });
       return el;
     }
-    async function openCamera() {
+    async function openCamera(): Promise<void> {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('yAvFile').click(); return; }
       let stream;
       try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false }); }
       catch (e) { toast('Camera unavailable. Choose a photo instead.'); $('yAvFile').click(); return; }
       camStream = stream;
       const el = buildCamera();
-      const v = el.querySelector('#camVideo'); v.srcObject = stream;
+      const v = el.querySelector<HTMLVideoElement>('#camVideo');
+      if (v) v.srcObject = stream;
       el.hidden = false;
-      if (v.play) v.play().catch(function () {});
+      if (v) v.play().catch(function () {});
     }
     (function () {
       const av = $('yAvatar'), file = $('yAvFile'), rm = $('yAvRemove');
       if (!av || !file) return;
       av.addEventListener('click', openPhotoMenu);
-      file.addEventListener('change', function (e) {
-        const f = e.target.files && e.target.files[0]; e.target.value = '';
+      file.addEventListener('change', function (e: Event) {
+        const input = e.target;
+        if (!(input instanceof HTMLInputElement)) return;
+        const f = input.files && input.files[0]; input.value = '';
         if (!f || !/^image\//.test(f.type)) return;
         if (f.size > 12 * 1024 * 1024) { toast('That image is a bit large. Try one under 12MB.'); return; }
         openCropper(f);
@@ -477,7 +570,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     })();
 
     /* ---------- About-you fact grid (Airbnb icon rows -> modal editors) ---------- */
-    const IC = {
+    const IC: Record<string, string> = {
       name: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
       church: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M9 5h6M5 22V11l7-4 7 4v11M9 22v-5h6v5"/></svg>',
       verse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"/><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"/></svg>',
@@ -489,7 +582,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       { key: 'verse', label: tY('you.factVerse','My anchor verse'), empty: tY('you.factVerseE','The verse you stand on') },
       { key: 'about', label: tY('you.factAbout','About me'), empty: tY('you.factAboutE','A line about your walk') },
     ];
-    function factValue(k) {
+    function factValue(k: string): string {
       if (!signedInNow()) return '';     // guest = clean slate, no leftover identity
       if (k === 'name') return P.name || '';
       if (k === 'church') return P.church ? P.church.name : '';
@@ -497,7 +590,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       if (k === 'about') return P.about || '';
       return '';
     }
-    function renderFacts() {
+    function renderFacts(): void {
       $('yFacts').innerHTML = FACTS.map((f) => {
         const v = factValue(f.key);
         return '<button class="yfact" data-fact="' + f.key + '">'
@@ -505,9 +598,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           + '<span class="fm"><span class="fl">' + f.label + '</span><span class="fv' + (v ? '' : ' empty') + '">' + esc(v || f.empty) + '</span></span>'
           + '<span class="fa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
       }).join('');
-      $('yFacts').querySelectorAll('[data-fact]').forEach((b) => {
+      $('yFacts').querySelectorAll<HTMLElement>('[data-fact]').forEach((b) => {
         b.addEventListener('click', () => {
-          const k = b.dataset.fact;
+          const k = b.dataset.fact || '';
           // a saved church opens its detail card (Airbnb pattern); the finder
           // only appears when there's nothing saved yet
           if (k === 'church') { (signedInNow() && P.church) ? openHomeChurch() : openFinder(); return; }
@@ -518,30 +611,39 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
 
     /* ---------- interests ("Ask me about") ---------- */
     const INTERESTS = ['Worship', 'Prayer', 'Scripture study', 'Serving', 'Family', 'Testimony', 'Fasting', 'Missions', 'Youth', 'Music', 'Small groups', 'Bible journaling'];
-    function renderChips() {
+    function renderChips(): void {
       const mine = signedInNow() ? (P.interests || []) : [];
-      $('yChips').innerHTML = mine.map((i) => '<span class="ychip on">' + esc(i) + '</span>').join('')
+      $('yChips').innerHTML = mine.map((i: string) => '<span class="ychip on">' + esc(i) + '</span>').join('')
         + '<button class="ychip add" id="chipAdd">' + (mine.length ? tY('you.edit','Edit') : tY('you.chooseLove','Choose what you love')) + ' +</button>';
       $('chipAdd').addEventListener('click', openInterests);
     }
 
     /* ---------- modal editors (Airbnb pattern, house motion) ---------- */
-    let modalKey = null;
-    function openModal() { $('yModal').classList.add('open'); }
-    function closeModal() { $('yModal').classList.remove('open'); modalKey = null; $('ymSave').style.display = ''; }
+    let modalKey: string | null = null;
+    function openModal(): void { $('yModal').classList.add('open'); }
+    function closeModal(): void { $('yModal').classList.remove('open'); modalKey = null; $('ymSave').style.display = ''; }
     $('ymBack').addEventListener('click', closeModal);
     $('ymX').addEventListener('click', closeModal);
-    function openEditor(k) {
+    function openEditor(k: string): void {
       modalKey = k;
-      const cfg = {
+      const EDITORS: Record<string, { t: string; s: string; body: string }> = {
         name: { t: 'Your name', s: 'Just a first name is perfect — it’s how Declare will greet you.', body: '<input class="ym-field" id="ymInput" maxlength="40" placeholder="e.g. Jeff" value="' + esc((signedInNow() && P.name) || '') + '">' },
         verse: { t: 'Your anchor verse', s: 'The verse you keep coming back to.', body: '<input class="ym-field" id="ymInput" maxlength="80" placeholder="e.g. Isaiah 41:10" value="' + esc((signedInNow() && P.favoriteVerse) || '') + '">' },
         about: { t: 'About you', s: 'A sentence or two about your walk — it stays on this device.', body: '<textarea class="ym-field" id="ymInput" rows="4" maxlength="280" placeholder="Write something honest…">' + esc((signedInNow() && P.about) || '') + '</textarea><div class="ym-count"><span id="ymCount">280</span> characters available</div>' },
-      }[k];
+      };
+      /* Only ever called with 'name', 'verse' or 'about' — renderFacts()
+         intercepts 'church' before it gets here — so an unknown key is a
+         caller bug, and this returns instead of throwing on cfg.t. */
+      const cfg = EDITORS[k];
+      if (!cfg) return;
       $('ymTitle').textContent = cfg.t;
       $('ymSub').textContent = cfg.s;
       $('ymBody').innerHTML = cfg.body;
-      const inp = $('ymInput');
+      /* #ymInput is a <textarea> for 'about' and an <input> otherwise —
+         see the EDITORS bodies above. Both carry .value and .focus(). */
+      const inp: HTMLTextAreaElement | HTMLInputElement = k === 'about'
+        ? $as('ymInput', HTMLTextAreaElement, 'a <textarea>')
+        : $as('ymInput', HTMLInputElement, 'an <input>');
       if (k === 'about') {
         const upd = () => { $('ymCount').textContent = String(280 - inp.value.length); };
         inp.addEventListener('input', upd); upd();
@@ -549,12 +651,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       openModal();
       setTimeout(() => inp.focus(), 80);
     }
-    function openInterests() {
+    function openInterests(): void {
       modalKey = 'interests';
       $('ymTitle').textContent = 'What are you into?';
       $('ymSub').textContent = 'Pick what you love — people can ask you about it. Up to 6.';
-      const mine = new Set(P.interests || []);
-      $('ymBody').innerHTML = '<div class="ym-chips">' + INTERESTS.map((i) => (
+      const mine = new Set<string>(P.interests || []);
+      $('ymBody').innerHTML = '<div class="ym-chips">' + INTERESTS.map((i: string) => (
         '<button class="ychip' + (mine.has(i) ? ' on' : '') + '" data-int="' + esc(i) + '">' + esc(i) + '</button>'
       )).join('') + '</div><div class="ym-count"><span id="ymCount">' + mine.size + '</span>/6 selected</div>';
       $('ymBody').querySelectorAll('[data-int]').forEach((c) => {
@@ -569,11 +671,15 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       openModal();
     }
     $('ymSave').addEventListener('click', () => {
-      if (modalKey === 'name') P = setProfile({ name: $('ymInput').value.trim() });
-      else if (modalKey === 'verse') P = setProfile({ favoriteVerse: $('ymInput').value.trim() });
-      else if (modalKey === 'about') P = setProfile({ about: $('ymInput').value.trim() });
+      /* #ymInput is an <input> for name/verse and a <textarea> for about; both
+         carry .value, and only these three branches read it. */
+      const field = document.getElementById('ymInput');
+      const fieldValue = (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) ? field.value.trim() : '';
+      if (modalKey === 'name') P = setProfile({ name: fieldValue });
+      else if (modalKey === 'verse') P = setProfile({ favoriteVerse: fieldValue });
+      else if (modalKey === 'about') P = setProfile({ about: fieldValue });
       else if (modalKey === 'interests') {
-        P = setProfile({ interests: [...$('ymBody').querySelectorAll('.ychip.on')].map((c) => c.dataset.int) });
+        P = setProfile({ interests: [...$('ymBody').querySelectorAll<HTMLElement>('.ychip.on')].map((c) => c.dataset.int || '') });
       }
       closeModal();
       toast(tY('you.savedToast','Saved on this device.'));
@@ -587,15 +693,15 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        No auto toast here — only deliberate opens. Signed-out clicks (from the footer/
        menu deep-links) route through sign-in, then open once the session lands. */
     const _rateCard = document.getElementById('yRateCard');
-    let _myReview = null;
+    let _myReview: MyReview | null = null;
     const rr = initRateReview({
-      onSubmit: (payload) => {
+      onSubmit: (payload: unknown) => {
         noteSubmitted();
         const p = reviewsSubmit(payload);
         if (p && p.then) p.then(renderMyReview).catch(() => {});
       },
     });
-    function openRate(source) {
+    function openRate(source: string): void {
       if (isConfigured() && !isSignedIn()) {
         let opened = false;
         onAuthChange(() => { if (!opened && isSignedIn()) { opened = true; rr.open(source); } });
@@ -606,9 +712,9 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
     // After a review exists, the card shows what you rated (gold stars + status)
     // instead of just looping back to the rating flow. Tapping it re-opens to update.
-    function renderMyReview() {
+    function renderMyReview(): void {
       if (!(isConfigured() && isSignedIn()) || !_rateCard) return;
-      reviewsMine().then((r) => {
+      reviewsMine().then((r: MyReview | null) => {
         _myReview = r || null;
         if (!r || !_rateCard) return;
         const ov = Math.round((r.score_met_you + r.score_the_word + r.score_coming_back) / 3);
@@ -626,12 +732,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        product. Nothing in the account area reads gift data. */
 
     // Read-only "Your review" view (what you rated), with an update option.
-    function dStars(n) {
+    function dStars(n: number): string {
       let s = '';
       for (let i = 1; i <= 5; i++) s += '<span style="color:' + (i <= n ? 'var(--gold)' : 'var(--line2)') + '">★</span>';
       return s;
     }
-    function openReviewView() {
+    function openReviewView(): void {
       const r = _myReview; if (!r) return;
       $('yrvStatus').textContent = r.status === 'approved' ? (r.isPublic ? 'Shared publicly on the site' : 'Approved') : 'Pending review';
       $('yrvDims').innerHTML =
@@ -643,7 +749,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       else { q.hidden = true; }
       $('yrvModal').classList.add('open');
     }
-    function closeReviewView() { $('yrvModal').classList.remove('open'); }
+    function closeReviewView(): void { $('yrvModal').classList.remove('open'); }
     $('yrvX') && $('yrvX').addEventListener('click', closeReviewView);
     $('yrvBack') && $('yrvBack').addEventListener('click', closeReviewView);
     $('yrvUpdate') && $('yrvUpdate').addEventListener('click', () => { closeReviewView(); openRate('profile'); });
@@ -789,7 +895,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       ] },
     ];
     (function setVer(){ const el = document.getElementById('yVer'); if (el && RELEASES[0]) el.textContent = (esY() ? 'DECLARE · VERSIÓN ' : 'DECLARE · VERSION ') + RELEASES[0].v; })();
-    function rlsTagClass(t){ return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
+    function rlsTagClass(t: string): string { return 'yrls-tag ' + (t === 'New' ? 'is-new' : t === 'Fixed' ? 'is-fixed' : 'is-imp'); }
     // Gentle "something new here" cue: the What's-new card nudges only while the
     // newest release hasn't been opened on this device. Opening it rests the cue
     // until the next version ships.
@@ -803,12 +909,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     function openWhatsNew() {
       try { localStorage.setItem(NEWS_SEEN, RELEASES[0].v); const c = document.getElementById('yWhatsNew'); if (c) c.classList.remove('has-news'); } catch (e) {}
       const sub = document.getElementById('yRlsSub'); if (sub) sub.textContent = esY() ? 'Todo lo que hemos lanzado últimamente, en lenguaje sencillo.' : 'Everything we have shipped lately, in plain language.';
-      var _BADGE = { New:'Nuevo', Fixed:'Corregido', Improved:'Mejorado' };
-      var _MON = { January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre' };
-      function rlsDate(d){ return esY() ? String(d).replace(/([A-Za-z]+)\s+(\d{4})/, function(_,mo,y){ return (_MON[mo]||mo) + ' de ' + y; }) : d; }
-      $('yRlsBody').innerHTML = RELEASES.map(function(r){
+      var _BADGE: Record<string, string> = { New:'Nuevo', Fixed:'Corregido', Improved:'Mejorado' };
+      var _MON: Record<string, string> = { January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre' };
+      function rlsDate(d: string): string { return esY() ? String(d).replace(/([A-Za-z]+)\s+(\d{4})/, function(_: string, mo: string, y: string){ return (_MON[mo]||mo) + ' de ' + y; }) : d; }
+      $('yRlsBody').innerHTML = RELEASES.map(function(r: { v: string; date: string; items: string[][] }){
         return '<div class="yrls-rel"><div class="yrls-vh"><span class="yrls-v">' + (esY() ? 'Versión ' : 'Version ') + r.v + '</span><span class="yrls-date">' + rlsDate(r.date) + '</span></div>'
-          + r.items.map(function(it){ return '<div class="yrls-item"><span class="yrls-tagcol"><span class="' + rlsTagClass(it[0]) + '">' + ((esY() && _BADGE[it[0]]) ? _BADGE[it[0]] : it[0]) + '</span></span><span class="yrls-txt">' + (esY() && it[2] ? it[2] : it[1]) + '</span></div>'; }).join('')
+          + r.items.map(function(it: string[]){ return '<div class="yrls-item"><span class="yrls-tagcol"><span class="' + rlsTagClass(it[0]) + '">' + ((esY() && _BADGE[it[0]]) ? _BADGE[it[0]] : it[0]) + '</span></span><span class="yrls-txt">' + (esY() && it[2] ? it[2] : it[1]) + '</span></div>'; }).join('')
           + '</div>';
       }).join('');
       $('yRlsModal').classList.add('open');
@@ -849,34 +955,38 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         openAuthModal({ mode: 'signin', onSuccess: () => { renderAuth(); toast(tY('you.welcomeBack','Welcome back.')); } });
         return;
       }
-      const u = currentUser() || {};
+      const u: { email?: string } = currentUser() || {};
       modalKey = 'auth';
       $('ymTitle').textContent = tY('you.yourAccount','Your account');
       $('ymSub').textContent = tY('you.signedInAs','Signed in as ') + (u.email || tY('you.you','you')) + tY('you.accountSub2','. Your words and verses stay on this device for now.');
       $('ymBody').innerHTML = '<button class="btn btn-ghost" id="ymSignout" style="width:100%;margin-top:16px" data-i18n="you.signOut">Sign out</button>';
       try { window.I18N?.apply(); } catch (e) {}
       $('ymSave').style.display = 'none';
-      document.getElementById('ymSignout').addEventListener('click', async () => {
+      const signout = document.getElementById('ymSignout');
+      if (signout) signout.addEventListener('click', async () => {
         await signOut(); closeModal(); renderAuth(); toast(tY('you.signedOut','Signed out on this device.'));
       });
       openModal();
     });
-    function tY(k, fb){ try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
-    function esY(){ try { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); } catch(e){ return false; } }
+    function tY(k: string, fb: string): string { try { return window.I18N ? window.I18N.t(k, fb) : fb; } catch(e){ return fb; } }
+    function esY(): boolean { try { return !!(window.I18N && window.I18N.lang && window.I18N.lang() === 'es'); } catch(e){ return false; } }
     initAuth().then(renderAuth);
     onAuthChange(renderAuth);
     // in-app language toggle (Español | English) — persists + reloads to re-render everywhere
     (function(){
-      var ctl = document.getElementById('langCtl'); if (!ctl) return;
-      function paint(){ var l = (window.I18N?.lang() ?? 'en'); ctl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
+      const found = document.getElementById('langCtl'); if (!found) return;
+      /* Bound explicitly: the guard above does not narrow inside a nested
+         function declaration. */
+      const ctl: HTMLElement = found;
+      function paint(){ var l = (window.I18N?.lang() ?? 'en'); ctl.querySelectorAll<HTMLElement>('button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); }); }
       paint();
       // Repaint once everything has loaded and on any language change — the active
       // highlight must never show a stale language (module boot order is not a
       // guarantee that I18N was ready at first paint).
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else setTimeout(paint, 0);
       document.addEventListener('declare-lang', paint);
-      ctl.addEventListener('click', function(e){
-        var b = e.target.closest('button'); if (!b || !b.dataset.lang) return;
+      ctl.addEventListener('click', function(e: Event){
+        var b = closestFrom(e, 'button'); if (!b || !b.dataset.lang) return;
         var want = b.dataset.lang;
         if (window.I18N?.lang() === want) { paint(); return; }
         try {
@@ -893,7 +1003,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     })();
 
     /* ---------- church finder (Google Maps + Places, lazy) ---------- */
-    let gmapsLoading = null, map = null, places = null, markers = [];
+    let gmapsLoading: Promise<void> | null = null;
+    let map: google.maps.Map | null = null;
+    let places: google.maps.places.PlacesService | null = null;
+    let markers: google.maps.Marker[] = [];
     const DARK_MAP = [
       { elementType: 'geometry', stylers: [{ color: '#10201a' }] },
       { elementType: 'labels.text.fill', stylers: [{ color: '#8fa399' }] },
@@ -904,13 +1017,13 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1a22' }] },
       { featureType: 'transit', stylers: [{ visibility: 'off' }] },
     ];
-    function loadGmaps() {
+    function loadGmaps(): Promise<void> {
       if (gmapsLoading) return gmapsLoading;
-      gmapsLoading = new Promise((resolve, reject) => {
+      gmapsLoading = new Promise<void>((resolve, reject) => {
         if (window.google && window.google.maps) { resolve(); return; }
         const s = document.createElement('script');
         s.src = 'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&libraries=places&v=weekly';
-        s.async = true; s.onload = resolve; s.onerror = reject;
+        s.async = true; s.onload = () => resolve(); s.onerror = reject;
         document.head.appendChild(s);
       });
       return gmapsLoading;
@@ -921,31 +1034,35 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         $('yfMissing').hidden = false;
         $('yfMap').style.display = 'none';
         $('yfLoc').style.display = 'none';
-        document.querySelector('.yf-search').style.display = 'none';
+        const yfSearch = document.querySelector<HTMLElement>('.yf-search');
+        if (yfSearch) yfSearch.style.display = 'none';
         return;
       }
       loadGmaps().then(initFinder).catch(() => toast('Maps couldn’t load — check the key restrictions.'));
     }
     $('yfClose').addEventListener('click', () => $('yFinder').classList.remove('open'));
-    function initFinder() {
+    function initFinder(): void {
       if (map) return;
       const center = P.church && P.church.loc ? P.church.loc : { lat: 39.5, lng: -98.35 };
-      map = new google.maps.Map($('yfMap'), {
+      const mapObj = new google.maps.Map($('yfMap'), {
         center, zoom: P.church && P.church.loc ? 12 : 4,
         styles: DARK_MAP, disableDefaultUI: true, zoomControl: true,
       });
-      places = new google.maps.places.PlacesService(map);
-      const ac = new google.maps.places.Autocomplete($('yfInput'), { fields: ['geometry', 'name', 'formatted_address', 'place_id', 'types'] });
+      map = mapObj;
+      places = new google.maps.places.PlacesService(mapObj);
+      /* Autocomplete binds to the text field, which must be an <input>. */
+      const ac = new google.maps.places.Autocomplete($as('yfInput', HTMLInputElement, 'an <input>'), { fields: ['geometry', 'name', 'formatted_address', 'place_id', 'types'] });
       ac.addListener('place_changed', () => {
         const p = ac.getPlace();
         if (!p) return;
         // Enter pressed on raw text (no suggestion picked) -> full-text church
         // search, so "pentecostal churches" or "Fuente iglesia" just works
-        if (!p.geometry) { searchText(p.name); return; }
+        if (!p.geometry) { searchText(p.name || ''); return; }
         if ((p.types || []).indexOf('church') >= 0 || (p.types || []).indexOf('place_of_worship') >= 0) {
           renderChurches([{ name: p.name, vicinity: p.formatted_address, place_id: p.place_id, geometry: p.geometry }]);
-          map.setCenter(p.geometry.location); map.setZoom(14);
-        } else {
+          const at = p.geometry.location;
+          if (map && at) { map.setCenter(at); map.setZoom(14); }
+        } else if (p.geometry.location) {
           searchNear(p.geometry.location);
         }
       });
@@ -957,7 +1074,8 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         );
       });
     }
-    function searchNear(loc) {
+    function searchNear(loc: google.maps.LatLng | google.maps.LatLngLiteral): void {
+      if (!map || !places) return; // only reachable after initFinder()
       map.setCenter(loc); map.setZoom(12);
       $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? 'Buscando iglesias cerca…' : 'Looking for churches nearby…') + '</div>';
       places.nearbySearch({ location: loc, radius: 9000, type: 'church' }, (res, status) => {
@@ -972,13 +1090,14 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
        "Fountain church in New Jersey" — Places textSearch understands all of
        these natively. Biased to the current map view so bare denominations
        ("baptist") land near the user, not across the country. */
-    function searchText(q) {
+    function searchText(q: string): void {
       q = (q || '').trim();
       if (q.length < 2) return;
       $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? 'Buscando iglesias…' : 'Searching churches…') + '</div>';
       const churchy = /church|iglesia|chapel|capilla|temple|templo|ministr|fellowship|assembl|asamblea|tabernac|cathedral|catedral|parish|parroquia|congrega/i.test(q);
-      const req = { query: churchy ? q : q + ' church' };
-      if (map) { req.location = map.getCenter(); req.radius = 30000; }
+      const req: google.maps.places.TextSearchRequest = { query: churchy ? q : q + ' church' };
+      if (map) { const c = map.getCenter(); if (c) { req.location = c; req.radius = 30000; } }
+      if (!places) return; // only reachable after initFinder()
       places.textSearch(req, (res, status) => {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !res || !res.length) {
           $('yfList').innerHTML = '<div class="yf-note">' + (esY() ? ('Nada encontrado para “' + esc(q) + '” — prueba con una ciudad o código postal.') : ('Nothing found for “' + esc(q) + '” — try adding a city or zip.')) + '</div>';
@@ -987,12 +1106,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         renderChurches(res.slice(0, 10));
       });
     }
-    function ratingHtml(c) {
+    function ratingHtml(c: PlaceLike): string {
       if (!c.rating) return '';
       return '<span class="star">★</span> ' + Number(c.rating).toFixed(1)
         + (c.user_ratings_total ? ' <span class="dim">(' + c.user_ratings_total + ')</span>' : '');
     }
-    function setChurch(c) {
+    function setChurch(c: PlaceLike): void {
       // Searching for churches is open to everyone; SAVING one as "My church"
       // is a kept thing — it needs an account. The card opens right here and
       // saves the moment they're in.
@@ -1002,33 +1121,38 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       }
       doSetChurch(c);
     }
-    function doSetChurch(c) {
-      const loc = c.geometry ? { lat: c.geometry.location.lat(), lng: c.geometry.location.lng() } : null;
+    function doSetChurch(c: PlaceLike): void {
+      /* A Places result always carries geometry.location together; reading
+         them as one is the same test the old `c.geometry ?` made, minus the
+         throw if a result ever arrived with geometry but no location. */
+      const at = c.geometry && c.geometry.location;
+      const loc = at ? { lat: at.lat(), lng: at.lng() } : null;
       P = setProfile({ church: { name: c.name, address: c.vicinity || c.formatted_address || '', placeId: c.place_id || '', loc } });
       toast('“' + c.name + '” ' + (esY() ? 'es tu iglesia base.' : 'is your home church.'));
       renderFacts(); renderChurchHub();
       closeDetail();
       $('yFinder').classList.remove('open');
     }
-    function renderChurches(list) {
+    function renderChurches(list: PlaceLike[]): void {
       markers.forEach((m) => m.setMap(null)); markers = [];
       const bounds = new google.maps.LatLngBounds();
       list.forEach((c) => {
-        if (!c.geometry) return;
-        const mk = new google.maps.Marker({ map, position: c.geometry.location, title: c.name });
+        const at = c.geometry && c.geometry.location;
+        if (!at) return;
+        const mk = new google.maps.Marker({ map, position: at, title: c.name });
         mk.addListener('click', () => openDetail(c));
-        markers.push(mk); bounds.extend(c.geometry.location);
+        markers.push(mk); bounds.extend(at);
       });
-      if (list.length > 1) map.fitBounds(bounds, 48);
-      $('yfList').innerHTML = list.map((c, i) => {
+      if (list.length > 1 && map) map.fitBounds(bounds, 48);
+      $('yfList').innerHTML = list.map((c: PlaceLike, i: number) => {
         const r = ratingHtml(c);
         return '<div class="yf-row" style="animation-delay:' + (i * 40) + 'ms">'
           + '<button class="yf-m" data-d="' + i + '"><span class="yf-n">' + esc(c.name) + '</span><span class="yf-a">' + esc(c.vicinity || c.formatted_address || '') + '</span>'
           + (r ? '<span class="yf-r">' + r + '</span>' : '') + '</button>'
           + '<button class="yf-set" data-i="' + i + '">' + (esY() ? 'Fijar como mi iglesia' : 'Set as my church') + '</button></div>';
       }).join('');
-      $('yfList').querySelectorAll('.yf-m').forEach((b) => b.addEventListener('click', () => openDetail(list[+b.dataset.d])));
-      $('yfList').querySelectorAll('.yf-set').forEach((b) => b.addEventListener('click', () => setChurch(list[+b.dataset.i])));
+      $('yfList').querySelectorAll<HTMLElement>('.yf-m').forEach((b) => b.addEventListener('click', () => openDetail(list[Number(b.dataset.d)])));
+      $('yfList').querySelectorAll<HTMLElement>('.yf-set').forEach((b) => b.addEventListener('click', () => setChurch(list[Number(b.dataset.i)])));
     }
 
     /* ---------- church detail sheet (tap a row or a map pin) ---------- */
@@ -1037,12 +1161,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
       pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg>',
     };
-    let detailPlace = null, detailHome = false;
-    function metaLine(c) {
-      const bits = [];
+    let detailPlace: PlaceLike | null = null, detailHome = false;
+    function metaLine(c: PlaceLike): string {
+      const bits: string[] = [];
       const r = ratingHtml(c);
       if (r) bits.push(r);
-      let open = null;
+      let open: boolean | undefined | null = null;
       try { if (c.opening_hours && typeof c.opening_hours.isOpen === 'function') open = c.opening_hours.isOpen(); } catch (e) {}
       if (open === true) bits.push('<span class="ok">Open now</span>');
       else if (open === false) bits.push('<span class="dim">Closed now</span>');
@@ -1055,26 +1179,26 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
       if (detailHome) { closeDetail(); openFinder(); }
       else if (detailPlace) setChurch(detailPlace);
     });
-    function llOf(c) {
+    function llOf(c: PlaceLike) {
       if (c.geometry && c.geometry.location) return { lat: c.geometry.location.lat(), lng: c.geometry.location.lng() };
       return c.loc || null;
     }
-    function gmapsDir(c) {
+    function gmapsDir(c: PlaceLike): string {
       return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(c.formatted_address || c.name || '')
         + (c.place_id ? '&destination_place_id=' + encodeURIComponent(c.place_id) : '');
     }
-    function chipA(label, href, icon) {
+    function chipA(label: string, href: string, icon: string): string {
       return '<a class="yfd-act" href="' + esc(href) + '" target="_blank" rel="noopener">' + icon + label + '</a>';
     }
     /* plain links — the phone hands each one to the installed app */
-    function navActs(c) {
+    function navActs(c: PlaceLike): string {
       const dest = encodeURIComponent(c.formatted_address || c.name || '');
       const ll = llOf(c);
       return chipA('Google Maps', gmapsDir(c), DICONS.pin)
         + chipA('Apple Maps', 'https://maps.apple.com/?daddr=' + dest, DICONS.pin)
         + chipA('Waze', ll ? 'https://waze.com/ul?ll=' + ll.lat + ',' + ll.lng + '&navigate=yes' : 'https://waze.com/ul?q=' + dest, DICONS.pin);
     }
-    function paintActions(c, d) {
+    function paintActions(c: PlaceLike, d: PlaceLike | null): void {
       let acts = '';
       if (d && d.formatted_phone_number) acts += '<a class="yfd-act" href="tel:' + esc(d.formatted_phone_number.replace(/[^+\d]/g, '')) + '">' + DICONS.phone + 'Call</a>';
       if (d && d.website) acts += chipA('Website', d.website, DICONS.globe);
@@ -1083,12 +1207,12 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     }
     /* `home` is optional: omitting it means this is a search RESULT rather
        than the saved home church — see `!!home` and `if (home)` below. */
-    function openDetail(c, home?: boolean) {
+    function openDetail(c: PlaceLike, home?: boolean) {
       detailPlace = c; detailHome = !!home;
       // paint instantly from what we already know, then enrich from Google
       $('yfdName').innerHTML = esc(c.name || '') + (home ? ' <span class="ybadge home">Home</span>' : '');
       $('yfdAddr').textContent = c.vicinity || c.formatted_address || '';
-      $('yfdAddr').href = gmapsDir(c);
+      $as('yfdAddr', HTMLAnchorElement, 'an <a>').href = gmapsDir(c);
       $('yfdMeta').innerHTML = metaLine(c);
       $('yfdHours').innerHTML = '';
       if (home) paintActions(c, null);
@@ -1108,7 +1232,7 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
         detailPlace = Object.assign({}, c, { name: d.name || c.name, formatted_address: d.formatted_address || c.formatted_address, geometry: d.geometry || c.geometry });
         $('yfdName').innerHTML = esc(detailPlace.name) + (detailHome ? ' <span class="ybadge home">Home</span>' : '');
         if (d.formatted_address) $('yfdAddr').textContent = d.formatted_address;
-        $('yfdAddr').href = gmapsDir(detailPlace);
+        $as('yfdAddr', HTMLAnchorElement, 'an <a>').href = gmapsDir(detailPlace);
         $('yfdMeta').innerHTML = metaLine(d);
         if (d.photos && d.photos.length) {
           $('yfdPhoto').style.backgroundImage = 'url("' + d.photos[0].getUrl({ maxWidth: 1000, maxHeight: 560 }) + '")';

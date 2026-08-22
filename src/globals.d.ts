@@ -1,3 +1,5 @@
+/// <reference types="google.maps" />
+
 /* Declare & Believe — ambient globals set by scripts in public/.
  *
  * These are NOT modules. `public/declare/i18n.js` is a plain <script> that
@@ -56,6 +58,10 @@ declare global {
     DeclareTheme?: { set: (mode: string | undefined) => void };
     /** FUMS analytics beacon (Faithlife/Bible API usage tracking). */
     fums?: (event: string, token: string) => void;
+    /** Assigned by the Google Maps JS API loader, which /you injects lazily
+     *  and then feature-detects with `window.google && window.google.maps`.
+     *  Typed from @types/google.maps, referenced at the top of this file. */
+    google?: typeof google;
 
     /* Spanish lookup tables. Loaded per page; absent when the page has no
        Spanish. Shapes read from the files that assign them — they are NOT all
