@@ -115,6 +115,108 @@ Done items move to the bottom or get deleted.
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
 
+## Deferred — Stripe sandbox checkout and subscription validation
+
+**Paused at a verified checkpoint, 2026-08-21.** Everything below is sandbox-only.
+Nothing in live mode has been created or touched. Full record in
+`docs/operations/stage-2-sandbox-billing.md`; PR #20 is the active review surface.
+
+### Completed
+
+- [x] Stripe sandbox account confirmed: **Declare checkout dev** (`acct_1TmENuLShxhb4mBz`)
+- [x] Sandbox Product created: `prod_V6voPpxBKesWPc`
+- [x] Monthly Price created: `price_1U6hytLShxhb4mBzduppVOya` — 899 usd/month
+- [x] Annual Price created: `price_1U6i0TLShxhb4mBzAldYiOcA` — 7999 usd/year
+- [x] Sandbox webhook endpoint created: `we_1U6iKwLShxhb4mBzE0uOMDR2`
+      - targets the **isolated dev Worker**:
+        `https://hope-finder-worker-dev.thinktoro.workers.dev/billing/webhook`
+      - API version pinned to **`2026-06-24.dahlia`**
+      - forwards to Convex dev deployment **`good-dotterel-906`**
+- [x] Dev Worker version verified: **`95ca744d-71c4-4fe7-b505-e5ddcefe0d96`**
+- [x] `checkout.session.expired` verified end to end: **HTTP 200 `ok`**
+- [x] Provider-neutral Stripe / App Store entitlement architecture documented
+      (`docs/architecture/cross-platform-subscriptions.md`)
+- [x] Recurring-donation contamination bug fixed (C2). A recurring gift is also
+      `mode: subscription`, so mode alone could have granted Plus to a donor
+- [x] Stripe API access moved entirely into Convex (C5). One credential, one
+      runtime, one pinned API version
+- [x] Worker reduced to signature verification and event forwarding. It holds no
+      Stripe credential
+- [x] Webhook signature diagnostics added and deployed
+- [x] PR #20 remains the active Stage 2 review surface
+- [x] **Resume step 1 — development-only authenticated monthly checkout control**
+      (`src/pages/dev/[control].astro`, dev URL `/dev/billing-sandbox`).
+      `billing.createCheckoutSession` now has exactly one caller. Two gates keep
+      it out of production: a dynamic route that generates zero pages, and an
+      inline-literal `import.meta.env.DEV` check that Vite folds away. Proven by
+      `scripts/verify-billing-dev-control.ts` (98 checks) against a **hostile**
+      build made with `PUBLIC_BILLING_DEV_CONTROL=1`. Nothing has been clicked.
+
+### Intentionally not completed
+
+None of these are oversights. Each is a deliberate stop.
+
+- [ ] No checkout control exists in production. The dev-only one has never been
+      clicked, so it has created nothing
+- [ ] No Stripe Customer has been created
+- [ ] No real Checkout Session has been created through the app
+- [ ] No Subscription or invoice has been created
+- [ ] No test payment has been completed
+- [ ] No Billing Portal configuration or session exists
+- [ ] No annual checkout UI exists
+- [ ] No production billing CTA is enabled — the pricing page CTA is still a
+      disabled "Opening soon" button
+- [ ] No live Stripe Product, Price, webhook or secret has been created
+- [ ] No StoreKit or App Store Connect product has been created
+
+### Resume point
+
+When Stage 2 resumes, in this order:
+
+1. ~~**Build a development-only authenticated monthly checkout control.**~~
+   **DONE.** `src/pages/dev/[control].astro`. Enable with
+   `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`, then open
+   `http://localhost:4321/dev/billing-sandbox`. The browser sends only
+   `{ plan: 'plus-monthly' }`; the user, the Price and the Customer all resolve
+   server-side in Convex. See `docs/operations/stage-2-sandbox-billing.md` §6.
+2. **Create one sandbox monthly Checkout Session through the actual app**, not
+   through the API directly. The point is to exercise the real path.
+3. **Complete a test subscription payment.**
+4. **Capture real payloads** for the pinned API version.
+5. **Verify against those payloads:**
+   - Checkout Session ownership
+   - Customer mapping
+   - subscription period fields
+   - invoice-to-subscription relationship
+   - metadata provenance
+   - cancellation state
+   - entitlement activation
+6. ~~**Narrow the provisional webhook field readers.**~~ **DONE.** Narrowed
+   against the real payloads captured at step 3, not from memory:
+   `readPeriod` now reads only `subscription.items.data[0]`, and
+   `readInvoiceSubscriptionId` only
+   `invoice.parent.subscription_details.subscription`. The Checkout Session
+   reader and all cancellation fields were unchanged, because the captured
+   payloads showed neither moved. `verify-plus-classification.ts` grew 44 -> 96
+   checks and the new assertions were mutation-tested. See
+   `docs/operations/stage-2-sandbox-billing.md` §6.9.
+7. Test **annual** checkout and **cancellation** after monthly succeeds.
+8. Configure and test the **Stripe Customer Portal last.**
+
+### Guardrails
+
+- Do not reuse archived donation Products, Prices, sessions or metadata. Seven
+  archived gift sessions and two archived gift Products remain in the sandbox and
+  are permanent negative test fixtures, not building material.
+- Do not point sandbox webhooks at the production Worker.
+- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
+  asserted by `scripts/verify-plus-classification.ts`.
+- Do not enable production checkout without a separate live-promotion approval.
+- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
+- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
+  source of truth.
+
+
 ## ✅ Verify on the live site (manual)
 - [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
       password-reset email (Resend).
@@ -126,6 +228,48 @@ Done items move to the bottom or get deleted.
       Status: **approved and deferred.** Begin after the current Spanish Journey surface
       work is complete and stable. Documentation-only for now; no navigation code, labels,
       routes, analytics, SEO, GTM or Search Console changes have been made.
+
+      **Sequencing decision — 2026-08-21.** Do **not** begin this migration inside PR #20
+      or during the current billing and type-check cleanup. Finish the Stage 2
+      billing/type-check plan first. After PR #20 is merged or otherwise closed, create a
+      dedicated navigation planning branch. This is in addition to the Spanish-Journey
+      gate above, not a replacement for it.
+
+      Five things must be settled on that branch **before any implementation begins**:
+
+      1. Reconcile this route map with the approved app.declareandbelieve.com split plan
+         below — they currently disagree (see finding 2).
+      2. Decide the canonical account route: `/you` or `/profile`.
+      3. Decide the canonical authentication route: `/signin` or `/login`.
+      4. Include `/journey`→`/journeys` and `/vault`→`/saved` in the final unified map;
+         the app.* plan predates both and omits them.
+      5. Resolve the `/declare` static-asset namespace collision before renaming
+         `/today`→`/declare` (see finding 1).
+
+      The eventual migration must be **coordinated across all of it in one pass**: English
+      and Spanish tab labels; page and file routes; one-hop permanent redirects; active
+      states and accessibility; internal and deep links; Journey-resume and Saved-content
+      links; authentication **and billing** return paths; canonical, hreflang, sitemap,
+      robots, metadata and Open Graph URLs; GTM, GA, funnels, conversions and historical
+      analytics mapping; Cloudflare redirects and Search Console verification; and mobile
+      tab bar, tablet rail and desktop sidebar parity. The detailed requirements for each
+      are already specified further down this item — this list is the scope, not a second
+      copy of the spec.
+
+      One dependency worth naming because nothing else records it: Stage 2 billing builds
+      Checkout `success_url` and `cancel_url` from `SITE_URL` in `convex/billing.ts`, and
+      those point at `/checkout/success` and `/checkout/cancelled`, which do not exist as
+      routes yet. Whoever builds those routes and whoever renames routes are touching the
+      same return-path surface, so the billing return paths must be part of the unified
+      map rather than discovered afterwards.
+
+      **Changing only Word→Bible or Vault→Saved is not implementation and is not
+      completion.** (Restated here because it is the tempting subset; the guardrail at the
+      end of this item says the same thing.)
+
+      The **mast-avatar duplicate-navigation question** (see "🔧 In progress / immediate")
+      stays a separate sitewide decision. Do not bundle it into this route migration or
+      into the current type-cleanup work.
 
       **Approved tab bar:** Bible · Journeys · Declare · Saved · You
 

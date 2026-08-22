@@ -18,7 +18,11 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+
+    /* Convex functions run in a Node-like runtime and read process.env.
+       Without this, every process.env reference is an unresolved global. */
+    "types": ["node"]
   },
   "include": ["./**/*"],
   "exclude": ["./_generated"]

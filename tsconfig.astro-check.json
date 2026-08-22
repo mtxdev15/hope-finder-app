@@ -1,0 +1,60 @@
+{
+  /* Scoped type-check project for `astro check`.
+   *
+   * WHY THIS EXISTS
+   * The root tsconfig includes `**\/*`, which drags in the design-source
+   * archive, copied static JavaScript under public/, generated build output,
+   * and the executable verification scripts. Checking all of it produced a
+   * flood of unrelated diagnostics and eventually exhausted the heap, which
+   * made the check useless: a check nobody can run is a check nobody runs.
+   *
+   * This project narrows the scope to the Astro application source that
+   * actually ships to a browser. It does NOT weaken strictness — it extends
+   * the root project unchanged, with no `strict: false`, no blanket
+   * `skipLibCheck` to paper over application errors, and no disabling of
+   * `verbatimModuleSyntax`.
+   *
+   * WHAT IS DELIBERATELY NOT COVERED
+   *   convex/     — has its own project, checked by `npm run check:convex`
+   *   scripts/    — the verification suites. They are exercised by RUNNING
+   *                 them (they exit non-zero on failure), and they are NOT
+   *                 yet statically type-clean. The repository as a whole is
+   *                 therefore not type-clean, and this file must not be read
+   *                 as claiming otherwise.
+   *   public/, design-source-v3.2/, dist/, .astro/
+   *
+   *   src/pages/journey.astro — EXCLUDED UNDER PROTEST, see below.
+   *
+   * THE journey.astro EXCLUSION
+   * That single file is 275 KB, almost all of it one inline <script>. Checking
+   * it ALONE exhausts Node's default 4 GB heap after ~6 minutes: TypeScript's
+   * control-flow analysis is superlinear in function size and that script is
+   * enormous. Measured, not guessed — it OOMs on its own with nothing else in
+   * the project.
+   *
+   * Raising --max-old-space-size would hide the problem rather than fix it, so
+   * it is excluded instead and recorded here. The real fix is to lift that
+   * script out of the .astro file into a module it imports, which is a
+   * behavioural change to the most complex page in the app and belongs in its
+   * own piece of work. Until then, journey.astro is NOT type-checked.
+   */
+  "extends": "./tsconfig.json",
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*.astro",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    ".astro",
+    "design-source-v3.2",
+    "public",
+    "scripts",
+    "convex",
+    "src/pages/journey.astro"
+  ]
+}

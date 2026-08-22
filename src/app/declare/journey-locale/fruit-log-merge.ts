@@ -16,6 +16,12 @@
 export interface FruitFields {
   fruit?: string;
   fruitTruth?: string;
+  /** The day's declared source language, when the record carries one.
+   *  Not displayed — `sourceLocale()` below reads it to label the row
+   *  honestly, and a day that predates the locale boundary simply has no
+   *  `lang` and resolves to "en". Declared optional because the translated
+   *  half of a pair never carries it. */
+  lang?: string;
 }
 
 export interface FruitRow {

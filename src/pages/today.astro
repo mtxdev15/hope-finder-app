@@ -338,7 +338,7 @@ import RateReview from '../components/RateReview.astro';
       initRateReview({
         isEligible: isToastEligible,
         onDismiss: noteDismissed,
-        onSubmit: (payload) => { noteSubmitted(); reviewsSubmit(payload); },
+        onSubmit: (payload: unknown) => { noteSubmitted(); reviewsSubmit(payload); },
       });
     });
 
@@ -348,7 +348,7 @@ import RateReview from '../components/RateReview.astro';
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       try {
         const lenis = new Lenis({ smoothWheel: true });
-        const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
+        const raf = (t: number) => { lenis.raf(t); requestAnimationFrame(raf); };
         requestAnimationFrame(raf);
       } catch (e) {}
     }
@@ -365,22 +365,71 @@ import RateReview from '../components/RateReview.astro';
     // (ref, Save, Share) always match what's really on screen.
     let responseTranslation = 'NLT';
     let transReqId = 0; // guards against a stale in-place translation resolving late
-    function activeTrans(){ return (window.I18N && I18N.lang() === 'es') ? 'RVR1909' : currentTranslation; }
-    function activeLang(){ try { return (window.I18N && I18N.lang()) || 'en'; } catch(e){ return 'en'; } }
+    function activeTrans(){ return (window.I18N?.lang() === 'es') ? 'RVR1909' : currentTranslation; }
+    function activeLang(){ try { return (window.I18N?.lang()) || 'en'; } catch(e){ return 'en'; } }
 
-    const $ = (id) => document.getElementById(id);
-    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    /* Every id passed to $() is rendered unconditionally by this page, so a
+       miss means the markup changed and this script cannot do its job.
+       Throwing fails at exactly the point the old code did — it raised
+       "Cannot set properties of null" on the very next access — but names the
+       id instead of leaving you to guess it.
+
+       The lookups that are genuinely OPTIONAL call document.getElementById directly and keep their
+       null checks. That distinction is the point: $() now means "must exist",
+       and anything that might not exist says so at the call site. */
+    const $ = (id: string): HTMLElement => {
+      const el = document.getElementById(id);
+      if (!el) throw new Error('today: missing #' + id);
+      return el;
+    };
+    /* Same contract as $(), one level narrower: the page's own markup
+       guarantees the tag, so a mismatch is a markup regression and throwing
+       names it. Keeps .href/.value/.requestSubmit off a broad HTMLElement
+       without an assertion at every use. */
+    function $as<T extends HTMLElement>(id: string, ctor: { new (): T }, what: string): T {
+      const el = $(id);
+      if (!(el instanceof ctor)) throw new Error('today: #' + id + ' is not ' + what);
+      return el;
+    }
+
+    /* e.target is typed EventTarget, which has no closest(). Every use below is
+       event delegation on a container, so a target that is not an Element could
+       never match the selector anyway — this is the check the browser was
+       making implicitly, written once instead of six times. */
+    function closestFrom<T extends HTMLElement>(e: Event, sel: string): T | null {
+      const t = e.target;
+      return t instanceof Element ? t.closest<T>(sel) : null;
+    }
+
+    /* ── What the brain returns ──────────────────────────────────────────
+       Transcribed from declare-api.js's consumers below, not invented. `t` is
+       the alternate verse field the first render reads as `v1.t || v1.text`;
+       `breakdowns` is optional because older cached content predates it, and
+       an entry may still be a legacy plain string. */
+    interface Verse { ref: string; text: string; t?: string }
+    interface Breakdown { context?: string; application?: string }
+    interface DeclareContent {
+      verses: Verse[];
+      explanation: string;
+      declarations: string[];
+      prayer: string;
+      breakdowns?: Array<Breakdown | string>;
+    }
+    /** One row in the share chooser sheet. */
+    interface Shareable { type: string; label: string; text: string; ref: string; ic: string }
+
+    const esc = (s?: string | null): string => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     const entryView = $('entryView'), resultsView = $('resultsView');
     const resultsBody = $('resultsBody'), resultsError = $('resultsError');
-    const chips = $('chips'), writeInput = $('writeInput');
+    const chips = $('chips'), writeInput = $as('writeInput', HTMLTextAreaElement, 'a <textarea>');
     const sheet = $('sheet'), scrim = $('scrim'), sheetCta = $('sheetCta');
     const toast = $('toast'), toastMsg = $('toastMsg');
-    function tI(k, fb){ try { return (window.I18N ? window.I18N.t(k, fb) : fb); } catch(e){ return fb; } }
-    function struggleLabel(s){ try { if (window.I18N && I18N.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}, c=window.__I18N_CHIP_ES||{}; return m[s]||c[s]||s; } } catch(e){} return s; }
+    function tI(k: string, fb: string): string { try { return (window.I18N ? window.I18N.t(k, fb) : fb); } catch(e){ return fb; } }
+    function struggleLabel(s: string): string { try { if (window.I18N?.lang()==='es'){ var m=window.__I18N_STRUGGLES_ES||{}, c=window.__I18N_CHIP_ES||{}; return m[s]||c[s]||s; } } catch(e){} return s; }
     /* inline (mid-sentence) form: Spanish lowercases only the first letter so proper
        nouns survive ('esperar en Dios'); English keeps the full lowercase as before */
-    function struggleLower(s){ var l = struggleLabel(s); try { if (window.I18N && I18N.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
+    function struggleLower(s: string): string { var l = struggleLabel(s); try { if (window.I18N?.lang()==='es') return l.charAt(0).toLowerCase() + l.slice(1); } catch(e){} return l.toLowerCase(); }
 
     // The Translation switcher only ever changes English output — Spanish is
     // always RVR1909 — so the whole section hides itself in that language.
@@ -395,42 +444,42 @@ import RateReview from '../components/RateReview.astro';
 
     let selected = 'Fear & Anxiety';
     let activeStruggle = '';
-    let content = null, currentId = null;
-    let usedRefs = [];
+    let content: DeclareContent | null = null, currentId: string | null = null;
+    let usedRefs: string[] = [];
     let reqId = 0;
     let speakingIdx = -1;
-    let toastTimer = null;
+    let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
     /* ---------- helpers ---------- */
-    function showToast(msg) {
+    function showToast(msg: string): void {
       toastMsg.textContent = msg;
       toast.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
     }
-    function showView(view) {
+    function showView(view: HTMLElement): void {
       [entryView, resultsView].forEach((v) => { v.hidden = v !== view; });
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
-    function stopSpeak() {
+    function stopSpeak(): void {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       speakingIdx = -1;
       document.querySelectorAll('.srow.speaking').forEach((el) => el.classList.remove('speaking'));
     }
-    function splitPrayer(prayer) {
+    function splitPrayer(prayer?: string): { body: string; amen: string } {
       const m = (prayer || '').match(/^([\s\S]*?)([\w'’ ]*\bamen\b\.?)\s*$/i);
       if (m && m[2]) return { body: m[1].trim().replace(/[,;]\s*$/, '.'), amen: m[2].trim().replace(/\.?$/, '.') };
       return { body: (prayer || '').trim(), amen: '' };
     }
-    function splitExplanation(text) {
+    function splitExplanation(text?: string): { body: string; more: string } {
       const sentences = (text || '').match(/[^.!?]+[.!?]+(\s+|$)/g) || [text || ''];
-      if (sentences.length <= 2) return { body: text, more: '' };
+      if (sentences.length <= 2) return { body: text || '', more: '' };
       return { body: sentences.slice(0, 2).join('').trim(), more: sentences.slice(2).join('').trim() };
     }
     // "Psalm 34:18" -> /word?book=Psalms&chapter=34&verse=18 — the reader opens the
     // chapter, scrolls to the verse, and highlights it so reading begins there.
-    const BOOK_ALIASES = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Songs of Solomon': 'Song of Solomon', 'Revelations': 'Revelation' };
-    function passageLink(ref) {
+    const BOOK_ALIASES: Record<string, string> = { 'Psalm': 'Psalms', 'Song of Songs': 'Song of Solomon', 'Songs of Solomon': 'Song of Solomon', 'Revelations': 'Revelation' };
+    function passageLink(ref?: string): string {
       const m = (ref || '').match(/^(.*?)\s+(\d+)\s*:\s*(\d+)/);
       if (!m) return '/word';
       const book = BOOK_ALIASES[m[1].trim()] || m[1].trim();
@@ -439,7 +488,7 @@ import RateReview from '../components/RateReview.astro';
     // Compact relative time for the >=1024px "Your Recent Words" rail (e.g.
     // "just now", "2 hours ago", "2 days ago"). English-only, like the rest of
     // the rail's labels; Spanish falls back to these English strings.
-    function relTime(ts) {
+    function relTime(ts?: number): string {
       if (!ts) return '';
       const diff = Math.max(0, Date.now() - ts);
       const min = 60000, hour = 3600000, day = 86400000;
@@ -451,34 +500,47 @@ import RateReview from '../components/RateReview.astro';
     }
 
     /* ---------- entry: chips (design behavior) ---------- */
-    chips.addEventListener('click', (e) => {
-      const c = e.target.closest('.chip'); if (!c) return;
+    chips.addEventListener('click', (e: Event) => {
+      const c = closestFrom(e, '.chip'); if (!c) return;
       if (c.id === 'moreBtn') { openSheet(); return; }
       chips.querySelectorAll('.chip:not(.more)').forEach((x) => x.classList.remove('on'));
       c.classList.add('on');
-      selected = c.dataset.struggle.replace(/&amp;/g, '&');
+      /* Every .chip in the markup carries data-struggle, and preselect() sets it
+         on the one chip it creates, so the fallback covers only a markup
+         regression — where this used to throw on .replace of undefined. */
+      selected = (c.dataset.struggle || '').replace(/&amp;/g, '&');
       syncSheet(selected);
     });
 
     /* composer: grow with the text, submit on Enter (Shift+Enter = newline) */
     function autogrow() { writeInput.style.height = 'auto'; writeInput.style.height = Math.min(writeInput.scrollHeight, 168) + 'px'; }
     writeInput.addEventListener('input', autogrow);
-    writeInput.addEventListener('keydown', (e) => {
+    writeInput.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        const f = $('writeForm');
-        if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true }));
+        const f = $as('writeForm', HTMLFormElement, 'a <form>');
+        /* Capability check, not a truthiness check. lib.dom declares
+           requestSubmit as always present, so `if (f.requestSubmit)` would read
+           as a constant to TypeScript — but it is genuinely missing in Safari
+           before 16, which is exactly what the else branch is for. Same shape
+           as the navigator.share fix in e1150f4. */
+        if (typeof f.requestSubmit === 'function') f.requestSubmit();
+        else f.dispatchEvent(new Event('submit', { cancelable: true }));
       }
     });
-    $('writeForm').addEventListener('submit', (e) => { e.preventDefault(); go(writeInput.value.trim()); });
+    $('writeForm').addEventListener('submit', (e: Event) => { e.preventDefault(); go(writeInput.value.trim()); });
     $('receiveBtn').addEventListener('click', () => go(writeInput.value.trim()));
 
     /* deep-link: ?struggle=… pre-selects (design behavior, for SEO pages later) */
-    function preselect(s) {
+    function preselect(s: string): void {
       s = (s || '').trim(); if (!s) return;
-      const main = [...chips.querySelectorAll('.chip:not(.more)')];
-      let match = null;
-      main.forEach((x) => { if (x.dataset.struggle.replace(/&amp;/g, '&') === s) match = x; });
+      const main = [...chips.querySelectorAll<HTMLElement>('.chip:not(.more)')];
+      /* The old loop assigned on every hit, so it kept the LAST match.
+         filter().pop() is that exactly, with no need to argue about whether
+         two chips can carry the same struggle. TypeScript could not see the
+         assignment through the forEach callback and narrowed `match` to
+         `never`, which is what made this the page's final diagnostic. */
+      const match = main.filter((x) => (x.dataset.struggle || '').replace(/&amp;/g, '&') === s).pop() ?? null;
       main.forEach((x) => x.classList.remove('on'));
       if (match) { match.classList.add('on'); }
       else {
@@ -492,40 +554,45 @@ import RateReview from '../components/RateReview.astro';
     try { const inc = new URLSearchParams(location.search).get('struggle'); if (inc) preselect(inc); } catch (e) {}
 
     /* ---------- More sheet (design behavior) ---------- */
-    function openSheet() { sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false'); }
-    function closeSheet() { sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); }
+    function openSheet(): void { sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false'); }
+    function closeSheet(): void { sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); }
     $('sheetClose').addEventListener('click', closeSheet);
     scrim.addEventListener('click', closeSheet);
-    function syncMain(s) {
+    function syncMain(s: string): void {
       let matched = false;
-      chips.querySelectorAll('.chip:not(.more)').forEach((x) => {
-        const on = x.dataset.struggle.replace(/&amp;/g, '&') === s;
+      chips.querySelectorAll<HTMLElement>('.chip:not(.more)').forEach((x) => {
+        const on = (x.dataset.struggle || '').replace(/&amp;/g, '&') === s;
         x.classList.toggle('on', on); if (on) matched = true;
       });
       if (!matched) chips.querySelectorAll('.chip:not(.more)').forEach((x) => x.classList.remove('on'));
     }
-    function syncSheet(s) {
-      sheet.querySelectorAll('[data-cat] .chip').forEach((x) => {
-        const on = x.dataset.struggle.replace(/&amp;/g, '&') === s;
+    function syncSheet(s: string): void {
+      sheet.querySelectorAll<HTMLElement>('[data-cat] .chip').forEach((x) => {
+        const on = (x.dataset.struggle || '').replace(/&amp;/g, '&') === s;
         x.classList.toggle('on', on);
-        if (on) sheetCta.querySelector('.cta-n').innerHTML = '&middot; ' + x.innerHTML;
+        const n = sheetCta.querySelector('.cta-n');
+        if (on && n) n.innerHTML = '&middot; ' + x.innerHTML;
       });
     }
     sheet.querySelectorAll('[data-cat]').forEach((group) => {
-      group.addEventListener('click', (e) => {
-        const c = e.target.closest('.chip'); if (!c) return;
+      group.addEventListener('click', (e: Event) => {
+        const c = closestFrom(e, '.chip'); if (!c) return;
         sheet.querySelectorAll('.chip').forEach((x) => x.classList.remove('on'));
         c.classList.add('on');
-        const s = c.dataset.struggle.replace(/&amp;/g, '&');
+        const s = (c.dataset.struggle || '').replace(/&amp;/g, '&');
         selected = s;
-        sheetCta.querySelector('.cta-n').innerHTML = '&middot; ' + c.innerHTML;
+        const n = sheetCta.querySelector('.cta-n');
+        if (n) n.innerHTML = '&middot; ' + c.innerHTML;
         syncMain(s);
       });
     });
-    $('sheetForm').addEventListener('submit', function (e) {
+    const sheetForm = $as('sheetForm', HTMLFormElement, 'a <form>');
+    sheetForm.addEventListener('submit', (e: Event) => {
       e.preventDefault();
-      const v = this.querySelector('input').value.trim();
-      go(v);
+      /* Was `this.querySelector('input')` — the same element, since the
+         listener is bound to this form and nothing rebinds it. */
+      const field = sheetForm.querySelector('input');
+      go(field ? field.value.trim() : '');
     });
     sheetCta.addEventListener('click', () => go(''));
 
@@ -533,7 +600,7 @@ import RateReview from '../components/RateReview.astro';
        Preset chip labels are a closed UI set (never user free text); typed input is never
        inspected and always reports as 'other', so the raw struggle text never reaches
        track(). Both fields are bounded by allowlists — no free text is ever sent. ---------- */
-    function slugifyStruggle(label) {
+    function slugifyStruggle(label: string): string {
       return (label || '').toLowerCase().replace(/&/g, 'and')
         .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'other';
     }
@@ -545,18 +612,18 @@ import RateReview from '../components/RateReview.astro';
       'perfectionism','stress_and_burnout','spiritual_dryness','waiting_on_god','financial_stress',
       'sexual_temptation','addiction','faith_crisis','feeling_spiritually_attacked','drifting_from_god',
     ]);
-    function categoryOf(label) {
+    function categoryOf(label: string): string {
       const s = slugifyStruggle(label);
       return KNOWN_STRUGGLES.has(s) ? s : 'other';
     }
     const KNOWN_TRANSLATIONS = new Set(['nkjv', 'nlt', 'niv', 'kjv']);
-    function translationSlug(t) {
+    function translationSlug(t: string): string {
       const s = (t || '').toLowerCase();
       return KNOWN_TRANSLATIONS.has(s) ? s : 'other';
     }
 
     /* ---------- generate (the unchanged brain) ---------- */
-    function go(written) {
+    function go(written: string): void {
       const struggle = written || selected;
       if (!struggle) return;
       activeStruggle = struggle;
@@ -570,7 +637,7 @@ import RateReview from '../components/RateReview.astro';
       showView(resultsView);
       runGen(struggle);
     }
-    async function runGen(struggle) {
+    async function runGen(struggle: string): Promise<void> {
       const myReq = ++reqId;
       resultsBody.hidden = true; resultsError.hidden = true;
       // the header is visible while the word streams — name the right struggle in the
@@ -581,10 +648,10 @@ import RateReview from '../components/RateReview.astro';
       // even if the reader taps a different pill mid-stream
       responseTranslation = activeTrans();
       try {
-        const ai = await generateContent(struggle, responseTranslation, usedRefs, { language: activeLang() });
+        const ai: DeclareContent = await generateContent(struggle, responseTranslation, usedRefs, { language: activeLang() });
         if (myReq !== reqId) return;
         if (!isCompleteResult(ai)) throw new Error('incomplete result');
-        usedRefs = usedRefs.concat(ai.verses.map((v) => v.ref));
+        usedRefs = usedRefs.concat(ai.verses.map((v: Verse) => v.ref));
         render(ai);
       } catch (err) {
         if (myReq !== reqId) return;
@@ -598,7 +665,7 @@ import RateReview from '../components/RateReview.astro';
     $('errBack').addEventListener('click', () => showView(entryView));
 
     /* ---------- render results (design markup) ---------- */
-    function render(ai) {
+    function render(ai: DeclareContent): void {
       content = ai;
       currentId = wordId(activeStruggle, ai.verses);
       recordWordReceived(); // count toward the rate-prompt gate (>= 3 Words received)
@@ -606,11 +673,12 @@ import RateReview from '../components/RateReview.astro';
 
       const v1 = ai.verses[0];
       $('verse1').innerHTML = '&ldquo;' + esc(v1.t || v1.text) + '&rdquo;';
-      $('ref1').textContent = v1.ref + ' · ' + responseTranslation;
-      $('ref1').href = passageLink(v1.ref);
+      const ref1 = $as('ref1', HTMLAnchorElement, 'an <a>');
+      ref1.textContent = v1.ref + ' · ' + responseTranslation;
+      ref1.href = passageLink(v1.ref);
 
       // further verses: "tap to receive this verse" reveals (design .receive)
-      $('receives').innerHTML = ai.verses.slice(1).map((v, i) => (
+      $('receives').innerHTML = ai.verses.slice(1).map((v: Verse, i: number) => (
         '<div class="receive" data-i="' + i + '">'
         + '<button class="rtoggle" aria-expanded="false">'
         +   '<span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>'
@@ -631,9 +699,10 @@ import RateReview from '../components/RateReview.astro';
       $('mind').classList.remove('open');
       $('more').style.display = ex.more ? '' : 'none';
       $('more').setAttribute('aria-expanded', 'false');
-      $('more').querySelector('.more-lbl').textContent = tI('today.readMore','Read more');
+      const moreLbl = $('more').querySelector('.more-lbl');
+      if (moreLbl) moreLbl.textContent = tI('today.readMore','Read more');
 
-      $('speak').innerHTML = ai.declarations.map((d, i) => (
+      $('speak').innerHTML = ai.declarations.map((d: string, i: number) => (
         '<div class="card srow" data-i="' + i + '">'
         + '<button class="play" aria-label="Read aloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg></button>'
         + '<span class="dec">' + esc(d) + '</span></div>'
@@ -643,8 +712,8 @@ import RateReview from '../components/RateReview.astro';
       $('ptext').textContent = pr.body;
       $('amen').textContent = pr.amen || tI('today.amen','Amen.');
 
-      $('readPassage').href = passageLink(v1.ref);
-      $('railReadPassage').href = passageLink(v1.ref);
+      $as('readPassage', HTMLAnchorElement, 'an <a>').href = passageLink(v1.ref);
+      $as('railReadPassage', HTMLAnchorElement, 'an <a>').href = passageLink(v1.ref);
       $('sjStruggle').textContent = struggleLower(activeStruggle);
       // time-of-day copy: same 6pm/6am boundary the theme auto-resolver uses
       // in DeclareLayout.astro, so the Journey card's tone and the app's
@@ -664,7 +733,7 @@ import RateReview from '../components/RateReview.astro';
       const todWord = (hr < 6 || hr >= 18) ? tI('today.tonight', 'tonight') : tI('today.today', 'today');
       const forYou = 'For your ' + struggleLower(activeStruggle) + ' ' + todWord + ':';
       const noBreakdown = tI('today.noBreakdown', 'A deeper look at this verse is not available for this word.');
-      function breakdownBody(b) {
+      function breakdownBody(b: Breakdown | string | undefined): string {
         if (b && typeof b === 'object') {
           const ctx = (b.context || '').trim();
           const app = (b.application || '').trim();
@@ -676,7 +745,7 @@ import RateReview from '../components/RateReview.astro';
         if (typeof b === 'string' && b.trim()) return '<p>' + esc(b.trim()) + '</p>';
         return '<p>' + esc(noBreakdown) + '</p>';
       }
-      $('railIndex').innerHTML = ai.verses.map((v, i) => (
+      $('railIndex').innerHTML = ai.verses.map((v: Verse, i: number) => (
         '<div class="idx-row" data-i="' + i + '">'
         + '<button class="idx-top" type="button">'
         +   '<span class="idx-n">' + (i + 1) + '</span>'
@@ -691,7 +760,7 @@ import RateReview from '../components/RateReview.astro';
       // local Vault data today; once struggleHistory ships this can widen to
       // every struggle asked, not just the ones someone chose to save.)
       try {
-        const seen = new Set(); const recent = [];
+        const seen = new Set<string>(); const recent: Array<{ struggle: string; ts: number }> = [];
         for (const it of listItems()) {
           if (!it.struggle || it.struggle === activeStruggle || seen.has(it.struggle)) continue;
           seen.add(it.struggle); recent.push(it);
@@ -722,34 +791,43 @@ import RateReview from '../components/RateReview.astro';
     // screen, after the Translation pill re-translates it in place. Everything
     // else (Mindset, declarations, prayer, Breakdown commentary) is unaffected
     // since none of it quotes Scripture verbatim in a translation-specific way.
-    function renderVerseText() {
-      const v1 = content.verses[0];
+    function renderVerseText(): void {
+      /* Only ever called with a word on screen — the translation handler below
+         returns early when `content` is null — but naming that here is what
+         lets the reads be direct rather than guarded one by one. */
+      const c = content;
+      if (!c) return;
+      const v1 = c.verses[0];
       $('verse1').innerHTML = '&ldquo;' + esc(v1.text) + '&rdquo;';
-      $('ref1').textContent = v1.ref + ' · ' + responseTranslation;
+      $as('ref1', HTMLAnchorElement, 'an <a>').textContent = v1.ref + ' · ' + responseTranslation;
       $('receives').querySelectorAll('.receive').forEach((card, i) => {
-        const v = content.verses[i + 1]; if (!v) return;
-        card.querySelector('.rverse').innerHTML = '&ldquo;' + esc(v.text) + '&rdquo;';
-        card.querySelector('.rref').textContent = v.ref + ' · ' + responseTranslation;
+        const v = c.verses[i + 1]; if (!v) return;
+        const rverse = card.querySelector('.rverse');
+        const rref = card.querySelector('.rref');
+        if (rverse) rverse.innerHTML = '&ldquo;' + esc(v.text) + '&rdquo;';
+        if (rref) rref.textContent = v.ref + ' · ' + responseTranslation;
       });
     }
 
     /* reveals + read-more + play (delegation) — only the .rtoggle button
        opens/closes the card; clicking the revealed verse-reference link
        inside it must navigate, not toggle it shut again. */
-    $('receives').addEventListener('click', (e) => {
-      const btn = e.target.closest('.rtoggle'); if (!btn) return;
-      const card = btn.closest('.receive');
+    $('receives').addEventListener('click', (e: Event) => {
+      const btn = closestFrom(e, '.rtoggle'); if (!btn) return;
+      const card = btn.closest('.receive'); if (!card) return;
       const open = card.classList.toggle('open');
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
     $('more').addEventListener('click', () => {
       const open = $('mind').classList.toggle('open');
       $('more').setAttribute('aria-expanded', open ? 'true' : 'false');
-      $('more').querySelector('.more-lbl').textContent = open ? tI('today.readLess','Read less') : tI('today.readMore','Read more');
+      const lbl = $('more').querySelector('.more-lbl');
+      if (lbl) lbl.textContent = open ? tI('today.readLess','Read less') : tI('today.readMore','Read more');
     });
-    $('speak').addEventListener('click', (e) => {
-      const btn = e.target.closest('.play'); if (!btn) return;
-      const row = btn.closest('.srow'); const i = +row.dataset.i;
+    $('speak').addEventListener('click', (e: Event) => {
+      const btn = closestFrom(e, '.play'); if (!btn) return;
+      const row = btn.closest<HTMLElement>('.srow'); if (!row || !content) return;
+      const i = Number(row.dataset.i);
       if (speakingIdx === i) { stopSpeak(); return; }
       stopSpeak();
       if (!('speechSynthesis' in window)) return;
@@ -762,14 +840,15 @@ import RateReview from '../components/RateReview.astro';
     });
 
     /* ---------- save (device-local) + share ---------- */
-    function updateSaveUI() {
+    function updateSaveUI(): void {
       const saved = currentId && isSaved(currentId);
       $('saveWord').classList.toggle('on', !!saved);
       $('saveWord').setAttribute('aria-pressed', saved ? 'true' : 'false');
-      document.querySelector('#saveWord2 .sw-lbl').textContent = saved ? tI('today.saved','Saved') : tI('today.saveWord','Save this word');
+      const swLbl = document.querySelector('#saveWord2 .sw-lbl');
+      if (swLbl) swLbl.textContent = saved ? tI('today.saved','Saved') : tI('today.saveWord','Save this word');
       $('saveWord2').classList.toggle('on', !!saved);
     }
-    function toggleSave() {
+    function toggleSave(): void {
       if (!content || !currentId) return;
       if (!ensureSignedIn(tI('today.saveSignin','Create a free account to keep this word in your Vault.'))) return;
       if (isSaved(currentId)) {
@@ -792,24 +871,24 @@ import RateReview from '../components/RateReview.astro';
        sheet (Instagram/Story/TikTok/X/Facebook/Threads/Download + native More).
        share.js + card-studio.js are the design-source modules, lazy-loaded on the
        first share tap so the reading path stays light. ---------- */
-    let shareStack = null;
-    function loadShareStack() {
+    let shareStack: Promise<void> | null = null;
+    function loadShareStack(): Promise<void> {
       if (shareStack) return shareStack;
-      shareStack = new Promise((resolve) => {
+      shareStack = new Promise<void>((resolve) => {
         ['/declare/share.css?v=3.16.0', '/declare/card-studio.css?v=3.16.0'].forEach((href) => {
           const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
         });
         const s1 = document.createElement('script'); s1.src = '/declare/card-studio.js?v=3.16.0';
         s1.onload = () => {
           const s2 = document.createElement('script'); s2.src = '/declare/share.js?v=3.16.0';
-          s2.onload = resolve; document.head.appendChild(s2);
+          s2.onload = () => resolve(); document.head.appendChild(s2);
         };
         document.head.appendChild(s1);
       });
       return shareStack;
     }
 
-    const SP_IC = {
+    const SP_IC: Record<string, string> = {
       verse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg>',
       mind: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 17.5h5.6"></path><path d="M10 20.5h4"></path><path d="M12 3.2A5.8 5.8 0 0 0 8.4 13c.5.5.8 1.1.8 1.8v.2h5.6v-.2c0-.7.3-1.3.8-1.8A5.8 5.8 0 0 0 12 3.2z"></path></svg>',
       dec: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path><path d="M12 17.5V21"></path></svg>',
@@ -817,30 +896,38 @@ import RateReview from '../components/RateReview.astro';
       go: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>',
     };
     const sps = $('sps'), spsScrim = $('spsScrim'), spsRows = $('spsRows');
-    let shareables = [];
-    function buildShareables() {
-      const v1 = content.verses[0];
+    let shareables: Shareable[] = [];
+    function buildShareables(): void {
+      /* Only reached from the share button, which returns early without a
+         word on screen. Naming it once keeps the four reads below direct. */
+      const c = content;
+      if (!c) return;
+      const v1 = c.verses[0];
       shareables = [
         { type: 'verse', label: tI('today.lblScripture','Scripture'), text: v1.text, ref: v1.ref + ' · ' + responseTranslation, ic: 'verse' },
-        { type: 'reading', label: tI('today.lblMindset','Mindset'), text: content.explanation, ref: tI('today.lblMindset','Mindset'), ic: 'mind' },
-        ...content.declarations.map((d) => ({ type: 'declaration', label: tI('today.lblDeclaration','Declaration'), text: d, ref: '', ic: 'dec' })),
-        { type: 'reading', label: tI('today.lblPrayer','Prayer'), text: content.prayer, ref: tI('today.aPrayer','A prayer'), ic: 'pray' },
+        { type: 'reading', label: tI('today.lblMindset','Mindset'), text: c.explanation, ref: tI('today.lblMindset','Mindset'), ic: 'mind' },
+        ...c.declarations.map((d: string) => ({ type: 'declaration', label: tI('today.lblDeclaration','Declaration'), text: d, ref: '', ic: 'dec' })),
+        { type: 'reading', label: tI('today.lblPrayer','Prayer'), text: c.prayer, ref: tI('today.aPrayer','A prayer'), ic: 'pray' },
       ];
-      spsRows.innerHTML = shareables.map((s, i) => (
+      spsRows.innerHTML = shareables.map((s: Shareable, i: number) => (
         '<button class="sps-row" data-i="' + i + '"><span class="ic">' + SP_IC[s.ic] + '</span>'
         + '<span class="tx"><span class="k">' + s.label + '</span><span class="v">' + esc(s.text) + '</span></span>'
         + '<span class="go">' + SP_IC.go + '</span></button>'
       )).join('');
     }
-    function openSps() { sps.classList.add('show'); spsScrim.classList.add('show'); sps.setAttribute('aria-hidden', 'false'); }
-    function closeSps() { sps.classList.remove('show'); spsScrim.classList.remove('show'); sps.setAttribute('aria-hidden', 'true'); }
+    function openSps(): void { sps.classList.add('show'); spsScrim.classList.add('show'); sps.setAttribute('aria-hidden', 'false'); }
+    function closeSps(): void { sps.classList.remove('show'); spsScrim.classList.remove('show'); sps.setAttribute('aria-hidden', 'true'); }
     spsScrim.addEventListener('click', closeSps);
-    spsRows.addEventListener('click', (e) => {
-      const row = e.target.closest('.sps-row'); if (!row) return;
-      const s = shareables[+row.dataset.i];
+    spsRows.addEventListener('click', (e: Event) => {
+      const row = closestFrom(e, '.sps-row'); if (!row) return;
+      const s = shareables[Number(row.dataset.i)];
       closeSps();
       loadShareStack().then(() => {
         setTimeout(() => {
+          /* share.js assigns window.DeclareShare, and loadShareStack resolves
+             on its onload — but the script can also fail to load, which is the
+             one path that left this undefined. */
+          if (!window.DeclareShare) return;
           window.DeclareShare.open({ type: s.type, text: s.text, ref: s.ref, subtitle: tI('today.forPrefix','For ') + struggleLower(activeStruggle), url: location.href, save: saveItem });
         }, 180);
       });
@@ -854,24 +941,24 @@ import RateReview from '../components/RateReview.astro';
 
     /* back / reset — also the >=1024px left rail's "Receive another word",
        same action, different entry point */
-    function resetToEntry() { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); }
+    function resetToEntry(): void { stopSpeak(); writeInput.value = ''; autogrow(); showView(entryView); }
     $('resultsBack').addEventListener('click', () => { stopSpeak(); showView(entryView); });
     $('anotherWord').addEventListener('click', resetToEntry);
     $('railAnotherWord').addEventListener('click', resetToEntry);
 
     /* >=1024px right rail: expand/collapse a verse's Breakdown, one open at a time */
-    $('railIndex').addEventListener('click', (e) => {
-      const btn = e.target.closest('.idx-top'); if (!btn) return;
-      const row = btn.closest('.idx-row');
+    $('railIndex').addEventListener('click', (e: Event) => {
+      const btn = closestFrom(e, '.idx-top'); if (!btn) return;
+      const row = btn.closest('.idx-row'); if (!row) return;
       const wasOpen = row.classList.contains('open');
       $('railIndex').querySelectorAll('.idx-row.open').forEach((r) => r.classList.remove('open'));
       if (!wasOpen) row.classList.add('open');
     });
 
-    function setPillActive(t) {
-      $('railTrans').querySelectorAll('.trans-pill').forEach((p) => p.classList.toggle('on', p.dataset.trans === t));
+    function setPillActive(t: string): void {
+      $('railTrans').querySelectorAll<HTMLElement>('.trans-pill').forEach((p) => p.classList.toggle('on', p.dataset.trans === t));
     }
-    function setTransLoading(on) {
+    function setTransLoading(on: boolean): void {
       $('railTrans').classList.toggle('loading', on);
       $('verse1').style.opacity = on ? '.45' : '';
       $('receives').style.opacity = on ? '.45' : '';
@@ -881,9 +968,11 @@ import RateReview from '../components/RateReview.astro';
        verse text in place immediately, no restart, since making someone start
        over just to read the same word in a different translation defeats the
        point of a switcher living right next to the word they're already reading. */
-    $('railTrans').addEventListener('click', async (e) => {
-      const b = e.target.closest('.trans-pill'); if (!b) return;
-      const next = b.dataset.trans;
+    $('railTrans').addEventListener('click', async (e: Event) => {
+      const b = closestFrom(e, '.trans-pill'); if (!b) return;
+      /* Every .trans-pill carries data-trans; an absent one would have set
+         `next` to undefined and then failed the identity check below anyway. */
+      const next = b.dataset.trans; if (!next) return;
       if (next === currentTranslation) return;
       currentTranslation = next;
       setPillActive(next);
@@ -891,9 +980,9 @@ import RateReview from '../components/RateReview.astro';
       const myGen = reqId, myTrans = ++transReqId;
       setTransLoading(true);
       try {
-        const translated = await translateVerses(content.verses, next, activeLang());
+        const translated: Verse[] = await translateVerses(content.verses, next, activeLang());
         if (myTrans !== transReqId || myGen !== reqId) return; // superseded by a newer click or a fresh word
-        content.verses.forEach((v, i) => { if (translated[i] && translated[i].text) v.text = translated[i].text; });
+        content.verses.forEach((v: Verse, i: number) => { if (translated[i] && translated[i].text) v.text = translated[i].text; });
         responseTranslation = next;
         renderVerseText();
       } catch (err) {

@@ -1,6 +1,6 @@
 import { Resend } from "@convex-dev/resend";
 import { components } from "./_generated/api";
-import { ActionCtx } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
 
 // ── Single source of truth for the sender ───────────────────────────────────
 // `noreply` on the verified declareandbelieve.com root domain. Because the domain

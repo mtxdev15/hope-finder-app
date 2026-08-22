@@ -2,6 +2,15 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
+import { stripePost } from "./stripeApi";
+import {
+  PLAN_CATALOG,
+  BILLING_SCHEMA_VERSION,
+  CHECKOUT_SOURCE,
+  planKeyForAlias,
+  environmentForSecret,
+  type PlanKey,
+} from "./plusPlans";
 
 /* Plus billing — authenticated Checkout and Customer Portal.
  *
@@ -12,62 +21,27 @@ import { authComponent } from "./auth";
  * resolves identity from trusted context, so here the prohibited pattern is not
  * merely avoided, it is unrepresentable — there is no userId argument to spoof.
  *
+ * THE STRIPE CREDENTIAL LIVES HERE AND NOWHERE ELSE
+ * Every Stripe API call in this application originates in Convex, through
+ * stripeApi.ts, with an explicit pinned API version. The Worker owns the webhook
+ * edge — signature verification and forwarding — and carries no Stripe
+ * credential at all. One credential, one runtime, one API version.
+ *
  * Two rules this file exists to enforce:
  *   1. Identity comes only from authComponent.safeGetAuthUser(ctx).
  *   2. The browser may name a PLAN ALIAS, never a Stripe Price id, customer id,
  *      subscription id, or email. Everything Stripe-shaped is server-resolved.
  */
 
-const STRIPE_API = "https://api.stripe.com/v1";
-
-/* The only plan aliases a client may submit. An arbitrary `price_...` from the
- * browser is rejected: otherwise anyone could check out against a $0 price, or
- * a price belonging to a different product entirely. Family and Church have no
- * active price in this phase and deliberately have no alias. */
-const PRICE_ALIASES: Record<string, { envVar: string; interval: string }> = {
-  "plus-monthly": { envVar: "STRIPE_PLUS_MONTHLY_PRICE_ID", interval: "month" },
-  "plus-annual": { envVar: "STRIPE_PLUS_ANNUAL_PRICE_ID", interval: "year" },
-};
-
 /* Lifecycle -> what happens when this user asks to check out again.
- * Decided server-side from OUR mirrored Stripe state, never from the frontend. */
+ * Decided server-side from OUR mirrored state, never from the frontend. */
 const BLOCKS_NEW_CHECKOUT = new Set([
   "active", // already paying
   "trialing", // not advertised, but honour it if legacy state exists
   "past_due", // card failing: fix billing, do not stack a second subscription
   "unpaid", // same
 ]);
-const ALLOWS_NEW_CHECKOUT = new Set([
-  "canceled",
-  "incomplete_expired",
-  "ended",
-]);
-
-function stripeForm(obj: Record<string, string>): string {
-  const p = new URLSearchParams();
-  for (const [k, val] of Object.entries(obj)) p.set(k, val);
-  return p.toString();
-}
-
-async function stripePost(
-  path: string,
-  secret: string,
-  form: Record<string, string>,
-  idempotencyKey?: string,
-) {
-  const headers: Record<string, string> = {
-    Authorization: "Bearer " + secret,
-    "Content-Type": "application/x-www-form-urlencoded",
-  };
-  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
-  const res = await fetch(STRIPE_API + path, {
-    method: "POST",
-    headers,
-    body: stripeForm(form),
-  });
-  const data = await res.json();
-  return { ok: res.ok, data };
-}
+const ALLOWS_NEW_CHECKOUT = new Set(["canceled", "incomplete_expired", "ended"]);
 
 /* Return URLs. Built from SITE_URL (a trusted server env var), never from a
  * browser-supplied origin or path — that is how an open redirect gets laundered
@@ -90,11 +64,14 @@ async function requireUser(ctx: any): Promise<AuthedUser> {
 
 export const createCheckoutSession = action({
   args: {
-    // The ONLY billing input the browser controls.
+    // The ONLY billing input the browser controls: a plan alias.
     plan: v.string(),
     lang: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<{ url?: string; error?: string; status?: string }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ url?: string; error?: string; status?: string }> => {
     // 1. Trusted identity FIRST. No userId argument exists to spoof, and an
     //    anonymous caller learns nothing about our configuration before it is
     //    established who they are.
@@ -109,16 +86,24 @@ export const createCheckoutSession = action({
     const secret = process.env.STRIPE_SECRET_KEY;
     if (!secret) return { error: "billing-not-configured" };
 
-    // 2. Alias -> trusted Price id.
-    const alias = PRICE_ALIASES[String(args.plan)];
-    if (!alias) return { error: "unknown-plan" };
-    const priceId = process.env[alias.envVar];
+    /* Which environment this runtime is, derived from the credential itself so
+     * it cannot drift: a sandbox key can never claim to be production. Stamped
+     * into metadata and checked again at webhook time. */
+    const environment = environmentForSecret(secret);
+    if (!environment) return { error: "billing-not-configured" };
+
+    // 2. Alias -> canonical plan -> trusted Price id.
+    const planKey: PlanKey | null = planKeyForAlias(String(args.plan));
+    if (!planKey) return { error: "unknown-plan" };
+    const priceId = process.env[PLAN_CATALOG[planKey].envVar];
     if (!priceId) return { error: "billing-not-configured" };
 
-    // 3. Duplicate prevention, from server-authoritative state.
+    // 3. Duplicate prevention, from server-authoritative state. Scoped to the
+    //    Stripe provider: an Apple subscription is handled by the cross-provider
+    //    check below, not by Stripe's lifecycle rules.
     const existing = await ctx.runQuery(
-      internal.subscriptions.getByUserInternal,
-      { userId },
+      internal.subscriptions.getByUserProviderInternal,
+      { userId, provider: "stripe" as const },
     );
     if (existing) {
       if (BLOCKS_NEW_CHECKOUT.has(existing.status)) {
@@ -143,6 +128,18 @@ export const createCheckoutSession = action({
       // one on its own.
     }
 
+    /* 3b. Cross-provider guard. Apple cannot see a Stripe subscription and
+     *     will not stop someone buying twice, so we check the canonical
+     *     entitlement before opening a purchase flow rather than letting them
+     *     pay two companies for the same thing. */
+    const appleRow = await ctx.runQuery(
+      internal.subscriptions.getByUserProviderInternal,
+      { userId, provider: "app_store" as const },
+    );
+    if (appleRow && appleRow.tier === "plus") {
+      return { error: "already-subscribed", status: "app-store" };
+    }
+
     // 4. Resolve or create the Stripe customer. Reuse the stored mapping so a
     //    returning subscriber keeps one customer and one billing history.
     const mapping = await ctx.runQuery(
@@ -159,6 +156,7 @@ export const createCheckoutSession = action({
         {
           ...(user.email ? { email: user.email } : {}),
           "metadata[userId]": userId,
+          "metadata[environment]": environment,
         },
         // One customer per account even if the action is retried.
         "cust:" + userId,
@@ -182,6 +180,23 @@ export const createCheckoutSession = action({
     // 5. Create the session.
     const base = siteBase();
     const langQ = args.lang === "es" ? "&lang=es" : "";
+
+    /* PROVENANCE (C2). Stamped onto the session AND onto subscription_data, so
+     * every later lifecycle event carries it too. Without the subscription
+     * copy, classification would pass at checkout.session.completed and then
+     * have nothing to read on customer.subscription.updated or invoice.paid —
+     * it would silently degrade to unverifiable exactly when it matters.
+     *
+     * A retired recurring gift carries none of these. That is what makes it
+     * distinguishable from Plus, since both are mode 'subscription'. */
+    const provenance: Record<string, string> = {
+      userId,
+      plan: planKey, // canonical key, not the browser's alias
+      source: CHECKOUT_SOURCE,
+      billing_schema_version: BILLING_SCHEMA_VERSION,
+      environment,
+    };
+
     const form: Record<string, string> = {
       mode: "subscription",
       customer: customerId,
@@ -190,24 +205,36 @@ export const createCheckoutSession = action({
       // Ties the session to our internal user without putting anything
       // sensitive in Stripe. No struggle text, no reflection, no spiritual data.
       client_reference_id: userId,
-      "metadata[userId]": userId,
-      "metadata[plan]": String(args.plan),
-      "subscription_data[metadata][userId]": userId,
+      /* Tax calculation is intentionally deferred during sandbox billing
+       * development. Set explicitly rather than left to a default so the
+       * decision is visible in the request itself. Before live charging,
+       * review Stripe Tax monitoring, home-state obligations, economic-nexus
+       * thresholds, the product tax code and registrations with an accountant.
+       * See docs/implementation/release-c1-phase4-entitlements.md. */
+      "automatic_tax[enabled]": "false",
       // {CHECKOUT_SESSION_ID} is substituted by Stripe. The success page uses it
       // only as a correlation hint while it waits for webhook-backed state — it
       // is never itself proof of payment.
-      success_url: base + "/checkout/success?session_id={CHECKOUT_SESSION_ID}" + langQ,
+      success_url:
+        base + "/checkout/success?session_id={CHECKOUT_SESSION_ID}" + langQ,
       // Cancelling preserves the chosen plan so returning to pricing does not
       // lose their selection.
       cancel_url:
-        base + "/checkout/cancelled?plan=" + encodeURIComponent(String(args.plan)) + langQ,
+        base +
+        "/checkout/cancelled?plan=" +
+        encodeURIComponent(String(args.plan)) +
+        langQ,
       // No trial has been approved; none is configured here.
     };
+    for (const [k, val] of Object.entries(provenance)) {
+      form["metadata[" + k + "]"] = val;
+      form["subscription_data[metadata][" + k + "]"] = val;
+    }
 
     // Bucketed so a double-click reuses one session, but a genuine retry
     // minutes later is allowed to make a new one.
     const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
-    const idem = `co:${userId}:${args.plan}:${bucket}`;
+    const idem = `co:${userId}:${planKey}:${bucket}`;
 
     const res = await stripePost("/checkout/sessions", secret, form, idem);
     if (!res.ok || !res.data?.url) {
@@ -248,6 +275,10 @@ export const createPortalSession = action({
       // Note: a past DONOR may well have a Stripe customer in gift history.
       // We deliberately do not consult it — a donation is not a subscription,
       // and opening a Plus portal for a donor would misrepresent what they hold.
+      //
+      // An APPLE subscriber also lands here, correctly: Stripe has no portal
+      // for a subscription Apple billed. The UI routes them to Apple's own
+      // subscription management using the `provider` field.
       return { error: "no-subscription" };
     }
 
