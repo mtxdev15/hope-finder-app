@@ -476,11 +476,11 @@ was set or changed. Both harness flags are unset, so the code is inert.
 | File | Role |
 |---|---|
 | `convex/testHarnessState.ts` | **new** — every decision, with no network in it. Dependency-free so `node` executes the real logic. |
-| `convex/testHarness.ts` | **new** — gated action, status query, Stripe operations, `assertClockOwned`. |
+| `convex/testHarness.ts` | **new** — gated action, status query, Stripe operations, `assertClockOwned`, `assertInvoiceOwned`, `assertPaymentMethodOwned`. |
 | `convex/schema.ts` | `billingTestFixtures` table, indexed `by_user`, phase as a closed union. |
 | `convex/stripeApi.ts` | `stripeDelete` added; `request` accepts `DELETE`. Same pinned version header. |
 | `src/pages/dev/[control].astro` | `/dev/billing-harness` added to the existing dynamic route, behind its own independent flag. |
-| `scripts/verify-billing-test-harness.ts` | **new** — 266 checks. |
+| `scripts/verify-billing-test-harness.ts` | **new** — 290 checks. |
 | `convex/_generated/api.d.ts` | codegen only: two type imports, zero behaviour. |
 
 ### Public surface
@@ -516,13 +516,18 @@ suite asserts that no raw user id or email appears in key derivation.
 
 ### Verification
 
-266 checks, all executing real logic or parsing stripped source — comments are
-removed before any structural assertion, because this repository has been bitten
-four times by tests that matched the prose describing a banned pattern.
+**290 checks**, all executing real logic or parsing stripped source — comments
+are removed before any structural assertion, because this repository has been
+bitten four times by tests that matched the prose describing a banned pattern.
 
-The suite was **mutation-tested against twelve deliberate regressions**, each
-applied, run, and reverted byte-identically. Two of them initially passed, and
-both were real weaknesses worth recording:
+The suite was **mutation-tested against eighteen deliberate regressions**, each
+applied, run, and reverted byte-identically. **All eighteen are caught.**
+
+Four of them initially passed. Every one was a real weakness, and the pattern
+across them is worth naming: each was a test that asserted something *adjacent
+to* the property rather than the property itself.
+
+The first two were found before the implementation PR was opened:
 
 1. *`assertClockOwned` removed from one object in `arm_failure`* — the check
    only required the call to appear **somewhere** in the function, so an
@@ -534,8 +539,69 @@ both were real weaknesses worth recording:
    A **deleted** guard therefore read as correctly ordered. All nine ordering
    assertions now require both strings to exist.
 
-Both fixes were made to the tests, not the implementation, and all twelve
-mutations are now caught.
+Both fixes were made to the tests, not the implementation.
+
+The other two were found during review of PR #37, and the first of them exposed
+a genuine implementation defect rather than only a test weakness:
+
+3. *The per-object ownership check derived only `mutatesCustomer` and
+   `mutatesSubscription`.* That is why the Invoice and PaymentMethod gaps
+   described below passed 266/266 while being genuinely unprotected. It now
+   covers every object each operation mutates.
+4. *Asserting that `idempotencyKey()` returns different values for different
+   operation names proved nothing about the call sites.* Reverting one call site
+   to another operation's name survived. The suite now requires that no two
+   Stripe requests share an operation name.
+
+### Recovery-target ownership — the PR #37 correction
+
+`assertClockOwned` verifies an object through its own `test_clock`. An Invoice
+and a PaymentMethod carry no `test_clock`, so it cannot speak for them, and the
+first implementation mutated both **straight from the fixture record** without
+retrieving them.
+
+That was wrong for the reason the whole guard exists: the fixture is our own
+writing, and a wrong stored id must not be able to authorise a write. The
+invoice pay is the **only money-moving call in the harness**, which made it
+exactly the wrong place to make an exception.
+
+Both are now verified through the object that *is* clock-verified:
+
+```
+clock -> subscription (verified) -> invoice        (verified against it)
+clock -> customer     (verified) -> paymentMethod  (verified against it)
+```
+
+**`assertInvoiceOwned`** retrieves the invoice immediately before `/pay` and
+requires `livemode: false`, a matching id, status `open`, and
+`parent.subscription_details.subscription` equal to the fixture's verified
+subscription. That is the same trusted root association `convex/http.ts` reads,
+and deliberately **not** the invoice line — which is not a subscription-health
+signal and which the production reader refuses to consult. An already-paid,
+unrelated, live-mode, wrong-subscription or missing invoice is rejected.
+
+**`assertPaymentMethodOwned`** retrieves the method immediately before
+`/detach` and requires `livemode: false`, a matching id, and that it is still
+attached to the fixture's verified Customer. A detached method reports
+`customer: null` and is refused.
+
+A third defect surfaced while fixing the second. The detach reused the
+customer-restore idempotency key, so **two different requests shared one
+value**. Stripe refuses a key replayed with different parameters, and the detach
+result was discarded — so the detach would have failed silently. It now uses a
+dedicated **`pm_detach`** operation and **its response is checked**.
+
+There are **13 Stripe mutation call sites and 13 distinct idempotency operation
+names**: `clock`, `customer`, `pm_attach_ok`, `pm_default_ok`, `subscription`,
+`pm_attach_fail`, `pm_default_fail`, `advance`, `pm_restore`, `invoice_pay`,
+`pm_detach`, `cancel`, `clock_delete`. The suite asserts that no two share a
+name, because a shared key means the second request simply fails.
+
+Six of the eighteen mutations target this correction specifically: removing the
+invoice validation, moving it after the pay call, accepting a foreign
+subscription, removing the payment-method validation, accepting a foreign
+customer, and reverting the detach to the shared key. All six are caught, and
+every mutated file was restored byte-identically.
 
 ### Residual mapping policy — decided, not discovered
 
