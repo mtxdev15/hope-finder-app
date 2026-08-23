@@ -53,6 +53,8 @@ import {
   PROVIDER_ID_FIELDS,
   isAdoptable,
   isHealthyFixtureComplete,
+  isNormalizable,
+  NORMALIZABLE_ERROR,
   HEALTHY_FIXTURE_FIELDS,
   ADOPTABLE_ERRORS,
   CONVERGENCE_POLL_ATTEMPTS,
@@ -693,6 +695,142 @@ check("provision dispatches to adoption only when adoptable",
 check("the six-command allowlist is unchanged", COMMANDS.length === 6);
 check("no seventh command was added",
   !/"adopt"|"resume"|"reset"|"repair"/.test(STATE));
+
+/* ── 6h. The serialization defect, and its fix ───────────────────────────── */
+section("6h. A success clears the error it recovered from");
+
+/* THE DEFECT, DEMONSTRATED. Convex function arguments are serialized, and
+   `undefined` has no serialized form — the key vanishes before the mutation
+   sees it, so the previous value survives. This is why a healthy fixture
+   reported `not-converged`. */
+const roundTrip = (o: unknown) => JSON.parse(JSON.stringify(o));
+const brokenPatch = roundTrip({ stripeCustomerId: "cus_x", lastError: undefined });
+check("`lastError: undefined` does NOT survive argument serialization",
+  !("lastError" in brokenPatch));
+check("a fixture patched that way would keep its old error",
+  safeStatus({ phase: "healthy", ...brokenPatch, lastError: "not-converged" }).lastError
+    === "not-converged");
+/* THE FIX. A boolean survives; the removal happens locally. */
+const signal = roundTrip({ clearLastError: true });
+check("`clearLastError: true` DOES survive serialization", signal.clearLastError === true);
+check("the success path no longer relies on undefined in serialized args",
+  !/lastError: undefined,\s*\n\s*\},/.test(handler));
+check("the success path sends the explicit clear signal",
+  /clearLastError: true,/.test(handler));
+check("the failure path still stores its safe error",
+  /patch: \{ lastError: safeError\(result\.error\) \}/.test(handler));
+
+const upsert2 = fnBody(HARNESS, "export const upsertFixtureInternal");
+check("the internal mutation accepts an exact boolean signal",
+  /clearLastError: v\.optional\(v\.boolean\(\)\)/.test(HARNESS));
+check("only `true` clears — false or missing leaves it unchanged",
+  /const wantsClear = args\.clearLastError === true;/.test(upsert2));
+check("setting and clearing together is rejected",
+  /if \(wantsClear && setsError\) throw new Error\("last-error-set-and-clear"\)/.test(upsert2));
+check("removal is constructed locally against ctx.db.patch, never relayed",
+  /\.\.\.\(wantsClear \? \{ lastError: undefined \} : \{\}\)/.test(upsert2));
+check("the browser cannot supply the signal — args are still command-only",
+  argKeys.length === 1 && argKeys[0] === "command");
+
+/* No schema widening: the field is already optional, and removing an optional
+   field is exactly what makes safeStatus report null. */
+check("lastError is already optional in the schema — no null widening needed",
+  /lastError: v\.optional\(v\.string\(\)\)/.test(SCHEMA) && !/lastError: v\.union/.test(SCHEMA));
+check("an absent stored field serializes to null",
+  safeStatus({ phase: "healthy" }).lastError === null);
+check("a cleared fixture reports null",
+  safeStatus({ phase: "healthy", attemptCount: 0 }).lastError === null);
+
+/* ── 6i. Healthy normalization ───────────────────────────────────────────── */
+section("6i. A stranded label is cleared without moving the phase");
+
+const STALE = { phase: "healthy", lastError: "not-converged", attemptCount: 0,
+  testClockId: "c", stripeCustomerId: "cu", stripeSubscriptionId: "s",
+  originalCustomerDefaultPaymentMethodId: "pm", renewalAt: 1_800_000_000 };
+check("the exact stranded fixture is normalizable", isNormalizable(STALE) === true);
+check("normalization is offered as provision, from healthy",
+  admit("provision", "healthy", STALE).ok === true);
+check("normalization does NOT move the phase",
+  (admit("provision", "healthy", STALE) as any).to === "healthy" &&
+  (admit("provision", "healthy", STALE) as any).inFlight === "healthy");
+check("arm_failure is WITHHELD while the stale label stands",
+  admit("arm_failure", "healthy", STALE).ok === false);
+const staleStatus = safeStatus(STALE);
+check("status shows only provision while stale",
+  JSON.stringify(staleStatus.allowed) === JSON.stringify(["provision"]) &&
+  staleStatus.inFlight === false && staleStatus.lastError === "not-converged");
+
+/* A clean healthy fixture is untouched by any of this. */
+const CLEAN = { ...STALE, lastError: undefined };
+check("a clean healthy fixture is NOT normalizable", isNormalizable(CLEAN) === false);
+check("a clean healthy fixture cannot call provision",
+  admit("provision", "healthy", CLEAN).ok === false);
+check("a clean healthy fixture proceeds to arm_failure",
+  JSON.stringify(safeStatus(CLEAN).allowed) === JSON.stringify(["arm_failure"]));
+
+/* Only the one classification the broken clear could strand. */
+check("only not-converged is normalizable", NORMALIZABLE_ERROR === "not-converged");
+for (const code of ERROR_CODES.filter((c) => c !== "not-converged")) {
+  check(`a healthy fixture with "${code}" is NOT normalizable`,
+    isNormalizable({ ...STALE, lastError: code }) === false);
+}
+check("a fixture with a recorded attempt is not normalizable",
+  isNormalizable({ ...STALE, attemptCount: 1 }) === false);
+for (const f of ["failingPaymentMethodId", "renewalInvoiceId", "advanceTarget", "nextPaymentAttempt"]) {
+  check(`a fixture holding "${f}" is not normalizable`,
+    isNormalizable({ ...STALE, [f]: "x" }) === false);
+}
+for (const f of HEALTHY_FIXTURE_FIELDS) {
+  check(`an incomplete fixture missing "${f}" is not normalizable`,
+    isNormalizable({ ...STALE, [f]: undefined }) === false);
+}
+check("a fixture missing renewalAt is not normalizable",
+  isNormalizable({ ...STALE, renewalAt: undefined }) === false);
+check("the retired first fixture is still neither adoptable nor normalizable",
+  isNormalizable(RETIRED) === false && isAdoptable(RETIRED) === false);
+check("a provisioning fixture is not normalizable",
+  isNormalizable({ ...STALE, phase: "provisioning" }) === false);
+check("no provider id leaks in the stale status",
+  !JSON.stringify(staleStatus).includes("cu") || !JSON.stringify(staleStatus).includes('"c"'));
+
+/* ── 6j. Normalization is read-only ──────────────────────────────────────── */
+section("6j. Normalization revalidates and writes nothing external");
+
+const norm = fnBody(HARNESS, "async function opNormalize(");
+check("normalization exists", norm.length > 0);
+check("normalization issues NO Stripe write",
+  !/stripePost\(/.test(norm) && !/stripeDelete\(/.test(norm));
+check("normalization never advances or deletes the clock",
+  !/\/advance/.test(norm) && !/stripeDelete/.test(norm));
+check("normalization revalidates the Test Clock by exact id",
+  /clock\.data\?\.id !== clockId/.test(norm) && /livemode !== false/.test(norm));
+check("normalization revalidates Customer clock-ownership",
+  /assertClockOwned\(secret, "customers", fx\.stripeCustomerId, clockId\)/.test(norm));
+check("normalization revalidates the working default is still EFFECTIVE",
+  /invoice_settings\?\.default_payment_method !==\s*\n?\s*fx\.originalCustomerDefaultPaymentMethodId/.test(norm));
+check("normalization revalidates the method is still attached",
+  /assertPaymentMethodOwned\(/.test(norm));
+check("normalization revalidates Subscription clock-ownership",
+  /assertClockOwned\(\s*\n?\s*secret, "subscriptions", fx\.stripeSubscriptionId, clockId,?\s*\n?\s*\)/.test(norm));
+check("normalization revalidates provenance metadata and the user binding",
+  /md\.userId !== user\._id/.test(norm) &&
+  ["plan","source","billing_schema_version","environment"].every((f) => norm.includes("md." + f)));
+check("normalization revalidates plan, cadence, quantity and cancellation state",
+  /item\?\.quantity !== 1/.test(norm) && /recurring\?\.interval !== "year"/.test(norm) &&
+  /cancel_at_period_end !== false/.test(norm));
+check("normalization revalidates the renewal boundary is unchanged",
+  /item\?\.current_period_end !== fx\.renewalAt/.test(norm));
+check("normalization revalidates the canonical subscription",
+  /canonical\.stripeSubscriptionId !== fx\.stripeSubscriptionId/.test(norm));
+check("normalization revalidates the canonical mapping",
+  /mapping\?\.stripeCustomerId !== fx\.stripeCustomerId/.test(norm));
+check("normalization changes no provider field",
+  /return \{ ok: true, patch: \{\} \};/.test(norm));
+check("dispatch prefers normalization, then adoption, then normal provisioning",
+  before(handler, "isNormalizable(fx)", "isAdoptable(fx)"));
+check("still exactly six browser commands", COMMANDS.length === 6);
+check("no normalize/reset/repair command was added",
+  !/"normalize"|"reset"|"repair"|"resume"/.test(STATE));
 
 /* ── 7. The advance ceiling ──────────────────────────────────────────────── */
 section("7. The advance target is bounded before the Stripe call");
