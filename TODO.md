@@ -373,6 +373,10 @@ When Stage 2 resumes, in this order:
          the standing rule: advance only to the first renewal attempt, require
          `attempt_count=1`, read `next_payment_attempt`, and recover before
          advancing again.
+         **Harness implemented behind gates 2026-08-23; execution NOT started.**
+         See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
+         are unset, nothing was deployed, and no Stripe object exists from it.
+         266 verification checks, mutation-tested against 12 regressions.
          **BLOCKED as originally planned** — audited 2026-08-23 UTC (§6.20), no
          Stripe write made. A one-off $1.00 invoice cannot exercise this path,
          for two independent reasons in the shipped code:
