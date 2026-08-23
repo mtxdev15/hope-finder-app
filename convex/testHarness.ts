@@ -52,6 +52,7 @@ import {
   CONVERGENCE_POLL_INTERVAL_MS,
   isAdoptable,
   isHealthyFixtureComplete,
+  isNormalizable,
   isSingleFailedAttempt,
   fixtureListPath,
   safeError,
@@ -116,9 +117,25 @@ export const upsertFixtureInternal = internalMutation({
     phase: v.string(),
     fixtureToken: v.optional(v.string()),
     patch: v.optional(v.any()),
+    /* Explicit clear signal.
+     *
+     * `lastError: undefined` inside `patch` CANNOT work: Convex function
+     * arguments are serialized, `undefined` has no serialized form, and the key
+     * simply disappears before this mutation ever sees it. The old value then
+     * survives, which is exactly how a healthy fixture ended up reporting
+     * `not-converged`. A boolean survives serialization; the removal is
+     * performed locally against ctx.db.patch below. */
+    clearLastError: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!isPhase(args.phase)) throw new Error("invalid-phase");
+    const wantsClear = args.clearLastError === true;
+    const setsError =
+      !!args.patch && typeof args.patch === "object" &&
+      (args.patch as Record<string, unknown>).lastError !== undefined;
+    /* Setting and clearing in one call is a caller mistake, not a precedence
+       question to resolve silently. */
+    if (wantsClear && setsError) throw new Error("last-error-set-and-clear");
     const rows = await ctx.db
       .query("billingTestFixtures")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -145,6 +162,9 @@ export const upsertFixtureInternal = internalMutation({
       }
       await ctx.db.patch(rows[0]._id, {
         ...patch,
+        /* Constructed HERE, never relayed. `undefined` removes the optional
+           field, which is what makes safeStatus report `null`. */
+        ...(wantsClear ? { lastError: undefined } : {}),
         phase: args.phase,
         updatedAt: now,
         lastOperationAt: now,
@@ -627,6 +647,102 @@ async function opAdopt(
   return { ok: true, patch };
 }
 
+/* Clear a stranded adoption label on an already-healthy fixture.
+ *
+ * This does not repair anything and does not move the phase. It re-proves that
+ * the fixture is exactly what it claims to be, then clears a label that a
+ * serialization bug left behind. If any part of the graph no longer checks out,
+ * it refuses — a stale label is a smaller problem than a fixture we have
+ * stopped being able to verify.
+ *
+ * Read-only externally. No create, update, attach, pay, cancel, advance, detach
+ * or delete. The only write is to our own fixture row. */
+async function opNormalize(
+  ctx: any,
+  secret: string,
+  user: AuthedUser,
+  fx: any,
+): Promise<OpResult> {
+  const clockId: string = fx.testClockId;
+
+  const clock = await stripeGet(
+    "/test_helpers/test_clocks/" + encodeURIComponent(clockId),
+    secret,
+  );
+  if (!clock.ok || clock.data?.id !== clockId) return { ok: false, error: "clock-not-owned" };
+  if (clock.data?.livemode !== false) return { ok: false, error: "not-sandbox" };
+
+  const cust = await assertClockOwned(secret, "customers", fx.stripeCustomerId, clockId);
+  if (!cust.ok) return { ok: false, error: cust.error };
+  if (cust.object.email) return { ok: false, error: "clock-not-owned" };
+  /* The stored working default must still be the EFFECTIVE default, not merely
+     attached — that is the value recovery will restore to. */
+  if (cust.object?.invoice_settings?.default_payment_method !==
+      fx.originalCustomerDefaultPaymentMethodId) {
+    return { ok: false, error: "not-converged" };
+  }
+  const pm = await assertPaymentMethodOwned(
+    secret, fx.originalCustomerDefaultPaymentMethodId, fx.stripeCustomerId,
+  );
+  if (!pm.ok) return { ok: false, error: pm.error };
+
+  const sub = await assertClockOwned(
+    secret, "subscriptions", fx.stripeSubscriptionId, clockId,
+  );
+  if (!sub.ok) return { ok: false, error: sub.error };
+  const o = sub.object;
+  const item = o?.items?.data?.[0];
+  const priceId = process.env[PLAN_CATALOG.plus_annual.envVar];
+  if (
+    o.status !== "active" ||
+    o.cancel_at_period_end !== false ||
+    o.cancel_at !== null ||
+    o.ended_at !== null ||
+    asId(o.customer) !== fx.stripeCustomerId ||
+    o?.items?.data?.length !== 1 ||
+    item?.quantity !== 1 ||
+    item?.price?.id !== priceId ||
+    item?.price?.recurring?.interval !== "year" ||
+    item?.current_period_end !== fx.renewalAt
+  ) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  const md = (o.metadata && typeof o.metadata === "object" ? o.metadata : {}) as Record<string, string>;
+  if (
+    md.userId !== user._id ||
+    md.plan !== "plus_annual" ||
+    md.source !== CHECKOUT_SOURCE ||
+    md.billing_schema_version !== BILLING_SCHEMA_VERSION ||
+    md.environment !== "sandbox"
+  ) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+
+  const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+    userId: user._id,
+    provider: "stripe" as const,
+  });
+  const mapping = await ctx.runQuery(internal.subscriptions.getCustomerInternal, {
+    userId: user._id,
+  });
+  if (
+    !canonical ||
+    canonical.stripeSubscriptionId !== fx.stripeSubscriptionId ||
+    canonical.tier !== "plus" ||
+    canonical.planKey !== "plus_annual" ||
+    canonical.status !== "active" ||
+    canonical.billingInterval !== "year" ||
+    canonical.cancelAtPeriodEnd !== false ||
+    mapping?.stripeCustomerId !== fx.stripeCustomerId
+  ) {
+    return { ok: false, error: "not-converged" };
+  }
+
+  /* Nothing to write but the cleared label — the success path supplies
+     clearLastError, and no provider field is touched. */
+  return { ok: true, patch: {} };
+}
+
 async function opArmFailure(secret: string, fx: any, token: string): Promise<OpResult> {
   const cust = await assertClockOwned(secret, "customers", fx.stripeCustomerId, fx.testClockId);
   if (!cust.ok) return { ok: false, error: cust.error };
@@ -973,9 +1089,11 @@ export const runCommand = action({
            adoption predicate is recovered read-only; anything else provisions
            normally. No seventh command, and no way to reach adoption from a
            state that has not earned it. */
-        result = isAdoptable(fx)
-          ? await opAdopt(ctx, secret, user, fx)
-          : await opProvision(ctx, secret, user, token);
+        result = isNormalizable(fx)
+          ? await opNormalize(ctx, secret, user, fx)
+          : isAdoptable(fx)
+            ? await opAdopt(ctx, secret, user, fx)
+            : await opProvision(ctx, secret, user, token);
       }
       else if (command === "arm_failure") result = await opArmFailure(secret, fx, token);
       else if (command === "advance_to_renewal") result = await opAdvance(ctx, secret, fx, token);
@@ -1008,7 +1126,9 @@ export const runCommand = action({
     await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
       userId: user._id,
       phase: admission.to,
-      patch: { ...(result.patch || {}), lastError: undefined },
+      patch: { ...(result.patch || {}) },
+      /* Every command's success clears any error it was recovering from. */
+      clearLastError: true,
     });
 
     const fresh = await ctx.runQuery(internal.testHarness.getFixtureInternal, {
