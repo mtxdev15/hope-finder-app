@@ -55,6 +55,7 @@ import {
   isHealthyFixtureComplete,
   isNormalizable,
   NORMALIZABLE_ERROR,
+  isAdvanceResumable,
   HEALTHY_FIXTURE_FIELDS,
   ADOPTABLE_ERRORS,
   CONVERGENCE_POLL_ATTEMPTS,
@@ -837,8 +838,10 @@ section("7. The advance target is bounded before the Stripe call");
 
 check("ADVANCE_MARGIN_SECONDS is 3600, as the brief defines", ADVANCE_MARGIN_SECONDS === 3600);
 const R = 1_000_000;
-check("the default target is the renewal boundary itself",
-  (planAdvance(R) as any).target === R);
+/* Superseded: targeting the boundary alone produced a draft invoice with no
+   payment attempt. The default is now the ceiling — see section 7b. */
+check("the default target clears the finalization window",
+  (planAdvance(R) as any).target === R + ADVANCE_MARGIN_SECONDS);
 check("a target inside the margin is allowed",
   (planAdvance(R, R + 60) as any).target === R + 60);
 check("the ceiling exactly is allowed",
@@ -862,8 +865,11 @@ check("planAdvance is called before the advance request",
 check("an unsafe target RETURNS before the advance request",
   before(advBody, "if (!plan.ok) return", "/advance"));
 check("the ceiling guard exists at all", /if \(!plan\.ok\) return/.test(advBody));
-check("the boundary is read from Stripe, not from the stored fixture value",
-  /const renewalAt = sub\.object\?\.items\?\.data\?\.\[0\]\?\.current_period_end/.test(advBody));
+/* Superseded: after the period rolls, the live value is a year ahead, and
+   aiming at it would cancel the fixture. The stored boundary is the only
+   stable base — see section 7b. Stripe is still read, to observe the roll. */
+check("the live period end is still read from Stripe",
+  /const livePeriodEnd = sub\.object\?\.items\?\.data\?\.\[0\]\?\.current_period_end/.test(advBody));
 check("the clock is polled to ready before anything is read",
   before(advBody, 'status === "ready"', "fixtureListPath("));
 check("exactly one failed attempt is required",
@@ -877,6 +883,73 @@ check("next_payment_attempt is recorded, never asserted against a fixed time",
 check("isSingleFailedAttempt accepts only 1",
   isSingleFailedAttempt(1) && !isSingleFailedAttempt(0) && !isSingleFailedAttempt(2) &&
   !isSingleFailedAttempt("1") && !isSingleFailedAttempt(null));
+
+/* ── 7b. The finalization window ─────────────────────────────────────────── */
+section("7b. One advance must cross the draft window, not stop at the boundary");
+
+/* Stripe holds a cycle invoice in `draft` and sets automatically_finalizes_at
+   one hour later; only then does it finalize and attempt payment. Advancing to
+   the boundary alone yields attempt_count 0 and nothing to observe. */
+check("the default target is the CEILING, not the boundary",
+  (planAdvance(R) as any).target === R + ADVANCE_MARGIN_SECONDS);
+check("the margin is exactly Stripe's one-hour finalization window",
+  ADVANCE_MARGIN_SECONDS === 3600);
+check("one advance from the boundary reaches finalization",
+  (planAdvance(1819052802) as any).target === 1819056402);
+check("the ceiling still refuses anything beyond one window",
+  planAdvance(R, R + ADVANCE_MARGIN_SECONDS + 1).ok === false);
+
+/* The base must be the STORED boundary. After the period rolls,
+   current_period_end is a year ahead; aiming at it would cancel the fixture. */
+check("the advance is based on the stored boundary, not the live period end",
+  /const renewalAt = typeof fx\.renewalAt === "number" \? fx\.renewalAt : livePeriodEnd/.test(advBody));
+check("the live period end is read but never used as the target",
+  /const livePeriodEnd =/.test(advBody) && !/planAdvance\(livePeriodEnd\)/.test(advBody));
+check("the stored boundary is NOT overwritten by the rolled-forward value",
+  !/patch: \{ renewalAt, advanceTarget/.test(advBody) &&
+  /patch: \{ advanceTarget: plan\.target \}/.test(advBody));
+
+/* A draft invoice is not a failure to read. */
+check("only a subscription_cycle invoice is considered",
+  /i\.billing_reason === "subscription_cycle"/.test(advBody));
+check("a draft invoice does not satisfy the advance",
+  /cycle\.find\(\(i: any\) => i\.status === "open"\)/.test(advBody));
+
+/* ── 7c. Resuming an interrupted advance ─────────────────────────────────── */
+section("7c. An advance interrupted before any attempt may be resumed");
+
+const MIDADV = { phase: "renewal_advancing", lastError: "not-converged", attemptCount: 0,
+  testClockId: "c", stripeSubscriptionId: "s", renewalAt: 1819052802 };
+check("an advance stopped before any payment attempt is resumable",
+  isAdvanceResumable(MIDADV) === true);
+check("resuming is offered as advance_to_renewal",
+  admit("advance_to_renewal", "renewal_advancing", MIDADV).ok === true);
+check("resuming still lands on past_due",
+  (admit("advance_to_renewal", "renewal_advancing", MIDADV) as any).to === "past_due");
+check("no other command is offered mid-advance",
+  COMMANDS.filter((c) => c !== "advance_to_renewal")
+    .every((c) => admit(c, "renewal_advancing", MIDADV).ok === false));
+
+/* Once an attempt exists this is a RESULT, not an interruption. */
+check("a recorded attempt makes it non-resumable",
+  isAdvanceResumable({ ...MIDADV, attemptCount: 1 }) === false);
+check("a recorded renewal invoice makes it non-resumable",
+  isAdvanceResumable({ ...MIDADV, renewalInvoiceId: "in_x" }) === false);
+check("a missing stored boundary makes it non-resumable",
+  isAdvanceResumable({ ...MIDADV, renewalAt: undefined }) === false);
+check("a missing clock or subscription makes it non-resumable",
+  isAdvanceResumable({ ...MIDADV, testClockId: undefined }) === false &&
+  isAdvanceResumable({ ...MIDADV, stripeSubscriptionId: undefined }) === false);
+for (const code of ERROR_CODES.filter((c) => c !== "not-converged")) {
+  check(`"${code}" mid-advance is not resumable`,
+    isAdvanceResumable({ ...MIDADV, lastError: code }) === false);
+}
+check("other phases are never advance-resumable",
+  PHASES.filter((p) => p !== "renewal_advancing")
+    .every((p) => isAdvanceResumable({ ...MIDADV, phase: p }) === false));
+check("a resumable advance reports as stopped, not running",
+  safeStatus(MIDADV).inFlight === false &&
+  JSON.stringify(safeStatus(MIDADV).allowed) === JSON.stringify(["advance_to_renewal"]));
 
 /* ── 8. Filtered queries for test-clock resources ────────────────────────── */
 section("8. Test-clock resources are read with a scoped query");

@@ -157,6 +157,14 @@ export function admit(rawCommand: unknown, phase: Phase, fixture?: unknown): Adm
      may re-run `provision`, which takes the read-only normalization path. While
      that label stands the lifecycle is withheld: an operator must not start
      arming a failure against a fixture whose reported state they cannot read. */
+  /* Resume an advance that was interrupted before any payment attempt. Still
+     one clock advance in total: the first one rolled the period, this one
+     crosses the finalization window. */
+  if (command === "advance_to_renewal" && phase === "renewal_advancing" &&
+      isAdvanceResumable(fixture)) {
+    return { ok: true, command, inFlight: "renewal_advancing", to: "past_due" };
+  }
+
   if (phase === "healthy" && isNormalizable(fixture)) {
     if (command === "provision") {
       return { ok: true, command, inFlight: "healthy", to: "healthy" };
@@ -264,10 +272,19 @@ export function planAdvance(renewalAt: unknown, requested?: unknown): AdvancePla
     return { ok: false, error: "advance-target-unsafe" };
   }
   const ceiling = renewalAt + ADVANCE_MARGIN_SECONDS;
-  /* Default target is the boundary itself. A caller may ask for a little more
-     — the small step used when the renewal has not appeared yet — but never
-     past the ceiling. */
-  const target = requested === undefined ? renewalAt : requested;
+  /* Default target is the CEILING, not the boundary.
+   *
+   * Stripe does not bill a cycle invoice the instant the period rolls. It
+   * creates the invoice as a `draft` and sets `automatically_finalizes_at` one
+   * hour later; only then does it finalize and attempt payment. Advancing to
+   * the boundary alone produces a draft invoice with `attempt_count: 0` and no
+   * failure to observe — which is exactly what the first attempt saw.
+   *
+   * ADVANCE_MARGIN_SECONDS is 3600, and that is not a coincidence: the margin
+   * was sized for this window. Targeting the ceiling crosses both the period
+   * roll and the finalization in ONE advance, which is the whole budget and
+   * still nowhere near the retry schedule. */
+  const target = requested === undefined ? ceiling : requested;
   if (typeof target !== "number" || !Number.isFinite(target)) {
     return { ok: false, error: "advance-target-unsafe" };
   }
@@ -373,13 +390,14 @@ export function safeStatus(fixture: unknown): SafeStatus {
   const f = (fixture && typeof fixture === "object" ? fixture : {}) as Record<string, unknown>;
   const phase: Phase = isPhase(f.phase) ? f.phase : "empty";
   const rawErr = f.lastError;
-  const adoptable = isAdoptable(f);
+  /* A fixture that can be resumed is STOPPED, not running. Reporting it as
+     in-flight tells the operator to wait for something that will never
+     finish — which is exactly how the first advance stall presented. */
+  const resumable = isAdoptable(f) || isAdvanceResumable(f);
   return {
     phase,
     allowed: allowedCommands(phase, f),
-    /* An adoptable fixture is stopped, not running. Reporting it as in-flight
-       would tell the operator to wait for something that will never finish. */
-    inFlight: isInFlight(phase) && !adoptable,
+    inFlight: isInFlight(phase) && !resumable,
     attemptCount: typeof f.attemptCount === "number" ? f.attemptCount : 0,
     hasFixture: Boolean(fixture && typeof fixture === "object"),
     lastError: isErrorCode(rawErr) ? rawErr : null,
@@ -661,6 +679,38 @@ export function isNormalizable(fixture: unknown): boolean {
   for (const later of ["failingPaymentMethodId", "renewalInvoiceId", "advanceTarget", "nextPaymentAttempt"]) {
     if (f[later] !== undefined && f[later] !== null && f[later] !== "") return false;
   }
+  return true;
+}
+
+
+/* ── INTERRUPTED ADVANCE ─────────────────────────────────────────────────── */
+
+/* An advance that rolled the period but never reached a payment attempt.
+ *
+ * The first attempt advanced to the boundary, Stripe created the renewal
+ * invoice as a one-hour draft, and the harness — looking for an `open` invoice
+ * — found none and stopped. Nothing irreversible happened: no payment was
+ * attempted, `attempt_count` is 0, and the subscription is still active.
+ *
+ * Resuming is safe ONLY while that remains true. The moment an attempt exists,
+ * this is no longer an interrupted advance; it is a result to be read, and the
+ * fixture must stay put. */
+export function isAdvanceResumable(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  if (f.phase !== "renewal_advancing") return false;
+  if (f.lastError !== "not-converged") return false;
+  if (f.attemptCount !== 0) return false;
+  /* A recorded renewal invoice means the advance got far enough to observe a
+     result. Nothing to resume. */
+  if (typeof f.renewalInvoiceId === "string" && f.renewalInvoiceId) return false;
+  for (const k of ["testClockId", "stripeSubscriptionId"]) {
+    if (typeof f[k] !== "string" || !f[k]) return false;
+  }
+  /* The ORIGINAL boundary must be known. Without it there is no safe base to
+     compute a target from, and the subscription's own period has already
+     rolled a year forward. */
+  if (typeof f.renewalAt !== "number" || !Number.isFinite(f.renewalAt)) return false;
   return true;
 }
 
