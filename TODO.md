@@ -357,6 +357,21 @@ When Stage 2 resumes, in this order:
          blocks `file:`. Amount, paid state, cadence and period are recorded
          from the hosted invoice page and the Stripe API instead. See [[§6.19]].
    - [ ] verify payment-failure / payment-attention behaviour
+         **BLOCKED as originally planned** — audited 2026-08-23 UTC (§6.20), no
+         Stripe write made. A one-off $1.00 invoice cannot exercise this path,
+         for two independent reasons in the shipped code:
+         (1) `readInvoiceSubscriptionId` reads only
+         `invoice.parent.subscription_details.subscription` and never invoice
+         lines, so a one-off invoice resolves to `null` and `http.ts` ACKs before
+         `applyWebhook` — no `billingEvents` row, no state change;
+         (2) `paymentNeedsAttention` is a pure function of the stored
+         subscription **status** (`past_due`/`unpaid`), and the webhook writes
+         status from the live *subscription*, never the invoice — a failed
+         one-off invoice leaves the annual subscription `active`.
+         Neither is a defect; both are deliberate fail-closed design. The path is
+         reachable only by genuinely moving a subscription to `past_due`. Next
+         attempt should use a **Stripe test clock on its own throwaway QA
+         subscription**, which leaves both existing subscribers untouched.
    - [x] **surface entitlement state and add a billing entry point** — DONE
          2026-08-22 (§6.13). `getMyEntitlements` now returns `periodEndAt`,
          `cancelAtPeriodEnd` and `billingInterval`; `/checkout/success` welcomes
