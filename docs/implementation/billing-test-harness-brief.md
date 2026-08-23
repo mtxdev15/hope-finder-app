@@ -111,6 +111,14 @@ makes the guard a real structural boundary rather than a naming convention: an
 operation cannot touch a real subscriber even if the fixture record were
 corrupted, because a real subscriber can never satisfy the precondition.
 
+**Stated without any ambiguity, because the distinction matters:** Stripe does
+not prevent writes to ordinary sandbox objects. Nothing about a plain sandbox
+Customer stops an API call from reaching it. The harness enforces this boundary
+itself, by retrieving every target and rejecting any whose `test_clock` is null
+or does not match the authenticated fixture. Stripe supplies the fact; the
+refusing is ours. Anyone who later reads this as a Stripe permission boundary
+would conclude the check is redundant and be wrong.
+
 Assert this in a shared helper (`assertClockOwned`) called at the top of every
 mutating operation. Do not inline it per call site.
 
@@ -452,3 +460,106 @@ state machine as a dependency-free module, a dev-only page behind the existing
 
 Steps 3–5 need their own brief, written once the harness exists and its exact
 return shapes are known.
+
+---
+
+## 13. Implementation record — merged behind gates, never run
+
+Implemented on branch `feature/billing-test-clock-harness` against
+`df46496`. **The harness has never been executed.** No Test Clock, Customer,
+Subscription, PaymentMethod, Invoice, Portal Session, Checkout Session or
+webhook exists from this work, no deployment was made, and no environment value
+was set or changed. Both harness flags are unset, so the code is inert.
+
+### Files
+
+| File | Role |
+|---|---|
+| `convex/testHarnessState.ts` | **new** — every decision, with no network in it. Dependency-free so `node` executes the real logic. |
+| `convex/testHarness.ts` | **new** — gated action, status query, Stripe operations, `assertClockOwned`. |
+| `convex/schema.ts` | `billingTestFixtures` table, indexed `by_user`, phase as a closed union. |
+| `convex/stripeApi.ts` | `stripeDelete` added; `request` accepts `DELETE`. Same pinned version header. |
+| `src/pages/dev/[control].astro` | `/dev/billing-harness` added to the existing dynamic route, behind its own independent flag. |
+| `scripts/verify-billing-test-harness.ts` | **new** — 266 checks. |
+| `convex/_generated/api.d.ts` | codegen only: two type imports, zero behaviour. |
+
+### Public surface
+
+- `testHarness.runCommand` — args are exactly `{ command: v.string() }`. Six
+  values accepted; everything else is `unknown-command`.
+- `testHarness.fixtureStatus` — a query with **no arguments at all**.
+
+Both return only the allowlisted projection: `phase`, `allowed`, `inFlight`,
+`attemptCount`, `hasFixture`, `lastError`. The projection is built by
+construction from an allowlist rather than by deleting fields, so a column added
+to the fixture table later cannot leak by being forgotten.
+
+### The deployment gate, concretely
+
+`BILLING_TEST_HARNESS_DEPLOYMENT` is only the **expected** value; on its own it
+proves nothing, because a variable that says "dev" can be set anywhere. The
+**actual** deployment is parsed from `CONVEX_CLOUD_URL` / `CONVEX_SITE_URL`,
+which Convex sets itself — the same platform-provided value `convex/auth.ts`
+already relies on. The gate compares the two and refuses any mismatch.
+
+`BILLING_TEST_HARNESS_ENABLED` must equal the exact string `true`. `"1"`,
+`"yes"`, `"TRUE"` and a boolean `true` are all refused, and all of those are
+asserted. A flag that accepts anything truthy is a flag that turns itself on.
+
+### One deliberate tightening of this brief
+
+§7.1 sketched idempotency keys as `hz:clock:<userId>`. They are instead derived
+from a **SHA-256 digest** of the user id, so no application identifier is sent
+to Stripe. The keys remain stable per fixture and distinct per operation, which
+is the property that mattered. This is a tightening, not a relaxation, and the
+suite asserts that no raw user id or email appears in key derivation.
+
+### Verification
+
+266 checks, all executing real logic or parsing stripped source — comments are
+removed before any structural assertion, because this repository has been bitten
+four times by tests that matched the prose describing a banned pattern.
+
+The suite was **mutation-tested against twelve deliberate regressions**, each
+applied, run, and reverted byte-identically. Two of them initially passed, and
+both were real weaknesses worth recording:
+
+1. *`assertClockOwned` removed from one object in `arm_failure`* — the check
+   only required the call to appear **somewhere** in the function, so an
+   operation that verified the Subscription while writing to an unverified
+   Customer still passed. Now every object an operation mutates must be the
+   object it verified.
+2. *the advance-ceiling guard deleted outright* — the ordering check used
+   `indexOf(a) < indexOf(b)`, and `indexOf` returns `-1` for a missing needle.
+   A **deleted** guard therefore read as correctly ordered. All nine ordering
+   assertions now require both strings to exist.
+
+Both fixes were made to the tests, not the implementation, and all twelve
+mutations are now caught.
+
+### Residual mapping policy — decided, not discovered
+
+**The disposable `billingCustomers` row is intentionally left in place.**
+
+Deleting a Test Clock deletes its Customer and subscriptions, so after cleanup
+that row points at a Customer which no longer exists. It is inert: nothing reads
+it except `createPortalSession` and `createCheckoutSession`, and both are
+reachable only by that one disposable account.
+
+The consequences, accepted deliberately:
+
+- **The disposable QA account is permanently one-time-use.** `provision`
+  refuses any user that already has a mapping, so the fixture cannot be rebuilt
+  on the same account. A second run needs a fourth account.
+- **No general-purpose cleanup mutation was added.** A "delete this account's
+  billing rows" command is a production-shaped capability, and adding one to
+  reclaim a disposable test account would be a poor trade. There is no seventh
+  browser command.
+- **The execution record must report the residue explicitly** rather than
+  presenting the cleanup as total.
+
+### Still required before anything runs
+
+A separate execution-readiness audit against the compiled harness, then explicit
+authorization to set the flags and create the disposable account. Neither flag
+should be set until then. `payment-failure / payment-attention` remains open.

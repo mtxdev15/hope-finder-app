@@ -204,6 +204,67 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_customer", ["stripeCustomerId"]),
 
+  /* DEVELOPMENT-ONLY orchestration state for the Stripe Test Clock harness.
+     See docs/implementation/billing-test-harness-brief.md.
+
+     WHY A SEPARATE TABLE AND NOT A FLAG ON `subscriptions`
+     The canonical subscription row is what grants Plus. Hanging test
+     orchestration off it would put a development concern inside the one record
+     the whole entitlement system trusts, and every future reader of that table
+     would have to know to ignore some columns. This is scaffolding; it lives in
+     its own building.
+
+     This is the ONLY place the harness's provider identifiers exist. None of
+     them is returned to a browser — see STATUS_FIELDS in testHarnessState.ts,
+     which is an allowlist projection rather than a redaction. */
+  billingTestFixtures: defineTable({
+    // Ownership: the authenticated disposable QA user. One fixture per user.
+    userId: v.string(),
+    // Closed union, enforced again at runtime by isPhase().
+    phase: v.union(
+      v.literal("empty"),
+      v.literal("provisioning"),
+      v.literal("healthy"),
+      v.literal("failure_armed"),
+      v.literal("renewal_advancing"),
+      v.literal("past_due"),
+      v.literal("recovering"),
+      v.literal("recovered"),
+      v.literal("canceling"),
+      v.literal("terminal"),
+      v.literal("clock_deleted"),
+    ),
+    environment: v.string(), // always "sandbox"; refused otherwise
+    /* Hash of userId. Idempotency keys are derived from this rather than from
+       the raw application id, so no application identifier is sent to Stripe. */
+    fixtureToken: v.string(),
+
+    // Server-only provider state.
+    testClockId: v.optional(v.string()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    renewalInvoiceId: v.optional(v.string()),
+    /* Captured at PROVISION time, not at recovery time. Recording the recovery
+       target before the thing that breaks it is the entire point; capturing it
+       afterwards would record whatever the failure left behind. */
+    originalCustomerDefaultPaymentMethodId: v.optional(v.string()),
+    originalSubscriptionDefaultPaymentMethodId: v.optional(v.string()),
+    failingPaymentMethodId: v.optional(v.string()),
+
+    // Observed data, never asserted against a hardcoded time.
+    renewalAt: v.optional(v.number()),
+    advanceTarget: v.optional(v.number()),
+    nextPaymentAttempt: v.optional(v.number()),
+    attemptCount: v.number(),
+
+    /* Allowlisted code only — never Stripe's own error text, which can carry
+       request details and object ids. */
+    lastError: v.optional(v.string()),
+    lastOperationAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   /* Webhook idempotency for SUBSCRIPTION events. Deliberately not giftEvents:
      that table is keyed by Checkout session and belongs to the donation
      archive, and mixing the two would let one product's replay suppress the

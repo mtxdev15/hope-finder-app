@@ -34,12 +34,26 @@
  */
 import DeclareLayout from '../../layouts/DeclareLayout.astro';
 
-/* GATE A — route existence, decided at build time. */
+/* GATE A — route existence, decided at build time.
+ *
+ * Two controls, two INDEPENDENT flags. The Test Clock harness
+ * (`/dev/billing-harness`) is gated separately from the checkout control so
+ * that enabling one never enables the other: they create very different
+ * objects, and a single shared flag would make "I wanted the checkout page"
+ * enough to expose a clock advance. */
 export function getStaticPaths() {
   const enabled =
     import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_DEV_CONTROL === '1';
-  return enabled ? [{ params: { control: 'billing-sandbox' } }] : [];
+  const harnessEnabled =
+    import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_HARNESS_CONTROL === '1';
+  return [
+    ...(enabled ? [{ params: { control: 'billing-sandbox' } }] : []),
+    ...(harnessEnabled ? [{ params: { control: 'billing-harness' } }] : []),
+  ];
 }
+
+const control = Astro.params.control;
+const isHarness = control === 'billing-harness';
 ---
 <DeclareLayout
   title="Declare — dev: sandbox billing"
@@ -47,6 +61,47 @@ export function getStaticPaths() {
   activeTab=""
   noindex={true}
 >
+  {isHarness && (
+  <main class="devbill">
+    <div class="db-in">
+      <div class="db-tag">Development only — sandbox tooling</div>
+      <h1>Test Clock failure harness</h1>
+      <p class="db-sub">
+        Drives a throwaway sandbox subscription on a Stripe Test Clock through
+        one failed renewal and back to healthy. The browser sends one
+        allowlisted command string and nothing else — every Customer,
+        Subscription, Test Clock, PaymentMethod, Invoice and Price identifier is
+        resolved and held server side. Nothing here touches the existing monthly
+        or annual subscriber.
+      </p>
+
+      <div id="hxAuth" class="db-strip">Checking session…</div>
+
+      <section id="hxPanel" hidden>
+        <dl class="db-fields" id="hxStatus" role="status" aria-live="polite"></dl>
+        <div class="db-irow">
+          <button id="hx_provision" type="button" class="db-btn" disabled>provision</button>
+          <button id="hx_arm_failure" type="button" class="db-btn" disabled>arm_failure</button>
+          <button id="hx_advance_to_renewal" type="button" class="db-btn" disabled>advance_to_renewal</button>
+          <button id="hx_restore_and_pay" type="button" class="db-btn" disabled>restore_and_pay</button>
+          <button id="hx_cancel_fixture" type="button" class="db-btn" disabled>cancel_fixture</button>
+          <button id="hx_delete_clock" type="button" class="db-btn" disabled>delete_clock</button>
+        </div>
+        <div id="hxOut" class="db-out" hidden></div>
+        <p class="db-note">
+          Buttons are enabled only for the commands the current phase allows, and
+          all six disable while a command is in flight. That is convenience, not
+          the safety mechanism: Convex re-checks the phase, all four gates, and
+          Test Clock ownership on every call, and refuses anything it does not
+          expect. Error codes shown here are an allowlist — Stripe's own error
+          text never reaches this page.
+        </p>
+      </section>
+    </div>
+  </main>
+  )}
+
+  {!isHarness && (
   <main class="devbill">
     <div class="db-in">
       <div class="db-tag">Development only</div>
@@ -121,6 +176,7 @@ export function getStaticPaths() {
       </section>
     </div>
   </main>
+  )}
 </DeclareLayout>
 
 <script>
@@ -319,6 +375,112 @@ export function getStaticPaths() {
       document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(watchTimer); });
       window.addEventListener('pagehide', () => clearTimeout(watchTimer));
       readState();
+    })();
+  }
+</script>
+
+<script>
+  /* GATE B for the Test Clock harness — its OWN flag, inline literals so Vite
+   * folds this to `if (false)` in any production build and esbuild drops the
+   * body including the dynamic imports. Separate from the checkout gate below
+   * on purpose: neither flag may enable the other. */
+  if (import.meta.env.DEV && import.meta.env.PUBLIC_BILLING_HARNESS_CONTROL === '1') {
+    (async () => {
+      const g = (id: string) => document.getElementById(id);
+      const esc2 = (s: unknown) =>
+        String(s).replace(/[&<>"]/g, (c) =>
+          (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }) as Record<string, string>)[c]);
+      const say = (html: string) => {
+        const el = g('hxOut'); if (!el) return; el.innerHTML = html; el.hidden = false;
+      };
+
+      const auth = await import('../../app/declare/auth-store.js');
+      await auth.initAuth().catch(() => {});
+      const authEl = g('hxAuth');
+      if (!auth.isConfigured()) {
+        if (authEl) authEl.textContent = 'PUBLIC_CONVEX_SITE_URL is not set.';
+        return;
+      }
+      if (!auth.isSignedIn()) {
+        if (authEl) authEl.innerHTML =
+          'Not signed in. The harness requires an authenticated disposable QA user. ' +
+          '<a href="/signin">Sign in</a>, then return here.';
+        return;
+      }
+      if (authEl) authEl.textContent = 'Signed in. Commands are enabled per phase.';
+      const panel = g('hxPanel'); if (panel) panel.hidden = false;
+
+      /* Everything Convex-shaped lives inside this closure and is imported on
+         demand. Nothing billing-shaped loads on page view. */
+      async function connect() {
+        const { ConvexHttpClient } = await import('convex/browser');
+        const { api } = await import('../../../convex/_generated/api');
+        const url = import.meta.env.PUBLIC_CONVEX_URL || '';
+        if (!url) { say('PUBLIC_CONVEX_URL is not set.'); return null; }
+        const ac = auth.getAuthClient();
+        const tok = ac && ac.convex ? await ac.convex.token({ fetchOptions: { throw: false } }) : null;
+        const token = (tok && tok.data && tok.data.token) || null;
+        if (!token) { say('No Convex token — sign in again.'); return null; }
+        const client = new ConvexHttpClient(url);
+        client.setAuth(token);
+        return { client, api };
+      }
+
+      const COMMANDS = [
+        'provision', 'arm_failure', 'advance_to_renewal',
+        'restore_and_pay', 'cancel_fixture', 'delete_clock',
+      ] as const;
+
+      let pending = false;
+
+      function render(status: any) {
+        const dl = g('hxStatus');
+        if (dl) {
+          /* Only the safe projection is ever rendered. No provider identifier
+             exists in this object to display, log, or write to the DOM. */
+          dl.innerHTML = ['phase', 'inFlight', 'attemptCount', 'hasFixture', 'lastError']
+            .map((k) => '<dt>' + esc2(k) + '</dt><dd>' + esc2(status ? status[k] : '—') + '</dd>')
+            .join('');
+        }
+        const allowed: string[] = (status && status.allowed) || [];
+        for (const c of COMMANDS) {
+          const b = g('hx_' + c) as HTMLButtonElement | null;
+          if (b) b.disabled = pending || !allowed.includes(c);
+        }
+      }
+
+      async function refresh() {
+        const c = await connect(); if (!c) return;
+        try { render(await c.client.query(c.api.testHarness.fixtureStatus, {})); }
+        catch { say('status-unavailable'); }
+      }
+
+      for (const command of COMMANDS) {
+        const b = g('hx_' + command) as HTMLButtonElement | null;
+        if (!b) continue;
+        b.addEventListener('click', async () => {
+          /* Client-side double-submit guard. The server enforces this too, via
+             the in-flight phase — this only spares a pointless round trip. */
+          if (pending) return;
+          pending = true;
+          render(null);
+          const c = await connect();
+          if (!c) { pending = false; return; }
+          try {
+            /* The ENTIRE payload: one allowlisted command string. */
+            const res = await c.client.action(c.api.testHarness.runCommand, { command });
+            say(res && res.ok
+              ? '<div>ok — ' + esc2(command) + '</div>'
+              : '<div class="db-err">' + esc2((res && res.error) || 'no-response') + '</div>');
+          } catch {
+            say('<div class="db-err">request-failed</div>');
+          }
+          pending = false;
+          await refresh();
+        });
+      }
+
+      await refresh();
     })();
   }
 </script>
