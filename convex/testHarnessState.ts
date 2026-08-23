@@ -710,11 +710,19 @@ export function isAdvanceResumable(fixture: unknown): boolean {
   if (!fixture || typeof fixture !== "object") return false;
   const f = fixture as Record<string, unknown>;
   if (f.phase !== "renewal_advancing") return false;
-  /* `advance-rejected` means Stripe refused the advance request itself, so the
-     clock provably did not move. `not-converged` means it moved but the result
-     had not appeared yet. Both are safe to resume from; a generic
-     `stripe-error` is not, because it says nothing about what happened. */
-  if (f.lastError !== "not-converged" && f.lastError !== "advance-rejected") return false;
+  /* The stored label is a HINT, not the gate.
+   *
+   * Gating an irreversible action on our own recorded classification was the
+   * wrong instinct twice over: a label written before a fix existed can be
+   * stale, and a label is never evidence about the external world anyway.
+   * opAdvance now re-reads the clock and the cycle invoice before it advances,
+   * and refuses if anything shows a payment was already attempted. That
+   * verification is the real guard.
+   *
+   * So this predicate admits any mid-advance failure classification and leaves
+   * the decision to evidence. It still refuses on the two things it CAN see:
+   * a recorded attempt, and a recorded renewal invoice. */
+  if (!isErrorCode(f.lastError)) return false;
   if (f.attemptCount !== 0) return false;
   /* A recorded renewal invoice means the advance got far enough to observe a
      result. Nothing to resume. */

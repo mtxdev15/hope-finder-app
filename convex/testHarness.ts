@@ -846,7 +846,36 @@ async function opAdvance(ctx: any, secret: string, fx: any, token: string): Prom
     patch: { advanceTarget: plan.target },
   });
 
-  const advance = await stripePost(
+  /* PRE-FLIGHT, before any advance. Two questions the stored label cannot
+     answer: has a payment already been attempted, and has the clock already
+     reached the target? Both are read from Stripe, and both can veto. */
+  const preInvPath = fixtureListPath("invoices", "subscription", fx.stripeSubscriptionId, { limit: "5" });
+  if (!preInvPath) return { ok: false, error: "stripe-error" };
+  const preInv = await stripeGet(preInvPath, secret);
+  if (!preInv.ok || !Array.isArray(preInv.data?.data)) return { ok: false, error: "stripe-error" };
+  const priorCycle = preInv.data.data.filter(
+    (i: any) => i.billing_reason === "subscription_cycle" &&
+      i.parent?.subscription_details?.subscription === fx.stripeSubscriptionId,
+  );
+  /* An attempt already happened. This is a result to read, not an advance to
+     repeat — repeating it is how one failed attempt becomes two. */
+  if (priorCycle.some((i: any) => (i.attempt_count || 0) >= 1)) {
+    return { ok: false, error: "unexpected-attempt-count" };
+  }
+
+  const clockNow = await stripeGet(
+    "/test_helpers/test_clocks/" + encodeURIComponent(fx.testClockId), secret,
+  );
+  if (!clockNow.ok || clockNow.data?.id !== fx.testClockId) return { ok: false, error: "clock-not-owned" };
+  if (clockNow.data?.livemode !== false) return { ok: false, error: "not-sandbox" };
+  const frozenNow = clockNow.data?.frozen_time;
+
+  /* Already at or past the target: the advance has happened. Skip it entirely
+     and go observe. This is what makes a resume safe no matter what label the
+     previous attempt happened to leave behind. */
+  const alreadyThere = typeof frozenNow === "number" && frozenNow >= plan.target;
+
+  const advance = alreadyThere ? { ok: true, status: 200, data: null } : await stripePost(
     "/test_helpers/test_clocks/" + encodeURIComponent(fx.testClockId) + "/advance",
     secret,
     { frozen_time: String(plan.target) },
