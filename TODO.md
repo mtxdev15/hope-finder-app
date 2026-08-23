@@ -357,6 +357,22 @@ When Stage 2 resumes, in this order:
          blocks `file:`. Amount, paid state, cadence and period are recorded
          from the hosted invoice page and the Stripe API instead. See [[§6.19]].
    - [ ] verify payment-failure / payment-attention behaviour
+         **Design locked 2026-08-23** — see
+         `docs/implementation/billing-test-harness-brief.md`. Route is a Test
+         Clock fixture on a third disposable QA account, driven by a
+         development-only Convex harness. The ownership contract needs no
+         change: a directly-created Customer + Subscription carrying the five
+         provenance fields binds through the same trusted path Checkout uses,
+         and `applyWebhook` creates both the mapping and the canonical row
+         itself. The harness exists only because the MCP exposes no Test Clock,
+         PaymentMethod, or Invoice write operations.
+         *Sandbox recovery policy, read 2026-08-23:* Smart Retries, up to 8
+         retries in 2 weeks, first retry dynamic, **final action cancel**,
+         failure emails disabled, no active automations. Because the final
+         action is cancel, an over-advanced clock destroys the fixture — hence
+         the standing rule: advance only to the first renewal attempt, require
+         `attempt_count=1`, read `next_payment_attempt`, and recover before
+         advancing again.
          **BLOCKED as originally planned** — audited 2026-08-23 UTC (§6.20), no
          Stripe write made. A one-off $1.00 invoice cannot exercise this path,
          for two independent reasons in the shipped code:
