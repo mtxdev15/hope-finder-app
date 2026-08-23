@@ -169,8 +169,13 @@ None of these are oversights. Each is a deliberate stop.
       invoice history are all still unexercised
 - [ ] No annual Checkout Session has been created. The annual dev control now
       exists (resume step 6d); the annual Price has never been exercised
-- [ ] No cancellation has been performed and no payment failure has been
-      simulated
+- [x] Payment failure and recovery **have** been exercised (2026-08-23) on a
+      disposable QA account via a Stripe Test Clock, leaving both existing
+      subscribers untouched. Subscription cancellation was exercised on that
+      same throwaway fixture only
+- [ ] No cancellation has been performed on a **real** QA subscriber through the
+      Portal. The monthly subscriber's end-of-period cancellation (§6.17) was
+      set through the API, and no Portal cancellation flow has been walked
 - [ ] No production billing CTA is enabled — the pricing page CTA is still a
       disabled "Opening soon" button
 - [ ] No live Stripe Product, Price, webhook or secret has been created
@@ -356,7 +361,24 @@ When Stage 2 resumes, in this order:
          `pdftotext`/`pdfinfo`/`mutool`/`qpdf`/`pypdf` here, and the browser
          blocks `file:`. Amount, paid state, cadence and period are recorded
          from the hosted invoice page and the Stripe API instead. See [[§6.19]].
-   - [ ] verify payment-failure / payment-attention behaviour
+   - [x] **verify payment-failure / payment-attention behaviour** — DONE
+         2026-08-23 UTC. Record:
+         `docs/operations/billing-test-harness-execution-record-2026-08-23.md`.
+         A Test Clock fixture on a third disposable QA account ran the full
+         lifecycle: healthy -> failure armed -> `past_due` -> recovered ->
+         cancelled -> clock deleted. `/you` showed "NEEDS ATTENTION", the
+         non-gold badge and **no renewal date** while `past_due`, then returned
+         to a normal renewal line after recovery, with zero identifier leaks.
+         Both existing subscribers were **not written at all** during the test
+         window (their `updatedAt` values both precede it); `billingEvents` grew
+         by exactly the 8 expected lifecycle events; 0 Test Clocks remain.
+         Six safe stops were fixed and merged first (PRs #39-#45), four of them
+         the same bug: a webhook-driven convergence checked with a single
+         immediate read. PR #45 fixed the class — one bounded poller everywhere,
+         plus skip-if-already-done guards. Harness re-disabled afterwards (both
+         flags removed); functions stay deployed to development and inert.
+         *Not observed:* Stripe's automatic Smart Retry cadence (recovery was
+         driven manually), failed-payment emails (disabled), and Portal dunning.
          **Design locked 2026-08-23** — see
          `docs/implementation/billing-test-harness-brief.md`. Route is a Test
          Clock fixture on a third disposable QA account, driven by a
