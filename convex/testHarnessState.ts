@@ -153,6 +153,17 @@ export function admit(rawCommand: unknown, phase: Phase, fixture?: unknown): Adm
     return { ok: true, command, inFlight: "provisioning", to: "healthy" };
   }
 
+  /* NORMALIZATION. A healthy fixture still carrying the stranded adoption error
+     may re-run `provision`, which takes the read-only normalization path. While
+     that label stands the lifecycle is withheld: an operator must not start
+     arming a failure against a fixture whose reported state they cannot read. */
+  if (phase === "healthy" && isNormalizable(fixture)) {
+    if (command === "provision") {
+      return { ok: true, command, inFlight: "healthy", to: "healthy" };
+    }
+    return { ok: false, error: "wrong-phase" };
+  }
+
   /* Re-entry check first. `delete_clock` starts from `terminal` and also uses
      `terminal` as its in-flight phase, so it is exempt from this check — it is
      protected instead by requiring terminal webhook convergence before the
@@ -605,6 +616,48 @@ export function isAdoptable(fixture: unknown): boolean {
   if (!ADOPTABLE_ERRORS.includes(String(f.lastError))) return false;
   /* No part of the failure lifecycle may have started. */
   if (f.attemptCount !== 0) return false;
+  for (const later of ["failingPaymentMethodId", "renewalInvoiceId", "advanceTarget", "nextPaymentAttempt"]) {
+    if (f[later] !== undefined && f[later] !== null && f[later] !== "") return false;
+  }
+  return true;
+}
+
+
+/* ── HEALTHY NORMALIZATION ───────────────────────────────────────────────── */
+
+/* The one stale-error state that may be cleared without re-running anything.
+ *
+ * WHY THIS EXISTS
+ * Adoption succeeded — the fixture became genuinely healthy and complete — but
+ * the success path could not clear the error it was recovering from, because
+ * `lastError: undefined` is dropped when a patch is serialized as a Convex
+ * function argument. The result read `healthy` and `not-converged` at the same
+ * time. Nothing was broken; the label was.
+ *
+ * A stale label is not cosmetic when it is the only signal an operator has.
+ * `healthy` beside `not-converged` is unreadable: it could mean recovered, or
+ * it could mean something is still wrong, and there is no way to tell from the
+ * outside. So the lifecycle refuses to continue until it is resolved.
+ *
+ * WHY IT IS NARROW
+ * `not-converged` ONLY. That is the single classification the broken clear
+ * could have stranded, and it is only reachable here after a successful
+ * adoption. Any other error on a healthy fixture means something happened that
+ * this path cannot explain, and it stops for a human. It must never become
+ * "clear any error on any healthy fixture". */
+export const NORMALIZABLE_ERROR = "not-converged";
+
+export function isNormalizable(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  if (f.phase !== "healthy") return false;
+  if (f.lastError !== NORMALIZABLE_ERROR) return false;
+  if (f.attemptCount !== 0) return false;
+  /* Must be a COMPLETE healthy fixture. Normalization clears a label; it does
+     not paper over a fixture that is missing state. */
+  if (!isHealthyFixtureComplete(f)) return false;
+  /* No part of the failure lifecycle may have begun — those states could not
+     have been produced by the adoption bug. */
   for (const later of ["failingPaymentMethodId", "renewalInvoiceId", "advanceTarget", "nextPaymentAttempt"]) {
     if (f[later] !== undefined && f[later] !== null && f[later] !== "") return false;
   }
