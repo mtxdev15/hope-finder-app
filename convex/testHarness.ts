@@ -42,7 +42,9 @@ import {
   checkGates,
   idempotencyKey,
   isPhase,
+  invoiceOwnershipVerdict,
   ownershipVerdict,
+  paymentMethodOwnershipVerdict,
   planAdvance,
   isSingleFailedAttempt,
   fixtureListPath,
@@ -184,6 +186,52 @@ async function assertClockOwned(
   /* The id must also be the one this fixture recorded: a clock-owned object
      that is not OUR clock-owned object is still not ours. */
   if (res.data.id !== objectId) return { ok: false, error: "clock-not-owned" };
+  return { ok: true, object: res.data };
+}
+
+/* An Invoice has no `test_clock` of its own, so it is verified through the
+ * subscription that does. Retrieved immediately before the pay call — the
+ * fixture says WHICH invoice to fetch, and the fetched object's own
+ * relationships decide whether it may be paid. */
+async function assertInvoiceOwned(
+  secret: string,
+  invoiceId: string,
+  fixtureSubscriptionId: string | undefined,
+): Promise<{ ok: true; object: any } | { ok: false; error: ErrorCode }> {
+  if (!invoiceId || !fixtureSubscriptionId) return { ok: false, error: "clock-not-owned" };
+  const res = await stripeGet("/invoices/" + encodeURIComponent(invoiceId), secret);
+  if (!res.ok || !res.data) return { ok: false, error: "stripe-error" };
+  const verdict = invoiceOwnershipVerdict({
+    invoiceLivemode: res.data.livemode,
+    invoiceId: res.data.id,
+    expectedInvoiceId: invoiceId,
+    invoiceSubscription: res.data.parent?.subscription_details?.subscription,
+    expectedSubscriptionId: fixtureSubscriptionId,
+    invoiceStatus: res.data.status,
+  });
+  if (!verdict.ok) return { ok: false, error: verdict.error };
+  return { ok: true, object: res.data };
+}
+
+/* Same shape for the temporary failing method: verified against the Customer
+ * that is itself clock-verified, so a wrong stored id cannot detach a payment
+ * method belonging to anyone else. */
+async function assertPaymentMethodOwned(
+  secret: string,
+  paymentMethodId: string,
+  fixtureCustomerId: string | undefined,
+): Promise<{ ok: true; object: any } | { ok: false; error: ErrorCode }> {
+  if (!paymentMethodId || !fixtureCustomerId) return { ok: false, error: "clock-not-owned" };
+  const res = await stripeGet("/payment_methods/" + encodeURIComponent(paymentMethodId), secret);
+  if (!res.ok || !res.data) return { ok: false, error: "stripe-error" };
+  const verdict = paymentMethodOwnershipVerdict({
+    pmLivemode: res.data.livemode,
+    pmId: res.data.id,
+    expectedPmId: paymentMethodId,
+    pmCustomer: res.data.customer,
+    expectedCustomerId: fixtureCustomerId,
+  });
+  if (!verdict.ok) return { ok: false, error: verdict.error };
   return { ok: true, object: res.data };
 }
 
@@ -519,6 +567,12 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
     return { ok: false, error: "not-converged" };
   }
 
+  /* The invoice is verified HERE, immediately before it is paid — not trusted
+     from the fixture. This is the only money-moving call in the harness, so it
+     is the last place that should take a stored id on faith. */
+  const inv = await assertInvoiceOwned(secret, fx.renewalInvoiceId, fx.stripeSubscriptionId);
+  if (!inv.ok) return { ok: false, error: inv.error };
+
   /* Exactly once, with a stable key. A repeated call returns Stripe's cached
      result rather than making a second payment. */
   const pay = await stripePost(
@@ -543,14 +597,27 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
     return { ok: false, error: "not-converged" };
   }
 
-  /* Only after recovery is proven, and only the temporary method. */
+  /* Only after recovery is proven, and only the temporary method — verified
+     still attached to THIS fixture's Customer before it is detached.
+
+     The key is `pm_detach`, not `pm_restore`. Those were the same value, which
+     meant two different requests shared one idempotency key: Stripe refuses a
+     key replayed with different parameters, and the result was never checked,
+     so the detach failed silently. Found in review of PR #37. */
   if (fx.failingPaymentMethodId) {
-    await stripePost(
+    const pm = await assertPaymentMethodOwned(
+      secret,
+      fx.failingPaymentMethodId,
+      fx.stripeCustomerId,
+    );
+    if (!pm.ok) return { ok: false, error: pm.error };
+    const detached = await stripePost(
       "/payment_methods/" + encodeURIComponent(fx.failingPaymentMethodId) + "/detach",
       secret,
       {},
-      idempotencyKey(token, "pm_restore"),
+      idempotencyKey(token, "pm_detach"),
     );
+    if (!detached.ok) return { ok: false, error: "stripe-error" };
   }
 
   return { ok: true, patch: { failingPaymentMethodId: undefined } };

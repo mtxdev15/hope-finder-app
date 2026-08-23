@@ -44,8 +44,10 @@ import {
   isCommand,
   isInFlight,
   isPhase,
+  invoiceOwnershipVerdict,
   isSingleFailedAttempt,
   ownershipVerdict,
+  paymentMethodOwnershipVerdict,
   planAdvance,
   safeError,
   safeStatus,
@@ -226,7 +228,83 @@ for (const op of ["opArmFailure", "opAdvance", "opRestoreAndPay", "opCancelFixtu
     check(`${op} verifies the SUBSCRIPTION it mutates`,
       /assertClockOwned\(\s*\n?\s*secret,\s*\n?\s*"subscriptions",\s*\n?\s*fx\.stripeSubscriptionId/.test(body));
   }
+  /* The two objects that carry no test_clock of their own. The earlier version
+     of this check derived only customer and subscription, which is exactly why
+     the invoice pay and the detach shipped unvalidated and still passed. */
+  const mutatesInvoice = /stripePost\(\s*\n?\s*"\/invoices\/" \+ encodeURIComponent\(fx\.renewalInvoiceId\)/.test(body);
+  const mutatesPaymentMethod = /stripePost\(\s*\n?\s*"\/payment_methods\/" \+ encodeURIComponent\(fx\.failingPaymentMethodId\)/.test(body);
+  if (mutatesInvoice) {
+    check(`${op} verifies the INVOICE it pays`,
+      /assertInvoiceOwned\(secret, fx\.renewalInvoiceId, fx\.stripeSubscriptionId\)/.test(body));
+    check(`${op} verifies the invoice BEFORE paying it`,
+      before(body, "assertInvoiceOwned(", '"/invoices/" + encodeURIComponent(fx.renewalInvoiceId)'));
+  }
+  if (mutatesPaymentMethod) {
+    check(`${op} verifies the PAYMENT METHOD it detaches`,
+      /assertPaymentMethodOwned\(/.test(body) && /fx\.stripeCustomerId,/.test(body));
+    check(`${op} verifies the payment method BEFORE detaching it`,
+      before(body, "assertPaymentMethodOwned(", "/detach"));
+  }
 }
+
+/* ── 4b. The recovery-target verdicts, executed ──────────────────────────── */
+section("4b. Invoice and PaymentMethod ownership, executed");
+
+const INV = { invoiceLivemode: false, invoiceId: "in_x", expectedInvoiceId: "in_x",
+              invoiceSubscription: "sub_x", expectedSubscriptionId: "sub_x",
+              invoiceStatus: "open" };
+check("the fixture's own open invoice is accepted", invoiceOwnershipVerdict(INV).ok === true);
+check("an invoice linked to ANOTHER subscription is refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceSubscription: "sub_other" }) as any).error === "clock-not-owned");
+check("an invoice with NO subscription association is refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceSubscription: null }) as any).error === "clock-not-owned");
+check("a mismatched invoice id is refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceId: "in_other" }) as any).error === "clock-not-owned");
+check("a live-mode invoice is refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceLivemode: true }) as any).error === "not-sandbox");
+check("a missing livemode is refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceLivemode: undefined }) as any).error === "not-sandbox");
+check("an already-paid invoice is not re-paid",
+  (invoiceOwnershipVerdict({ ...INV, invoiceStatus: "paid" }) as any).error === "not-converged");
+check("a fixture with no recorded subscription cannot authorise a payment",
+  (invoiceOwnershipVerdict({ ...INV, expectedSubscriptionId: undefined }) as any).error === "clock-not-owned");
+check("the invoice association read is the trusted ROOT field, not a line",
+  /parent\?\.subscription_details\?\.subscription/.test(HARNESS) &&
+  !/subscription_item_details/.test(HARNESS));
+
+const PM = { pmLivemode: false, pmId: "pm_x", expectedPmId: "pm_x",
+             pmCustomer: "cus_x", expectedCustomerId: "cus_x" };
+check("the fixture's own attached method is accepted",
+  paymentMethodOwnershipVerdict(PM).ok === true);
+check("a method attached to ANOTHER customer is refused",
+  (paymentMethodOwnershipVerdict({ ...PM, pmCustomer: "cus_other" }) as any).error === "clock-not-owned");
+check("an unattached method is refused",
+  (paymentMethodOwnershipVerdict({ ...PM, pmCustomer: null }) as any).error === "clock-not-owned");
+check("a mismatched method id is refused",
+  (paymentMethodOwnershipVerdict({ ...PM, pmId: "pm_other" }) as any).error === "clock-not-owned");
+check("a live-mode method is refused",
+  (paymentMethodOwnershipVerdict({ ...PM, pmLivemode: true }) as any).error === "not-sandbox");
+check("a fixture with no recorded customer cannot authorise a detach",
+  (paymentMethodOwnershipVerdict({ ...PM, expectedCustomerId: undefined }) as any).error === "clock-not-owned");
+
+/* Two different requests must never share one idempotency key: Stripe refuses a
+   key replayed with different parameters, so the second request just fails. */
+/* Testing that the FUNCTION returns different values for different operation
+   names proves nothing about the call sites — reverting one call site to
+   another's operation name survived that check. The real property is that no
+   two distinct Stripe requests share an operation name, because Stripe refuses
+   a key replayed with different parameters and the second request simply
+   fails. */
+const keyOps = [...HARNESS.matchAll(/idempotencyKey\(token, "([a-z_]+)"\)/g)].map((m) => m[1]);
+check("harness idempotency call sites were found", keyOps.length >= 12);
+const dupeOps = keyOps.filter((o, i) => keyOps.indexOf(o) !== i);
+check("no two Stripe requests share an idempotency operation name" +
+  (dupeOps.length ? ` (duplicated: ${[...new Set(dupeOps)].join(", ")})` : ""),
+  dupeOps.length === 0);
+check("the detach uses its own operation name", keyOps.includes("pm_detach"));
+check("the customer-default restore keeps its own", keyOps.includes("pm_restore"));
+check("the detach result is checked rather than discarded",
+  /if \(!detached\.ok\) return \{ ok: false, error: "stripe-error" \}/.test(HARNESS));
 check("opProvision verifies ownership of the objects it creates",
   (fnBody(HARNESS, "async function opProvision(").match(/assertClockOwned\(/g) || []).length >= 2);
 check("opDeleteClock re-reads and verifies the exact clock",

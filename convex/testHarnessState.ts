@@ -232,6 +232,7 @@ export const IDEMPOTENT_OPERATIONS = [
   "pm_default_fail",
   "advance",
   "pm_restore",
+  "pm_detach",
   "invoice_pay",
   "cancel",
   "clock_delete",
@@ -378,6 +379,88 @@ export function ownershipVerdict(
   if (objectClock !== fixtureClock) return { ok: false, error: "clock-not-owned" };
   return { ok: true };
 }
+
+/* ── RECOVERY-TARGET OWNERSHIP ───────────────────────────────────────────── */
+
+/* An Invoice and a PaymentMethod carry no `test_clock` of their own, so
+ * ownershipVerdict above cannot speak for them. They are reached instead
+ * through the object that IS clock-verified:
+ *
+ *   clock -> subscription (verified) -> invoice        (verified against it)
+ *   clock -> customer     (verified) -> paymentMethod  (verified against it)
+ *
+ * WHY THIS EXISTS AT ALL
+ * Both were previously mutated straight from the fixture record. The fixture is
+ * our own writing, and the whole reason assertClockOwned retrieves rather than
+ * trusts is that a wrong stored id must not be able to authorise a write. The
+ * invoice pay is the only money-moving call in the harness, so it was exactly
+ * the wrong place to make an exception. Found in review of PR #37.
+ *
+ * As above: Stripe does not prevent these writes. These functions do. */
+
+export type InvoiceOwnershipInput = {
+  invoiceLivemode: unknown;
+  invoiceId: unknown;
+  expectedInvoiceId: unknown;
+  /* The trusted root association — the SAME field convex/http.ts reads, and
+   * deliberately not the invoice line, which is not a subscription-health
+   * signal and which the production reader refuses to consult. */
+  invoiceSubscription: unknown;
+  expectedSubscriptionId: unknown;
+  invoiceStatus: unknown;
+};
+
+export function invoiceOwnershipVerdict(
+  i: InvoiceOwnershipInput,
+): { ok: true } | { ok: false; error: ErrorCode } {
+  if (i.invoiceLivemode !== false) return { ok: false, error: "not-sandbox" };
+  if (typeof i.expectedInvoiceId !== "string" || !i.expectedInvoiceId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  if (i.invoiceId !== i.expectedInvoiceId) return { ok: false, error: "clock-not-owned" };
+  if (typeof i.expectedSubscriptionId !== "string" || !i.expectedSubscriptionId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  const linked = clockIdOf(i.invoiceSubscription);
+  /* A null association is the branch that matters: an invoice not owned by this
+     fixture's verified subscription must never be paid. */
+  if (!linked || linked !== i.expectedSubscriptionId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  /* Only the open renewal invoice is payable here. A `paid` invoice needs no
+     recovery, and anything else is not the object this phase expects. */
+  if (i.invoiceStatus !== "open") return { ok: false, error: "not-converged" };
+  return { ok: true };
+}
+
+export type PaymentMethodOwnershipInput = {
+  pmLivemode: unknown;
+  pmId: unknown;
+  expectedPmId: unknown;
+  pmCustomer: unknown;
+  expectedCustomerId: unknown;
+};
+
+export function paymentMethodOwnershipVerdict(
+  m: PaymentMethodOwnershipInput,
+): { ok: true } | { ok: false; error: ErrorCode } {
+  if (m.pmLivemode !== false) return { ok: false, error: "not-sandbox" };
+  if (typeof m.expectedPmId !== "string" || !m.expectedPmId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  if (m.pmId !== m.expectedPmId) return { ok: false, error: "clock-not-owned" };
+  if (typeof m.expectedCustomerId !== "string" || !m.expectedCustomerId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  /* A detached method reports `customer: null`. Detaching something attached to
+     nothing, or to somebody else, is refused. */
+  const attachedTo = clockIdOf(m.pmCustomer);
+  if (!attachedTo || attachedTo !== m.expectedCustomerId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  return { ok: true };
+}
+
 
 /* ── GATES ───────────────────────────────────────────────────────────────── */
 
