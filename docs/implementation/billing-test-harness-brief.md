@@ -624,6 +624,29 @@ The consequences, accepted deliberately:
 - **The execution record must report the residue explicitly** rather than
   presenting the cleanup as total.
 
+### Provisioning convergence and adoption (2026-08-23)
+
+The first two authorized runs stopped during provisioning. Neither reached
+`arm_failure`, no clock ever advanced, and no payment was ever attempted. See
+`docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
+
+The second run proved the ownership contract: a directly-created Customer and
+Subscription carrying the five provenance fields bound to the application user
+through genuine webhook handling, with **no manual Convex write**.
+
+Three narrow fixes followed: **bounded convergence polling** in normal
+provisioning, **incremental persistence** of each provider identifier before
+the next external write, and a **read-only adoption path** that recovers a
+fixture whose Stripe objects exist but whose record does not.
+
+Adoption reuses the `provision` command — the six-command surface is unchanged
+— and issues no Stripe write. It re-derives the object graph from the clock id
+using scoped discovery, verifies every edge, and writes only the fixture row.
+A fixture with no clock id and a generic `stripe-error` stays permanently
+unrecoverable; the distinction is the predicate, not a convenience.
+
+Suite: **404 checks, 29 mutations, all caught.**
+
 ### Still required before anything runs
 
 A separate execution-readiness audit against the compiled harness, then explicit

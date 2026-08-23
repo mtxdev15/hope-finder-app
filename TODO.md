@@ -379,6 +379,13 @@ When Stage 2 resumes, in this order:
          `testHarness`), and unexecuted. Separate authorization is required to
          set either flag, deploy to development, or create the disposable
          account.
+         **Two provisioning stops 2026-08-23; lifecycle NOT yet run.** Neither
+         reached `arm_failure`; no clock advanced, no payment attempted, both
+         existing subscribers unchanged. The second run proved the ownership
+         contract — webhook-created mapping and canonical row, no manual write.
+         Three fixes added: bounded convergence polling, incremental provider
+         persistence, and read-only adoption via the same `provision` command.
+         See `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
          **Harness implemented behind gates 2026-08-23; execution NOT started.**
          See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
          are unset, nothing was deployed, and no Stripe object exists from it.

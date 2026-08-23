@@ -456,6 +456,22 @@ That item stays open and date-dependent regardless of what this fixture proves.
 
 ---
 
+## 15b. Provisioning convergence and adoption
+
+Added 2026-08-23 after two provisioning stops. Neither reached `arm_failure`;
+no clock advanced and no payment was attempted. Record:
+`billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
+
+- Normal provisioning now **polls boundedly** for webhook convergence, and
+  requires the canonical row to *be* the created subscription plus a customer
+  mapping — not merely that the account is Plus.
+- Each provider identifier is **persisted before the next external write**, so
+  a late failure can never leave a fixture that knows the clock but not what is
+  on it.
+- A **read-only adoption path** recovers exactly that state through the same
+  `provision` command. No seventh command; no Stripe write; scoped discovery
+  only. A fixture with no clock id stays unrecoverable.
+
 ## 16. What the next task must authorize explicitly
 
 1. Setting `BILLING_TEST_HARNESS_ENABLED=true` and
