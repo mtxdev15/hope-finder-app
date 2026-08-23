@@ -339,7 +339,23 @@ When Stage 2 resumes, in this order:
          webhook (`billingEvents` 9 → 10, `outcome: applied`), which changed only
          `lastProviderEventAt` / `updatedAt` on the canonical row. Expected and
          benign — that type is subscribed because cancellation needs it.
-   - [ ] open or download an invoice
+   - [x] **open or download an invoice** — DONE 2026-08-23 UTC (§6.19), on the
+         **annual QA account**; the monthly subscriber was untouched and its
+         invoice history was never opened. One Portal session (browser payload
+         `args:[{}]`, zero provider identifiers), the one existing paid annual
+         invoice opened once, and exactly one invoice PDF downloaded. The
+         **receipt was deliberately not downloaded**. The PDF was validated
+         outside the repository and then deleted along with every extracted
+         byte; nothing was retained.
+         Stripe is field-identical before and after — Customers 2, Subscriptions
+         2, Invoices 1, PaymentIntents 1, Checkout Sessions 1, credit-note
+         amounts 0, `next_invoice_sequence` still 2. Convex is byte-identical in
+         all seven tables and **`billingEvents` stayed at 10**: reading an
+         invoice fires no subscribed webhook at all.
+         *Limit:* PDF **text** could not be validated from the command line — no
+         `pdftotext`/`pdfinfo`/`mutool`/`qpdf`/`pypdf` here, and the browser
+         blocks `file:`. Amount, paid state, cadence and period are recorded
+         from the hosted invoice page and the Stripe API instead. See [[§6.19]].
    - [ ] verify payment-failure / payment-attention behaviour
    - [x] **surface entitlement state and add a billing entry point** — DONE
          2026-08-22 (§6.13). `getMyEntitlements` now returns `periodEndAt`,

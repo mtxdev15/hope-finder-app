@@ -2059,6 +2059,208 @@ PaymentMethod objects also cannot be listed through this server, so "a new
 Mastercard is attached" rests on the Portal display and on the customer default
 pointing at a different PaymentMethod id than before.
 
+## 6.19 Invoice open and download, verified 2026-08-23 UTC
+
+Commit tested `1f72be9`, against Convex development `good-dotterel-906`. **No
+deployment was required** — the only Convex change since the deployed `2df0ba7`
+is the generated type map (`convex/_generated/api.d.ts`, +2 typing lines, zero
+runtime functions), and `worker/` is untouched.
+
+Performed on the **annual QA account**. The monthly subscriber was not signed
+into, opened, or modified, and its invoice history was never viewed.
+
+### What this test had to prove
+
+That a customer can read and keep a copy of what they were charged, and that
+doing so changes nothing. Reading is the easy half; the half worth testing is
+that a read stays a read — no invoice created or revised, no payment retried, no
+webhook, no entitlement drift.
+
+### One Portal session, and the browser proved it sent nothing
+
+The `/you` control produced exactly one Convex action call. Its full request
+body was:
+
+```
+{"path":"billing:createPortalSession","format":"convex_encoded_json","args":[{}]}
+```
+
+`args` is an empty object. No Customer, Subscription, invoice or Price
+identifier, no return URL, not even a language. Convex resolved the annual
+Customer server-side from the authenticated session, and built the return URL
+itself from `SITE_URL`. The Portal opened in **Sandbox** for the annual account.
+
+Identity was gated before the click: the session's account was confirmed to be
+the annual QA user and confirmed **not** to be the monthly subscriber, by
+comparing salted hashes rather than by reading either address aloud.
+
+### Portal state before touching anything
+
+Invoice history is enabled in the active Portal configuration
+(`invoice_history.enabled: true`, `livemode: false`). Payment-method updates and
+cancellation are enabled but were **not used**. `subscription_update.enabled` is
+`false` with an empty `default_allowed_updates`, so plan switching and quantity
+changes were not merely avoided — they were not offered.
+
+The Portal listed the annual subscription at **$79.99 per year**, next billing
+date **August 22, 2027**, and **exactly one** invoice: Aug 22, 2026 · $79.99 ·
+Paid.
+
+### The invoice, opened once
+
+Opened from the Portal to Stripe's hosted invoice page — one invoice, one time.
+What it showed:
+
+| Field | Value |
+|---|---|
+| State | Invoice **paid** |
+| Amount | **$79.99** |
+| Line items | **one** — Declare Plus, Qty 1, $79.99 |
+| Billing period | **August 22, 2026 – August 22, 2027** |
+| Total due / Amount paid | $79.99 / $79.99 |
+| Amount remaining | **$0.00** |
+
+No Pay control, **zero** editable inputs, and no refund, credit-note, proration
+or balance-adjustment language anywhere on the page. It belonged to the annual QA
+account, not the monthly subscriber. The cadence reads as the twelve-month period
+on the hosted page; the "per year" wording appears on the Portal page.
+
+### One PDF, downloaded and then destroyed
+
+The **Download invoice** action was used exactly once. **Download receipt** sits
+directly beside it and was deliberately not touched.
+
+The browser tooling offers no download-directory setting, so the file landed in
+the ignored `.playwright-mcp/` working directory. It was moved out to a
+mode-`700` temporary directory outside the repository **immediately**, with
+`mv -n` so nothing could be overwritten, and the count was checked before and
+after: exactly one file existed, and none was created anywhere else.
+
+Validated there: correct `application/pdf` MIME, `%PDF-1.4` header, `%%EOF`
+terminator, one page, not encrypted, non-empty, outside the repository, and
+neither tracked nor staged.
+
+Then deleted — the PDF, its temporary directory, and every extracted byte. No
+invoice or receipt file was retained anywhere, no screenshot of the invoice was
+taken, and no invoice text was copied into this repository.
+
+### NOT OBSERVABLE, and why that is the honest answer
+
+**Command-line validation of the PDF's text is NOT OBSERVABLE on this machine.**
+`pdftotext`, `pdfinfo`, `mutool`, `qpdf`, `pypdf` and PyObjC/Quartz are all
+absent. A standard-library parse read the structure correctly but could not
+reliably decode the text: the document uses subset fonts, its strings are
+hex-encoded, and only 49 `ToUnicode` entries could be reconstructed. The
+fallback of viewing the saved file in the browser is also unavailable — the
+`file:` protocol is blocked there.
+
+So the amount, paid state, cadence and period are recorded from **the hosted
+invoice page**, verified in the browser, and from the **Stripe API objects**. The
+PDF is recorded as structurally valid, and its *contents* are recorded as not
+independently verified. Nothing here claims otherwise.
+
+Also NOT OBSERVABLE through the available read-only tooling, unchanged from
+§6.18: **Portal Session counts** (Stripe publishes no list endpoint for them at
+all), **refund and credit-note listings** (no MCP operation), and **direct Charge
+reads** (restricted-key scope). Where a count could not be listed, a field on an
+object that *is* readable was used instead, and is named below.
+
+### Stripe after: field-identical
+
+Every recorded field was compared before and after by an automated walk over the
+captured state. **Zero differences.**
+
+| | Before | After |
+|---|---|---|
+| Customers | 2 | 2 |
+| Subscriptions | 2 | 2 |
+| Invoices (annual) | 1 | 1 |
+| PaymentIntents (annual) | 1 | 1 |
+| Checkout Sessions (annual) | 1 | 1 |
+
+The invoice is unchanged in every field: `status: paid`, `amount_due`,
+`amount_paid`, `amount_remaining: 0`, `amount_overpaid: 0`, currency, subtotal,
+total, its single line item and that line's period and `proration: false`,
+`created`, `effective_at`, `finalized_at`, `paid_at`, `voided_at: null`,
+`marked_uncollectible_at: null`, `latest_revision: null`, `from_invoice: null`,
+`attempt_count: 0`, `next_payment_attempt: null`, `starting_balance` and
+`ending_balance` at 0, and both credit-note amounts at **0**.
+
+The only thing that differed between the two reads was the **signature token
+inside the hosted-invoice and PDF links**, which Stripe regenerates on every
+read. That is a URL signature, not invoice state.
+
+Where a count was not listable, the substitute is named:
+
+- **No invoice was created** — the Customer's `next_invoice_sequence` is still 2.
+- **No new Charge** — the single PaymentIntent still points at the same
+  `latest_charge`.
+- **No credit note** — `pre_payment_credit_notes_amount` and
+  `post_payment_credit_notes_amount` are both 0.
+- **No payment attempt and no refund** — the PaymentIntent is identical, still
+  `succeeded` with `amount_received` 7999 and `canceled_at: null`.
+- **Exactly one Portal Session** — one `createPortalSession` action in the
+  browser network log, and no second click.
+- **No second Checkout Session** — the annual Customer still has exactly one,
+  `complete`, from the original purchase.
+
+The annual subscription is unchanged: `active`, `year × 1`, quantity 1,
+`cancel_at: null`, `cancel_at_period_end: false`, `ended_at: null`,
+`pending_update: null`, `schedule: null`, period end August 22, 2027, same
+`latest_invoice`, and its `default_payment_method` still `null` (the state §6.18
+left it in). No payment method was changed.
+
+### Convex after: byte-identical
+
+Two read-only snapshot exports, hashed table by table:
+
+| Table | Rows | SHA-256 (first 16) | |
+|---|---|---|---|
+| `subscriptions` | 2 → 2 | `e6214154a9038da9` | byte-identical |
+| `billingCustomers` | 2 → 2 | `dc09904f982d035a` | byte-identical |
+| `billingEvents` | 10 → 10 | `56597c6e1743be62` | byte-identical |
+| `usageCounters` | 3 → 3 | `a763bc85e0ed7771` | byte-identical |
+| `journeySlots` | 8 → 8 | `6f18f1d2e4d1146d` | byte-identical |
+| `accountSettings` | 0 → 0 | `e3b0c44298fc1c14` | byte-identical |
+| `userData` | 22 → 22 | `5bb0b2fb4c525d2b` | byte-identical |
+
+**`billingEvents` did not move.** Unlike the payment-method change in §6.18,
+opening and downloading an invoice produces no subscribed webhook at all, so
+there was nothing for Convex to apply. Reading a document is not a billing event.
+
+### Application surfaces
+
+`/you` still reads **Declare Plus · ACTIVE · Annual plan · Renews August 22,
+2027**, all three benefits present, the PLUS badge computed at forest
+`rgb(34, 56, 46)` rather than gold, and no payment-attention state.
+
+**Nothing about the invoice reaches the application.** No invoice number, no
+amount, no card brand, no last four digits, no provider identifier and no
+`stripe.com` reference appears anywhere in `/you`'s text or markup. That is
+structural rather than lucky: the entitlement contract carries `tier`,
+`subscriptionStatus`, `planKey`, `provider`, `paymentNeedsAttention`,
+`graceEndsAt`, `duplicateProviders`, `periodEndAt`, `cancelAtPeriodEnd`,
+`billingInterval`, `limits`, `usage` and `remaining` — and no invoice field of
+any kind. `latestInvoiceId` is stored on the canonical row and is on the
+inspector's forbidden list; it is never returned to a browser.
+
+*One note for anyone re-running the leakage scan:* a naive card-brand regex
+matches the word **Discover** in the church-finder copy, "Discover a fellowship
+near you". That is prose, not a card brand. Match with context, not a bare word
+list.
+
+`/pricing` still marks Plus as **Your current plan**, hides the Free marker,
+links to `/you#plan-billing`, offers **zero** enabled purchase controls, and
+leaks no invoice information.
+
+### Cross-account safety
+
+The monthly subscription and its customer mapping are byte-identical in Convex
+and field-identical in Stripe: still `plus_monthly`, `active`, scheduled to end
+September 21, 2026, with its own payment method untouched. The two Customer
+mappings remain distinct, and the monthly account's invoice history was never
+opened. No cross-account invoice access occurred.
+
 ## 7. Not yet created
 
 One Customer, one Subscription, one paid invoice and one successful
