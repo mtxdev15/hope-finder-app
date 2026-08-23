@@ -45,6 +45,7 @@ import {
   invoiceOwnershipVerdict,
   ownershipVerdict,
   paymentMethodOwnershipVerdict,
+  phaseAfterFailure,
   planAdvance,
   isSingleFailedAttempt,
   fixtureListPath,
@@ -728,9 +729,16 @@ export const runCommand = action({
     }
 
     if (!result.ok) {
+      /* Re-read before deciding where a failure lands: opProvision persists the
+         clock id mid-way, so the fixture we opened with is not necessarily the
+         fixture we now have. Deciding from the stale copy would roll back over
+         a clock that really exists. */
+      const afterFail = await ctx.runQuery(internal.testHarness.getFixtureInternal, {
+        userId: user._id,
+      });
       await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
         userId: user._id,
-        phase: admission.inFlight,
+        phase: phaseAfterFailure(command, afterFail.row),
         patch: { lastError: safeError(result.error) },
       });
       return { ok: false, error: safeError(result.error) };

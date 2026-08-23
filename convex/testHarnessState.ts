@@ -160,6 +160,62 @@ export function allowedCommands(phase: Phase): Command[] {
   return COMMANDS.filter((c) => admit(c, phase).ok);
 }
 
+/* ── PRE-WRITE FAILURE ROLLBACK ──────────────────────────────────────────── */
+
+/* Every provider identifier the fixture can hold. If none is set, the harness
+ * has persisted no reference to anything in Stripe. */
+export const PROVIDER_ID_FIELDS = [
+  "testClockId",
+  "stripeCustomerId",
+  "stripeSubscriptionId",
+  "renewalInvoiceId",
+  "failingPaymentMethodId",
+  "originalCustomerDefaultPaymentMethodId",
+  "originalSubscriptionDefaultPaymentMethodId",
+] as const;
+
+/** True when the fixture references at least one Stripe object. */
+export function hasPersistedProviderState(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  return PROVIDER_ID_FIELDS.some((k) => typeof f[k] === "string" && (f[k] as string).length > 0);
+}
+
+/* Where a FAILED command leaves the fixture.
+ *
+ * WHY THIS EXISTS
+ * The first attempt at a real run failed on the very first Stripe write — the
+ * Test Clock creation, which is deliberately the scope probe. Nothing was
+ * created. But the fixture stayed in `provisioning`, an in-flight phase, and
+ * in-flight phases refuse re-entry so a double-click cannot produce a second
+ * advance or a second payment. That refusal is correct and stays. Its
+ * side-effect was not: the account became permanently unusable, with no
+ * authorized recovery, because a failure that created nothing was
+ * indistinguishable from one that created something.
+ *
+ * The distinction the machine was missing is not "did the command fail" but
+ * "did we persist a reference to anything". So:
+ *
+ *   - No provider id persisted -> nothing exists to orphan -> return to the
+ *     starting phase, and the account may be provisioned again.
+ *   - Any provider id persisted -> stay in-flight. Something may exist in
+ *     Stripe, and a fixture that quietly reset would invite a second
+ *     provisioning run on top of it.
+ *
+ * Restricted to `provision` on purpose. Every later command begins with
+ * identifiers already stored, so it can never satisfy the empty-state
+ * condition, and widening this to them would be a claim about partially
+ * applied external state that we cannot make from here.
+ *
+ * This changes only where a FAILURE lands. Success paths, the transition
+ * table, and in-flight re-entry refusal are all untouched. */
+export function phaseAfterFailure(command: Command, fixture: unknown): Phase {
+  const t = TRANSITIONS[command];
+  if (command !== "provision") return t.inFlight;
+  if (hasPersistedProviderState(fixture)) return t.inFlight;
+  return t.from;
+}
+
 /* ── ADVANCE CEILING ─────────────────────────────────────────────────────── */
 
 /* The safety budget, in seconds, past the renewal boundary.
