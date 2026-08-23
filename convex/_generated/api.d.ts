@@ -24,6 +24,8 @@ import type * as stripeApi from "../stripeApi.js";
 import type * as stripeCancellation from "../stripeCancellation.js";
 import type * as subscriptionGuard from "../subscriptionGuard.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as testHarness from "../testHarness.js";
+import type * as testHarnessState from "../testHarnessState.js";
 import type * as usage from "../usage.js";
 import type * as userdata from "../userdata.js";
 import type * as vault from "../vault.js";
@@ -51,6 +53,8 @@ declare const fullApi: ApiFromModules<{
   stripeCancellation: typeof stripeCancellation;
   subscriptionGuard: typeof subscriptionGuard;
   subscriptions: typeof subscriptions;
+  testHarness: typeof testHarness;
+  testHarnessState: typeof testHarnessState;
   usage: typeof usage;
   userdata: typeof userdata;
   vault: typeof vault;

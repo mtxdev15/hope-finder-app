@@ -36,7 +36,7 @@ function encodeForm(obj: Record<string, string>): string {
 }
 
 async function request(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   secret: string,
   body?: Record<string, string>,
@@ -81,6 +81,19 @@ export function stripePost(
   idempotencyKey?: string,
 ): Promise<StripeResult> {
   return request("POST", path, secret, body, idempotencyKey);
+}
+
+/* DELETE. Added for the development-only Test Clock harness, which must detach
+ * a PaymentMethod and delete its own clock. No production path calls this: the
+ * subscription lifecycle cancels through POST, never DELETE.
+ *
+ * Same pinned version header as every other request — see rule 1 above. */
+export function stripeDelete(
+  path: string,
+  secret: string,
+  idempotencyKey?: string,
+): Promise<StripeResult> {
+  return request("DELETE", path, secret, undefined, idempotencyKey);
 }
 
 /* Retrieve a subscription, expanding the price so classification can read
