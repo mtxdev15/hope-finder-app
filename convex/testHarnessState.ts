@@ -112,6 +112,7 @@ export const ERROR_CODES = [
   "not-free-account",
   "clock-not-owned",
   "advance-target-unsafe",
+  "advance-rejected",
   "unexpected-attempt-count",
   "not-converged",
   "stripe-error",
@@ -333,11 +334,21 @@ export const IDEMPOTENT_OPERATIONS = [
 
 export type IdempotentOperation = (typeof IDEMPOTENT_OPERATIONS)[number];
 
+/* The optional discriminator exists for requests whose PARAMETERS can legitimately
+ * differ between attempts. Stripe refuses a key replayed with different
+ * parameters, so a fixed key on such a request does not dedupe it — it breaks
+ * it. The clock advance is exactly that case: a resumed advance targets a later
+ * frozen_time than the first, and reusing the key made Stripe reject the call.
+ *
+ * Same target still yields the same key, so a double-click still cannot advance
+ * twice. That is the property idempotency was protecting, and it is preserved. */
 export function idempotencyKey(
   fixtureToken: string,
   operation: IdempotentOperation,
+  discriminator?: string,
 ): string {
-  return IDEMPOTENCY_PREFIX + ":" + operation + ":" + fixtureToken;
+  const base = IDEMPOTENCY_PREFIX + ":" + operation + ":" + fixtureToken;
+  return discriminator === undefined ? base : base + ":" + discriminator;
 }
 
 /* ── SAFE PROJECTION ─────────────────────────────────────────────────────── */
@@ -699,7 +710,11 @@ export function isAdvanceResumable(fixture: unknown): boolean {
   if (!fixture || typeof fixture !== "object") return false;
   const f = fixture as Record<string, unknown>;
   if (f.phase !== "renewal_advancing") return false;
-  if (f.lastError !== "not-converged") return false;
+  /* `advance-rejected` means Stripe refused the advance request itself, so the
+     clock provably did not move. `not-converged` means it moved but the result
+     had not appeared yet. Both are safe to resume from; a generic
+     `stripe-error` is not, because it says nothing about what happened. */
+  if (f.lastError !== "not-converged" && f.lastError !== "advance-rejected") return false;
   if (f.attemptCount !== 0) return false;
   /* A recorded renewal invoice means the advance got far enough to observe a
      result. Nothing to resume. */

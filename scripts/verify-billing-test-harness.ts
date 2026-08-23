@@ -56,6 +56,7 @@ import {
   isNormalizable,
   NORMALIZABLE_ERROR,
   isAdvanceResumable,
+  isErrorCode,
   HEALTHY_FIXTURE_FIELDS,
   ADOPTABLE_ERRORS,
   CONVERGENCE_POLL_ATTEMPTS,
@@ -940,7 +941,9 @@ check("a missing stored boundary makes it non-resumable",
 check("a missing clock or subscription makes it non-resumable",
   isAdvanceResumable({ ...MIDADV, testClockId: undefined }) === false &&
   isAdvanceResumable({ ...MIDADV, stripeSubscriptionId: undefined }) === false);
-for (const code of ERROR_CODES.filter((c) => c !== "not-converged")) {
+/* `advance-rejected` is deliberately resumable too — Stripe refused the request,
+   so the clock provably did not move. Every OTHER code stays non-resumable. */
+for (const code of ERROR_CODES.filter((c) => c !== "not-converged" && c !== "advance-rejected")) {
   check(`"${code}" mid-advance is not resumable`,
     isAdvanceResumable({ ...MIDADV, lastError: code }) === false);
 }
@@ -950,6 +953,35 @@ check("other phases are never advance-resumable",
 check("a resumable advance reports as stopped, not running",
   safeStatus(MIDADV).inFlight === false &&
   JSON.stringify(safeStatus(MIDADV).allowed) === JSON.stringify(["advance_to_renewal"]));
+
+/* ── 7d. Advance idempotency must not fight a changed target ─────────────── */
+section("7d. A resumed advance is a different request, not a replayed one");
+
+/* Stripe refuses a key replayed with DIFFERENT parameters. A fixed key on a
+   request whose parameters can legitimately change does not dedupe it — it
+   breaks it. That is what refused the resumed advance. */
+check("the same target still yields the same key (double-click still dedupes)",
+  idempotencyKey("t", "advance", "100") === idempotencyKey("t", "advance", "100"));
+check("a different target yields a DIFFERENT key",
+  idempotencyKey("t", "advance", "100") !== idempotencyKey("t", "advance", "200"));
+check("an undiscriminated key is unchanged for every other operation",
+  idempotencyKey("t", "clock") === "hz:clock:t");
+check("the advance call scopes its key to the target",
+  /idempotencyKey\(token, "advance", String\(plan\.target\)\)/.test(advBody));
+check("keys are still per-fixture",
+  idempotencyKey("t1", "advance", "100") !== idempotencyKey("t2", "advance", "100"));
+
+/* A refused advance REQUEST is a classified outcome: the clock did not move. */
+check("a refused advance is classified, not a generic error",
+  /if \(!advance\.ok\) return \{ ok: false, error: "advance-rejected" \}/.test(advBody));
+check("advance-rejected is an allowlisted code", isErrorCode("advance-rejected"));
+check("an advance-rejected fixture is resumable",
+  isAdvanceResumable({ ...MIDADV, lastError: "advance-rejected" }) === true);
+check("a generic stripe-error mid-advance is still NOT resumable",
+  isAdvanceResumable({ ...MIDADV, lastError: "stripe-error" }) === false);
+check("only the two provable classifications resume",
+  ERROR_CODES.filter((c) => isAdvanceResumable({ ...MIDADV, lastError: c })).sort().join(",")
+    === "advance-rejected,not-converged");
 
 /* ── 8. Filtered queries for test-clock resources ────────────────────────── */
 section("8. Test-clock resources are read with a scoped query");
