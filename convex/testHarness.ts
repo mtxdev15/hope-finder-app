@@ -850,9 +850,13 @@ async function opAdvance(ctx: any, secret: string, fx: any, token: string): Prom
     "/test_helpers/test_clocks/" + encodeURIComponent(fx.testClockId) + "/advance",
     secret,
     { frozen_time: String(plan.target) },
-    idempotencyKey(token, "advance"),
+    /* Scoped to the target: a resumed advance aims at a later frozen_time, and
+       reusing the first attempt's key made Stripe refuse the call outright. */
+    idempotencyKey(token, "advance", String(plan.target)),
   );
-  if (!advance.ok) return { ok: false, error: "stripe-error" };
+  /* Distinct from stripe-error on purpose: a refused advance REQUEST means the
+     clock did not move, which is provably safe to resume from. */
+  if (!advance.ok) return { ok: false, error: "advance-rejected" };
 
   /* Stripe holds the clock in `advancing` until every affected object has
      reached the requested time. Reading before `ready` reads a half-applied
