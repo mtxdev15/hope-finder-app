@@ -56,6 +56,8 @@ import {
   isNormalizable,
   NORMALIZABLE_ERROR,
   isAdvanceResumable,
+  isRecoveryResumable,
+  isCancelResumable,
   isErrorCode,
   HEALTHY_FIXTURE_FIELDS,
   ADOPTABLE_ERRORS,
@@ -277,8 +279,11 @@ check("a live-mode invoice is refused",
   (invoiceOwnershipVerdict({ ...INV, invoiceLivemode: true }) as any).error === "not-sandbox");
 check("a missing livemode is refused",
   (invoiceOwnershipVerdict({ ...INV, invoiceLivemode: undefined }) as any).error === "not-sandbox");
-check("an already-paid invoice is not re-paid",
-  (invoiceOwnershipVerdict({ ...INV, invoiceStatus: "paid" }) as any).error === "not-converged");
+/* "Never pay twice" is enforced by the skip guard in opRestoreAndPay, not by
+   refusing the object outright — refusing it would make a resumed run
+   permanently stuck. The guard is asserted in section 7f. */
+check("a paid invoice is accepted for inspection so a resumed run can proceed",
+  invoiceOwnershipVerdict({ ...INV, invoiceStatus: "paid" }).ok === true);
 check("a fixture with no recorded subscription cannot authorise a payment",
   (invoiceOwnershipVerdict({ ...INV, expectedSubscriptionId: undefined }) as any).error === "clock-not-owned");
 check("the invoice association read is the trusted ROOT field, not a line",
@@ -1011,6 +1016,80 @@ check("a clock already at or past the target SKIPS the advance",
 check("skipping still proceeds to observation rather than returning early",
   before(advBody, "alreadyThere ?", "status === \"ready\""));
 
+/* ── 7f. Every convergence point polls ───────────────────────────────────── */
+section("7f. No webhook is waited on with a single immediate read");
+
+const rec2 = fnBody(HARNESS, "async function opRestoreAndPay(");
+const can2 = fnBody(HARNESS, "async function opCancelFixture(");
+const poller = fnBody(HARNESS, "async function pollUntil(");
+
+check("a shared bounded poller exists",
+  /for \(let i = 0; i < CONVERGENCE_POLL_ATTEMPTS; i\+\+\)/.test(poller));
+check("the poller reads only and never recurses",
+  !/stripePost|stripeDelete|upsertFixtureInternal/.test(poller) && !/pollUntil\(/.test(poller));
+check("recovery polls for convergence", /pollUntil\(/.test(rec2));
+check("cancellation polls for convergence", /pollUntil\(/.test(can2));
+check("recovery no longer reads canonical state once",
+  !/if \(!canonical \|\| canonical\.status !== "active" \|\| canonical\.planKey/.test(rec2));
+
+/* Skip-if-already-done. Evidence, not the label, decides whether the
+   irreversible step still needs doing. */
+check("an already-paid invoice is NOT paid again",
+  /const alreadyPaid = inv\.object\?\.status === "paid"/.test(rec2) &&
+  /if \(!alreadyPaid\) \{/.test(rec2));
+check("an already-canceled subscription is NOT cancelled again",
+  /const alreadyCanceled = sub\.object\?\.status === "canceled"/.test(can2) &&
+  /if \(!alreadyCanceled\) \{/.test(can2));
+check("the payment call stays inside the skip guard",
+  before(rec2, "if (!alreadyPaid) {", '"/pay"'));
+check("the cancel call stays inside the skip guard",
+  before(can2, "if (!alreadyCanceled) {", "stripeDelete("));
+check("a paid invoice still passes ownership validation on a resumed run",
+  invoiceOwnershipVerdict({ ...INV, invoiceStatus: "paid" }).ok === true);
+check("any other invoice status is still refused",
+  (invoiceOwnershipVerdict({ ...INV, invoiceStatus: "void" }) as any).error === "not-converged" &&
+  (invoiceOwnershipVerdict({ ...INV, invoiceStatus: "draft" }) as any).error === "not-converged");
+
+/* ── 7g. Resuming recovery and cancellation ──────────────────────────────── */
+section("7g. Interrupted recovery and cancellation resume safely");
+
+const MIDREC = { phase: "recovering", lastError: "not-converged", attemptCount: 1,
+  testClockId: "c", stripeCustomerId: "cu", stripeSubscriptionId: "s",
+  renewalInvoiceId: "in", originalCustomerDefaultPaymentMethodId: "pm" };
+check("an interrupted recovery is resumable", isRecoveryResumable(MIDREC) === true);
+check("resuming recovery is offered as restore_and_pay",
+  admit("restore_and_pay", "recovering", MIDREC).ok === true &&
+  (admit("restore_and_pay", "recovering", MIDREC) as any).to === "recovered");
+for (const f of ["renewalInvoiceId", "stripeCustomerId", "stripeSubscriptionId",
+                 "originalCustomerDefaultPaymentMethodId", "testClockId"]) {
+  check(`recovery without "${f}" is not resumable`,
+    isRecoveryResumable({ ...MIDREC, [f]: undefined }) === false);
+}
+check("recovery in another phase is not resumable",
+  PHASES.filter((p) => p !== "recovering")
+    .every((p) => isRecoveryResumable({ ...MIDREC, phase: p }) === false));
+
+const MIDCAN = { phase: "canceling", lastError: "not-converged",
+  testClockId: "c", stripeSubscriptionId: "s" };
+check("an interrupted cancellation is resumable", isCancelResumable(MIDCAN) === true);
+check("resuming cancellation is offered as cancel_fixture",
+  admit("cancel_fixture", "canceling", MIDCAN).ok === true &&
+  (admit("cancel_fixture", "canceling", MIDCAN) as any).to === "terminal");
+for (const f of ["stripeSubscriptionId", "testClockId"]) {
+  check(`cancellation without "${f}" is not resumable`,
+    isCancelResumable({ ...MIDCAN, [f]: undefined }) === false);
+}
+check("cancellation in another phase is not resumable",
+  PHASES.filter((p) => p !== "canceling")
+    .every((p) => isCancelResumable({ ...MIDCAN, phase: p }) === false));
+check("a non-code label is refused in both",
+  isRecoveryResumable({ ...MIDREC, lastError: "raw" }) === false &&
+  isCancelResumable({ ...MIDCAN, lastError: "raw" }) === false);
+check("both report as stopped, not running",
+  safeStatus(MIDREC).inFlight === false && safeStatus(MIDCAN).inFlight === false &&
+  JSON.stringify(safeStatus(MIDREC).allowed) === JSON.stringify(["restore_and_pay"]) &&
+  JSON.stringify(safeStatus(MIDCAN).allowed) === JSON.stringify(["cancel_fixture"]));
+
 /* ── 8. Filtered queries for test-clock resources ────────────────────────── */
 section("8. Test-clock resources are read with a scoped query");
 
@@ -1161,7 +1240,7 @@ const can = fnBody(HARNESS, "async function opCancelFixture(");
 check("cancellation targets only the clock-owned subscription",
   /assertClockOwned\(/.test(can) && /fx\.stripeSubscriptionId/.test(can));
 check("cancellation requires the account to actually lose Plus",
-  /canonical\.tier === "plus"/.test(can) && /error: "not-converged"/.test(can));
+  /canonical\.tier !== "plus"/.test(can) && /error: "not-converged"/.test(can));
 
 const del = fnBody(HARNESS, "async function opDeleteClock(");
 check("clock deletion verifies livemode false", /livemode !== false/.test(del));

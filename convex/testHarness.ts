@@ -54,6 +54,8 @@ import {
   isHealthyFixtureComplete,
   isNormalizable,
   isAdvanceResumable,
+  isRecoveryResumable,
+  isCancelResumable,
   isSingleFailedAttempt,
   fixtureListPath,
   safeError,
@@ -454,6 +456,17 @@ async function opProvision(
  * Plus, it must be Plus BECAUSE of the subscription we just created. A tier
  * check alone would pass on a pre-existing subscription and call a foreign
  * object our fixture. */
+/* One bounded poller for every webhook-driven convergence point. Reads only,
+ * never recursive, same bounds throughout. Every place that waited on a webhook
+ * with a single immediate read has now been bitten by it. */
+async function pollUntil(check: () => Promise<boolean>): Promise<boolean> {
+  for (let i = 0; i < CONVERGENCE_POLL_ATTEMPTS; i++) {
+    if (await check()) return true;
+    await new Promise((r) => setTimeout(r, CONVERGENCE_POLL_INTERVAL_MS));
+  }
+  return false;
+}
+
 async function pollCanonicalConvergence(
   ctx: any,
   userId: string,
@@ -1000,29 +1013,36 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
   const inv = await assertInvoiceOwned(secret, fx.renewalInvoiceId, fx.stripeSubscriptionId);
   if (!inv.ok) return { ok: false, error: inv.error };
 
-  /* Exactly once, with a stable key. A repeated call returns Stripe's cached
-     result rather than making a second payment. */
-  const pay = await stripePost(
-    "/invoices/" + encodeURIComponent(fx.renewalInvoiceId) + "/pay",
-    secret,
-    {},
-    idempotencyKey(token, "invoice_pay"),
-  );
-  if (!pay.ok || pay.data?.status !== "paid") return { ok: false, error: "stripe-error" };
-
-  const after = await stripeGet(
-    "/subscriptions/" + encodeURIComponent(fx.stripeSubscriptionId),
-    secret,
-  );
-  if (!after.ok || after.data?.status !== "active") return { ok: false, error: "not-converged" };
-
-  const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
-    userId: fx.userId,
-    provider: "stripe" as const,
-  });
-  if (!canonical || canonical.status !== "active" || canonical.planKey !== "plus_annual") {
-    return { ok: false, error: "not-converged" };
+  /* Already paid? Then the payment happened and this is a resumed run. Skip it
+     and go observe — repeating it is the one thing this operation must never
+     do. Evidence, not the stored label, decides. */
+  const alreadyPaid = inv.object?.status === "paid";
+  if (!alreadyPaid) {
+    /* Exactly once, with a stable key. A repeated call returns Stripe's cached
+       result rather than making a second payment. */
+    const pay = await stripePost(
+      "/invoices/" + encodeURIComponent(fx.renewalInvoiceId) + "/pay",
+      secret,
+      {},
+      idempotencyKey(token, "invoice_pay"),
+    );
+    if (!pay.ok || pay.data?.status !== "paid") return { ok: false, error: "stripe-error" };
   }
+
+  /* BOUNDED polling, not a single read. Recovery converges through a webhook
+     exactly as provisioning does, and reading once immediately is how a
+     successful recovery reports failure. */
+  const recovered = await pollUntil(async () => {
+    const after = await stripeGet(
+      "/subscriptions/" + encodeURIComponent(fx.stripeSubscriptionId), secret,
+    );
+    if (!after.ok || after.data?.status !== "active") return false;
+    const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+      userId: fx.userId, provider: "stripe" as const,
+    });
+    return !!canonical && canonical.status === "active" && canonical.planKey === "plus_annual";
+  });
+  if (!recovered) return { ok: false, error: "not-converged" };
 
   /* Only after recovery is proven, and only the temporary method — verified
      still attached to THIS fixture's Customer before it is detached.
@@ -1059,21 +1079,27 @@ async function opCancelFixture(ctx: any, secret: string, fx: any, token: string)
   );
   if (!sub.ok) return { ok: false, error: sub.error };
 
-  const cancelled = await stripeDelete(
-    "/subscriptions/" + encodeURIComponent(fx.stripeSubscriptionId),
-    secret,
-    idempotencyKey(token, "cancel"),
-  );
-  if (!cancelled.ok) return { ok: false, error: "stripe-error" };
+  /* Already terminal in Stripe? Then the cancel happened; do not repeat it. */
+  const alreadyCanceled = sub.object?.status === "canceled" || sub.object?.ended_at !== null;
+  if (!alreadyCanceled) {
+    const cancelled = await stripeDelete(
+      "/subscriptions/" + encodeURIComponent(fx.stripeSubscriptionId),
+      secret,
+      idempotencyKey(token, "cancel"),
+    );
+    if (!cancelled.ok) return { ok: false, error: "stripe-error" };
+  }
 
-  const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
-    userId: fx.userId,
-    provider: "stripe" as const,
-  });
   /* The disposable account must actually have lost Plus. Cancelling in Stripe
      without the canonical row following is exactly the state we must not leave
-     behind before deleting the clock. */
-  if (!canonical || canonical.tier === "plus") return { ok: false, error: "not-converged" };
+     behind before deleting the clock — so wait for it rather than reading once. */
+  const terminal = await pollUntil(async () => {
+    const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+      userId: fx.userId, provider: "stripe" as const,
+    });
+    return !!canonical && canonical.tier !== "plus";
+  });
+  if (!terminal) return { ok: false, error: "not-converged" };
 
   return { ok: true };
 }
