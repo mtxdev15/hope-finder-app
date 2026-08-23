@@ -373,6 +373,12 @@ When Stage 2 resumes, in this order:
          the standing rule: advance only to the first renewal attempt, require
          `attempt_count=1`, read `next_payment_attempt`, and recover before
          advancing again.
+         **Execution-readiness audit complete 2026-08-23** — runbook at
+         `docs/operations/billing-test-harness-execution-readiness.md`. The
+         harness remains disabled, undeployed (0 of 47 deployed functions are
+         `testHarness`), and unexecuted. Separate authorization is required to
+         set either flag, deploy to development, or create the disposable
+         account.
          **Harness implemented behind gates 2026-08-23; execution NOT started.**
          See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
          are unset, nothing was deployed, and no Stripe object exists from it.
