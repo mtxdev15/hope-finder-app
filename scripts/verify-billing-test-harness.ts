@@ -51,6 +51,12 @@ import {
   phaseAfterFailure,
   hasPersistedProviderState,
   PROVIDER_ID_FIELDS,
+  isAdoptable,
+  isHealthyFixtureComplete,
+  HEALTHY_FIXTURE_FIELDS,
+  ADOPTABLE_ERRORS,
+  CONVERGENCE_POLL_ATTEMPTS,
+  CONVERGENCE_POLL_INTERVAL_MS,
   planAdvance,
   safeError,
   safeStatus,
@@ -489,6 +495,205 @@ check("the SUCCESS path still lands on the command's terminal phase",
 check("in-flight re-entry is still refused",
   (admit("provision", "provisioning") as any).error === "already-running");
 
+/* ── 6c. Bounded convergence polling ─────────────────────────────────────── */
+section("6c. Provisioning waits for the webhook instead of reading once");
+
+const prov2 = fnBody(HARNESS, "async function opProvision(");
+const pollFn = fnBody(HARNESS, "async function pollCanonicalConvergence(");
+
+check("convergence polling exists and is bounded by a named constant",
+  /for \(let i = 0; i < CONVERGENCE_POLL_ATTEMPTS; i\+\+\)/.test(pollFn));
+check("the interval is a named constant", /CONVERGENCE_POLL_INTERVAL_MS/.test(pollFn));
+check("bounds are the documented values",
+  CONVERGENCE_POLL_ATTEMPTS === 30 && CONVERGENCE_POLL_INTERVAL_MS === 2000);
+check("provisioning no longer reads canonical state exactly once",
+  /pollCanonicalConvergence\(/.test(prov2) &&
+  !/const canonical = await ctx\.runQuery\(internal\.subscriptions\.getByUserProviderInternal,[\s\S]{0,200}?if \(!canonical \|\| canonical\.tier/.test(prov2));
+check("polling performs READS only — no Stripe or Convex mutation inside",
+  !/stripePost|stripeDelete|upsertFixtureInternal/.test(pollFn));
+check("polling is not recursive", !/pollCanonicalConvergence\(/.test(pollFn));
+/* Health alone is not identity: a tier check would pass on a pre-existing
+   subscription and call a foreign object ours. */
+check("convergence requires the canonical row to BE the created subscription",
+  /canonical\.stripeSubscriptionId === subscriptionId/.test(pollFn));
+check("convergence also requires the customer mapping",
+  /mapping\?\.stripeCustomerId/.test(pollFn));
+check("convergence requires the full expected shape",
+  ["tier", "planKey", "status", "billingInterval", "cancelAtPeriodEnd"]
+    .every((f) => pollFn.includes("canonical." + f)));
+check("a timeout returns not-converged rather than recreating anything",
+  /if \(!converged\) return \{ ok: false, error: "not-converged" \}/.test(prov2));
+
+/* ── 6d. Incremental persistence ─────────────────────────────────────────── */
+section("6d. Provider state is persisted before the next external write");
+
+const persistOrder = [...prov2.matchAll(/upsertFixtureInternal[\s\S]{0,220}?patch: \{ ([^}]*)\}/g)]
+  .map((m) => m[1].trim());
+check("provisioning persists in several steps, not once at the end",
+  persistOrder.length >= 3);
+check("the clock is persisted before the customer is created",
+  before(prov2, "patch: { testClockId: clockId }", '"/customers"'));
+check("the customer id is persisted before any further write to it",
+  before(prov2, "patch: { stripeCustomerId: customerId }", "/attach"));
+check("the working default is persisted before the subscription is created",
+  before(prov2, "originalCustomerDefaultPaymentMethodId: workingPm", '"/subscriptions"'));
+check("the working default is READ BACK from Stripe before being recorded",
+  before(prov2, "const confirmed = await assertClockOwned", "originalCustomerDefaultPaymentMethodId: workingPm") &&
+  /invoice_settings\?\.default_payment_method !== workingPm/.test(prov2));
+check("the subscription id and renewal are persisted before polling",
+  before(prov2, "stripeSubscriptionId: subscriptionId", "pollCanonicalConvergence("));
+check("the success path no longer relies on one final patch",
+  /return \{ ok: true, patch: \{\} \};/.test(prov2));
+
+/* The persistence mutation must refuse to repoint or clear an identifier. */
+const upsert = fnBody(HARNESS, "export const upsertFixtureInternal");
+check("a conflicting provider id is rejected", /provider-id-conflict/.test(upsert));
+check("an existing provider id cannot be cleared", /provider-id-clear/.test(upsert));
+check("the guard covers every provider id field", /for \(const k of PROVIDER_ID_FIELDS\)/.test(upsert));
+check("an identical repeated value is permitted (idempotent recovery)",
+  /if \(incoming !== current\) throw/.test(upsert));
+
+/* ── 6e. The adoption predicate ──────────────────────────────────────────── */
+section("6e. Only a provably recoverable fixture may be adopted");
+
+const RECOVERABLE = { phase: "provisioning", lastError: "not-converged",
+                      testClockId: "clock_x", attemptCount: 0 };
+check("the current stuck fixture shape IS adoptable", isAdoptable(RECOVERABLE) === true);
+check("adoption is offered as `provision`, from provisioning",
+  admit("provision", "provisioning", RECOVERABLE).ok === true);
+check("adoption lands on healthy",
+  (admit("provision", "provisioning", RECOVERABLE) as any).to === "healthy");
+
+/* The first failed fixture — no clock, generic error — must stay retired. */
+const RETIRED = { phase: "provisioning", lastError: "stripe-error", attemptCount: 0 };
+check("the historical first failed fixture is NOT adoptable", isAdoptable(RETIRED) === false);
+check("a generic provisioning fixture still cannot call provision",
+  admit("provision", "provisioning", RETIRED).ok === false &&
+  (admit("provision", "provisioning", RETIRED) as any).error === "already-running");
+check("a generic stripe-error is not an adoptable classification",
+  !ADOPTABLE_ERRORS.includes("stripe-error") && ADOPTABLE_ERRORS.includes("not-converged"));
+/* Isolating the CLASSIFICATION check. The retired fixture above also lacks a
+   clock, so it would be refused even if the error check were deleted — that
+   made the earlier assertion pass for the wrong reason. This fixture has a
+   clock and differs ONLY in how its failure was classified. */
+const CLOCKED_BUT_UNCLASSIFIED = {
+  phase: "provisioning", lastError: "stripe-error", testClockId: "clock_x", attemptCount: 0,
+};
+check("a fixture WITH a clock but a generic stripe-error is NOT adoptable",
+  isAdoptable(CLOCKED_BUT_UNCLASSIFIED) === false);
+check("that fixture cannot call provision either",
+  admit("provision", "provisioning", CLOCKED_BUT_UNCLASSIFIED).ok === false);
+for (const code of ERROR_CODES.filter((c) => c !== "not-converged")) {
+  check(`"${code}" is not an adoptable classification`,
+    isAdoptable({ ...RECOVERABLE, lastError: code }) === false);
+}
+check("a fixture with no lastError at all is not adoptable",
+  isAdoptable({ ...RECOVERABLE, lastError: undefined }) === false);
+check("no fixture at all is not adoptable",
+  isAdoptable(null) === false && isAdoptable(undefined) === false && isAdoptable({}) === false);
+check("a fixture without a clock id is not adoptable",
+  isAdoptable({ ...RECOVERABLE, testClockId: undefined }) === false);
+check("a fixture in any other phase is not adoptable",
+  PHASES.filter((p) => p !== "provisioning")
+    .every((p) => isAdoptable({ ...RECOVERABLE, phase: p }) === false));
+/* Once the failure lifecycle has begun, this is no longer bookkeeping. */
+for (const [f, v] of [["failingPaymentMethodId", "pm_x"], ["renewalInvoiceId", "in_x"],
+                      ["advanceTarget", 123], ["nextPaymentAttempt", 456]] as const) {
+  check(`a fixture holding "${f}" is not adoptable`,
+    isAdoptable({ ...RECOVERABLE, [f]: v }) === false);
+}
+check("a fixture with a recorded attempt is not adoptable",
+  isAdoptable({ ...RECOVERABLE, attemptCount: 1 }) === false);
+
+/* Reported as stopped, not running — otherwise the operator waits forever. */
+const adoptStatus = safeStatus(RECOVERABLE);
+check("an adoptable fixture reports inFlight false", adoptStatus.inFlight === false);
+check("an adoptable fixture allows only provision",
+  JSON.stringify(adoptStatus.allowed) === JSON.stringify(["provision"]));
+check("an ordinary provisioning fixture still reports in-flight with no commands",
+  safeStatus(RETIRED).inFlight === true && safeStatus(RETIRED).allowed.length === 0);
+check("the adoptable status still leaks no provider id",
+  !JSON.stringify(adoptStatus).includes("clock_x"));
+
+/* ── 6f. Adoption is read-only and refuses ambiguity ─────────────────────── */
+section("6f. Adoption issues no Stripe write");
+
+const adopt = fnBody(HARNESS, "async function opAdopt(");
+check("adoption exists", adopt.length > 0);
+check("adoption issues NO Stripe write of any kind",
+  !/stripePost\(/.test(adopt) && !/stripeDelete\(/.test(adopt));
+check("adoption reads only", /stripeGet\(/.test(adopt));
+check("adoption creates no clock, customer or subscription",
+  !/test_helpers\/test_clocks",/.test(adopt) &&
+  !/stripePost\(\s*\n?\s*"\/customers"/.test(adopt) &&
+  !/stripePost\(\s*\n?\s*"\/subscriptions"/.test(adopt));
+check("the customer is discovered THROUGH the clock, not a broad list",
+  /fixtureListPath\("customers", "test_clock", clockId/.test(adopt));
+check("exactly one customer on the clock, or refuse",
+  /custList\.data\.data\.length !== 1/.test(adopt));
+check("the subscription is discovered THROUGH the verified customer",
+  /fixtureListPath\("subscriptions", "customer", customerId/.test(adopt));
+check("exactly one matching subscription, or refuse",
+  /subList\.data\.data\.length !== 1/.test(adopt));
+check("clock ownership is re-asserted on both objects",
+  /assertClockOwned\(secret, "customers", customerId, clockId\)/.test(adopt) &&
+  /assertClockOwned\(secret, "subscriptions", subscriptionId, clockId\)/.test(adopt));
+check("the email-omission invariant is enforced", /if \(customer\.email\)/.test(adopt));
+check("the working default is verified as attached to this customer",
+  /assertPaymentMethodOwned\(secret, workingPm, customerId\)/.test(adopt));
+check("the metadata user binding must match the authenticated user",
+  /md\.userId !== user\._id/.test(adopt));
+check("all five provenance fields are re-checked",
+  ["userId", "plan", "source", "billing_schema_version", "environment"]
+    .every((f) => adopt.includes("md." + f)));
+check("plan, cadence, quantity, price and cancellation state are re-checked",
+  /item\?\.quantity !== 1/.test(adopt) && /recurring\?\.interval !== "year"/.test(adopt) &&
+  /cancel_at_period_end !== false/.test(adopt) && /item\?\.price\?\.id !== priceId/.test(adopt));
+check("the initial invoice must be paid, via the trusted ROOT association",
+  /inv\.data\.status !== "paid"/.test(adopt) &&
+  /parent\?\.subscription_details\?\.subscription !== subscriptionId/.test(adopt));
+check("no failed attempt may already exist", /attempt_count > 1/.test(adopt));
+check("Convex must already agree — adoption records, it does not assert",
+  /canonical\.stripeSubscriptionId !== subscriptionId/.test(adopt) &&
+  /mapping\?\.stripeCustomerId !== customerId/.test(adopt));
+check("a stored id that disagrees with discovery is refused",
+  /fx\.stripeCustomerId !== customerId/.test(adopt) &&
+  /fx\.stripeSubscriptionId !== subscriptionId/.test(adopt));
+
+/* ── 6g. Adoption reconstructs a COMPLETE fixture ────────────────────────── */
+section("6g. Adoption leaves nothing for arm_failure to rediscover");
+
+check("completeness is defined from what downstream commands read",
+  HEALTHY_FIXTURE_FIELDS.length === 4 &&
+  ["testClockId","stripeCustomerId","stripeSubscriptionId","originalCustomerDefaultPaymentMethodId"]
+    .every((f) => (HEALTHY_FIXTURE_FIELDS as readonly string[]).includes(f)));
+const COMPLETE = { testClockId: "c", stripeCustomerId: "cu", stripeSubscriptionId: "s",
+                   originalCustomerDefaultPaymentMethodId: "pm", renewalAt: 1_800_000_000 };
+check("a complete fixture is recognised", isHealthyFixtureComplete(COMPLETE) === true);
+for (const f of HEALTHY_FIXTURE_FIELDS) {
+  check(`a fixture missing "${f}" is incomplete`,
+    isHealthyFixtureComplete({ ...COMPLETE, [f]: undefined }) === false);
+}
+check("a fixture missing the renewal boundary is incomplete",
+  isHealthyFixtureComplete({ ...COMPLETE, renewalAt: undefined }) === false);
+check("adoption refuses to reach healthy unless the result is complete",
+  /isHealthyFixtureComplete\(\{ \.\.\.fx, \.\.\.patch \}\)/.test(adopt));
+/* Every field arm_failure and restore_and_pay read must be reconstructed. */
+for (const f of ["stripeCustomerId", "stripeSubscriptionId",
+                 "originalCustomerDefaultPaymentMethodId", "renewalAt"]) {
+  /* Accept both `field: value` and the shorthand `field,` — the property is
+     that the field is written, not which syntax writes it. */
+  check(`adoption reconstructs "${f}"`, new RegExp(f + "\\s*[:,]").test(adopt));
+}
+check("adoption preserves attemptCount at zero", /attemptCount: 0/.test(adopt));
+
+/* Dispatch: same command, two paths, chosen by the predicate. */
+check("provision dispatches to adoption only when adoptable",
+  /isAdoptable\(fx\)\s*\n?\s*\? await opAdopt\(/.test(handler));
+check("the six-command allowlist is unchanged", COMMANDS.length === 6);
+check("no seventh command was added",
+  !/"adopt"|"resume"|"reset"|"repair"/.test(STATE));
+
 /* ── 7. The advance ceiling ──────────────────────────────────────────────── */
 section("7. The advance target is bounded before the Stripe call");
 
@@ -643,8 +848,9 @@ check("no trial is configured", !/trial/.test(prov));
 check("provisioning refuses an account that already has billing",
   /error: "already-has-billing"/.test(prov));
 check("healthy is reached only after the CANONICAL row exists",
-  before(prov, "getByUserProviderInternal", "return {\n    ok: true,") &&
-  /error: "not-converged"/.test(prov));
+  before(prov, "pollCanonicalConvergence(", "return { ok: true, patch: {} }") &&
+  /error: "not-converged"/.test(prov) &&
+  /getByUserProviderInternal/.test(fnBody(HARNESS, "async function pollCanonicalConvergence(")));
 
 /* ── 12. Arm, recover, clean up ──────────────────────────────────────────── */
 section("12. Arming, recovery and cleanup");

@@ -39,6 +39,7 @@ import { stripeGet, stripePost, stripeDelete } from "./stripeApi";
 import { environmentForSecret, PLAN_CATALOG, BILLING_SCHEMA_VERSION, CHECKOUT_SOURCE } from "./plusPlans";
 import {
   admit,
+  PROVIDER_ID_FIELDS,
   checkGates,
   idempotencyKey,
   isPhase,
@@ -47,6 +48,10 @@ import {
   paymentMethodOwnershipVerdict,
   phaseAfterFailure,
   planAdvance,
+  CONVERGENCE_POLL_ATTEMPTS,
+  CONVERGENCE_POLL_INTERVAL_MS,
+  isAdoptable,
+  isHealthyFixtureComplete,
   isSingleFailedAttempt,
   fixtureListPath,
   safeError,
@@ -64,6 +69,15 @@ const PM_SUCCESS = "pm_card_visa";
 const PM_DECLINE_ON_CHARGE = "pm_card_chargeCustomerFail";
 
 type AuthedUser = { _id: string; email?: string };
+
+/* Stripe returns a reference as either a bare id or an expanded object. Local
+ * on purpose: convex/http.ts has an identical helper, but that file is a
+ * protected production path and the harness must not reach into it. */
+function asId(x: unknown): string | null {
+  if (typeof x === "string" && x) return x;
+  if (x && typeof x === "object" && typeof (x as any).id === "string") return (x as any).id;
+  return null;
+}
 
 async function requireUser(ctx: any): Promise<AuthedUser | null> {
   const user = await authComponent.safeGetAuthUser(ctx);
@@ -113,6 +127,22 @@ export const upsertFixtureInternal = internalMutation({
     const now = Date.now();
     const patch = (args.patch || {}) as Record<string, unknown>;
     if (rows[0]) {
+      const existing = rows[0] as unknown as Record<string, unknown>;
+      /* A provider identifier may be written once, or rewritten with the
+         identical value during idempotent recovery. It may never be changed to
+         a different object and never cleared: either would silently repoint the
+         fixture at something other than what was created. */
+      for (const k of PROVIDER_ID_FIELDS) {
+        if (!(k in patch)) continue;
+        const incoming = patch[k];
+        const current = existing[k];
+        if (typeof current === "string" && current) {
+          if (incoming !== current) throw new Error("provider-id-conflict");
+        }
+        if (typeof current === "string" && current && (incoming === undefined || incoming === "")) {
+          throw new Error("provider-id-clear");
+        }
+      }
       await ctx.db.patch(rows[0]._id, {
         ...patch,
         phase: args.phase,
@@ -300,6 +330,14 @@ async function opProvision(
   const owned = await assertClockOwned(secret, "customers", customerId, clockId);
   if (!owned.ok) return { ok: false, error: owned.error };
 
+  /* Persist BEFORE touching it again. The same rule the clock already followed:
+     if the next call fails, the fixture must still know what exists. */
+  await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
+    userId: user._id,
+    phase: "provisioning",
+    patch: { stripeCustomerId: customerId },
+  });
+
   const attach = await stripePost(
     "/payment_methods/" + encodeURIComponent(PM_SUCCESS) + "/attach",
     secret,
@@ -316,6 +354,21 @@ async function opProvision(
     idempotencyKey(token, "pm_default_ok"),
   );
   if (!setDefault.ok) return { ok: false, error: "stripe-error" };
+
+  /* Read the Customer back and confirm the working method is genuinely the
+     invoice default before recording it as the value recovery will restore to.
+     Recording what we asked for rather than what Stripe stored is how a
+     recovery target ends up pointing at something that was never set. */
+  const confirmed = await assertClockOwned(secret, "customers", customerId, clockId);
+  if (!confirmed.ok) return { ok: false, error: confirmed.error };
+  if (confirmed.object?.invoice_settings?.default_payment_method !== workingPm) {
+    return { ok: false, error: "not-converged" };
+  }
+  await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
+    userId: user._id,
+    phase: "provisioning",
+    patch: { originalCustomerDefaultPaymentMethodId: workingPm },
+  });
 
   /* The annual Plus Price, read from the same configured mapping production
      uses. Never a browser value — there is no argument that could carry one. */
@@ -349,29 +402,229 @@ async function opProvision(
   const ownedSub = await assertClockOwned(secret, "subscriptions", subscriptionId, clockId);
   if (!ownedSub.ok) return { ok: false, error: ownedSub.error };
 
+  /* Everything downstream needs, persisted BEFORE waiting on the webhook. The
+     first real run created all of this and then failed the convergence check,
+     leaving a fixture that knew the clock but not what was on it. */
+  await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
+    userId: user._id,
+    phase: "provisioning",
+    patch: {
+      stripeSubscriptionId: subscriptionId,
+      ...(typeof ownedSub.object.default_payment_method === "string"
+        ? { originalSubscriptionDefaultPaymentMethodId: ownedSub.object.default_payment_method }
+        : {}),
+      renewalAt: ownedSub.object?.items?.data?.[0]?.current_period_end,
+    },
+  });
+
   /* Convergence is decided by the CANONICAL row, not by Stripe's response: the
-     point of the exercise is that a genuine webhook created the mapping. */
+     point of the exercise is that a genuine webhook created the mapping.
+     BOUNDED polling, reads only — webhook delivery takes seconds, and reading
+     once immediately is how a healthy provisioning run reports failure. */
+  const converged = await pollCanonicalConvergence(ctx, user._id, subscriptionId);
+  if (!converged) return { ok: false, error: "not-converged" };
+
+  return { ok: true, patch: {} };
+}
+
+/* Bounded, read-only wait for the webhook-created canonical row.
+ *
+ * Identity matters as much as health: it is not enough that the account is
+ * Plus, it must be Plus BECAUSE of the subscription we just created. A tier
+ * check alone would pass on a pre-existing subscription and call a foreign
+ * object our fixture. */
+async function pollCanonicalConvergence(
+  ctx: any,
+  userId: string,
+  subscriptionId: string,
+): Promise<boolean> {
+  for (let i = 0; i < CONVERGENCE_POLL_ATTEMPTS; i++) {
+    const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+      userId,
+      provider: "stripe" as const,
+    });
+    const mapping = await ctx.runQuery(internal.subscriptions.getCustomerInternal, { userId });
+    if (
+      canonical &&
+      canonical.stripeSubscriptionId === subscriptionId &&
+      canonical.tier === "plus" &&
+      canonical.planKey === "plus_annual" &&
+      canonical.status === "active" &&
+      canonical.billingInterval === "year" &&
+      canonical.cancelAtPeriodEnd === false &&
+      mapping?.stripeCustomerId
+    ) {
+      return true;
+    }
+    await new Promise((r) => setTimeout(r, CONVERGENCE_POLL_INTERVAL_MS));
+  }
+  return false;
+}
+
+/* Recover a fixture whose Stripe objects exist but whose record does not.
+ *
+ * WHY THIS IS SAFE TO OFFER AT ALL
+ * The first real provisioning run created a clock, a customer, a paid annual
+ * subscription and a correct canonical row, then reported `not-converged`
+ * because it read the canonical row once, immediately, before the webhook could
+ * land. Everything was right except our bookkeeping. Without a way back, the
+ * only remedy was to abandon an account and leave live objects orphaned.
+ *
+ * THE RULE THAT MAKES IT SAFE
+ * This path issues NO Stripe write. Not a create, update, attach, pay, cancel,
+ * advance, detach or delete. It re-derives the object graph from the one thing
+ * the fixture does know — the clock id — verifies every edge of it, and then
+ * writes only to our own fixture row. A double-click costs a second round of
+ * reads and nothing else.
+ *
+ * It also refuses to guess. Any ambiguity — no customer, two customers, a
+ * subscription on a different clock, metadata naming a different user — is a
+ * rejection, never a best-effort match. */
+async function opAdopt(
+  ctx: any,
+  secret: string,
+  user: AuthedUser,
+  fx: any,
+): Promise<OpResult> {
+  const clockId: string = fx.testClockId;
+
+  /* A — the clock itself must still exist and be a sandbox clock. */
+  const clock = await stripeGet(
+    "/test_helpers/test_clocks/" + encodeURIComponent(clockId),
+    secret,
+  );
+  if (!clock.ok || clock.data?.id !== clockId) return { ok: false, error: "clock-not-owned" };
+  if (clock.data?.livemode !== false) return { ok: false, error: "not-sandbox" };
+  if (clock.data?.status === "internal_failure") return { ok: false, error: "stripe-error" };
+
+  /* B — the customer, found THROUGH the clock. Stripe omits clock-owned
+     customers from an unfiltered list, so an unscoped query would find nothing
+     and look calm doing it. Exactly one, or refuse. */
+  const custPath = fixtureListPath("customers", "test_clock", clockId, { limit: "3" });
+  if (!custPath) return { ok: false, error: "stripe-error" };
+  const custList = await stripeGet(custPath, secret);
+  if (!custList.ok || !Array.isArray(custList.data?.data)) return { ok: false, error: "stripe-error" };
+  if (custList.data.data.length !== 1) return { ok: false, error: "clock-not-owned" };
+  const customer = custList.data.data[0];
+  const customerId: string = customer.id;
+  if (fx.stripeCustomerId && fx.stripeCustomerId !== customerId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  const custOwned = await assertClockOwned(secret, "customers", customerId, clockId);
+  if (!custOwned.ok) return { ok: false, error: custOwned.error };
+  /* Email omission is a locked invariant of this fixture, not a preference. */
+  if (customer.email) return { ok: false, error: "clock-not-owned" };
+
+  /* C — the working default, which recovery will later restore to. */
+  const workingPm = customer?.invoice_settings?.default_payment_method;
+  if (typeof workingPm !== "string" || !workingPm) return { ok: false, error: "not-converged" };
+  const pmOwned = await assertPaymentMethodOwned(secret, workingPm, customerId);
+  if (!pmOwned.ok) return { ok: false, error: pmOwned.error };
+  if (fx.originalCustomerDefaultPaymentMethodId &&
+      fx.originalCustomerDefaultPaymentMethodId !== workingPm) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+
+  /* D — the subscription, found THROUGH the verified customer. */
+  const subPath = fixtureListPath("subscriptions", "customer", customerId, {
+    status: "active", limit: "3",
+  });
+  if (!subPath) return { ok: false, error: "stripe-error" };
+  const subList = await stripeGet(subPath, secret);
+  if (!subList.ok || !Array.isArray(subList.data?.data)) return { ok: false, error: "stripe-error" };
+  if (subList.data.data.length !== 1) return { ok: false, error: "clock-not-owned" };
+  const sub = subList.data.data[0];
+  const subscriptionId: string = sub.id;
+  if (fx.stripeSubscriptionId && fx.stripeSubscriptionId !== subscriptionId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  const subOwned = await assertClockOwned(secret, "subscriptions", subscriptionId, clockId);
+  if (!subOwned.ok) return { ok: false, error: subOwned.error };
+
+  const item = sub?.items?.data?.[0];
+  const priceId = process.env[PLAN_CATALOG.plus_annual.envVar];
+  if (
+    sub.status !== "active" ||
+    sub.cancel_at_period_end !== false ||
+    sub.cancel_at !== null ||
+    sub.ended_at !== null ||
+    asId(sub.customer) !== customerId ||
+    sub?.items?.data?.length !== 1 ||
+    item?.quantity !== 1 ||
+    item?.price?.id !== priceId ||
+    item?.price?.recurring?.interval !== "year"
+  ) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+
+  /* The five provenance fields, and the user binding above all: a subscription
+     stamped with somebody else's userId is not this fixture's. */
+  const md = (sub.metadata && typeof sub.metadata === "object" ? sub.metadata : {}) as Record<string, string>;
+  if (
+    md.userId !== user._id ||
+    md.plan !== "plus_annual" ||
+    md.source !== CHECKOUT_SOURCE ||
+    md.billing_schema_version !== BILLING_SCHEMA_VERSION ||
+    md.environment !== "sandbox"
+  ) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+
+  /* E — the initial invoice must be paid, with the trusted ROOT association. */
+  const invoiceId = asId(sub.latest_invoice);
+  if (!invoiceId) return { ok: false, error: "not-converged" };
+  const inv = await stripeGet("/invoices/" + encodeURIComponent(invoiceId), secret);
+  if (!inv.ok || !inv.data) return { ok: false, error: "stripe-error" };
+  if (
+    inv.data.livemode !== false ||
+    inv.data.status !== "paid" ||
+    asId(inv.data.customer) !== customerId ||
+    inv.data.parent?.subscription_details?.subscription !== subscriptionId ||
+    inv.data.attempt_count > 1
+  ) {
+    return { ok: false, error: "not-converged" };
+  }
+
+  /* F — Convex must already agree, created by a genuine webhook. Adoption
+     records what happened; it does not make it true. */
   const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
     userId: user._id,
     provider: "stripe" as const,
   });
-  if (!canonical || canonical.tier !== "plus" || canonical.planKey !== "plus_annual") {
+  const mapping = await ctx.runQuery(internal.subscriptions.getCustomerInternal, {
+    userId: user._id,
+  });
+  if (
+    !canonical ||
+    canonical.stripeSubscriptionId !== subscriptionId ||
+    canonical.tier !== "plus" ||
+    canonical.planKey !== "plus_annual" ||
+    canonical.status !== "active" ||
+    canonical.billingInterval !== "year" ||
+    canonical.cancelAtPeriodEnd !== false ||
+    mapping?.stripeCustomerId !== customerId
+  ) {
     return { ok: false, error: "not-converged" };
   }
 
-  return {
-    ok: true,
-    patch: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      originalCustomerDefaultPaymentMethodId: workingPm,
-      originalSubscriptionDefaultPaymentMethodId:
-        typeof ownedSub.object.default_payment_method === "string"
-          ? ownedSub.object.default_payment_method
-          : undefined,
-      renewalAt: ownedSub.object?.items?.data?.[0]?.current_period_end,
-    },
+  /* G — reconstruct exactly what a successful provision would have written. */
+  const renewalAt = item?.current_period_end;
+  const patch: Record<string, unknown> = {
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    originalCustomerDefaultPaymentMethodId: workingPm,
+    ...(typeof subOwned.object.default_payment_method === "string"
+      ? { originalSubscriptionDefaultPaymentMethodId: subOwned.object.default_payment_method }
+      : {}),
+    renewalAt,
+    attemptCount: 0,
   };
+  /* Refuse to call it healthy unless it really is complete enough for
+     arm_failure to run without rediscovering anything. */
+  if (!isHealthyFixtureComplete({ ...fx, ...patch })) {
+    return { ok: false, error: "not-converged" };
+  }
+  return { ok: true, patch };
 }
 
 async function opArmFailure(secret: string, fx: any, token: string): Promise<OpResult> {
@@ -694,7 +947,7 @@ export const runCommand = action({
     const fx: any = fxRead.row;
     const phase: Phase = fx && isPhase(fx.phase) ? fx.phase : "empty";
 
-    const admission = admit(args.command, phase);
+    const admission = admit(args.command, phase, fx);
     if (!admission.ok) return { ok: false, error: admission.error };
     const command: Command = admission.command;
 
@@ -715,7 +968,15 @@ export const runCommand = action({
 
     let result: OpResult;
     try {
-      if (command === "provision") result = await opProvision(ctx, secret, user, token);
+      if (command === "provision") {
+        /* Same command, two paths. A fixture that already satisfies the strict
+           adoption predicate is recovered read-only; anything else provisions
+           normally. No seventh command, and no way to reach adoption from a
+           state that has not earned it. */
+        result = isAdoptable(fx)
+          ? await opAdopt(ctx, secret, user, fx)
+          : await opProvision(ctx, secret, user, token);
+      }
       else if (command === "arm_failure") result = await opArmFailure(secret, fx, token);
       else if (command === "advance_to_renewal") result = await opAdvance(ctx, secret, fx, token);
       else if (command === "restore_and_pay") result = await opRestoreAndPay(ctx, secret, fx, token);
