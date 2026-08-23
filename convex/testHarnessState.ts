@@ -165,6 +165,12 @@ export function admit(rawCommand: unknown, phase: Phase, fixture?: unknown): Adm
       isAdvanceResumable(fixture)) {
     return { ok: true, command, inFlight: "renewal_advancing", to: "past_due" };
   }
+  if (command === "restore_and_pay" && phase === "recovering" && isRecoveryResumable(fixture)) {
+    return { ok: true, command, inFlight: "recovering", to: "recovered" };
+  }
+  if (command === "cancel_fixture" && phase === "canceling" && isCancelResumable(fixture)) {
+    return { ok: true, command, inFlight: "canceling", to: "terminal" };
+  }
 
   if (phase === "healthy" && isNormalizable(fixture)) {
     if (command === "provision") {
@@ -404,7 +410,8 @@ export function safeStatus(fixture: unknown): SafeStatus {
   /* A fixture that can be resumed is STOPPED, not running. Reporting it as
      in-flight tells the operator to wait for something that will never
      finish — which is exactly how the first advance stall presented. */
-  const resumable = isAdoptable(f) || isAdvanceResumable(f);
+  const resumable = isAdoptable(f) || isAdvanceResumable(f) ||
+    isRecoveryResumable(f) || isCancelResumable(f);
   return {
     phase,
     allowed: allowedCommands(phase, f),
@@ -537,7 +544,11 @@ export function invoiceOwnershipVerdict(
   }
   /* Only the open renewal invoice is payable here. A `paid` invoice needs no
      recovery, and anything else is not the object this phase expects. */
-  if (i.invoiceStatus !== "open") return { ok: false, error: "not-converged" };
+  /* `open` is the normal case; `paid` is a resumed run whose payment already
+     succeeded. Anything else is not the object this phase expects. */
+  if (i.invoiceStatus !== "open" && i.invoiceStatus !== "paid") {
+    return { ok: false, error: "not-converged" };
+  }
   return { ok: true };
 }
 
@@ -706,6 +717,36 @@ export function isNormalizable(fixture: unknown): boolean {
  * Resuming is safe ONLY while that remains true. The moment an attempt exists,
  * this is no longer an interrupted advance; it is a result to be read, and the
  * fixture must stay put. */
+/* Resume predicates for the remaining convergence points.
+ *
+ * The same shape as the advance: admit any real error code, refuse on what can
+ * be seen locally, and let the operation itself verify the external world
+ * before repeating anything irreversible. Recovery skips the payment if the
+ * invoice is already paid; cancellation skips if the subscription is already
+ * gone. */
+export function isRecoveryResumable(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  if (f.phase !== "recovering") return false;
+  if (!isErrorCode(f.lastError)) return false;
+  for (const k of ["testClockId", "stripeCustomerId", "stripeSubscriptionId",
+                   "renewalInvoiceId", "originalCustomerDefaultPaymentMethodId"]) {
+    if (typeof f[k] !== "string" || !f[k]) return false;
+  }
+  return true;
+}
+
+export function isCancelResumable(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  if (f.phase !== "canceling") return false;
+  if (!isErrorCode(f.lastError)) return false;
+  for (const k of ["testClockId", "stripeSubscriptionId"]) {
+    if (typeof f[k] !== "string" || !f[k]) return false;
+  }
+  return true;
+}
+
 export function isAdvanceResumable(fixture: unknown): boolean {
   if (!fixture || typeof fixture !== "object") return false;
   const f = fixture as Record<string, unknown>;
