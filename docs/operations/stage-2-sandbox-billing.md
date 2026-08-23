@@ -2391,8 +2391,17 @@ Recorded for whoever picks this up, in rough order of preference:
 3. **Widening the reader** to fall back to `line.parent.subscription_item_details.subscription`.
    This is a code change, not a test, and it should be resisted unless a real
    Stripe payload requires it — the current narrowness is a deliberate
-   fail-closed property, and widening it to make a test convenient would trade a
-   security property for test ergonomics.
+   fail-closed **correctness and data-integrity boundary**, and widening it to
+   make a test convenient would trade that boundary for test ergonomics.
+
+   The distinction matters. What the narrow reader demonstrably protects is
+   *correctness*: only a trusted subscription association may write to the
+   canonical entitlement row, so an invoice shape the code does not actually
+   understand cannot drift into it looking healthy. That is a data-integrity
+   claim, evidenced directly by this audit. Calling it a security property would
+   be a stronger claim than the evidence here supports — this repository carries
+   no documented threat model for invoice-shaped input — so it is deliberately
+   not labelled that way.
 
 Option 1 is the honest one. It exercises the real path with a real event, and it
 leaves both existing subscribers untouched.
