@@ -48,6 +48,9 @@ import {
   isSingleFailedAttempt,
   ownershipVerdict,
   paymentMethodOwnershipVerdict,
+  phaseAfterFailure,
+  hasPersistedProviderState,
+  PROVIDER_ID_FIELDS,
   planAdvance,
   safeError,
   safeStatus,
@@ -435,6 +438,56 @@ check("the in-flight phase is persisted before the operation runs",
 check("an unknown result stops in the in-flight phase rather than retrying",
   /catch \{[\s\S]{0,200}result = \{ ok: false, error: "stripe-error" \}/.test(handler));
 check("there is no retry loop around an operation", !/for \(let attempt/.test(handler));
+
+/* ── 6b. Pre-write failure rollback ──────────────────────────────────────── */
+section("6b. A failure that created nothing does not burn the account");
+
+/* The real failure this fixes: provision failed on the FIRST Stripe write (the
+   Test Clock scope probe), created nothing, and still left the fixture in an
+   in-flight phase — which refuses re-entry, permanently. */
+const EMPTY_FIXTURE = { phase: "provisioning", lastError: "stripe-error", attemptCount: 0 };
+check("a provision failure with NO persisted provider id returns to empty",
+  phaseAfterFailure("provision", EMPTY_FIXTURE) === "empty");
+check("the account can be provisioned again after such a failure",
+  admit("provision", phaseAfterFailure("provision", EMPTY_FIXTURE)).ok === true);
+
+/* The other half: anything persisted means something may exist in Stripe. */
+for (const field of PROVIDER_ID_FIELDS) {
+  check(`a provision failure holding "${field}" stays in-flight`,
+    phaseAfterFailure("provision", { ...EMPTY_FIXTURE, [field]: "x_live_object" }) === "provisioning");
+}
+check("a fixture holding a clock id can NOT be provisioned again",
+  admit("provision", phaseAfterFailure("provision", { ...EMPTY_FIXTURE, testClockId: "c" })).ok === false);
+
+/* Restricted to provision. Every later command starts with ids already stored,
+   so it can never satisfy the empty condition — asserted, not assumed. */
+for (const c of COMMANDS.filter((x) => x !== "provision")) {
+  check(`${c} never rolls back, even with an empty fixture`,
+    phaseAfterFailure(c, EMPTY_FIXTURE) === TRANSITIONS[c].inFlight);
+}
+
+check("hasPersistedProviderState is false for an empty fixture",
+  hasPersistedProviderState(EMPTY_FIXTURE) === false &&
+  hasPersistedProviderState(null) === false && hasPersistedProviderState({}) === false);
+check("an empty-string id does not count as persisted",
+  hasPersistedProviderState({ testClockId: "" }) === false);
+check("a non-string id does not count as persisted",
+  hasPersistedProviderState({ testClockId: 123 as any }) === false);
+check("every provider id field is covered by the check",
+  PROVIDER_ID_FIELDS.every((f) => hasPersistedProviderState({ [f]: "v" })));
+
+/* The handler must decide from a RE-READ fixture: opProvision persists the
+   clock id mid-way, so the copy it opened with can be stale. */
+check("the failure branch re-reads the fixture before deciding",
+  before(handler, "const afterFail = await ctx.runQuery", "phaseAfterFailure(command"));
+check("the failure branch uses phaseAfterFailure, not the in-flight phase",
+  /phase: phaseAfterFailure\(command, afterFail\.row\)/.test(handler) &&
+  !/phase: admission\.inFlight,\s*\n\s*patch: \{ lastError/.test(handler));
+/* Success and re-entry behaviour are untouched by this change. */
+check("the SUCCESS path still lands on the command's terminal phase",
+  /phase: admission\.to/.test(handler));
+check("in-flight re-entry is still refused",
+  (admit("provision", "provisioning") as any).error === "already-running");
 
 /* ── 7. The advance ceiling ──────────────────────────────────────────────── */
 section("7. The advance target is bounded before the Stripe call");
