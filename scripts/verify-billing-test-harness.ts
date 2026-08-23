@@ -871,8 +871,11 @@ check("the ceiling guard exists at all", /if \(!plan\.ok\) return/.test(advBody)
    stable base — see section 7b. Stripe is still read, to observe the roll. */
 check("the live period end is still read from Stripe",
   /const livePeriodEnd = sub\.object\?\.items\?\.data\?\.\[0\]\?\.current_period_end/.test(advBody));
-check("the clock is polled to ready before anything is read",
-  before(advBody, 'status === "ready"', "fixtureListPath("));
+/* The property is about the POST-advance read: results must not be read from a
+   half-applied world. The pre-flight read happens before the advance and is a
+   different thing entirely. */
+check("the clock is polled to ready before RESULTS are read",
+  before(advBody, 'status === "ready"', "const invoices = await stripeGet"));
 check("exactly one failed attempt is required",
   /isSingleFailedAttempt\(open\.attempt_count\)/.test(advBody));
 check("more than one attempt is a hard stop, not a recovery",
@@ -941,12 +944,12 @@ check("a missing stored boundary makes it non-resumable",
 check("a missing clock or subscription makes it non-resumable",
   isAdvanceResumable({ ...MIDADV, testClockId: undefined }) === false &&
   isAdvanceResumable({ ...MIDADV, stripeSubscriptionId: undefined }) === false);
-/* `advance-rejected` is deliberately resumable too — Stripe refused the request,
-   so the clock provably did not move. Every OTHER code stays non-resumable. */
-for (const code of ERROR_CODES.filter((c) => c !== "not-converged" && c !== "advance-rejected")) {
-  check(`"${code}" mid-advance is not resumable`,
-    isAdvanceResumable({ ...MIDADV, lastError: code }) === false);
-}
+/* Superseded: the predicate no longer decides from the label. What it still
+   refuses on is what it CAN see — a recorded attempt or a recorded invoice. */
+check("a recorded attempt is refused regardless of label",
+  ERROR_CODES.every((c) => isAdvanceResumable({ ...MIDADV, lastError: c, attemptCount: 1 }) === false));
+check("a recorded renewal invoice is refused regardless of label",
+  ERROR_CODES.every((c) => isAdvanceResumable({ ...MIDADV, lastError: c, renewalInvoiceId: "in_x" }) === false));
 check("other phases are never advance-resumable",
   PHASES.filter((p) => p !== "renewal_advancing")
     .every((p) => isAdvanceResumable({ ...MIDADV, phase: p }) === false));
@@ -977,11 +980,36 @@ check("a refused advance is classified, not a generic error",
 check("advance-rejected is an allowlisted code", isErrorCode("advance-rejected"));
 check("an advance-rejected fixture is resumable",
   isAdvanceResumable({ ...MIDADV, lastError: "advance-rejected" }) === true);
-check("a generic stripe-error mid-advance is still NOT resumable",
-  isAdvanceResumable({ ...MIDADV, lastError: "stripe-error" }) === false);
-check("only the two provable classifications resume",
-  ERROR_CODES.filter((c) => isAdvanceResumable({ ...MIDADV, lastError: c })).sort().join(",")
-    === "advance-rejected,not-converged");
+/* The label is a hint; EVIDENCE is the gate. Gating an irreversible action on
+   our own recorded classification failed twice — a label written before a fix
+   existed is stale, and a label is never evidence about the external world. */
+check("any mid-advance classification is admitted, with evidence deciding",
+  ERROR_CODES.every((c) => isAdvanceResumable({ ...MIDADV, lastError: c }) === true));
+check("a non-code label is still refused",
+  isAdvanceResumable({ ...MIDADV, lastError: "raw stripe text" }) === false &&
+  isAdvanceResumable({ ...MIDADV, lastError: undefined }) === false);
+
+/* ── 7e. Pre-flight: evidence gates the advance ──────────────────────────── */
+section("7e. The advance verifies the world before it moves the clock");
+
+check("the cycle invoices are read BEFORE the advance request",
+  before(advBody, "const preInv = await stripeGet", "const advance ="));
+check("a prior payment attempt vetoes the advance",
+  /priorCycle\.some\(\(i: any\) => \(i\.attempt_count \|\| 0\) >= 1\)/.test(advBody) &&
+  /return \{ ok: false, error: "unexpected-attempt-count" \}/.test(advBody));
+check("the pre-flight invoice read is scoped, not a broad list",
+  /fixtureListPath\("invoices", "subscription", fx\.stripeSubscriptionId/.test(advBody));
+check("only subscription_cycle invoices count toward the veto",
+  /i\.billing_reason === "subscription_cycle"/.test(advBody));
+check("the clock is read and identity-checked before advancing",
+  before(advBody, "const clockNow = await stripeGet", "const advance =") &&
+  /clockNow\.data\?\.id !== fx\.testClockId/.test(advBody) &&
+  /clockNow\.data\?\.livemode !== false/.test(advBody));
+check("a clock already at or past the target SKIPS the advance",
+  /const alreadyThere = typeof frozenNow === "number" && frozenNow >= plan\.target/.test(advBody) &&
+  /alreadyThere \? \{ ok: true, status: 200, data: null \} : await stripePost/.test(advBody));
+check("skipping still proceeds to observation rather than returning early",
+  before(advBody, "alreadyThere ?", "status === \"ready\""));
 
 /* ── 8. Filtered queries for test-clock resources ────────────────────────── */
 section("8. Test-clock resources are read with a scoped query");
