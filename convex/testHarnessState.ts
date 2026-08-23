@@ -139,10 +139,19 @@ export type Admission =
  *
  * Nothing here infers, repairs, or resumes. A fixture in an unexpected phase
  * produces a rejection and stays exactly where it was. */
-export function admit(rawCommand: unknown, phase: Phase): Admission {
+export function admit(rawCommand: unknown, phase: Phase, fixture?: unknown): Admission {
   if (!isCommand(rawCommand)) return { ok: false, error: "unknown-command" };
   const command = rawCommand;
   const t = TRANSITIONS[command];
+
+  /* ADOPTION. A `provisioning` fixture that satisfies the strict predicate may
+     re-run `provision`, which then takes the read-only path. This is the one
+     exception to in-flight refusal, and it is safe precisely because the
+     adoption branch issues no Stripe write at all — a double-click can produce
+     at worst a second round of reads. */
+  if (command === "provision" && phase === "provisioning" && isAdoptable(fixture)) {
+    return { ok: true, command, inFlight: "provisioning", to: "healthy" };
+  }
 
   /* Re-entry check first. `delete_clock` starts from `terminal` and also uses
      `terminal` as its in-flight phase, so it is exempt from this check — it is
@@ -156,8 +165,8 @@ export function admit(rawCommand: unknown, phase: Phase): Admission {
 }
 
 /** Which commands a given phase may start. Used to disable UI buttons. */
-export function allowedCommands(phase: Phase): Command[] {
-  return COMMANDS.filter((c) => admit(c, phase).ok);
+export function allowedCommands(phase: Phase, fixture?: unknown): Command[] {
+  return COMMANDS.filter((c) => admit(c, phase, fixture).ok);
 }
 
 /* ── PRE-WRITE FAILURE ROLLBACK ──────────────────────────────────────────── */
@@ -353,10 +362,13 @@ export function safeStatus(fixture: unknown): SafeStatus {
   const f = (fixture && typeof fixture === "object" ? fixture : {}) as Record<string, unknown>;
   const phase: Phase = isPhase(f.phase) ? f.phase : "empty";
   const rawErr = f.lastError;
+  const adoptable = isAdoptable(f);
   return {
     phase,
-    allowed: allowedCommands(phase),
-    inFlight: isInFlight(phase),
+    allowed: allowedCommands(phase, f),
+    /* An adoptable fixture is stopped, not running. Reporting it as in-flight
+       would tell the operator to wait for something that will never finish. */
+    inFlight: isInFlight(phase) && !adoptable,
     attemptCount: typeof f.attemptCount === "number" ? f.attemptCount : 0,
     hasFixture: Boolean(fixture && typeof fixture === "object"),
     lastError: isErrorCode(rawErr) ? rawErr : null,
@@ -381,7 +393,7 @@ export const FIXTURE_QUERY_SCOPES = ["customer", "subscription", "test_clock"] a
 export type FixtureQueryScope = (typeof FIXTURE_QUERY_SCOPES)[number];
 
 export function fixtureListPath(
-  resource: "invoices" | "subscriptions" | "payment_methods",
+  resource: "invoices" | "subscriptions" | "payment_methods" | "customers",
   scope: FixtureQueryScope,
   id: string,
   extra?: Record<string, string>,
@@ -515,6 +527,88 @@ export function paymentMethodOwnershipVerdict(
     return { ok: false, error: "clock-not-owned" };
   }
   return { ok: true };
+}
+
+
+/* ── CONVERGENCE POLLING ─────────────────────────────────────────────────── */
+
+/* Webhook delivery is asynchronous. The first real provisioning run created the
+ * Stripe objects correctly, the webhook applied correctly, and provisioning
+ * still reported `not-converged` — because the canonical row was read ONCE,
+ * immediately after the subscription was created, before the event could
+ * possibly have landed.
+ *
+ * opAdvance already polls the clock to `ready` with these same bounds. This is
+ * the same idea applied to the half that was missing it. Bounded, never
+ * recursive, and reads only: a convergence timeout is a reason to stop and look,
+ * never permission to create a second object. */
+export const CONVERGENCE_POLL_ATTEMPTS = 30;
+export const CONVERGENCE_POLL_INTERVAL_MS = 2000;
+
+/* ── HEALTHY FIXTURE COMPLETENESS ────────────────────────────────────────── */
+
+/* Exactly what a fixture must hold for the rest of the lifecycle to run without
+ * rediscovering anything. Derived from what the downstream operations actually
+ * read, not from what provisioning happens to write:
+ *
+ *   arm_failure      testClockId, stripeCustomerId, stripeSubscriptionId,
+ *                    originalCustomerDefaultPaymentMethodId, renewalAt
+ *   advance          testClockId, stripeSubscriptionId
+ *   restore_and_pay  + originalSubscriptionDefaultPaymentMethodId
+ *
+ * `originalSubscriptionDefaultPaymentMethodId` is deliberately NOT in this list.
+ * Its correct value for this fixture is `null` — the subscription-level override
+ * is left unset so the Customer default is the effective method — and a field
+ * whose right answer is absence cannot be checked for presence. */
+export const HEALTHY_FIXTURE_FIELDS = [
+  "testClockId",
+  "stripeCustomerId",
+  "stripeSubscriptionId",
+  "originalCustomerDefaultPaymentMethodId",
+] as const;
+
+export function isHealthyFixtureComplete(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  const ids = HEALTHY_FIXTURE_FIELDS.every(
+    (k) => typeof f[k] === "string" && (f[k] as string).length > 0,
+  );
+  const renewal = typeof f.renewalAt === "number" && Number.isFinite(f.renewalAt) && f.renewalAt > 0;
+  return ids && renewal;
+}
+
+/* ── ADOPTION PREDICATE ──────────────────────────────────────────────────── */
+
+/* The ONLY convergence classifications a fixture may be adopted from. A generic
+ * `stripe-error` is not here on purpose: it means an external call failed in a
+ * way we did not classify, so what exists in Stripe is unknown. */
+export const ADOPTABLE_ERRORS: readonly string[] = ["not-converged"];
+
+/* Whether a stuck `provisioning` fixture may be recovered by re-running
+ * `provision` as a READ-ONLY adoption.
+ *
+ * This is deliberately narrow, and it must not make every provisioning fixture
+ * retryable. The first failed disposable fixture — no clock id, generic
+ * `stripe-error` — stays permanently unrecoverable, because nothing about it
+ * tells us whether anything exists in Stripe. This one is recoverable for a
+ * specific reason: the clock id IS known, and from a clock the entire object
+ * graph can be re-derived and re-verified without creating anything.
+ *
+ * Every later stage is excluded. Once a failure method is attached, a renewal
+ * invoice exists, the clock has advanced, or cancellation has begun, the world
+ * is no longer "provisioning succeeded but we failed to write it down". */
+export function isAdoptable(fixture: unknown): boolean {
+  if (!fixture || typeof fixture !== "object") return false;
+  const f = fixture as Record<string, unknown>;
+  if (f.phase !== "provisioning") return false;
+  if (typeof f.testClockId !== "string" || !f.testClockId) return false;
+  if (!ADOPTABLE_ERRORS.includes(String(f.lastError))) return false;
+  /* No part of the failure lifecycle may have started. */
+  if (f.attemptCount !== 0) return false;
+  for (const later of ["failingPaymentMethodId", "renewalInvoiceId", "advanceTarget", "nextPaymentAttempt"]) {
+    if (f[later] !== undefined && f[later] !== null && f[later] !== "") return false;
+  }
+  return true;
 }
 
 
