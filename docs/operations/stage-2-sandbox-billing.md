@@ -2092,7 +2092,7 @@ itself from `SITE_URL`. The Portal opened in **Sandbox** for the annual account.
 
 Identity was gated before the click: the session's account was confirmed to be
 the annual QA user and confirmed **not** to be the monthly subscriber, by
-comparing salted hashes rather than by reading either address aloud.
+comparing SHA-256 hashes rather than by reading either address aloud.
 
 ### Portal state before touching anything
 
@@ -2260,6 +2260,153 @@ and field-identical in Stripe: still `plus_monthly`, `active`, scheduled to end
 September 21, 2026, with its own payment method untouched. The two Customer
 mappings remain distinct, and the monthly account's invoice history was never
 opened. No cross-account invoice access occurred.
+
+## 6.20 Payment-failure test: BLOCKED before any Stripe write, 2026-08-23 UTC
+
+Audited at commit `d2cc1bd` against Convex development `good-dotterel-906`. **No
+Stripe write was made. No Stripe object was created, attached, or modified.**
+This section records why a planned test was stopped, and what would have to
+change before it can run.
+
+The plan was a small controlled one-off invoice: attach Stripe's
+decline-after-attaching sandbox PaymentMethod, make it the Customer default,
+raise a $1.00 invoice carrying the annual subscription as context, let it fail,
+observe `paymentNeedsAttention` turn true, then restore the working method and
+pay the same invoice to recover.
+
+The mandatory pre-write audit says that test cannot work against this code. Two
+independent reasons, both in the shipped webhook path.
+
+### Blocker 1 — the event would be silently ignored
+
+`convex/http.ts:182` resolves an invoice event through exactly one function:
+
+```ts
+function readInvoiceSubscriptionId(obj: any): string | null {
+  const nested = obj?.parent?.subscription_details?.subscription;
+  ...
+}
+```
+
+It reads **one** location on the invoice root: `parent.subscription_details.subscription`.
+It never inspects invoice **lines**. That narrowing was deliberate and is
+documented in the file itself — the readers were tightened once real Dahlia
+payloads were captured (§6.8), specifically so a payload that does not match the
+real shape fails closed instead of flowing into the entitlement tables looking
+healthy.
+
+A one-off invoice carries its subscription association on the **invoice item /
+line**, not on the invoice root's `parent`. The captured real annual invoice
+shows both shapes side by side:
+
+| Location | Real cycle invoice | Read by the app? |
+|---|---|---|
+| `invoice.parent.subscription_details.subscription` | present | **yes — the only field read** |
+| `line.parent.subscription_item_details.subscription` | present | **no — never inspected** |
+
+So for the proposed invoice the resolver returns `null`, and
+`convex/http.ts:187` runs:
+
+```ts
+if (!subscriptionId) return ACK();
+```
+
+That returns **before** `applyWebhook`. Since `billingEvents` is only written
+inside that mutation (`convex/subscriptions.ts:227`), the event would produce
+**no `billingEvents` row, no outcome, and no state change** — acknowledged to
+Stripe and dropped. `billingEvents` would stay at 10, and the test would look
+like a silent failure rather than a signal.
+
+### Blocker 2 — even if it were mapped, it could not raise attention
+
+This one is independent of invoice shape, and it is the deeper problem.
+
+`paymentNeedsAttention` is not set by invoice events at all. It is a pure
+function of the **stored subscription status** (`convex/entitlements.ts:103`):
+
+```ts
+if (status === "past_due" || status === "unpaid") { ... needsAttention: true ... }
+```
+
+And the webhook never stores anything from the invoice. On every event it
+re-fetches the live subscription and writes that object's status
+(`convex/http.ts:237`):
+
+```ts
+status: String(sub.status || ""),
+```
+
+`applyWebhook` accepts no attention flag and has no invoice-specific branch —
+its arguments are subscription fields only. So the **only** lever on attention is
+the annual subscription's own status.
+
+A failed one-off invoice does not move a subscription to `past_due`. Stripe's
+documentation is explicit that `active` "doesn't indicate that all outstanding
+invoices associated with the subscription have been paid — you can leave other
+outstanding invoices open for payment". `past_due` tracks the subscription's own
+latest finalized cycle invoice.
+
+The annual subscription would therefore stay `active`, and
+`paymentNeedsAttention` would stay `false`, even in the best case where Blocker 1
+did not apply.
+
+### Neither acceptable mapping holds
+
+- **Mapping A** (reader understands the invoice or line association) — **fails.**
+  The reader looks at one invoice-root field and never at lines.
+- **Mapping B** (reader maps by Customer, and the annual Customer has exactly one
+  canonical subscription) — **fails.** There is a `by_customer` fallback, but it
+  lives *inside* `applyWebhook`, which is unreachable here; and the customer id
+  it uses is taken from the **fetched subscription**, not from the invoice. It
+  cannot be reached without a subscription id in the first place.
+
+Two of the stop conditions therefore fired: *the event would be ignored*, and
+*`invoice.payment_failed` cannot set attention*.
+
+### This is a correct design, not a defect
+
+Worth being clear: nothing here is broken. The narrow reader and the
+status-derived attention flag are both doing their jobs. A one-off invoice is
+simply not a subscription health signal, and the code declines to pretend it is.
+
+The consequence is only that a one-off invoice is the **wrong instrument** for
+this test. Attention state is reachable only by genuinely moving the annual
+subscription into `past_due` or `unpaid`.
+
+### What would actually exercise this path
+
+Recorded for whoever picks this up, in rough order of preference:
+
+1. **A test clock.** Create a QA subscription against a Stripe test clock with a
+   failing payment method, advance the clock past a renewal, and let a real
+   `subscription_cycle` invoice fail. That drives `subscription.status` to
+   `past_due` for real, fires `customer.subscription.updated` and
+   `invoice.payment_failed` against a subscription the reader already
+   understands, and is fully reversible by paying the invoice. It does **not**
+   touch the existing annual subscription — it needs its own throwaway
+   subscription, since a test clock cannot be attached to an existing one.
+2. **A third disposable QA subscription** on a short interval with a failing
+   method, allowed to fail its first cycle invoice. Cheaper to set up, slower to
+   reach, and it adds a third canonical row that must then be cleaned up.
+3. **Widening the reader** to fall back to `line.parent.subscription_item_details.subscription`.
+   This is a code change, not a test, and it should be resisted unless a real
+   Stripe payload requires it — the current narrowness is a deliberate
+   fail-closed property, and widening it to make a test convenient would trade a
+   security property for test ergonomics.
+
+Option 1 is the honest one. It exercises the real path with a real event, and it
+leaves both existing subscribers untouched.
+
+### State at the end of this audit
+
+Unchanged, because nothing was written. Stripe: 2 Customers, 2 Subscriptions,
+the annual subscription `active` at `year × 1` renewing August 22, 2027 with its
+Customer default still the working sandbox Mastercard and its subscription-level
+default still `null`; the monthly subscriber untouched. Convex: `subscriptions`
+2, `billingCustomers` 2, `billingEvents` 10.
+
+No Portal Session, Checkout Session, PaymentMethod attachment, invoice, payment
+attempt, webhook, deployment, or environment change occurred.
 
 ## 7. Not yet created
 
