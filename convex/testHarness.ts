@@ -53,6 +53,7 @@ import {
   isAdoptable,
   isHealthyFixtureComplete,
   isNormalizable,
+  isAdvanceResumable,
   isSingleFailedAttempt,
   fixtureListPath,
   safeError,
@@ -812,10 +813,27 @@ async function opAdvance(ctx: any, secret: string, fx: any, token: string): Prom
   );
   if (!sub.ok) return { ok: false, error: sub.error };
 
-  /* Read the boundary from Stripe. Never compute it, never trust the stored
-     copy on its own — a stale renewalAt would move the ceiling. */
-  const renewalAt = sub.object?.items?.data?.[0]?.current_period_end;
+  /* THE BASE IS THE STORED BOUNDARY, and this is load-bearing.
+   *
+   * Once the clock crosses the renewal, Stripe rolls the subscription forward
+   * and `current_period_end` becomes the NEXT year. Re-reading it on a resumed
+   * advance would compute a target roughly a year ahead — and with this
+   * account's final action set to cancel, that destroys the fixture rather
+   * than failing one payment.
+   *
+   * `fx.renewalAt` is the boundary captured at provisioning and verified
+   * against Stripe then. It is the only stable base for this test. The live
+   * value is still read below, but only to tell whether the period has already
+   * rolled — never to aim at. */
+  const livePeriodEnd = sub.object?.items?.data?.[0]?.current_period_end;
+  const renewalAt = typeof fx.renewalAt === "number" ? fx.renewalAt : livePeriodEnd;
+  /* Target the ceiling, not the boundary: Stripe holds the cycle invoice in
+     draft for an hour before finalizing and attempting payment. */
   const plan = planAdvance(renewalAt);
+  /* No extra guard is needed here beyond the ceiling: planAdvance refuses any
+     target above `renewalAt + ADVANCE_MARGIN_SECONDS`, and the resume predicate
+     refuses once a payment attempt exists. Between them, the clock can never be
+     pushed past one finalization window from the original boundary. */
   /* The ceiling is enforced HERE, before the request. A ceiling checked after
      the call would be a log line, not a guard — and with the sandbox's final
      action set to CANCEL, an over-advance destroys the fixture outright. */
@@ -824,7 +842,8 @@ async function opAdvance(ctx: any, secret: string, fx: any, token: string): Prom
   await ctx.runMutation(internal.testHarness.upsertFixtureInternal, {
     userId: fx.userId,
     phase: "renewal_advancing",
-    patch: { renewalAt, advanceTarget: plan.target },
+    /* Do NOT overwrite the stored boundary with the rolled-forward value. */
+    patch: { advanceTarget: plan.target },
   });
 
   const advance = await stripePost(
@@ -860,11 +879,16 @@ async function opAdvance(ctx: any, secret: string, fx: any, token: string): Prom
   const invoices = await stripeGet(path, secret);
   if (!invoices.ok || !Array.isArray(invoices.data?.data)) return { ok: false, error: "stripe-error" };
 
-  const open = invoices.data.data.find(
+  /* The renewal invoice must be FINALIZED and failed. A `draft` means the
+     one-hour finalization window has not elapsed in clock time — the advance
+     did not go far enough, and that is a stop, not a reason to advance again
+     on the spot. */
+  const cycle = invoices.data.data.filter(
     (i: any) =>
-      i.status === "open" &&
+      i.billing_reason === "subscription_cycle" &&
       i.parent?.subscription_details?.subscription === fx.stripeSubscriptionId,
   );
+  const open = cycle.find((i: any) => i.status === "open");
   if (!open) return { ok: false, error: "not-converged" };
 
   /* Exactly one attempt, or stop. More than one means the advance overshot and
