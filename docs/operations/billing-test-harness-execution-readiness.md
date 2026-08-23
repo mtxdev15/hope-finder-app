@@ -472,6 +472,20 @@ no clock advanced and no payment was attempted. Record:
   `provision` command. No seventh command; no Stripe write; scoped discovery
   only. A fixture with no clock id stays unrecoverable.
 
+## 15c. Stale error clearing and healthy normalization
+
+Added 2026-08-23 after a third stop. A success could not clear the error it
+recovered from: `lastError: undefined` is dropped from serialized Convex
+arguments. Success now uses an explicit `clearLastError: true` signal, with the
+removal constructed locally. No schema change — the field is already optional
+and absent already maps to public `null`.
+
+A read-only normalization path clears a stranded `not-converged` label on an
+already-healthy fixture via the same `provision` command, re-proving the whole
+graph first and withholding `arm_failure` until it is cleared.
+
+Record: `billing-test-harness-stale-error-stop-2026-08-23.md`.
+
 ## 16. What the next task must authorize explicitly
 
 1. Setting `BILLING_TEST_HARNESS_ENABLED=true` and

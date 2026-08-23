@@ -386,6 +386,11 @@ When Stage 2 resumes, in this order:
          Three fixes added: bounded convergence polling, incremental provider
          persistence, and read-only adoption via the same `provision` command.
          See `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
+         **Third stop 2026-08-23:** adoption succeeded read-only with zero Stripe
+         mutations, but the fixture still reported a stale `not-converged`
+         because `undefined` is dropped from serialized Convex arguments. Fixed
+         with an explicit clear signal plus a read-only healthy-normalization
+         path. Lifecycle stopped before `arm_failure`.
          **Harness implemented behind gates 2026-08-23; execution NOT started.**
          See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
          are unset, nothing was deployed, and no Stripe object exists from it.

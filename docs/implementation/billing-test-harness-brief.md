@@ -647,6 +647,26 @@ unrecoverable; the distinction is the predicate, not a convenience.
 
 Suite: **404 checks, 29 mutations, all caught.**
 
+### Stale error clearing (2026-08-23)
+
+A third stop, after read-only adoption succeeded. The fixture was genuinely
+healthy but still reported `not-converged`, because `lastError: undefined` is
+dropped when a patch is serialized as a Convex function argument — the key never
+reached the mutation and the old value survived.
+
+Success now clears through an explicit **`clearLastError: true`** signal, which
+survives serialization; the field removal is constructed locally against
+`ctx.db.patch`. No schema change was needed — `lastError` is already optional,
+and an absent field already maps to public `null`.
+
+A narrow **read-only normalization** path lets the same `provision` command
+clear that stranded label on an already-healthy fixture without moving the phase
+backward. It re-proves the entire object graph and canonical state first, and
+`arm_failure` is withheld until the label is cleared. Only `not-converged` is
+normalizable. The six-command surface is unchanged.
+
+See `docs/operations/billing-test-harness-stale-error-stop-2026-08-23.md`.
+
 ### Still required before anything runs
 
 A separate execution-readiness audit against the compiled harness, then explicit
