@@ -1975,6 +1975,15 @@ No new invoice, no charge, no proration, no refund, and zero credit notes. The
 existing invoice was **not opened or downloaded**; that remains its own separate
 TODO.
 
+**No plan switch occurred.** The subscription still carries the same annual plan
+at `year × 1` with `planKey` unchanged, and the Portal configuration has plan
+switching and quantity updates turned off, so the control was not available to
+click in the first place.
+
+**No second Checkout Session was created.** The only Checkout on this account is
+still the original annual purchase; this test opened one Portal session and
+nothing else.
+
 ### A subscribed event DID fire, and that is correct
 
 The expectation going in was that `billingEvents` would stay at 9, because the
@@ -1988,9 +1997,23 @@ emitted **`customer.subscription.updated`** — a type this endpoint has always
 subscribed to, because cancellation handling needs it.
 
 Convex handled it correctly. The canonical annual row changed **only** in
-`lastProviderEventAt` and `updatedAt`; `planKey`, `tier`, `status`,
+`lastProviderEventAt` and `updatedAt`; `provider`, `planKey`, `tier`, `status`,
 `billingInterval`, `cancelAtPeriodEnd` and `currentPeriodEnd` are all unchanged.
 `outcome: "applied"`, no conflict, no duplicate row.
+
+Row counts before and after, stated plainly so the one legitimate increment is
+never mistaken for a claim that nothing in Convex moved:
+
+| Table | Before | After |
+|---|---|---|
+| `subscriptions` | 2 | 2 |
+| `billingCustomers` | 2 | 2 |
+| `billingEvents` | 9 | **10** |
+
+`subscriptions` and `billingCustomers` still hold the same two rows each — the
+monthly subscriber and the annual QA account — so no subscription and no customer
+mapping was created, replaced, or crossed between accounts. Only `billingEvents`
+grew, by the single `customer.subscription.updated` described above.
 
 **Worth remembering:** a Portal payment-method change can produce a
 `customer.subscription.updated` webhook whenever it clears a subscription-level
