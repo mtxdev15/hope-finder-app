@@ -672,3 +672,24 @@ See `docs/operations/billing-test-harness-stale-error-stop-2026-08-23.md`.
 A separate execution-readiness audit against the compiled harness, then explicit
 authorization to set the flags and create the disposable account. Neither flag
 should be set until then. `payment-failure / payment-attention` remains open.
+
+---
+
+## 14. Execution records
+
+The harness has now been run twice, under separate authorizations, and is
+disabled again.
+
+- **Payment failure and recovery** —
+  [../operations/billing-test-harness-execution-record-2026-08-23.md](../operations/billing-test-harness-execution-record-2026-08-23.md)
+- **Hosted Billing Portal release gate** —
+  [../operations/billing-portal-release-gate-2026-08-23.md](../operations/billing-portal-release-gate-2026-08-23.md).
+  The second run found a seventh safe stop: recovery required the
+  subscription-level default payment method to still equal the value captured at
+  provisioning, and the hosted Portal legitimately changes that field. PR #47
+  replaced the snapshot comparison with a semantic check of the *effective*
+  payment method under Stripe's own precedence. A Portal-set default is now
+  preserved rather than second-guessed, and an already-paid invoice is observed
+  rather than paid again.
+- **Production activation prerequisites** —
+  [../operations/billing-production-activation-readiness.md](../operations/billing-production-activation-readiness.md)

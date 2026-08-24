@@ -163,5 +163,11 @@ leak a column added to the table later.
   none were checked.
 - Dunning through the **Portal**. Recovery went through the API, not the hosted
   recovery flow a real subscriber would see.
+  **Closed 2026-08-24** — hosted Portal recovery, cancellation scheduling and
+  cancellation reversal were all exercised on a second disposable fixture. See
+  [billing-portal-release-gate-2026-08-23.md](billing-portal-release-gate-2026-08-23.md),
+  which also corrects the attention-badge colour recorded in §1 above.
 - Any **production** behaviour. Nothing in this record was executed against
-  live mode, and no live key, Product, Price, or webhook exists.
+  live mode, and no live key, Product, Price, or webhook exists. What production
+  would still need is inventoried in
+  [billing-production-activation-readiness.md](billing-production-activation-readiness.md).

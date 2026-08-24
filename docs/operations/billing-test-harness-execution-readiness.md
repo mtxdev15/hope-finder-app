@@ -500,3 +500,18 @@ Record: `billing-test-harness-stale-error-stop-2026-08-23.md`.
 8. Disabling both flags afterwards.
 
 Until a task grants those explicitly, the harness stays off.
+
+---
+
+## Executed
+
+Both authorized runs are complete and the harness is off again.
+
+- **2026-08-23 — payment failure and recovery.**
+  [billing-test-harness-execution-record-2026-08-23.md](billing-test-harness-execution-record-2026-08-23.md)
+- **2026-08-24 — hosted Billing Portal release gate.** Portal recovery,
+  cancellation scheduling and cancellation reversal, plus the authenticated
+  disabled-gate refusal observed live.
+  [billing-portal-release-gate-2026-08-23.md](billing-portal-release-gate-2026-08-23.md)
+- **What production still needs before billing can be activated.**
+  [billing-production-activation-readiness.md](billing-production-activation-readiness.md)
