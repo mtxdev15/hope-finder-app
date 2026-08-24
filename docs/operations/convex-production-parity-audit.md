@@ -27,6 +27,11 @@ Not by assumption. `npx convex function-spec --prod` was taken as ground truth
 and compared against the source of every candidate branch:
 
 - production exposes **46 functions + 5 HTTP actions** across 10 modules;
+  *(count corrected 2026-08-24: the real total is **51** function-spec entries.
+  The 46 came from counting lines of pretty-printed JSON instead of parsing it.
+  The conclusion of this audit — that the branch and production export the same
+  set, with zero production-only functions — is unaffected. Left as written and
+  annotated rather than rewritten, so the mistake stays visible.)*
 - `release-c1-monetization` exports exactly those 46, with **zero**
   production-only functions;
 - the only two branch exports missing from the spec are `auth.js:createAuth`

@@ -164,9 +164,13 @@ None of these are oversights. Each is a deliberate stop.
 - [ ] No test payment has been completed
 - [x] Sandbox Billing Portal **configuration** is complete and verified
       (2026-08-22, §6.12.1) — active default, sandbox-only
-- [ ] No Portal **session** has been created or opened. Configuration is not
-      validation: return to `/you`, cancellation, payment-method updates and
-      invoice history are all still unexercised
+- [x] Portal **sessions** have been created and opened (2026-08-24) — three of
+      them, from the authenticated app on a disposable Test Clock fixture. Every
+      criterion this item named is now exercised: return to `/you`, cancellation
+      (scheduled at period end **and** reversed), payment-method update, and
+      invoice history. Recovery of a genuinely failed renewal payment was
+      performed **through the hosted Portal**, not the API. Record:
+      `docs/operations/billing-portal-release-gate-2026-08-23.md`
 - [ ] No annual Checkout Session has been created. The annual dev control now
       exists (resume step 6d); the annual Price has never been exercised
 - [x] Payment failure and recovery **have** been exercised (2026-08-23) on a
@@ -175,11 +179,24 @@ None of these are oversights. Each is a deliberate stop.
       same throwaway fixture only
 - [ ] No cancellation has been performed on a **real** QA subscriber through the
       Portal. The monthly subscriber's end-of-period cancellation (§6.17) was
-      set through the API, and no Portal cancellation flow has been walked
+      set through the API. *Narrowed 2026-08-24:* the hosted Portal cancellation
+      flow itself **has** now been walked — scheduled at period end and then
+      reversed — but on the disposable Test Clock fixture, not on a real
+      subscriber. Stripe recorded the schedule as `cancel_at` with
+      `cancel_at_period_end: false`, and the app normalized it to
+      `cancelAtPeriodEnd: true` correctly. What remains is the real monthly
+      subscriber reaching its already-set end date
 - [ ] No production billing CTA is enabled — the pricing page CTA is still a
       disabled "Opening soon" button
 - [ ] No live Stripe Product, Price, webhook or secret has been created
 - [ ] No StoreKit or App Store Connect product has been created
+- [ ] **Stale live Stripe secrets on the production Worker (found 2026-08-24).**
+      `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are still set on
+      `hope-finder-worker` and are referenced **nowhere** in its source. They are
+      leftovers from the retired giving product and they contradict rule C5,
+      which says the Worker holds no Stripe credential. Two unused live-mode
+      secrets on an internet-facing service is avoidable exposure. Rotate or
+      remove them as a deliberate step, separate from billing activation
 
 ### Resume point
 
@@ -379,6 +396,22 @@ When Stage 2 resumes, in this order:
          flags removed); functions stay deployed to development and inert.
          *Not observed:* Stripe's automatic Smart Retry cadence (recovery was
          driven manually), failed-payment emails (disabled), and Portal dunning.
+         *Portal dunning closed 2026-08-24* on a second disposable fixture —
+         hosted recovery, cancellation scheduling and cancellation reversal, plus
+         the authenticated disabled-gate refusal observed live. A seventh safe
+         stop was found and fixed first (PR #47): recovery required the
+         subscription-level default payment method to still equal the value
+         captured at provisioning, and the hosted Portal legitimately sets that
+         field, so a fixture the Portal had already recovered was refused before
+         its invoice was ever inspected. Snapshot equality replaced with a
+         semantic check of the *effective* method under Stripe's own precedence;
+         a Portal-set default is preserved, and an already-paid invoice is
+         observed rather than paid again. Suite 538 -> 592, 31/31 mutations
+         caught. Record:
+         `docs/operations/billing-portal-release-gate-2026-08-23.md`.
+         Smart Retry cadence and failed-payment notification remain unobserved
+         and are production activation prerequisites — see
+         `docs/operations/billing-production-activation-readiness.md`.
          **Design locked 2026-08-23** — see
          `docs/implementation/billing-test-harness-brief.md`. Route is a Test
          Clock fixture on a third disposable QA account, driven by a
@@ -401,6 +434,13 @@ When Stage 2 resumes, in this order:
          `testHarness`), and unexecuted. Separate authorization is required to
          set either flag, deploy to development, or create the disposable
          account.
+         *Denominator corrected 2026-08-24:* production actually holds **51**
+         function-spec entries, not 47 (and not the 46 recorded earlier in
+         `docs/operations/convex-production-parity-audit.md`). Both older totals
+         came from counting lines of pretty-printed JSON rather than parsing it.
+         The number that mattered was never the denominator: **zero** deployed
+         production `testHarness` entries was correct then and is correct now,
+         re-verified by parsing `convex function-spec` as JSON.
          **Two provisioning stops 2026-08-23; lifecycle NOT yet run.** Neither
          reached `arm_failure`; no clock advanced, no payment attempted, both
          existing subscribers unchanged. The second run proved the ownership
