@@ -59,6 +59,11 @@ import {
   isRecoveryResumable,
   isCancelResumable,
   isErrorCode,
+  resolveEffectivePaymentMethod,
+  effectiveMethodPolicy,
+  assessRecoveryInvoiceState,
+  shouldRestoreCustomerDefault,
+  assessFailureMethodState,
   HEALTHY_FIXTURE_FIELDS,
   ADOPTABLE_ERRORS,
   CONVERGENCE_POLL_ATTEMPTS,
@@ -1034,14 +1039,18 @@ check("recovery no longer reads canonical state once",
 
 /* Skip-if-already-done. Evidence, not the label, decides whether the
    irreversible step still needs doing. */
+/* Retargeted, not relaxed. The property is the same — a paid invoice is never
+   paid again — but the decision moved out of an inline `alreadyPaid` boolean
+   and into assessRecoveryInvoiceState, which additionally proves there is
+   exactly one payment and no overpayment. Section 7h executes that. */
 check("an already-paid invoice is NOT paid again",
-  /const alreadyPaid = inv\.object\?\.status === "paid"/.test(rec2) &&
-  /if \(!alreadyPaid\) \{/.test(rec2));
+  /assessRecoveryInvoiceState\(/.test(rec2) &&
+  /if \(invoiceState\.mustPay\) \{/.test(rec2));
 check("an already-canceled subscription is NOT cancelled again",
   /const alreadyCanceled = sub\.object\?\.status === "canceled"/.test(can2) &&
   /if \(!alreadyCanceled\) \{/.test(can2));
 check("the payment call stays inside the skip guard",
-  before(rec2, "if (!alreadyPaid) {", '"/pay"'));
+  before(rec2, "if (invoiceState.mustPay) {", '"/pay"'));
 check("the cancel call stays inside the skip guard",
   before(can2, "if (!alreadyCanceled) {", "stripeDelete("));
 check("a paid invoice still passes ownership validation on a resumed run",
@@ -1089,6 +1098,260 @@ check("both report as stopped, not running",
   safeStatus(MIDREC).inFlight === false && safeStatus(MIDCAN).inFlight === false &&
   JSON.stringify(safeStatus(MIDREC).allowed) === JSON.stringify(["restore_and_pay"]) &&
   JSON.stringify(safeStatus(MIDCAN).allowed) === JSON.stringify(["cancel_fixture"]));
+
+/* ── 7h. Recovery after a hosted-Portal payment ──────────────────────────── */
+section("7h. Recovery judges the effective method, not a historical snapshot");
+
+/* THE DEFECT THIS SECTION EXISTS FOR
+ *
+ * The hosted Billing Portal recovered a genuinely failed payment: it paid the
+ * open renewal invoice and set `subscription.default_payment_method` to the
+ * working card the person selected. Recovery then refused the fixture, because
+ * it required that field to still equal the value captured at provisioning —
+ * which for this fixture is ABSENT by design.
+ *
+ * So a subscription in a BETTER state than recorded was rejected, and rejected
+ * BEFORE the invoice was ever inspected, which meant the harness could not even
+ * observe that the payment had already succeeded. Same family as PR #44 and
+ * #45: a stored value used as evidence about the world.
+ *
+ * These are provider-neutral placeholders. Nothing here reaches a network. */
+const WORK_PM = "pm_fixture_working";
+const PORTAL_PM = "pm_portal_selected";
+const FAIL_PM = "pm_fixture_failing";
+const FX_CUS = "cus_fixture";
+const OTHER_CUS = "cus_someone_else";
+
+/* 1 / 8. Stripe precedence: the subscription-level default outranks the
+   Customer default whenever it is set. */
+check("the subscription default is the effective method when set",
+  resolveEffectivePaymentMethod({ subscriptionDefault: PORTAL_PM, customerDefault: WORK_PM })
+    ?.id === PORTAL_PM);
+check("the effective method reports which field it came from",
+  resolveEffectivePaymentMethod({ subscriptionDefault: PORTAL_PM, customerDefault: WORK_PM })
+    ?.source === "subscription");
+/* 6. */
+check("the customer default applies when the subscription has none",
+  resolveEffectivePaymentMethod({ subscriptionDefault: null, customerDefault: WORK_PM })
+    ?.id === WORK_PM &&
+  resolveEffectivePaymentMethod({ subscriptionDefault: null, customerDefault: WORK_PM })
+    ?.source === "customer");
+check("an expanded object reference resolves the same as a bare id",
+  resolveEffectivePaymentMethod({ subscriptionDefault: { id: PORTAL_PM }, customerDefault: null })
+    ?.id === PORTAL_PM);
+/* 7. */
+check("no method at all resolves to nothing",
+  resolveEffectivePaymentMethod({ subscriptionDefault: null, customerDefault: null }) === null);
+/* 5. */
+check("a malformed method reference resolves to nothing",
+  resolveEffectivePaymentMethod({ subscriptionDefault: {}, customerDefault: "" }) === null &&
+  resolveEffectivePaymentMethod({ subscriptionDefault: 42, customerDefault: false }) === null);
+
+/* 1. The exact live case: no original subscription default, Portal set one, the
+   invoice is already paid. This must be ACCEPTED. */
+check("a Portal-set method on an already-paid invoice is accepted",
+  effectiveMethodPolicy({
+    mustPay: false, effectiveId: PORTAL_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === true);
+check("the historical original is NOT required to equal the current method",
+  effectiveMethodPolicy({
+    mustPay: false, effectiveId: PORTAL_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === true &&
+  PORTAL_PM !== WORK_PM);
+/* 2. */
+check("the failing method is refused when the invoice is already paid",
+  effectiveMethodPolicy({
+    mustPay: false, effectiveId: FAIL_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === false);
+check("the failing method is refused when payment is still owed",
+  effectiveMethodPolicy({
+    mustPay: true, effectiveId: FAIL_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === false);
+/* 7 / 5 at the policy layer. */
+check("an absent effective method is refused in both branches",
+  effectiveMethodPolicy({
+    mustPay: false, effectiveId: null, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === false &&
+  effectiveMethodPolicy({
+    mustPay: true, effectiveId: null, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === false);
+/* 11. Money is about to move, so "valid-looking" is not enough. */
+check("an unproven method is refused while the invoice is still unpaid",
+  effectiveMethodPolicy({
+    mustPay: true, effectiveId: PORTAL_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === false);
+/* 10. */
+check("the proven working method is accepted while payment is owed",
+  effectiveMethodPolicy({
+    mustPay: true, effectiveId: WORK_PM, originalWorkingId: WORK_PM, failingId: FAIL_PM,
+  }).ok === true);
+check("a fixture with no recorded working method cannot authorise a payment",
+  effectiveMethodPolicy({
+    mustPay: true, effectiveId: WORK_PM, originalWorkingId: undefined, failingId: FAIL_PM,
+  }).ok === false);
+
+/* 3 / 4 / 23. The policy decides strictness; the object's own attachment is what
+   proves it is ours, and that is still paymentMethodOwnershipVerdict. */
+check("a method attached to another customer is refused",
+  paymentMethodOwnershipVerdict({
+    pmLivemode: false, pmId: PORTAL_PM, expectedPmId: PORTAL_PM,
+    pmCustomer: OTHER_CUS, expectedCustomerId: FX_CUS,
+  }).ok === false);
+check("a live-mode method is refused",
+  paymentMethodOwnershipVerdict({
+    pmLivemode: true, pmId: PORTAL_PM, expectedPmId: PORTAL_PM,
+    pmCustomer: FX_CUS, expectedCustomerId: FX_CUS,
+  }).error === "not-sandbox");
+check("the effective method is RETRIEVED and validated, not trusted",
+  before(rec2, "resolveEffectivePaymentMethod(", "assertPaymentMethodOwned("));
+
+/* 19 / 9. */
+check("a paid invoice with exactly one payment needs no payment",
+  assessRecoveryInvoiceState({ invoiceStatus: "paid", paymentCount: 1, amountOverpaid: 0 })
+    .ok === true &&
+  (assessRecoveryInvoiceState({ invoiceStatus: "paid", paymentCount: 1, amountOverpaid: 0 }) as
+    { mustPay: boolean }).mustPay === false);
+/* 10. */
+check("an open invoice still needs paying",
+  (assessRecoveryInvoiceState({ invoiceStatus: "open", paymentCount: undefined,
+    amountOverpaid: 0 }) as { mustPay: boolean }).mustPay === true);
+/* 20. */
+check("a paid invoice carrying two payments is refused",
+  assessRecoveryInvoiceState({ invoiceStatus: "paid", paymentCount: 2, amountOverpaid: 0 })
+    .ok === false);
+/* 21. */
+check("an overpaid invoice is refused",
+  assessRecoveryInvoiceState({ invoiceStatus: "paid", paymentCount: 1, amountOverpaid: 1 })
+    .ok === false);
+check("any other invoice status is refused",
+  ["draft", "void", "uncollectible", "", null, undefined]
+    .every((s) => assessRecoveryInvoiceState({
+      invoiceStatus: s, paymentCount: 1, amountOverpaid: 0 }).ok === false));
+check("an unexpanded payment list is not treated as a failure",
+  assessRecoveryInvoiceState({ invoiceStatus: "paid", paymentCount: undefined,
+    amountOverpaid: undefined }).ok === true);
+check("the payment list is expanded so a duplicate charge is observable",
+  /expand\[\]=payments/.test(HARNESS));
+
+/* 9 / 22. Ownership still runs for a paid invoice — that was the trap once. */
+check("invoice ownership is validated even when already paid",
+  invoiceOwnershipVerdict({
+    invoiceLivemode: false, invoiceId: "in_x", expectedInvoiceId: "in_x",
+    invoiceSubscription: "sub_x", expectedSubscriptionId: "sub_x", invoiceStatus: "paid",
+  }).ok === true);
+check("a paid invoice under the wrong trusted root is still refused",
+  invoiceOwnershipVerdict({
+    invoiceLivemode: false, invoiceId: "in_x", expectedInvoiceId: "in_x",
+    invoiceSubscription: "sub_other", expectedSubscriptionId: "sub_x", invoiceStatus: "paid",
+  }).ok === false);
+check("ownership runs BEFORE the pay decision is taken",
+  before(rec2, "assertInvoiceOwned(", "assessRecoveryInvoiceState("));
+check("the invoice is read before the method is judged",
+  before(rec2, "assessRecoveryInvoiceState(", "effectiveMethodPolicy("));
+
+/* 12. */
+check("an already-correct customer default is not rewritten",
+  shouldRestoreCustomerDefault({
+    currentCustomerDefault: WORK_PM, originalCustomerDefault: WORK_PM }) === false);
+check("a displaced customer default IS restored",
+  shouldRestoreCustomerDefault({
+    currentCustomerDefault: FAIL_PM, originalCustomerDefault: WORK_PM }) === true &&
+  shouldRestoreCustomerDefault({
+    currentCustomerDefault: null, originalCustomerDefault: WORK_PM }) === true);
+check("the customer write is guarded by that decision",
+  before(rec2, "if (wantsRestore) {", "pm_restore"));
+
+/* 17 / 18. */
+check("a failing method still attached is detached",
+  (assessFailureMethodState({
+    pmLivemode: false, pmId: FAIL_PM, expectedPmId: FAIL_PM,
+    pmCustomer: FX_CUS, expectedCustomerId: FX_CUS,
+  }) as { action: string }).action === "detach");
+check("a failing method already detached is observed, not refused",
+  (assessFailureMethodState({
+    pmLivemode: false, pmId: FAIL_PM, expectedPmId: FAIL_PM,
+    pmCustomer: null, expectedCustomerId: FX_CUS,
+  }) as { ok: boolean; action: string }).ok === true &&
+  (assessFailureMethodState({
+    pmLivemode: false, pmId: FAIL_PM, expectedPmId: FAIL_PM,
+    pmCustomer: null, expectedCustomerId: FX_CUS,
+  }) as { action: string }).action === "already-detached");
+check("a failing method attached to someone else is refused",
+  assessFailureMethodState({
+    pmLivemode: false, pmId: FAIL_PM, expectedPmId: FAIL_PM,
+    pmCustomer: OTHER_CUS, expectedCustomerId: FX_CUS,
+  }).ok === false);
+check("a live-mode failing method is refused",
+  assessFailureMethodState({
+    pmLivemode: true, pmId: FAIL_PM, expectedPmId: FAIL_PM,
+    pmCustomer: FX_CUS, expectedCustomerId: FX_CUS,
+  }).error === "not-sandbox");
+check("a mismatched failing-method id is refused",
+  assessFailureMethodState({
+    pmLivemode: false, pmId: "pm_other", expectedPmId: FAIL_PM,
+    pmCustomer: FX_CUS, expectedCustomerId: FX_CUS,
+  }).ok === false);
+check("the detach is guarded by that decision",
+  before(rec2, 'state.action === "detach"', "pm_detach"));
+check("the detach happens at most once in the function",
+  (rec2.match(/"pm_detach"/g) || []).length === 1);
+check("the detach RESULT is inspected, not just its status code",
+  before(rec2, "pm_detach", "asId(detached.data?.customer)"));
+
+/* 14 / 15 / 16. */
+check("convergence requires the full canonical shape, not just a tier",
+  /canonical\.planKey === "plus_annual"/.test(rec2) &&
+  /canonical\.billingInterval === "year"/.test(rec2) &&
+  /canonical\.cancelAtPeriodEnd === false/.test(rec2));
+check("a pending cancellation blocks recovery from completing",
+  /cancel_at !== null/.test(rec2));
+check("convergence is polled, never read once",
+  before(rec2, "pollUntil(", "cancel_at !== null"));
+/* A poller that is CALLED but whose answer is discarded is worse than none: it
+   pays the latency and still returns the wrong verdict. `const recovered =
+   true || await pollUntil(...)` kept the old assertion green, so the assertion
+   now pins the binding AND the refusal that consumes it. Same for cancel. */
+check("the convergence result is what gates recovery, not merely present",
+  /const recovered = await pollUntil\(/.test(rec2) &&
+  /if \(!recovered\) return \{ ok: false, error: "not-converged" \};/.test(rec2));
+check("the convergence result is what gates cancellation too",
+  /const terminal = await pollUntil\(/.test(can2) &&
+  /if \(!terminal\) return \{ ok: false, error: "not-converged" \};/.test(can2));
+
+/* 13. The fixture in front of us right now. */
+check("the live recovering fixture is resumable",
+  isRecoveryResumable({
+    phase: "recovering", lastError: "not-converged", attemptCount: 1,
+    testClockId: "clock_x", stripeCustomerId: FX_CUS, stripeSubscriptionId: "sub_x",
+    renewalInvoiceId: "in_x", originalCustomerDefaultPaymentMethodId: WORK_PM,
+    failingPaymentMethodId: FAIL_PM,
+  }) === true);
+
+/* 24 / 25 / 26 / 27 / 28. */
+check("recovery lands on recovered and nowhere else",
+  TRANSITIONS.restore_and_pay.to === "recovered" &&
+  TRANSITIONS.restore_and_pay.from === "past_due" &&
+  TRANSITIONS.restore_and_pay.inFlight === "recovering");
+check("recovery advances no test clock", !/test_clocks/.test(rec2));
+/* Every external write recovery makes, by target. A Portal-set subscription
+   default is the user's decision; recovery must not reach in and undo it, so
+   `/subscriptions` must never appear among these. */
+const RECOVERY_WRITE_TARGETS = (rec2.match(/stripe(?:Post|Delete)\(\s*\n?\s*"\/[a-z_]+/g) || [])
+  .map((s) => s.replace(/^stripe(?:Post|Delete)\(\s*\n?\s*"/, ""));
+check("recovery writes only to customers, invoices and payment methods",
+  RECOVERY_WRITE_TARGETS.length > 0 &&
+  RECOVERY_WRITE_TARGETS.every((t) => /^\/(customers|invoices|payment_methods)$/.test(t)));
+check("recovery never updates the subscription itself",
+  !RECOVERY_WRITE_TARGETS.some((t) => t === "/subscriptions"));
+check("recovery creates no Portal session", !/billing_portal/.test(rec2));
+check("recovery writes no provider identifier back to the fixture",
+  !/stripeCustomerId:|stripeSubscriptionId:|testClockId:|renewalInvoiceId:/.test(rec2));
+check("the browser allowlist is still exactly six commands", COMMANDS.length === 6);
+check("no provider identifier can reach the safe result",
+  STATUS_FIELDS.every((f) => !FORBIDDEN_STATUS_FIELDS.includes(f as never)));
+check("the historical subscription default is recorded but never compared",
+  /originalSubscriptionDefaultPaymentMethodId/.test(HARNESS) &&
+  !/subDefault !== \(fx\.originalSubscriptionDefaultPaymentMethodId/.test(HARNESS));
 
 /* ── 8. Filtered queries for test-clock resources ────────────────────────── */
 section("8. Test-clock resources are read with a scoped query");
