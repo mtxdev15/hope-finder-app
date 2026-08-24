@@ -121,7 +121,7 @@ Same rule applies to all future API keys (YouVersion, Google, etc.)
 ### Version 3 — Growth & Monetization
 **Goal:** Sustainable revenue to support the ministry
 
-- Donation system (Stripe or similar)
+- Declare Plus subscriptions (Stripe)
 - Google Ads integration
 - Live user counter — "X people set free today" (homepage dashboard)
 - Analytics dashboard (internal)

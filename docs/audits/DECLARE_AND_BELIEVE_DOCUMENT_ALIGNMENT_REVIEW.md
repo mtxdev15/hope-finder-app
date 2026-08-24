@@ -121,7 +121,7 @@ Resolution:
 
 ### 7. Old monetization roadmap versus subscription direction
 
-The original Builder's Brief includes donations and advertising. The current product direction is Free, Plus, Family, and Church subscriptions.
+The original Builder's Brief included donations and advertising. **Resolved 2026-08-24:** the product direction is Free plus an optional Declare Plus subscription. Neither donations nor advertising is part of Declare. Family and Church are not consumer plans and are not offered as such; churches and groups are handled as an enquiry.
 
 Resolution:
 

@@ -961,7 +961,7 @@ when there is no mapping, and a `return_url` built from `SITE_URL` + `/you`.
 The only thing missing was a caller. This change adds the caller and adds the
 tests that pin those properties, so a future edit cannot quietly weaken them.
 
-The retired donation portal resolved its customer with
+The legacy checkout portal resolved its customer with
 `GET /v1/customers?email=<browser-supplied>`, which meant submitting someone
 else's address opened **their** billing portal. That lookup is absent here and
 the suite asserts its absence against comment-stripped code.
@@ -1810,7 +1810,7 @@ such argument on the deployed action. One `/api/action` call, and the control
 disabled itself on click so a second session could not be started.
 
 Hosted Checkout showed **Declare checkout dev**, a Sandbox badge, "Subscribe to
-Declare Plus", **$79.99 per year**, one line item, no trial, no donation item,
+Declare Plus", **$79.99 per year**, one line item, no trial, no extra line item,
 no monthly Price, and the separate QA account's email.
 
 *(Stripe also renders "$6.67 / month billed annually" as an annualised helper
@@ -2454,4 +2454,4 @@ step 6 is done.
   Portal and the lifecycle inspector (build `dist/` first, with the flag ON)
 - `scripts/verify-checkout-return-pages.ts` — 118 checks on the return pages
 - `scripts/verify-duplicate-subscription-guard.ts` — 71 checks on the webhook guard
-- `docs/operations/retired-webhook-secret-hygiene.md` — the retired donation flow
+- `docs/operations/retired-webhook-secret-hygiene.md` — the legacy checkout flow

@@ -5,7 +5,7 @@ Done items move to the bottom or get deleted.
 
 ## 🔧 In progress / immediate
 - [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
-      on `main` still carries the retired `/give/*` handlers, including the billing-portal IDOR
+      on `main` still carries legacy checkout handlers, including the billing-portal IDOR
       that searched Stripe customers by a browser-submitted email. Production runs the hardened
       Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
       not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
@@ -136,8 +136,9 @@ Nothing in live mode has been created or touched. Full record in
 - [x] `checkout.session.expired` verified end to end: **HTTP 200 `ok`**
 - [x] Provider-neutral Stripe / App Store entitlement architecture documented
       (`docs/architecture/cross-platform-subscriptions.md`)
-- [x] Recurring-donation contamination bug fixed (C2). A recurring gift is also
-      `mode: subscription`, so mode alone could have granted Plus to a donor
+- [x] Recurring-checkout contamination bug fixed (C2). Any recurring checkout is
+      also `mode: subscription`, so mode alone could have granted Plus to someone
+      who never bought Plus
 - [x] Stripe API access moved entirely into Convex (C5). One credential, one
       runtime, one pinned API version
 - [x] Worker reduced to signature verification and event forwarding. It holds no
@@ -193,7 +194,7 @@ None of these are oversights. Each is a deliberate stop.
 - [ ] **Stale live Stripe secrets on the production Worker (found 2026-08-24).**
       `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are still set on
       `hope-finder-worker` and are referenced **nowhere** in its source. They are
-      leftovers from the retired giving product and they contradict rule C5,
+      leftovers from a legacy checkout integration and they contradict rule C5,
       which says the Worker holds no Stripe credential. Two unused live-mode
       secrets on an internet-facing service is avoidable exposure. Rotate or
       remove them as a deliberate step, separate from billing activation
@@ -538,9 +539,10 @@ When Stage 2 resumes, in this order:
 
 ### Guardrails
 
-- Do not reuse archived donation Products, Prices, sessions or metadata. Seven
-  archived gift sessions and two archived gift Products remain in the sandbox and
-  are permanent negative test fixtures, not building material.
+- Do not reuse archived legacy Products, Prices, sessions or metadata. Seven
+  archived sessions and two archived Products remain in the sandbox from an
+  earlier integration and are permanent negative test fixtures, not building
+  material.
 - Do not point sandbox webhooks at the production Worker.
 - Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
   asserted by `scripts/verify-plus-classification.ts`.
@@ -811,51 +813,31 @@ When Stage 2 resumes, in this order:
       is preserved for crawlers. Monitor that the homepage keeps its indexing.
 - [ ] **Add a logo to the Google consent screen** once you're ready for Google's brand verification
       review (separate, multi-day). Makes the sign-in screen show your mark + "Sign in to Declare."
-- [ ] **Giving copy: confirm the yearly option.** The rest of the old give copy/ratio pass shipped
-      ("set free" wording, per-person impact counter, Giving terms FAQ, tax disclosure), but a yearly
-      giving option was never clearly confirmed as live. Verify it exists on `/give`, or add it.
 - [ ] **Real store IDs in `public/declare/rate.js`.** The Rate & Review flow still ships with
       placeholder App Store / Play IDs (`TODO dev` at `rate.js:24`). Drop in the real IDs before the
       iOS launch so the "rate us" links point somewhere.
 - [ ] **Re-submit the sitemap** to Google Search Console after any big sitemap change to force a
       re-read (initial submit already succeeded).
+- [ ] **Spanish strings for `/checkout/success` (found 2026-08-24 during the Plans/Billing work).**
+      Twelve `checkout.*` keys used by that page have no Spanish entry in
+      `public/declare/i18n-strings.js`, so a Spanish reader falls back to English at the moment they
+      have just paid. Pre-existing, not introduced by the Plans/Billing redesign, and unrelated to
+      it — Plans and Billing both have full parity. Worth closing before production activation.
 
 ## ✔️ Recently shipped
 *App is on **v3.20.2**. Newest first.*
-- **Real Stripe billing portal, replacing the static email-login page (2026-07-16, branch
-  `fix/billing-portal`, from Jeff's report that clicking "Manage giving" and entering his
-  email never delivered a login link).** Root cause: every "Manage giving" link sitewide
-  (EN + ES — give.html footer, the post-gift thank-you screen, `you.astro`'s giving card,
-  both give-terms FAQ pages) pointed at the same static Stripe-hosted login page, which
-  emails a magic link with no idea the visitor was already signed in on our own site.
-  Signed-in users now get a real Stripe Billing Portal session opened server-side with
-  zero email step: new Worker endpoint `/give/portal` resolves the Stripe customer via a
-  3-tier fallback (stored `customerId` → live subscription lookup → Stripe customer search
-  by account email, since gifts recorded before this fix have no `customerId` on file),
-  then opens the portal directly. Convex's `giftHistory` now stores `customerId` from the
-  webhook going forward (`gifts.ts`, `http.ts`, new `by_user_and_recurring` index). Native
-  `alert()` error states replaced with inline, on-brand messaging that keeps
-  support@declareandbelieve.com as a visible fallback. FAQ pages repointed from the static
-  Stripe URL to the working button; help/give-terms pages now set a "we typically respond
-  within 1-2 business days" expectation for support@. Also ran a full `/email-marketing-bible`
-  audit: DKIM and the Resend `send.` subdomain were already correctly configured (no fix
-  needed); DMARC is intentionally monitor-only (`p=none`) for now — revisit `p=quarantine`
-  once a few weeks of clean reports confirm nothing legitimate fails; mail (incl. support@)
-  routes through Apple's iCloud Custom Email Domain, not this codebase, so a true automated
-  auto-reply would require moving MX to Cloudflare Email Routing — deferred as a separate
-  project, not done here. Verified end-to-end (give.html + es/dar.html share the same
-  `give.js`, `you.astro`'s card uses the identical fetch), Cloudflare Pages preview reviewed
-  and approved by Jeff, merged to main and confirmed live on declareandbelieve.com.
-  **Known follow-up:** the Stripe email-search fallback found no customer matching
-  `jeffmt15_social@icloud.com` (the email from Jeff's original screenshot) — need to confirm
-  which email Jeff's actual recurring gift is recorded under in the Stripe Dashboard to
-  verify his own account resolves cleanly.
-  **Not done in this pass (Stripe Dashboard settings, not code):** Settings → Billing →
-  Customer portal — enable current plan/payment method/invoice history/cancel, keep
-  cancellation to one click with no required reason, and set the portal's business name +
-  logo to match "Declare and Believe." Also a known limitation: donors can't change their
-  monthly amount from inside the portal yet (checkout builds an ad-hoc price rather than a
-  saved Stripe Price) — they can cancel and start a new gift at a different amount instead.
+- **Plans and Billing separated into two surfaces (2026-08-24, branch
+  `feat/plans-billing-experience`).** `/pricing` became **Plans** — one job, "which plan is right
+  for me?": a monthly/annual selector, two cards, a short comparison, reassurance and an FAQ.
+  Subscription management moved out of the `/you` card onto its own **Billing** page at `/billing`,
+  which answers "what do I have and how do I manage it?" and hands payment methods, invoices and
+  cancellation to Stripe's hosted Portal rather than rebuilding them.
+  Fixed with it: the two cards no longer decide independently whether they are current, so Free and
+  Plus can never both look selected — `currentPlanId()` resolves it once and an executed invariant
+  proves at most one card is ever current. "Declare stays free", "Nothing here charges you", and
+  telling a paying subscriber Plus is "Opening soon" are gone; a non-subscriber now sees the
+  truthful "Plus launches soon" while purchasing stays disabled. Family and Church are no longer
+  presented as a third consumer plan. Purchasing remains inert until production activation.
 - **Rejection & Abandonment mini-cluster — 3 struggle pages, 6 URLs (2026-07-15, branch
   `content/rejection-abandonment-cluster`).** Instead of one general page, shipped three
   distinct, non-overlapping pages after Jeff named three real, unserved pains: `/rejection`
@@ -893,7 +875,7 @@ When Stage 2 resumes, in this order:
   ignores it); the real issue is the ~4-week-old domain has ZERO indexed pages in
   Google/Brave/Bing (verified via site: queries) — AI engines can't cite what isn't
   indexed. Crawler access verified fine (all bots 200). Shipped: sitemap hreflang bug
-  fixed (6 entries pointed en/x-default at /give; full reciprocity now script-verified),
+  fixed (6 entries pointed en/x-default at a since-retired route; full reciprocity now script-verified),
   orphaned Layout.astro schema (WebApplication + 19-Q FAQPage + GEO metas) mounted on the
   live homepage and the orphan deleted, homepage meta description 153 chars + keywords
   meta, all 30 struggle pages got keyword-blended H1s ("Bible Verses for Anxiety — you
@@ -994,13 +976,6 @@ When Stage 2 resumes, in this order:
 - **Journey resume + persistence** (v3.11.4–3.11.5) — the Journey now resumes where you left off
   (content + progress persist), and the day-complete vine no longer clips.
 - **Vault refinements** (v3.11.x) — saved words/verses/declarations continue to sync and follow the account.
-- **Giving system — fully live.** Cinematic `/give` + `/es/dar` with Stripe Checkout (one-time +
-  recurring, Apple Pay); webhook → Convex public impact counter ("X people set free by the Word of
-  God"); account-linked gift history + live next-charge line on `/you`; "Manage giving" on the give
-  pages + the Giving terms FAQ; Spanish Giving terms page (`/es/terminos-de-donacion`) + hreflang +
-  sitemap. SemVer adopted at v3.9.1. (This entry originally claimed a working Stripe Customer Portal —
-  it shipped as one static email-login link duplicated everywhere, not a real per-customer flow; see
-  the 2026-07-16 billing portal fix above, which replaced it with a real session-based portal.)
 - **Site-wide navigation unified** — every explore page's logo/back goes to `/welcome` (no longer
   dumps people into the app); give/help/faq/struggles now share the canonical header + slide-out menu
   + footer (shared `public/declare/chrome.css` + `menu.js`); the in-app mast brand links back to
@@ -1022,7 +997,7 @@ When Stage 2 resumes, in this order:
   server-side and follow signed-in users (local-first; guests unaffected).
 - **Auth working + simplified** — name + email + password straight into `/today`, no email-verify step.
 - **Struggles hub** (`/struggles`) — editorial index of all 13 struggle pages, in the sitemap.
-- Content pages: About (founder note + Our Mission), Help (`/help`), FAQ (`/faq`), Give (`/give`).
+- Content pages: About (founder note + Our Mission), Help (`/help`), FAQ (`/faq`).
 - v3 app + 14 SEO landing pages live; production Convex + Better Auth; real 404 page.
 - Entry flow: Begin page at `/` (v1 retired) + "How it works" landing at `/welcome`.
 - Find-a-church fixed (`PUBLIC_GMAPS_KEY` set in Cloudflare prod + preview; key restricted in Google Cloud).

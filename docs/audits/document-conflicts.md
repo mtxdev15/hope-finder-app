@@ -26,7 +26,7 @@ Independently re-checked against live source in this audit; all confirmed still 
    either direction.
 6. **Crisis behavior (banner + always-visible link)** — confirmed. Both layers are live; the AI is
    not the only safety mechanism.
-7. **Old monetization roadmap (donations/ads) vs. subscription direction** — no pricing/entitlement
+7. ~~**Old monetization roadmap (donations/ads) vs. subscription direction**~~ — **RESOLVED 2026-08-24.** Free plus an optional Declare Plus subscription is the model; neither donations nor advertising is part of Declare. Originally: no pricing/entitlement
    code exists yet either way; this conflict is dormant, not resolved, since nothing has been built.
 8. **Tagline hierarchy** — not something code can confirm or deny; still an open copy decision.
 
@@ -38,7 +38,8 @@ CLAUDE.md describes the Worker as "a generic Anthropic-API passthrough with IP r
 real `worker/src/index.js` also serves:
 - `/bible` and `/bible/search` (API.Bible proxy for `/word`)
 - `/unsplash/search`, `/unsplash/track`, `/unsplash/photo` (Card Studio background search)
-- `/give/checkout`, `/give/webhook`, `/give/subscription`, `/give/portal` (Stripe giving flow)
+- `/billing/webhook` (Stripe subscription webhook, signature-verified and forwarded)
+- four retired legacy checkout routes, which now answer `410 Gone` in production
 
 Not incorrect, just incomplete. Worth a small factual update to CLAUDE.md's tech-stack section
 whenever that file is next touched (not done here — it's a protected file for this task).

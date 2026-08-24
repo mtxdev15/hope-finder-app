@@ -12,9 +12,9 @@ modified as part of producing this document.*
 | `userData` | `userId, key, value` (value is a JSON string) | Generic per-user key/value blobs — Journey progress, cached insight text, anything small and bounded. Indexed `by_user` and `by_user_and_key`. |
 | `vaultCollections` | `userId, name, kind (verse\|declaration\|prayer\|null), ts` | User-curated or auto-grouped Vault collections. |
 | `reviews` | `userId, firstName, score_met_you, score_the_word, score_coming_back, testimonial?, isPublic, status (pending\|approved), createdAt` | Rate & Review submissions; nothing goes public until manually approved. |
-| `giftStats` | `key ("total"), totalCents, giftCount` | A single denormalized public giving counter. |
-| `giftHistory` | `userId, amountCents, currency, recurring, frequency?, sessionId, giftedAt, subscriptionId?, customerId?` | Per-user giving history, written by the Stripe webhook. |
-| `giftEvents` | `sessionId` | Idempotency guard so webhook retries never double-count a gift. |
+| `giftStats` | `key ("total"), totalCents, giftCount` | A single denormalized public counter from the legacy checkout integration. Retired; rows persist untouched. |
+| `giftHistory` | `userId, amountCents, currency, recurring, frequency?, sessionId, giftedAt, subscriptionId?, customerId?` | Per-user legacy checkout history, written by the Stripe webhook. Retired; rows persist untouched. |
+| `giftEvents` | `sessionId` | Idempotency guard so webhook retries never double-counted an event. Retired; rows persist untouched. |
 
 ## Auth (`convex/auth.ts`, `convex/auth.config.ts`)
 

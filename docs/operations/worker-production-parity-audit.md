@@ -45,7 +45,7 @@ No secret value was read, requested or recorded. No D1, R2, queue, Durable
 Object, analytics dataset or service binding exists on either side.
 
 **`GIFT_WEBHOOK_SECRET` is not bound to the production Worker** — it was deleted
-when giving was retired. It does still exist on production **Convex**, where
+when the legacy checkout integration was retired. It does still exist on production **Convex**, where
 nothing reads it; recorded as leftover cleanup.
 
 ---
@@ -61,16 +61,16 @@ nothing reads it; recorded as leftover cleanup.
 | `/unsplash/track` | POST | ✅ | ✅ | none | Unsplash attribution ping | none |
 | `/internal/journey/translate` | POST | ✅ 403 unauth | ❌ **absent** | **server-to-server secret** | Journey prose translation | **add** |
 | `/billing/webhook` | POST | ✅ 500 unconfigured | ❌ **absent** | Stripe signature + shared secret | Plus subscription events | **add (inert)** |
-| `/give/checkout` | POST | ✅ **410** | ⚠️ **live handler** | none — trusted the browser | retired giving | **retire** |
-| `/give/portal` | POST | ✅ **410** | ⚠️ **live handler, IDOR** | none — trusted the browser | retired giving | **retire** |
-| `/give/subscription` | POST | ✅ **410** | ⚠️ **live handler** | none — trusted the browser | retired giving | **retire** |
-| `/give/webhook` | POST | ✅ **410** | ⚠️ **live handler** | Stripe signature | retired giving | **retire** |
+| `/give/checkout` | POST | ✅ **410** | ⚠️ **live handler** | none — trusted the browser | legacy checkout | **retire** |
+| `/give/portal` | POST | ✅ **410** | ⚠️ **live handler, IDOR** | none — trusted the browser | legacy checkout | **retire** |
+| `/give/subscription` | POST | ✅ **410** | ⚠️ **live handler** | none — trusted the browser | legacy checkout | **retire** |
+| `/give/webhook` | POST | ✅ **410** | ⚠️ **live handler** | Stripe signature | legacy checkout | **retire** |
 | CORS preflight on retired routes | OPTIONS | ✅ 204 | ⚠️ differs | none | preflight | **retire** |
 | anything else | any | ✅ 405 | ✅ 405 | none | fallback | none |
 
 Classification: **public** — `/bible*`, `/unsplash/*`; **internal
 server-to-server** — `/internal/journey/translate`; **billing** —
-`/billing/webhook`; **retired giving** — all four `/give/*`; **unknown
+`/billing/webhook`; **retired legacy checkout** — all four `/give/*`; **unknown
 fallback** — 405. There is no health or diagnostics route on either side, and no
 authentication route (auth is served by Convex, not the Worker).
 
