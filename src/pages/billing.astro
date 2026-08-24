@@ -1,0 +1,401 @@
+---
+/* /billing — BILLING. One job: "what do I have, and how do I manage it?"
+ *
+ * WHAT THIS PAGE IS NOT
+ * It is not a plan comparison. There are no plan cards, no cadence selector, no
+ * feature table and no price list here. Choosing a plan lives at /pricing.
+ * Repeating the comparison on this page is what produced the old "Plan &
+ * billing" card that tried to be both and read as neither.
+ *
+ * IT IS ALSO NOT A BILLING DASHBOARD REBUILT IN-HOUSE.
+ * Payment methods, invoice PDFs and cancellation are Stripe's hosted Portal,
+ * which is verified working and which we must not reimplement — a second copy
+ * would drift, and the copy that drifts is the one showing someone the wrong
+ * card. This page states what we know from our OWN provider-neutral model and
+ * hands off to the Portal for the rest.
+ *
+ * NOTHING PROVIDER-SHAPED REACHES THIS PAGE. getMyEntitlements returns no
+ * Stripe identifier at all, so there is no Customer, Subscription, Invoice,
+ * Price or PaymentMethod id to leak, and no card brand or last four is
+ * fabricated to fill the gap.
+ *
+ * FAILS CLOSED: while entitlement state is loading or unknown, nothing claims a
+ * plan and no management action appears.
+ */
+import DeclareLayout from '../layouts/DeclareLayout.astro';
+---
+<DeclareLayout
+  title="Declare — Billing"
+  description="Your plan, its status, and how to manage it."
+  activeTab=""
+  noindex={true}
+>
+  <main class="billing">
+    <div class="topglow" aria-hidden="true"></div>
+    <div class="in">
+      <div class="sub-top">
+        <a class="iconbtn" href="/you" aria-label="Back" data-i18n-aria="billing.back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+        <span class="ttl" data-i18n="billing.eyebrow">Billing</span>
+        <span class="iconbtn" style="visibility:hidden"></span>
+      </div>
+
+      <header class="bl-hero">
+        <h1 data-i18n="billing.h1">Billing</h1>
+        <p class="bl-sub" data-i18n="billing.sub">Your plan, its status, and how to manage it.</p>
+      </header>
+
+      {/* ── Current plan ───────────────────────────────────────────────── */}
+      <section class="bl-card m-rise" id="blPlan" aria-labelledby="blPlanH" aria-busy="true">
+        <h2 class="bl-h" id="blPlanH" data-i18n="billing.currentPlanH">Current plan</h2>
+        <div class="bl-top">
+          <div class="bl-id">
+            <div class="bl-nm serif" id="blNm" data-i18n="plan.loadingName">Loading your plan</div>
+            <div class="bl-meta" id="blMeta" hidden></div>
+          </div>
+          <span class="bl-state" id="blState" hidden></span>
+        </div>
+        <ul class="bl-list" id="blList" hidden></ul>
+        <p class="bl-msg" id="blMsg" role="status" hidden></p>
+        <div class="bl-acts" id="blActs"></div>
+      </section>
+
+      {/* ── Payment. Rendered only when a subscription actually exists; a Free
+           account has no payment method to manage and showing an empty section
+           would invent one. */}
+      <section class="bl-card m-rise" id="blPay" aria-labelledby="blPayH" hidden>
+        <h2 class="bl-h" id="blPayH" data-i18n="billing.paymentH">Payment</h2>
+        <p class="bl-note" data-i18n="billing.paymentNote">Payment details are managed securely through Stripe.</p>
+      </section>
+
+      {/* ── Invoices. Handed off rather than rebuilt. */}
+      <section class="bl-card m-rise" id="blInv" aria-labelledby="blInvH" hidden>
+        <h2 class="bl-h" id="blInvH" data-i18n="billing.invoicesH">Invoices</h2>
+        <p class="bl-note" data-i18n="billing.invoicesNote">Your full invoice history is available in the billing portal.</p>
+      </section>
+
+      {/* ── Plans link. The one place Billing points at the other job, worded
+           so the two are never mistaken for the same destination. */}
+      <section class="bl-card bl-quiet m-rise" aria-labelledby="blPlansH">
+        <h2 class="bl-h" id="blPlansH" data-i18n="billing.plansH">Plans</h2>
+        <p class="bl-note" data-i18n="billing.plansNote">Compare what Free and Plus include.</p>
+        <a class="bl-a" href="/pricing" id="blViewPlans" data-i18n="billing.viewPlans">View plans</a>
+      </section>
+    </div>
+  </main>
+
+<script>
+  import { myEntitlements, openBillingPortal } from '../app/declare/convex-data.js';
+  import {
+    planState, planNameKey, planStatusKey, cadenceKey, periodLabelKey,
+    formatPeriodEnd, showsManageBilling, currentPlanId, plusCtaIntent,
+    STATE_LABEL_KEYS,
+  } from '../app/declare/plan-display.js';
+  import { onAuthChange } from '../app/declare/auth-store.js';
+  import { track } from '../app/declare/analytics.js';
+
+  const el = (id: string) => document.getElementById(id);
+
+  /* English lives in the DOM for static markup, but text created at runtime has
+     no element to read it from — so for those strings the FALLBACK is the
+     English copy. One shared fallback is therefore a bug, not a shortcut: it
+     made every dynamic badge read "Current plan", including the one that was
+     supposed to say "Needs attention". Every key gets its own word. */
+  const EN: Record<string, string> = {
+    'plans.currentPlan': 'Current plan',
+    'plan.stateAttention': 'Needs attention',
+    'plan.stateEnding': 'Ending',
+    'plan.stateAmbiguous': 'Needs a look',
+    'plan.stateActive': 'Active',
+    'plan.manage': 'Manage billing',
+    'plan.updatePayment': 'Update payment',
+    'plan.keepPlus': 'Keep Plus',
+    'plan.retry': 'Try again',
+    'plan.monthly': 'Monthly plan',
+    'plan.annual': 'Annual plan',
+    'plan.renews': 'Renews',
+    'plan.cancels': 'Cancels',
+    'plan.plusName': 'Declare Plus',
+    'plan.freeName': 'Free plan',
+    'plan.loadingName': 'Loading your plan',
+    'plan.b1': 'Unlimited Gentle Guidance',
+    'plan.b2': 'Unlimited Journeys',
+    'plan.b3': 'Unlimited active Journeys',
+    'plan.freeGuidance': 'Gentle Guidance left today',
+    'plan.freeSlots': 'active Journey slots left',
+    'plan.cancellingMsg': 'Your Plus access remains available until the end of the period.',
+    'plan.attentionMsg': 'Something about your payment needs a second look. You still have access while we sort it out.',
+    'plan.ambiguousMsg': 'This account looks like it is being billed in more than one place.',
+    'plan.unavailableMsg': 'We could not load your plan just now.',
+    'plan.noSub': 'We could not find a subscription for this account.',
+    'plan.portalErr': 'We could not open billing just now. Please try again.',
+    'billing.viewPlans': 'View plans',
+    'billing.freeMsg': 'You\u2019re using the essential Declare experience.',
+  };
+
+  /* The fallback is looked up per key. A caller may still pass one explicitly,
+     but it can never silently stand in for a different string. */
+  const tx = (k: string, fallback?: string): string => {
+    const en = EN[k] !== undefined ? EN[k] : (fallback !== undefined ? fallback : k);
+    return window.I18N ? window.I18N.t(k, en) : en;
+  };
+
+  let portalBusy = false;
+
+  async function manageBilling(btn: HTMLButtonElement): Promise<void> {
+    if (portalBusy) return;
+    portalBusy = true;
+    btn.disabled = true;
+    try {
+      const res = await openBillingPortal();
+      if (res && res.url) { window.location.href = res.url; return; }
+      showMsg(res && res.error === 'no-subscription'
+        ? tx('plan.noSub', 'We could not find a subscription for this account.')
+        : tx('plan.portalErr', 'We could not open billing just now. Please try again.'));
+    } catch (e) {
+      showMsg(tx('plan.portalErr', 'We could not open billing just now. Please try again.'));
+    }
+    portalBusy = false;
+    btn.disabled = false;
+  }
+
+  function showMsg(text: string): void {
+    const m = el('blMsg');
+    if (!m) return;
+    m.textContent = text; m.hidden = false;
+  }
+
+  function button(label: string, onClick: () => void, cls: string): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'bl-btn ' + cls; b.textContent = label;
+    b.addEventListener('click', () => onClick());
+    return b;
+  }
+  function link(label: string, href: string, cls: string, onClick?: () => void): HTMLAnchorElement {
+    const a = document.createElement('a');
+    a.className = 'bl-btn ' + cls; a.href = href; a.textContent = label;
+    if (onClick) a.addEventListener('click', () => onClick());
+    return a;
+  }
+
+  function render(ent: any, opts?: { loading?: boolean }): void {
+    const card = el('blPlan');
+    if (!card) return;
+    const state = planState(ent, opts);
+    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+    const current = currentPlanId(state);
+
+    card.setAttribute('data-plan-state', state);
+    card.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+
+    /* Plan name. Never the canonical planKey. */
+    const nm = el('blNm');
+    if (nm) {
+      nm.textContent = state === 'loading'
+        ? tx('plan.loadingName', 'Loading your plan')
+        : tx(planNameKey(state), current === 'plus' ? 'Plus' : 'Free');
+    }
+
+    /* EXACTLY ONE status word. planStatusKey returns a single key, so
+       "Current plan" can never sit beside "Needs attention" or "Ending". */
+    const st = el('blState');
+    if (st) {
+      const key = current ? planStatusKey(current, state) : null;
+      /* On Billing, an active subscription reads "Active" rather than
+         "Current plan": this page is only ever about the plan you hold, so
+         restating that it is current says nothing. */
+      const shown = key === 'plans.currentPlan' && current === 'plus'
+        ? STATE_LABEL_KEYS['plus-active'] : key;
+      if (shown && state !== 'loading') {
+        st.textContent = tx(shown, 'Active');
+        st.hidden = false;
+      } else { st.hidden = true; }
+    }
+
+    /* Cadence and the date. The word before the date comes from the shared
+       helper, so a subscription scheduled to end can never read "Renews", and
+       a payment that needs attention shows NO date at all — we cannot promise
+       a renewal we are not sure of. */
+    const meta = el('blMeta');
+    if (meta) {
+      const bits: string[] = [];
+      const ck = cadenceKey(ent);
+      if (ck && current === 'plus') bits.push(tx(ck, ''));
+      const pk = periodLabelKey(state);
+      const when = formatPeriodEnd(ent && ent.periodEndAt, lang);
+      if (pk && when) bits.push(tx(pk, '') + ' ' + when);
+      if (bits.length) { meta.textContent = bits.join(' · '); meta.hidden = false; }
+      else { meta.hidden = true; }
+    }
+
+    /* What the plan actually gives you right now. For Plus that is the three
+       benefits; for Free it is the REAL remaining allowance, which is a fact
+       about this account rather than a sales point — losing it when the card
+       moved would have been a quiet capability regression. Neither is a
+       pricing comparison; that lives on /pricing. */
+    const list = el('blList');
+    if (list) {
+      list.innerHTML = '';
+      const rows: string[] = [];
+      if (current === 'plus') {
+        for (const k of ['plan.b1', 'plan.b2', 'plan.b3']) rows.push(tx(k, ''));
+      } else if (state === 'free' && ent && ent.remaining) {
+        const r = ent.remaining;
+        if (typeof r.gentleGuidanceToday === 'number') {
+          rows.push(r.gentleGuidanceToday + ' ' + tx('plan.freeGuidance', 'Gentle Guidance left today'));
+        }
+        if (typeof r.activeJourneySlots === 'number') {
+          rows.push(r.activeJourneySlots + ' ' + tx('plan.freeSlots', 'active Journey slots left'));
+        }
+      }
+      for (const text of rows) {
+        const li = document.createElement('li'); li.textContent = text; list.appendChild(li);
+      }
+      list.hidden = rows.length === 0;
+    }
+
+    /* Explanation, only where one is owed. */
+    const msg = el('blMsg');
+    if (msg) {
+      const MSG: Record<string, string> = {
+        'plus-cancelling': 'plan.cancellingMsg',
+        'plus-attention': 'plan.attentionMsg',
+        'plus-ambiguous': 'plan.ambiguousMsg',
+        unavailable: 'plan.unavailableMsg',
+        free: 'billing.freeMsg',
+      };
+      const k = MSG[state];
+      if (k) { msg.textContent = tx(k, ''); msg.hidden = false; }
+      else { msg.hidden = true; }
+    }
+
+    /* Actions: exactly one primary per state. */
+    const acts = el('blActs');
+    if (acts) {
+      acts.innerHTML = '';
+      const intent = plusCtaIntent(state);
+      if (showsManageBilling(state)) {
+        const label = intent === 'update-payment'
+          ? tx('plan.updatePayment', 'Update payment')
+          : intent === 'keep-plus'
+            ? tx('plan.keepPlus', 'Keep Plus')
+            : tx('plan.manage', 'Manage billing');
+        const evt = intent === 'update-payment'
+          ? 'payment_attention_cta_selected'
+          : intent === 'keep-plus' ? 'keep_plus_selected' : 'manage_billing_selected';
+        acts.appendChild(button(label, () => {
+          track(evt, { authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing' });
+          const b = acts.querySelector('button');
+          if (b instanceof HTMLButtonElement) manageBilling(b);
+        }, 'bl-primary'));
+      } else if (state === 'free' || state === 'guest') {
+        acts.appendChild(link(tx('billing.viewPlans', 'View plans'), '/pricing', 'bl-ghost', () => {
+          track('view_plans_selected', {
+            authenticated: state === 'free',
+            displayed_tier: current || 'none',
+            source: 'billing',
+          });
+        }));
+      } else if (state === 'unavailable') {
+        acts.appendChild(button(tx('plan.retry', 'Try again'), () => { load(); }, 'bl-ghost'));
+      }
+    }
+
+    /* Payment and Invoices exist only for an account that actually has a
+       subscription to manage. A Free account has neither, and rendering an
+       empty section would imply otherwise. */
+    const hasBilling = showsManageBilling(state);
+    const pay = el('blPay'); if (pay) pay.hidden = !hasBilling;
+    const inv = el('blInv'); if (inv) inv.hidden = !hasBilling;
+  }
+
+
+  /* ── DEVELOPMENT-ONLY STATE PREVIEW ──────────────────────────────────────
+     Renders this page against a fixed entitlement fixture so every plan state
+     can be reviewed and screenshotted without a real subscription, a Test
+     Clock or a Stripe object.
+
+     Gated exactly the way the Journey pacing-lock bypass and the billing dev
+     control are, and for the same reason: `import.meta.env.DEV` is FALSE in
+     every `astro build`, so Vite folds this to `if (false)` and esbuild drops
+     the body — including the fixtures. The public flag alone would not be a
+     gate, because Vite loads .env.local in production builds too. Both halves
+     are required, and the build output is asserted to contain neither.
+
+     No route is added and no mock data is deployed. */
+  function previewEntitlement(): any | undefined {
+    if (!(import.meta.env.DEV && import.meta.env.PUBLIC_PLANS_PREVIEW === '1')) return undefined;
+    const want = new URLSearchParams(location.search).get('preview');
+    if (!want) return undefined;
+    const END = Date.parse('2028-08-23T12:00:00Z');
+    const F: Record<string, any> = {
+      guest: { tier: 'guest' },
+      free: { tier: 'free', subscriptionStatus: 'none',
+              remaining: { gentleGuidanceToday: 3, activeJourneySlots: 2 } },
+      plusMonthly: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'month',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: false, periodEndAt: END },
+      plusAnnual: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'year',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: false, periodEndAt: END },
+      attention: { tier: 'plus', subscriptionStatus: 'past_due', billingInterval: 'year',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: true, periodEndAt: END },
+      ending: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'year',
+              cancelAtPeriodEnd: true, paymentNeedsAttention: false, periodEndAt: END },
+    };
+    return F[want];
+  }
+
+  async function load(): Promise<void> {
+    /* Loading never renders Free — that is the bug this guards against. */
+    render(null, { loading: true });
+    let ent: any = previewEntitlement();
+    if (ent === undefined) { try { ent = await myEntitlements(); } catch (e) { ent = null; } }
+    render(ent);
+  }
+  load();
+  try { onAuthChange(() => { load(); }); } catch (e) {}
+</script>
+
+  <style is:global>
+    .billing { position: relative; min-height: 100dvh; }
+    .billing .in { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; padding: 0 20px 120px; }
+    .billing .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
+    .billing .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+    .billing .iconbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .billing .iconbtn svg { width: 20px; height: 20px; }
+
+    .billing .bl-hero { padding: 20px 0 22px; }
+    .billing .bl-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: 32px; line-height: 1.15; color: var(--text); font-weight: 500; margin: 0; }
+    .billing .bl-sub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 10px 0 0; max-width: 44ch; }
+
+    .billing .bl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 14px; }
+    .billing .bl-quiet { background: transparent; }
+    .billing .bl-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+    .billing .bl-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .billing .bl-id { min-width: 0; }
+    .billing .bl-nm { font-family: 'Cormorant Garamond', serif; font-size: 26px; line-height: 1.2; color: var(--text); font-weight: 500; }
+    .billing .bl-meta { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 5px; }
+    /* Status is a WORD first. Colour only reinforces it, so the meaning
+       survives for anyone who cannot see the difference. */
+    .billing .bl-state { flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); white-space: nowrap; }
+    .billing .bl-card[data-plan-state="plus-active"] .bl-state { color: var(--goldd); border-color: color-mix(in srgb, var(--gold) 50%, var(--line2)); }
+    .billing .bl-card[data-plan-state="plus-attention"] .bl-state,
+    .billing .bl-card[data-plan-state="plus-ambiguous"] .bl-state { color: #E4736B; border-color: #E4736B; }
+    .billing .bl-card[data-plan-state="plus-cancelling"] .bl-state { color: var(--text2); border-color: var(--line2); }
+    .billing .bl-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 9px; }
+    .billing .bl-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.5; color: var(--text2); }
+    .billing .bl-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px; border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
+    .billing .bl-msg { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 14px 0 0; }
+    .billing .bl-note { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 0; }
+    .billing .bl-acts { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+    .billing .bl-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1px solid var(--gold); text-decoration: none; }
+    .billing .bl-primary { background: var(--gold); color: #13211A; }
+    .billing .bl-ghost { background: transparent; color: var(--text); border-color: var(--line2); }
+    .billing .bl-btn[disabled] { opacity: .55; cursor: not-allowed; }
+    .billing .bl-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .billing .bl-a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--goldd); }
+
+    @media (min-width: 620px) {
+      .billing .bl-acts { flex-direction: row; }
+      .billing .bl-btn { min-width: 200px; }
+    }
+  </style>
+</DeclareLayout>

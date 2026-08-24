@@ -63,7 +63,7 @@ reveals nothing that could be used to name another customer.
 
 Withholding the ids means a compromised client cannot even *address* another
 customer's billing, which is the structural half of the fix that closed the
-retired donation portal's IDOR.
+legacy checkout portal's IDOR.
 
 ## 3. Plan mapping table
 
@@ -132,8 +132,8 @@ cannot see a Stripe subscription and will not prevent it.
 ## 5. Classifying a purchase as Plus
 
 A subscription grants Plus only when **all** server-controlled evidence agrees.
-This is the C2 rule, and it exists because the retired donation flow also used
-`mode: subscription` — a recurring gift is structurally indistinguishable from a
+This is the C2 rule, and it exists because the legacy checkout flow also used
+`mode: subscription` — a recurring legacy checkout is structurally indistinguishable from a
 Plus purchase if you look only at the mode.
 
 **Never sufficient, alone or together:**
@@ -149,7 +149,7 @@ Plus purchase if you look only at the mode.
 3. provenance — the session was created by the authenticated billing action
 4. the account mapping resolves server-side
 
-A retired gift must never grant Plus.
+A legacy recurring checkout must never grant Plus.
 
 ## 6. iOS future contract
 
@@ -242,4 +242,4 @@ Apple's App Store Server API has its own versioning and is unrelated to this pin
   real archived recurring-gift fixtures
 - `docs/implementation/release-c1-phase4-entitlements.md` — grace window, tax
   deferral, confirmed commercial decisions
-- `docs/operations/retired-webhook-secret-hygiene.md` — the retired donation flow
+- `docs/operations/retired-webhook-secret-hygiene.md` — the legacy checkout flow

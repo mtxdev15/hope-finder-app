@@ -50,9 +50,9 @@ achieve it.
 
 | Component | Deployed from | State |
 |---|---|---|
-| **Convex** `prod:keen-hamster-650` | **`main`** (parity restored `6746655`) | Gift functions and tables removed; subscription + entitlement functions deployed but **inactive** (no Stripe env vars set) |
+| **Convex** `prod:keen-hamster-650` | **`main`** (parity restored `6746655`) | Legacy checkout functions and tables removed; subscription + entitlement functions deployed but **inactive** (no Stripe env vars set) |
 | **Cloudflare Worker** `hope-finder-worker` | **`main`** (parity restored `a224ac7`) | All four `/give/*` routes return **410 Gone**; IDOR removed; `GIFT_WEBHOOK_SECRET` not bound |
-| **Cloudflare Pages** (frontend) | `main` | Donation frontend removed; `/pricing` live and **non-transactional** |
+| **Cloudflare Pages** (frontend) | `main` | Legacy checkout frontend removed; `/pricing` live and **non-transactional** |
 
 All three components now track `main`.
 
@@ -121,7 +121,7 @@ audit is at `docs/operations/convex-production-parity-audit.md`.
 **Worker: resolved.** `a224ac7` ported the deployed Worker source verbatim from
 `release-c1-monetization` @ `7d0c767` — both files byte-identical, all twelve
 live routes behaving identically to production, and the two hazards `main`
-carried (the live `/give/*` handlers and the billing-portal IDOR) removed. The
+carried (the live legacy checkout handlers and the billing-portal IDOR) removed. The
 audit is at `docs/operations/worker-production-parity-audit.md`.
 
 ### Operational secret state — recorded, not changed
@@ -146,10 +146,10 @@ hygiene work; adding them is a monetization launch decision.
 
 | Secret | Where it is set | Current reader |
 |---|---|---|
-| `GIFT_WEBHOOK_SECRET` | production **Convex** | none — retired with the giving product |
+| `GIFT_WEBHOOK_SECRET` | production **Convex** | none — retired with the legacy checkout integration |
 | `STRIPE_WEBHOOK_SECRET` | production **Worker** | none — the surviving code reads `STRIPE_BILLING_WEBHOOK_SECRET` |
 
-Both are leftovers from the retired donation product. Neither is a parity gap:
+Both are leftovers from a legacy checkout integration. Neither is a parity gap:
 the source on `main` is byte-identical to what is deployed. They should be
 removed in a **separate secret-hygiene checkpoint**, with the Stripe dashboard
 checked for any endpoint still pointing at the retired webhook first. **Do not
@@ -162,4 +162,4 @@ remove them during parity work, and do not rotate anything.**
 - Public Plus Checkout: **inactive** (no Stripe key or Price ids in production)
 - Gentle Guidance: **inactive** (no model call exists in any deployed function)
 - Pricing CTA: **non-transactional** (disabled control, no handler, no href)
-- Donation product: **fully retired** — no payment path reachable
+- Legacy checkout integration: **fully retired** — no payment path reachable

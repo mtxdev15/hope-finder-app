@@ -15,7 +15,7 @@ The Spanish Journey work that shipped on 2026-08-20 depends on
 `convex/journeyTranslate.ts` and three tables that live in production but not on
 `main`. Worse in the other direction: `main` still carries `convex/gifts.ts`,
 which production **does not have**, including `clearStats` — a one-command wipe
-of the giving tables. A Convex deploy from `main` today would simultaneously
+of the legacy checkout tables. A Convex deploy from `main` today would simultaneously
 remove behaviour the live frontend uses and restore a destructive function.
 
 Nobody can reproduce production from the default branch, and the default branch

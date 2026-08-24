@@ -54,7 +54,7 @@ RVR1909 is live in the Word reader; the worker serves it (id `592420522e16049f-0
 KV-cached). Nothing to do.
 
 ### Layer 2 — Static SEO pages  [x] DONE
-All 15 struggle pages + `/es/luchas` hub + giving pages are in `/es`, with RVR1909,
+All 15 struggle pages + `/es/luchas` hub are in `/es`, with RVR1909,
 Profundiza, deep-links, hreflang, sitemap. (Profundiza voice revisit is an open question,
 see bottom.)
 

@@ -156,3 +156,199 @@ export const STATE_LABEL_KEYS = {
 export function planNameKey(state) {
   return state.startsWith('plus-') ? 'plan.plusName' : 'plan.freeName';
 }
+
+/* ── ONE CURRENT PLAN ────────────────────────────────────────────────────── */
+
+/* WHY THIS EXISTS
+ *
+ * /pricing used to let each card decide for itself whether it was current: the
+ * Free card revealed a "Current plan" badge, the Plus card revealed a "Your
+ * current plan" badge, and nothing connected the two. Two different labels for
+ * one idea, computed twice, with no invariant saying only one may win. A read
+ * that resolved oddly could show both, or neither, and the page had no way to
+ * notice.
+ *
+ * Current plan is one fact about a person, so it is derived once, here, from
+ * the same state every other surface already uses. Cards ask; they never
+ * decide.
+ *
+ * PROVIDER-NEUTRAL. This reads a display state, which was itself derived from
+ * `tier` — never a Price id, never a card order, never a URL parameter, never
+ * local storage, and never the pricing-activation flag. Whether Plus can be
+ * BOUGHT has nothing to do with whether it is already HELD, and conflating the
+ * two is how a paying subscriber gets told Plus is "opening soon". */
+
+/** The two plans a customer can hold. Order is presentation, not authority. */
+export const PLAN_IDS = /** @type {const} */ (['free', 'plus']);
+
+/**
+ * The single plan that is current, or null when nobody is signed in.
+ *
+ * Every `plus-*` state is Plus: a failing card during grace and a subscription
+ * scheduled to end are both still Plus, and telling that person Free is their
+ * current plan would be false. `loading` and `unavailable` resolve to null
+ * because we do not know yet, and claiming a plan we cannot see is the failure
+ * this whole module exists to prevent.
+ *
+ * @param {string} state one of PLAN_STATES
+ * @returns {'free' | 'plus' | null}
+ */
+export function currentPlanId(state) {
+  if (typeof state !== 'string') return null;
+  if (state.indexOf('plus-') === 0) return 'plus';
+  if (state === 'free') return 'free';
+  return null; // guest, loading, unavailable
+}
+
+/**
+ * Whether a given card is the current plan. The ONLY question a card may ask.
+ *
+ * @param {'free' | 'plus' | string} planId
+ * @param {string} state
+ * @returns {boolean}
+ */
+export function isCurrentPlan(planId, state) {
+  return currentPlanId(state) === planId;
+}
+
+/**
+ * The invariant, executable rather than described.
+ *
+ * Exactly one current plan for anyone signed in; zero for a guest. `loading`
+ * and `unavailable` also yield zero, which is deliberate — an unresolved read
+ * must show no claim at all rather than a guess that later flips.
+ *
+ * @param {string} state
+ * @returns {number} 0 or 1, never 2
+ */
+export function currentPlanCount(state) {
+  return currentPlanId(state) === null ? 0 : 1;
+}
+
+/* ── EXCLUSIVE PLAN STATUS LABEL ─────────────────────────────────────────── */
+
+/* At most ONE badge per card. "Current plan", "Needs attention" and
+ * "Ends <date>" are three answers to one question, and stacking them produces
+ * the contradiction a customer notices first: a card that says it is both
+ * current and in trouble. Attention and ending outrank current, because when
+ * something needs doing, that is the thing to say. */
+
+/**
+ * The single status key for a card, or null when it carries no badge.
+ *
+ * @param {'free' | 'plus' | string} planId
+ * @param {string} state
+ * @returns {string | null} an i18n key
+ */
+export function planStatusKey(planId, state) {
+  if (!isCurrentPlan(planId, state)) return null;
+  if (state === 'plus-attention') return 'plan.stateAttention';
+  if (state === 'plus-cancelling') return 'plan.stateEnding';
+  if (state === 'plus-ambiguous') return 'plan.stateAmbiguous';
+  return 'plans.currentPlan';
+}
+
+/* ── PRICING ACTIVATION ──────────────────────────────────────────────────── */
+
+/* The ONE place that says whether the product can be bought.
+ *
+ * There was no such flag: /pricing hardcoded a disabled button and the
+ * disabled-ness itself was the guard. That worked, but it meant "can I buy
+ * this" was expressed as markup, so nothing could test the enabled branch and
+ * nothing stopped the two ideas — held and purchasable — from being read as
+ * one.
+ *
+ * Flipping this to true does NOT by itself open purchasing. Production Convex
+ * still holds none of the four billing variables and the Worker's billing route
+ * still fails closed, so a Checkout call would be refused server-side. This
+ * decides what the page SAYS. Activation is a separate, authorized task; see
+ * docs/operations/billing-production-activation-readiness.md. */
+export const PRICING_ENABLED = false;
+
+/* ── CALL-TO-ACTION INTENT ───────────────────────────────────────────────── */
+
+/* What each card's button is FOR, decided once. Returning an intent rather
+ * than a label keeps this dependency-free and lets each surface render and
+ * translate it however it needs to. */
+
+/**
+ * @param {string} state
+ * @param {boolean} [pricingEnabled]
+ * @returns {'create-account'|'upgrade'|'launches-soon'|'manage-billing'|'update-payment'|'keep-plus'|'none'}
+ */
+export function plusCtaIntent(state, pricingEnabled) {
+  const enabled = pricingEnabled === undefined ? PRICING_ENABLED : pricingEnabled === true;
+  /* A subscriber never sees a purchase control, enabled or not. What they need
+     is a way to manage what they already have — and which management action
+     depends on what is wrong, if anything. */
+  if (state === 'plus-attention') return 'update-payment';
+  if (state === 'plus-cancelling') return 'keep-plus';
+  if (state === 'plus-active' || state === 'plus-ambiguous') return 'manage-billing';
+  /* Not a subscriber. Only a state we RECOGNISE may offer a purchase: a failed
+     read must never unlock one, which is what mayStartCheckout already says. */
+  if (!mayStartCheckout(state)) return 'none';
+  return enabled ? 'upgrade' : 'launches-soon';
+}
+
+/**
+ * @param {string} state
+ * @returns {'create-account'|'current'|'none'}
+ */
+export function freeCtaIntent(state) {
+  if (state === 'guest') return 'create-account';
+  if (isCurrentPlan('free', state)) return 'current';
+  return 'none';
+}
+
+/* ── ANNUAL VALUE ────────────────────────────────────────────────────────── */
+
+/* The per-month equivalent of an annual price, in cents, or null when it cannot
+ * be computed exactly. Shown only when it is right: an approximate saving
+ * printed as a precise number is the kind of small dishonesty that costs trust
+ * on a page asking for money. */
+
+/**
+ * @param {unknown} annualCents
+ * @returns {number | null} cents per month, rounded to the nearest cent
+ */
+export function monthlyEquivalentCents(annualCents) {
+  if (typeof annualCents !== 'number' || !isFinite(annualCents) || annualCents <= 0) return null;
+  return Math.round(annualCents / 12);
+}
+
+/**
+ * Whole-percent saving of annual against twelve months of monthly, or null.
+ *
+ * @param {unknown} monthlyCents
+ * @param {unknown} annualCents
+ * @returns {number | null}
+ */
+export function annualSavingPercent(monthlyCents, annualCents) {
+  if (typeof monthlyCents !== 'number' || !isFinite(monthlyCents) || monthlyCents <= 0) return null;
+  if (typeof annualCents !== 'number' || !isFinite(annualCents) || annualCents <= 0) return null;
+  const twelve = monthlyCents * 12;
+  if (annualCents >= twelve) return null; // no saving to claim
+  return Math.round(((twelve - annualCents) / twelve) * 100);
+}
+
+/* ── CADENCE SELECTION ───────────────────────────────────────────────────── */
+
+/* Which cadence the selector opens on. A subscriber sees the one they are
+ * actually on, so the page never appears to describe someone else's plan.
+ * Everyone else gets the product default. Selecting a cadence changes what is
+ * PRICED; it can never change which plan is current. */
+
+export const DEFAULT_INTERVAL = 'month';
+
+/**
+ * @param {unknown} ent the entitlement response
+ * @param {string} state
+ * @returns {'month' | 'year'}
+ */
+export function initialInterval(ent, state) {
+  if (currentPlanId(state) === 'plus') {
+    const i = ent && ent.billingInterval;
+    if (i === 'month' || i === 'year') return i;
+  }
+  return DEFAULT_INTERVAL;
+}

@@ -21,6 +21,19 @@ const ALLOWED = {
   rate_started: ['source'],             // source: toast | profile | footer | menu
   rate_submitted: ['rating', 'shared'], // rating: overall 1-5; shared: boolean
   rate_dismissed: [],
+  /* Plans and Billing. Every allowed key here is provider-neutral and
+     non-identifying by construction: a boolean, a tier word, a cadence word,
+     and a presentation-state name. There is deliberately no key for an email,
+     a user id, a Stripe identifier, a payment detail or a raw plan object, so
+     one cannot be sent by mistake — the stripping below drops anything not
+     named, and the event itself is dropped if it is not listed. */
+  plans_viewed: ['authenticated', 'displayed_tier', 'selected_interval', 'presentation', 'pricing_enabled'],
+  billing_interval_selected: ['authenticated', 'displayed_tier', 'selected_interval', 'pricing_enabled'],
+  upgrade_cta_selected: ['authenticated', 'displayed_tier', 'selected_interval', 'pricing_enabled'],
+  manage_billing_selected: ['authenticated', 'displayed_tier', 'presentation', 'source'],
+  view_plans_selected: ['authenticated', 'displayed_tier', 'source'],
+  payment_attention_cta_selected: ['authenticated', 'displayed_tier', 'source'],
+  keep_plus_selected: ['authenticated', 'displayed_tier', 'source'],
   // later passes add: word_received, verse_saved, declaration_saved,
   // prayer_saved, journey_started, journey_day_completed,
   // struggle_page_cta_clicked

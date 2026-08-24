@@ -274,15 +274,41 @@ check("the reason DEV is load-bearing is documented on the page",
 /* pricing.astro stays non-transactional — asserted, not trusted. */
 /* Attribute-order tolerant: the button gained an id, and a literal match would
  * report "the CTA is enabled" for what is only a reordered attribute list. */
-const PLUS_CTA = (PRICING.match(/<button[^>]*data-i18n="pricing\.plusCta"[^>]*>/) || [])[0] || "";
+const PLUS_CTA = (PRICING.match(/<button[^>]*data-i18n="plans\.launchSoon"[^>]*>/) || [])[0] || "";
 check("the public pricing CTA still exists", PLUS_CTA.length > 0);
 check("the public pricing CTA is still disabled", /\bdisabled\b/.test(PLUS_CTA));
 check("the CTA has no click handler or href", !/onclick|href/i.test(PLUS_CTA));
-check("pricing.astro still says 'Opening soon'", /Opening soon/.test(PRICING));
-const PRICING_CODE = stripComments(PRICING).toLowerCase();
-for (const leak of ["createCheckoutSession", "plus-monthly", "billing.", "convex/browser", "stripe"]) {
-  check(`pricing.astro markup contains no "${leak}"`, !PRICING_CODE.includes(leak.toLowerCase()));
+/* RETARGETED, not relaxed. The served label was "Opening soon", which was shown
+   even to somebody already paying for Plus — a sentence that is simply false
+   for them. The copy is now "Plus launches soon" and it is only ever rendered
+   for a non-subscriber. The property this assertion protects is unchanged: the
+   page states plainly that purchasing is not open. */
+check("pricing.astro says purchasing is not open yet", /Plus launches soon/.test(PRICING));
+check("pricing.astro no longer tells a subscriber Plus is 'Opening soon'",
+  !/Opening soon/.test(PRICING));
+/* There is ONE activation authority and the page must defer to it rather than
+   carry its own. */
+check("the purchase control defers to the shared activation flag",
+  /PRICING_ENABLED/.test(stripComments(PRICING)));
+
+/* The leak scan runs over the page's CODE, not its prose.
+ *
+ * It used to run over everything, and banned the bare word "stripe". That was
+ * a workable proxy while the page had no copy about payment — but the reassurance
+ * line a customer needs before paying is literally "Secure billing through
+ * Stripe", and the FAQ ends a sentence with "…from Billing." Banning those would
+ * mean the page could not say who takes the money, which is worse than the
+ * problem the ban was guarding. What actually matters is that no Stripe API
+ * surface and no provider identifier lives in this page's code, and that is
+ * asserted directly below. */
+const PRICING_SCRIPT = (stripComments(PRICING).match(/<script>[\s\S]*?<\/script>/g) || []).join("\n").toLowerCase();
+for (const leak of ["createCheckoutSession", "plus-monthly", "api.billing", "billing.create",
+                    "convex/browser", "stripe", "sk_", "price_", "cus_", "sub_"]) {
+  check(`pricing.astro code contains no "${leak}"`, !PRICING_SCRIPT.includes(leak.toLowerCase()));
 }
+/* And no provider identifier anywhere on the page, copy included. */
+check("pricing.astro contains no provider identifier",
+  !/\b(sub|cus|in|pm|price|prod|acct|cs|evt)_[A-Za-z0-9]{6,}/.test(PRICING));
 /* The bare word "checkout" was removed from that list. It was a proxy for "no
  * Checkout call", and it now matches mayStartCheckout() — the shared GUARD that
  * exists precisely to stop a subscriber starting one. Banning the word would

@@ -50,8 +50,9 @@ verified read-only.
 `GOOGLE_CLIENT_SECRET`, `JOURNEY_TRANSLATE_SECRET`, `JOURNEY_TRANSLATE_URL`,
 `RESEND_API_KEY`, `SITE_URL`. **Absent:** `STRIPE_SECRET_KEY`,
 `STRIPE_PLUS_MONTHLY_PRICE_ID`, `STRIPE_PLUS_ANNUAL_PRICE_ID`,
-`BILLING_WEBHOOK_SECRET`. `GIFT_WEBHOOK_SECRET` belongs to the retired donation
-product and is unrelated. `createCheckoutSession` therefore returns
+`BILLING_WEBHOOK_SECRET`. `GIFT_WEBHOOK_SECRET` belongs to a legacy checkout
+integration and is unrelated to subscriptions — it must not be reused as the
+billing secret. `createCheckoutSession` therefore returns
 `billing-not-configured` before it can reach Stripe.
 
 **The production Worker's `/billing/webhook` fails closed.** The route exists in
@@ -74,10 +75,11 @@ entries**, with neither harness variable ever set.
 
 ### Verified
 
-**Exactly one live webhook endpoint exists, and it is not for billing.** It is
-the giving/donation endpoint: enabled, targeting the production Worker's
-`/give/webhook` path, subscribed to **`checkout.session.completed` only**, and
-pinned to API version **`2022-11-15`**.
+**Exactly one live webhook endpoint exists, and it is not the subscription
+billing endpoint.** It is a legacy checkout endpoint: enabled, targeting a
+legacy Worker path rather than `/billing/webhook`, subscribed to
+**`checkout.session.completed` only**, and pinned to API version
+**`2022-11-15`**.
 
 Three consequences, all of which must be handled before activation:
 
@@ -86,8 +88,8 @@ Three consequences, all of which must be handled before activation:
 2. Its API version is **not** the `2026-06-24.dahlia` the billing code pins and
    sends on every request. A billing endpoint on the wrong version returns
    payload shapes the parser was never verified against.
-3. The Worker's own comments record `/give/webhook` as **retired with the
-   donation product**. A live endpoint is still pointed at a retired route.
+3. The Worker's own comments record that legacy route as **retired**. A live
+   endpoint is still pointed at a route the source no longer treats as active.
    Decide deliberately whether it is disabled or left alone; do not discover
    this during activation.
 
@@ -136,7 +138,7 @@ reproduce in live mode:
 
 ### Live webhook endpoint to create
 
-New, separate, and never the giving endpoint:
+New, separate, and never the existing legacy endpoint:
 
 - targets the production Worker's **`/billing/webhook`** route
 - API version pinned to **`2026-06-24.dahlia`**
@@ -177,8 +179,8 @@ shared secret, set identically on production Convex and nowhere else).
 
 > **Hygiene finding — resolve before activation.** `STRIPE_SECRET_KEY` and
 > `STRIPE_WEBHOOK_SECRET` are still set on the production Worker and are
-> **referenced nowhere in its source**. They are leftovers from the retired
-> giving product, and they contradict the C5 rule that the Worker holds no
+> **referenced nowhere in its source**. They are leftovers from a legacy
+> checkout integration, and they contradict the C5 rule that the Worker holds no
 > Stripe credential. Two live-mode Stripe secrets sitting unused on an
 > internet-facing service is avoidable exposure. Rotate or remove them as a
 > separate, deliberate step — not folded into activation.

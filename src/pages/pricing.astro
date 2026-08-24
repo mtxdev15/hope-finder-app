@@ -1,202 +1,575 @@
 ---
-// /pricing — HOTFIX destination for the retired giving links.
-//
-// Deliberately minimal and self-contained. This branch is cut from the deployed
-// main, so it must not pull in the release branch's shared pricing system,
-// plan-data module or localized-route architecture — none of which exist here,
-// and all of which drag in unrelated work. The full sales experience ships with
-// the coordinated release; this page exists so no retired /give link lands on a
-// 404, and so the page it lands on is honest.
-//
-// NON-TRANSACTIONAL BY CONSTRUCTION: there is no Checkout call, no Stripe
-// reference, and no enabled purchase control anywhere on this page.
-//
-// It DOES now perform one authenticated read — getMyEntitlements — so a
-// signed-in reader can see which plan they are already on. That is a Convex
-// query, not a Stripe call: no billing action is imported, no Portal or
-// Checkout session can be created from here, and the Plus CTA remains the
-// disabled "Opening soon" button for everyone. A Plus subscriber is routed to
-// /you#plan-billing, which owns the Portal entry point.
-//
-// The read FAILS CLOSED: if entitlement state is unknown, no card is marked as
-// current and nothing becomes purchasable.
-//
-// Spanish uses main's existing runtime convention (data-i18n + i18n-strings.js
-// with the declare-lang cookie), reached as /pricing?lang=es. The localized
-// /es/precios route belongs to the release branch and is not ported here.
+/* /pricing — PLANS. One job: "which plan is right for me?"
+ *
+ * WHAT THIS PAGE IS NOT
+ * It is not a billing dashboard. There is no invoice list, no payment method,
+ * no cancellation control and no Portal session here. Managing an existing
+ * subscription lives at /billing, and the two pages are deliberately kept
+ * apart: comparing plans and managing the one you hold are different jobs, and
+ * a page that tries to do both does neither clearly.
+ *
+ * NON-TRANSACTIONAL BY CONSTRUCTION: no Checkout call, no Stripe reference and
+ * no enabled purchase control anywhere on this page. It performs exactly one
+ * authenticated read — getMyEntitlements — so a signed-in reader can see which
+ * plan they already hold. That is a Convex query, not a Stripe call.
+ *
+ * ONE CURRENT PLAN, DERIVED ONCE
+ * Each card used to decide for itself whether it was current, with two
+ * different labels for the one idea and nothing forbidding both from winning.
+ * Current plan is now resolved a single time by currentPlanId() in
+ * plan-display.js, from the same display state /billing uses, and the cards
+ * only ask. Whether Plus can be BOUGHT is a separate question from whether it
+ * is already HELD — conflating them is how a paying subscriber was told Plus
+ * was "opening soon".
+ *
+ * FAILS CLOSED: while entitlement state is loading, unknown or ambiguous, no
+ * card is marked current and nothing becomes purchasable.
+ *
+ * Spanish uses the runtime convention (data-i18n + i18n-strings.js with the
+ * declare-lang cookie), reached as /pricing?lang=es.
+ */
 import DeclareLayout from '../layouts/DeclareLayout.astro';
 ---
 <DeclareLayout
   title="Declare — Plans"
-  description="Declare is free to use. Plus is an optional subscription opening soon."
+  description="Compare Free and Plus. Scripture, crisis support and the core Declare experience stay free on every plan."
+  activeTab=""
 >
-  <main class="pricing">
+  <main class="plans">
     <div class="topglow" aria-hidden="true"></div>
     <div class="in">
       <div class="sub-top">
         <a class="iconbtn" href="/today" aria-label="Back" data-i18n-aria="pricing.back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
-        <span class="ttl" data-i18n="pricing.ttl">Plans</span>
+        <span class="ttl" data-i18n="plans.eyebrow">Plans</span>
         <span class="iconbtn" style="visibility:hidden"></span>
       </div>
 
-      <div class="pscroll">
-        <div class="phero rise d1">
-          <h1 data-i18n="pricing.h1">Declare stays free</h1>
-          <div class="psub" data-i18n="pricing.psub">The Word, your declarations, your Journey and your Vault cost nothing and always will.</div>
-        </div>
+      <header class="pl-hero rise d1">
+        <h1 data-i18n="plans.h1">Choose the support that fits your journey.</h1>
+        <p class="pl-sub" data-i18n="plans.sub">Start with the essentials, or unlock unlimited guidance and journeys with Plus.</p>
+      </header>
 
-        <section class="pcard rise d2" id="pcFree">
-          {/* Filled in only for a signed-in reader whose plan we actually know. */}
-          <div class="pc-cur" id="pcFreeCur" hidden data-i18n="pricing.currentPlan">Current plan</div>
-          <div class="pc-nm" data-i18n="pricing.freeNm">Free</div>
-          <div class="pc-pr"><span class="pc-amt">$0</span></div>
-          <div class="pc-note" data-i18n="pricing.freeNote">No card. No trial that quietly ends.</div>
-          <ul class="pc-list">
-            <li data-i18n="pricing.freeF1">The full Bible and the Declare experience</li>
-            <li data-i18n="pricing.freeF2">Save what God gives you with a free account</li>
-            <li data-i18n="pricing.freeF3">Your Journey, reflections and Vault</li>
-            <li data-i18n="pricing.freeF4">Crisis and support resources, always free</li>
-          </ul>
-          <div class="pc-cta"><a class="btn btn-ghost" href="/create-account" data-i18n="pricing.freeCta">Create a free account</a></div>
-        </section>
-
-        <section class="pcard pc-plus rise d3" id="pcPlus">
-          <div class="pc-cur" id="pcPlusCur" hidden data-i18n="pricing.yourCurrentPlan">Your current plan</div>
-          <div class="pc-tag" data-i18n="pricing.plusNm">Plus</div>
-          <div class="pc-nm" data-i18n="pricing.plusNm2">Plus</div>
-          <div class="pc-pr"><span class="pc-amt">$8.99</span><span class="pc-per" data-i18n="pricing.perMonth">/ month</span></div>
-          <div class="pc-note" data-i18n="pricing.plusYear">or $79.99 a year</div>
-          <div class="pc-cta">
-            <!-- Disabled by construction. No handler, no href, no network call. -->
-            <button type="button" class="btn btn-primary" id="pcPlusCta" disabled data-i18n="pricing.plusCta">Opening soon</button>
-            <a class="btn btn-ghost" id="pcPlusManage" href="/you#plan-billing" hidden data-i18n="pricing.manageBilling">Manage billing</a>
-            <div class="pc-fine" id="pcPlusFine" data-i18n="pricing.plusFine">Plus is not open yet. Nothing here charges you.</div>
-            <div class="pc-life" id="pcPlusLife" role="status" hidden></div>
-          </div>
-        </section>
-
-        <div class="prows">
-          <div class="prow rise d4">
-            <div class="pr-m">
-              <div class="pr-t" data-i18n="pricing.famNm">Family</div>
-              <div class="pr-d" data-i18n="pricing.famD">Plus for everyone under one roof.</div>
-            </div>
-            <div class="pr-s" data-i18n="pricing.comingSoon">Coming soon</div>
-          </div>
-          <div class="prow rise d4">
-            <div class="pr-m">
-              <div class="pr-t" data-i18n="pricing.churchNm">Church and groups</div>
-              <div class="pr-d" data-i18n="pricing.churchD">For congregations walking through this together.</div>
-            </div>
-            <a class="pr-link" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20church" data-i18n="pricing.churchCta">Contact us</a>
-          </div>
-        </div>
-
-        <div class="pfoot rise d4">
-          <p data-i18n="pricing.foot">Paying changes what the app allows, not what God gives. Everything essential stays free.</p>
+      {/* Cadence. A radiogroup rather than two buttons, so the selected state is
+          announced rather than merely coloured, and arrow keys work the way a
+          segmented control should. Changing it changes what is PRICED — never
+          which plan is current. */}
+      <div class="pl-cadence rise d2">
+        <div class="seg" role="radiogroup" aria-labelledby="plCadenceLbl" id="plCadence">
+          <span class="sr-only" id="plCadenceLbl" data-i18n="plans.cadenceLabel">Billing period</span>
+          <button type="button" class="seg-o" id="segMonth" role="radio" aria-checked="true" data-interval="month">
+            <span data-i18n="plans.monthly">Monthly</span>
+          </button>
+          <button type="button" class="seg-o" id="segYear" role="radio" aria-checked="false" data-interval="year">
+            <span data-i18n="plans.annual">Annual</span>
+            <span class="seg-save" id="segSave" data-i18n="plans.save26">Save 26%</span>
+          </button>
         </div>
       </div>
+
+      <div class="pl-grid">
+        {/* ── Free ─────────────────────────────────────────────────────── */}
+        <article class="pl-card rise d3" id="plFree" aria-labelledby="plFreeNm">
+          <div class="pl-badge" id="plFreeBadge" hidden></div>
+          <h2 class="pl-nm" id="plFreeNm" data-i18n="plans.freeName">Free</h2>
+          <p class="pl-desc" data-i18n="plans.freeDesc">Essential tools to begin and keep growing.</p>
+          <div class="pl-price"><span class="pl-amt">$0</span></div>
+          <div class="pl-per" data-i18n="plans.forever">Always</div>
+          <ul class="pl-list">
+            <li data-i18n="plans.freeF1">The full Bible and the whole Declare experience</li>
+            <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day</li>
+            <li data-i18n="plans.freeF3">2 Journeys active at once</li>
+            <li data-i18n="plans.freeF4">Your declarations, reflections and Vault, kept</li>
+            <li data-i18n="plans.freeF5">Crisis resources and support, always free</li>
+          </ul>
+          <div class="pl-cta" id="plFreeCta">
+            <a class="btn btn-ghost" href="/create-account" data-i18n="plans.freeCreate">Create a free account</a>
+          </div>
+        </article>
+
+        {/* ── Plus ─────────────────────────────────────────────────────── */}
+        <article class="pl-card pl-plus rise d3" id="plPlus" aria-labelledby="plPlusNm">
+          <div class="pl-badge" id="plPlusBadge" hidden></div>
+          <h2 class="pl-nm" id="plPlusNm" data-i18n="plans.plusName">Plus</h2>
+          <p class="pl-desc" data-i18n="plans.plusDesc">More room for guided reflection, unlimited journeys, and continued growth.</p>
+          <div class="pl-price">
+            <span class="pl-amt" id="plPlusAmt">$8.99</span>
+            <span class="pl-cur" id="plPlusPer" data-i18n="plans.perMonth">/ month</span>
+          </div>
+          <div class="pl-per" id="plPlusNote" data-i18n="plans.billedMonthly">Billed monthly</div>
+          <ul class="pl-list">
+            <li data-i18n="plans.plusF1">Everything in Free</li>
+            <li data-i18n="plans.plusF2">Unlimited Gentle Guidance</li>
+            <li data-i18n="plans.plusF3">Unlimited Journeys, active at once</li>
+            <li data-i18n="plans.plusF4">Room to keep going without a daily ceiling</li>
+          </ul>
+          <div class="pl-cta" id="plPlusCta">
+            {/* Served disabled. Only an explicit activation may change that, and
+                it lives in one place — PRICING_ENABLED in plan-display.js. */}
+            <button type="button" class="btn btn-primary" id="plPlusBtn" disabled data-i18n="plans.launchSoon">Plus launches soon</button>
+          </div>
+          <p class="pl-life" id="plPlusLife" role="status" hidden></p>
+        </article>
+      </div>
+
+      {/* ── Comparison ─────────────────────────────────────────────────── */}
+      <section class="pl-cmp rise d4" aria-labelledby="plCmpH">
+        <h2 class="pl-cmp-h" id="plCmpH" data-i18n="plans.compareH">What changes with Plus</h2>
+        <table class="pl-table">
+          <caption class="sr-only" data-i18n="plans.compareCap">Free and Plus compared, feature by feature</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-i18n="plans.feature">Feature</th>
+              <th scope="col" data-i18n="plans.freeName">Free</th>
+              <th scope="col" data-i18n="plans.plusName">Plus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row" data-i18n="plans.rScripture">Scripture and core support</th>
+              <td data-lbl="Free" data-i18n="plans.included">Included</td>
+              <td data-lbl="Plus" data-i18n="plans.included">Included</td>
+            </tr>
+            <tr>
+              <th scope="row" data-i18n="plans.rGuidance">Gentle Guidance</th>
+              <td data-lbl="Free" data-i18n="plans.rGuidanceFree">3 a day</td>
+              <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row" data-i18n="plans.rActive">Journeys active at once</th>
+              <td data-lbl="Free" data-i18n="plans.rActiveFree">2</td>
+              <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row" data-i18n="plans.rNew">Starting new Journeys</th>
+              <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
+              <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row" data-i18n="plans.rVault">Vault, reflections and declarations</th>
+              <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
+              <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row" data-i18n="plans.rCrisis">Crisis resources</th>
+              <td data-lbl="Free" data-i18n="plans.alwaysFree">Always free</td>
+              <td data-lbl="Plus" data-i18n="plans.alwaysFree">Always free</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      {/* ── Reassurance ────────────────────────────────────────────────── */}
+      <ul class="pl-trust rise d4">
+        <li data-i18n="plans.trust1">Secure billing through Stripe.</li>
+        <li data-i18n="plans.trust2">Cancel anytime.</li>
+        <li data-i18n="plans.trust3">Your plan changes app limits, not access to Scripture or crisis support.</li>
+      </ul>
+
+      {/* ── FAQ ────────────────────────────────────────────────────────── */}
+      <section class="pl-faq rise d4" aria-labelledby="plFaqH">
+        <h2 class="pl-cmp-h" id="plFaqH" data-i18n="plans.faqH">Questions people ask</h2>
+        <details class="pl-q">
+          <summary data-i18n="plans.q1">Does paying change what God gives me?</summary>
+          <p data-i18n="plans.a1">No. Plus changes what the app allows, not what God gives. Scripture, your Journey, your Vault and crisis support are the same on every plan.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q2">What happens if I cancel?</summary>
+          <p data-i18n="plans.a2">Your Plus access stays available until the end of the period you have already paid for. After that your account returns to Free, and everything you have saved stays yours.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q3">What if a payment fails?</summary>
+          <p data-i18n="plans.a3">You keep your access while we sort it out, and you will see a note asking you to take a second look at your payment method.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q4">Can I switch between monthly and annual?</summary>
+          <p data-i18n="plans.a4">Yes. You can manage your plan and payment method any time from Billing.</p>
+        </details>
+      </section>
+
+      {/* ── Churches and groups. Deliberately BELOW the plans and visually
+           quiet: it is an invitation to talk, not a third plan a person can
+           choose today, and presenting it as one would be a promise the
+           product cannot keep. */}
+      <section class="pl-org rise d4" aria-labelledby="plOrgH">
+        <h2 class="pl-org-h" id="plOrgH" data-i18n="plans.orgH">For churches and groups</h2>
+        <p class="pl-org-d" data-i18n="plans.orgD">Bring Declare to your community.</p>
+        <a class="pl-org-a" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20community" data-i18n="plans.orgCta">Contact us</a>
+      </section>
     </div>
   </main>
 
 <script>
-  /* Reflect the signed-in reader's CURRENT plan. Read-only.
+  /* Reflect the signed-in reader's CURRENT plan, and run the cadence selector.
    *
    * This page imports no billing action and can create no Checkout or Portal
-   * session. A subscriber is routed to /you#plan-billing, which owns that.
+   * session. A subscriber is routed to /billing, which owns that.
    *
-   * FAILS CLOSED, which is the whole point: while entitlement state is loading,
-   * unknown, or ambiguous, neither card is marked current and nothing changes.
-   * A failed read must never make a purchase control appear. */
+   * FAILS CLOSED: while entitlement state is loading, unknown or ambiguous,
+   * neither card is marked current and nothing becomes purchasable. */
   import { myEntitlements } from '../app/declare/convex-data.js';
-  import { planState, mayStartCheckout } from '../app/declare/plan-display.js';
+  import {
+    planState, mayStartCheckout, currentPlanId, isCurrentPlan, planStatusKey,
+    plusCtaIntent, freeCtaIntent, initialInterval, formatPeriodEnd,
+    PRICING_ENABLED,
+  } from '../app/declare/plan-display.js';
+  import { track } from '../app/declare/analytics.js';
 
-  const pel = (id: string) => document.getElementById(id);
-  const ptr = (k: string, fallback: string): string =>
-    window.I18N ? window.I18N.t(k, fallback) : fallback;
+  const el = (id: string) => document.getElementById(id);
+
+  /* English lives in the DOM for static markup, but text created at runtime has
+     no element to read it from — so for those strings the FALLBACK is the
+     English copy. One shared fallback is therefore a bug, not a shortcut: it
+     made every dynamic badge read "Current plan", including the one that was
+     supposed to say "Needs attention". Every key gets its own word. */
+  const EN: Record<string, string> = {
+    'plans.currentPlan': 'Current plan',
+    'plan.stateAttention': 'Needs attention',
+    'plan.stateEnding': 'Ending',
+    'plan.stateAmbiguous': 'Needs a look',
+    'plan.manage': 'Manage billing',
+    'plan.updatePayment': 'Update payment',
+    'plan.keepPlus': 'Keep Plus',
+    'plan.monthly': 'Monthly plan',
+    'plan.annual': 'Annual plan',
+    'plan.renews': 'Renews',
+    'plan.cancels': 'Cancels',
+    'plan.plusName': 'Declare Plus',
+    'plan.freeName': 'Free plan',
+    'plan.loadingName': 'Loading your plan',
+    'plan.cancellingMsg': 'Your Plus access remains available until the end of the period.',
+    'plan.attentionMsg': 'Something about your payment needs a second look. You still have access while we sort it out.',
+    'plan.ambiguousMsg': 'This account looks like it is being billed in more than one place.',
+    'plans.freeCreate': 'Create a free account',
+    'plans.launchSoon': 'Plus launches soon',
+    'plans.upgrade': 'Upgrade to Plus',
+    'plans.perMonth': '/ month',
+    'plans.perYear': '/ year',
+    'plans.billedMonthly': 'Billed monthly',
+    'plans.billedAnnual': 'Billed annually \u2014 about $6.67 a month',
+  };
+
+  /* The fallback is looked up per key. A caller may still pass one explicitly,
+     but it can never silently stand in for a different string. */
+  const tx = (k: string, fallback?: string): string => {
+    const en = EN[k] !== undefined ? EN[k] : (fallback !== undefined ? fallback : k);
+    return window.I18N ? window.I18N.t(k, en) : en;
+  };
+
+  /* Prices live here as content, in cents, so the comparison and the saving are
+     computed from one pair of numbers rather than three hardcoded strings. */
+  const MONTHLY_CENTS = 899;
+  const ANNUAL_CENTS = 7999;
+  const money = (cents: number) => '$' + (cents / 100).toFixed(2);
+
+  let interval: 'month' | 'year' = 'month';
+  let planStateNow = 'loading';
+
+  function paintCadence(): void {
+    for (const id of ['segMonth', 'segYear']) {
+      const b = el(id);
+      if (!b) continue;
+      const on = b.getAttribute('data-interval') === interval;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.classList.toggle('is-on', on);
+      /* Roving tabindex: the group is one stop, arrows move within it. */
+      b.setAttribute('tabindex', on ? '0' : '-1');
+    }
+    const amt = el('plPlusAmt');
+    const per = el('plPlusPer');
+    const note = el('plPlusNote');
+    if (interval === 'year') {
+      if (amt) amt.textContent = money(ANNUAL_CENTS);
+      if (per) per.textContent = tx('plans.perYear', '/ year');
+      if (note) note.textContent = tx('plans.billedAnnual', 'Billed annually — about $6.67 a month');
+    } else {
+      if (amt) amt.textContent = money(MONTHLY_CENTS);
+      if (per) per.textContent = tx('plans.perMonth', '/ month');
+      if (note) note.textContent = tx('plans.billedMonthly', 'Billed monthly');
+    }
+  }
+
+  function setInterval2(next: 'month' | 'year', announce: boolean): void {
+    if (next === interval) return;
+    interval = next;
+    paintCadence();
+    if (announce) {
+      track('billing_interval_selected', {
+        authenticated: planStateNow !== 'guest' && planStateNow !== 'loading',
+        displayed_tier: currentPlanId(planStateNow) || 'none',
+        selected_interval: interval,
+        pricing_enabled: PRICING_ENABLED,
+      });
+    }
+  }
+
+  for (const id of ['segMonth', 'segYear']) {
+    const b = el(id);
+    if (!b) continue;
+    b.addEventListener('click', () => {
+      const v = b.getAttribute('data-interval');
+      if (v === 'month' || v === 'year') setInterval2(v, true);
+    });
+    b.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const next = interval === 'month' ? 'year' : 'month';
+      setInterval2(next, true);
+      const target = el(next === 'month' ? 'segMonth' : 'segYear');
+      if (target) target.focus();
+    });
+  }
+
+  /* Render both cards from ONE resolved state. Neither card computes current
+     plan for itself, so "both selected" is not a state this page can reach. */
+  function paintPlans(state: string, ent: any): void {
+    planStateNow = state;
+    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+
+    for (const [planId, badgeId, cardId] of [
+      ['free', 'plFreeBadge', 'plFree'],
+      ['plus', 'plPlusBadge', 'plPlus'],
+    ] as const) {
+      const badge = el(badgeId);
+      const card = el(cardId);
+      const key = planStatusKey(planId, state);
+      if (badge) {
+        if (key) {
+          badge.textContent = key === 'plan.stateEnding'
+            ? tx('plan.stateEnding', 'Ending') +
+              (formatPeriodEnd(ent && ent.periodEndAt, lang)
+                ? ' · ' + formatPeriodEnd(ent && ent.periodEndAt, lang) : '')
+            : tx(key, 'Current plan');
+          badge.hidden = false;
+        } else { badge.hidden = true; }
+      }
+      if (card) {
+        card.classList.toggle('is-current', isCurrentPlan(planId, state));
+        card.setAttribute('data-current', isCurrentPlan(planId, state) ? 'true' : 'false');
+      }
+    }
+
+    /* Free card action. A person already on Free is not sold Free again. */
+    const fCta = el('plFreeCta');
+    if (fCta) {
+      const intent = freeCtaIntent(state);
+      fCta.innerHTML = '';
+      if (intent === 'create-account') {
+        const a = document.createElement('a');
+        a.className = 'btn btn-ghost'; a.href = '/create-account';
+        a.textContent = tx('plans.freeCreate', 'Create a free account');
+        fCta.appendChild(a);
+      } else if (intent === 'current') {
+        const s = document.createElement('span');
+        s.className = 'btn btn-quiet'; s.setAttribute('aria-disabled', 'true');
+        s.textContent = tx('plans.currentPlan', 'Current plan');
+        fCta.appendChild(s);
+      }
+    }
+
+    /* Plus card action, by intent. A subscriber never sees a purchase control,
+       enabled or not — they get the management action their state calls for. */
+    const pCta = el('plPlusCta');
+    if (pCta) {
+      const intent = plusCtaIntent(state, PRICING_ENABLED);
+      pCta.innerHTML = '';
+      if (intent === 'launches-soon' || intent === 'upgrade') {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn-primary'; b.id = 'plPlusBtn';
+        if (intent === 'launches-soon') {
+          b.disabled = true;
+          b.textContent = tx('plans.launchSoon', 'Plus launches soon');
+        } else {
+          b.textContent = tx('plans.upgrade', 'Upgrade to Plus');
+          b.addEventListener('click', () => {
+            track('upgrade_cta_selected', {
+              authenticated: state !== 'guest',
+              displayed_tier: currentPlanId(state) || 'none',
+              selected_interval: interval,
+              pricing_enabled: PRICING_ENABLED,
+            });
+          });
+        }
+        pCta.appendChild(b);
+      } else if (intent !== 'none') {
+        const a = document.createElement('a');
+        a.className = 'btn btn-ghost'; a.href = '/billing';
+        a.textContent = intent === 'update-payment'
+          ? tx('plan.updatePayment', 'Update payment')
+          : intent === 'keep-plus'
+            ? tx('plan.keepPlus', 'Keep Plus')
+            : tx('plan.manage', 'Manage billing');
+        a.addEventListener('click', () => {
+          track('manage_billing_selected', {
+            authenticated: true,
+            displayed_tier: 'plus',
+            presentation: state,
+            source: 'plans',
+          });
+        });
+        pCta.appendChild(a);
+      }
+    }
+
+    /* The lifecycle sentence, only when it is not simply active. */
+    const life = el('plPlusLife');
+    if (life) {
+      const MSG: Record<string, string> = {
+        'plus-cancelling': 'plan.cancellingMsg',
+        'plus-attention': 'plan.attentionMsg',
+        'plus-ambiguous': 'plan.ambiguousMsg',
+      };
+      const k = MSG[state];
+      if (k) { life.textContent = tx(k, ''); life.hidden = false; }
+      else { life.hidden = true; }
+    }
+
+    /* Belt and braces: a subscriber must never reach a purchase control. */
+    if (!mayStartCheckout(state)) {
+      const b = el('plPlusBtn');
+      if (b instanceof HTMLButtonElement) { b.disabled = true; }
+    }
+  }
+
+
+  /* ── DEVELOPMENT-ONLY STATE PREVIEW ──────────────────────────────────────
+     Renders this page against a fixed entitlement fixture so every plan state
+     can be reviewed and screenshotted without a real subscription, a Test
+     Clock or a Stripe object.
+
+     Gated exactly the way the Journey pacing-lock bypass and the billing dev
+     control are, and for the same reason: `import.meta.env.DEV` is FALSE in
+     every `astro build`, so Vite folds this to `if (false)` and esbuild drops
+     the body — including the fixtures. The public flag alone would not be a
+     gate, because Vite loads .env.local in production builds too. Both halves
+     are required, and the build output is asserted to contain neither.
+
+     No route is added and no mock data is deployed. */
+  function previewEntitlement(): any | undefined {
+    if (!(import.meta.env.DEV && import.meta.env.PUBLIC_PLANS_PREVIEW === '1')) return undefined;
+    const want = new URLSearchParams(location.search).get('preview');
+    if (!want) return undefined;
+    const END = Date.parse('2028-08-23T12:00:00Z');
+    const F: Record<string, any> = {
+      guest: { tier: 'guest' },
+      free: { tier: 'free', subscriptionStatus: 'none',
+              remaining: { gentleGuidanceToday: 3, activeJourneySlots: 2 } },
+      plusMonthly: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'month',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: false, periodEndAt: END },
+      plusAnnual: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'year',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: false, periodEndAt: END },
+      attention: { tier: 'plus', subscriptionStatus: 'past_due', billingInterval: 'year',
+              cancelAtPeriodEnd: false, paymentNeedsAttention: true, periodEndAt: END },
+      ending: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'year',
+              cancelAtPeriodEnd: true, paymentNeedsAttention: false, periodEndAt: END },
+    };
+    return F[want];
+  }
 
   (async () => {
-    let ent = null;
-    try { ent = await myEntitlements(); } catch (e) { ent = null; }
+    paintCadence();
+    let ent: any = previewEntitlement();
+    if (ent === undefined) { try { ent = await myEntitlements(); } catch (e) { ent = null; } }
     const state = planState(ent);
-
-    /* Unknown or still resolving: leave the page exactly as served. */
-    if (state === 'loading' || state === 'unavailable' || state === 'guest') return;
-
-    if (state === 'free') {
-      const cur = pel('pcFreeCur');
-      if (cur) cur.hidden = false;
-      return;
-    }
-    if (!state.startsWith('plus-')) return;
-
-    /* A confirmed subscriber. Mark Plus as theirs and take the purchase control
-       off the page entirely — hidden, and never re-enabled. */
-    const cur = pel('pcPlusCur');
-    if (cur) cur.hidden = false;
-    const cta = pel('pcPlusCta');
-    if (cta instanceof HTMLButtonElement) { cta.disabled = true; cta.hidden = true; }
-    const fine = pel('pcPlusFine');
-    if (fine) fine.hidden = true;
-    const manage = pel('pcPlusManage');
-    if (manage) manage.hidden = false;
-
-    /* Show the real lifecycle, not "Active", when it is not simply active. */
-    const life = pel('pcPlusLife');
-    if (life && state !== 'plus-active') {
-      life.textContent =
-        state === 'plus-cancelling'
-          ? ptr('plan.cancellingMsg', 'Your Plus access remains available until the end of the period.')
-          : state === 'plus-attention'
-            ? ptr('plan.attentionMsg', 'Something about your payment needs a second look.')
-            : ptr('plan.ambiguousMsg', 'This account looks like it is being billed in more than one place.');
-      life.hidden = false;
-    }
-
-    /* Belt and braces: a subscriber must not be able to start Checkout. */
-    if (!mayStartCheckout(state) && cta instanceof HTMLButtonElement) cta.disabled = true;
+    /* A subscriber's own cadence, so the page never prices someone else's plan. */
+    setInterval2(initialInterval(ent, state), false);
+    paintCadence();
+    paintPlans(state, ent);
+    track('plans_viewed', {
+      authenticated: state !== 'guest' && state !== 'loading',
+      displayed_tier: currentPlanId(state) || 'none',
+      selected_interval: interval,
+      presentation: state,
+      pricing_enabled: PRICING_ENABLED,
+    });
   })();
 </script>
 
   <style is:global>
-  .pc-cur { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
-    text-transform: uppercase; padding: 4px 9px; border-radius: 999px; margin-bottom: 10px;
-    color: var(--goldd); border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line2));
-    background: color-mix(in srgb, var(--gold) 10%, transparent); }
-  .pc-life { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin-top: 10px; }
-    .pricing { position: relative; min-height: 100dvh; }
-    .pricing .in { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 0 20px 120px; }
-    .pricing .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
-    .pricing .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
-    .pricing .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .pricing .iconbtn svg { width: 20px; height: 20px; }
-    .pricing .pscroll { padding-top: 8px; }
-    .pricing .phero { text-align: center; padding: 18px 0 24px; }
-    .pricing .phero h1 { font-family: 'Cormorant Garamond', serif; font-size: 32px; line-height: 1.15; color: var(--text); font-weight: 500; }
-    .pricing .psub { font-size: 14px; line-height: 1.65; color: var(--muted); margin: 12px auto 0; max-width: 44ch; }
-    .pricing .pcard { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 20px; margin-bottom: 14px; }
-    .pricing .pc-plus { border-color: var(--gold); }
-    .pricing .pc-tag { position: absolute; top: -10px; left: 20px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #13211A; background: var(--gold); padding: 4px 10px; border-radius: 100px; }
-    .pricing .pc-nm { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-    .pricing .pc-pr { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; }
-    .pricing .pc-amt { font-family: 'Cormorant Garamond', serif; font-size: 40px; line-height: 1; color: var(--text); }
-    .pricing .pc-per { font-size: 13px; color: var(--muted); }
-    .pricing .pc-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
-    .pricing .pc-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
-    .pricing .pc-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.5; color: var(--text2); }
-    .pricing .pc-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px; border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
-    .pricing .pc-cta { margin-top: 20px; }
-    .pricing .pc-cta .btn { width: 100%; }
-    .pricing .pc-cta .btn[disabled] { opacity: .55; cursor: not-allowed; }
-    .pricing .pc-fine { font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; margin-top: 9px; }
-    .pricing .prows { display: grid; gap: 10px; margin-top: 20px; }
-    .pricing .prow { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
-    .pricing .pr-m { flex: 1; min-width: 0; }
-    .pricing .pr-t { font-size: 15px; font-weight: 600; color: var(--text); }
-    .pricing .pr-d { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 3px; }
-    .pricing .pr-s { flex: 0 0 auto; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); }
-    .pricing .pr-link { flex: 0 0 auto; font-size: 13.5px; font-weight: 600; color: var(--goldd); }
-    .pricing .pfoot { margin-top: 28px; text-align: center; }
-    .pricing .pfoot p { font-size: 12.5px; line-height: 1.6; color: var(--muted); max-width: 42ch; margin: 0 auto; }
+    .plans { position: relative; min-height: 100dvh; }
+    .plans .in { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; padding: 0 20px 120px; }
+    .plans .sub-top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; }
+    .plans .sub-top .ttl { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+    .plans .iconbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .plans .iconbtn svg { width: 20px; height: 20px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    .plans .pl-hero { text-align: center; padding: 22px 0 26px; }
+    .plans .pl-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; line-height: 1.14; color: var(--text); font-weight: 500; max-width: 18ch; margin: 0 auto; }
+    .plans .pl-sub { font-size: 14.5px; line-height: 1.65; color: var(--muted); margin: 14px auto 0; max-width: 46ch; }
+
+    /* Cadence — a calm segmented control, never a neon toggle. */
+    .plans .pl-cadence { display: flex; justify-content: center; margin-bottom: 22px; }
+    .plans .seg { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+    .plans .seg-o { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .18s ease, color .18s ease; }
+    .plans .seg-o.is-on { background: color-mix(in srgb, var(--gold) 14%, transparent); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 38%, transparent); }
+    .plans .seg-o:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .plans .seg-save { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--goldd); }
+
+    .plans .pl-grid { display: grid; gap: 16px; }
+    .plans .pl-card { position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 26px 22px; }
+    /* Plus carries slightly more weight, but restrained: a warmer border and a
+       whisper of gold, never a gradient. */
+    .plans .pl-plus { border-color: color-mix(in srgb, var(--gold) 46%, var(--line)); }
+    /* The current plan is stated calmly. Colour is never the only signal —
+       the badge carries the word. */
+    .plans .pl-card.is-current { border-color: var(--gold); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent); }
+    .plans .pl-badge { align-self: flex-start; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; margin-bottom: 12px; color: var(--goldd); border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line2)); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+    .plans .pl-nm { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--text); margin: 0; }
+    .plans .pl-desc { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 6px 0 0; min-height: 2.6em; }
+    .plans .pl-price { display: flex; align-items: baseline; gap: 5px; margin-top: 16px; }
+    .plans .pl-amt { font-family: 'Cormorant Garamond', serif; font-size: 44px; line-height: 1; color: var(--text); }
+    .plans .pl-cur { font-size: 13.5px; color: var(--muted); }
+    .plans .pl-per { font-size: 12.5px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
+    .plans .pl-list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 11px; flex: 1; }
+    .plans .pl-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.5; color: var(--text2); }
+    .plans .pl-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px; border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
+    .plans .pl-cta { margin-top: 22px; }
+    .plans .pl-cta .btn { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+    .plans .pl-cta .btn[disabled], .plans .pl-cta .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+    .plans .btn-quiet { border: 1px solid var(--line); border-radius: 14px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; }
+    .plans .pl-life { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 12px 0 0; }
+
+    /* Comparison — a real table on desktop, stacked rows on mobile. */
+    .plans .pl-cmp { margin-top: 40px; }
+    .plans .pl-cmp-h { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--text); margin: 0 0 16px; text-align: center; }
+    .plans .pl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .plans .pl-table th, .plans .pl-table td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    .plans .pl-table thead th { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .plans .pl-table tbody th { font-weight: 500; color: var(--text2); }
+    .plans .pl-table td { color: var(--text2); }
+    .plans .pl-table thead th:nth-child(3), .plans .pl-table td:nth-child(3) { color: var(--text); }
+
+    .plans .pl-trust { list-style: none; margin: 30px auto 0; padding: 0; display: grid; gap: 8px; max-width: 46ch; text-align: center; }
+    .plans .pl-trust li { font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+
+    .plans .pl-faq { margin-top: 44px; }
+    .plans .pl-q { border-bottom: 1px solid var(--line); }
+    .plans .pl-q summary { list-style: none; cursor: pointer; padding: 16px 0; font-size: 14.5px; color: var(--text); min-height: 44px; display: flex; align-items: center; }
+    .plans .pl-q summary::-webkit-details-marker { display: none; }
+    .plans .pl-q summary::after { content: '+'; margin-left: auto; color: var(--goldd); font-size: 18px; }
+    .plans .pl-q[open] summary::after { content: '\2013'; }
+    .plans .pl-q summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .plans .pl-q p { font-size: 13.5px; line-height: 1.7; color: var(--muted); margin: 0 0 16px; max-width: 60ch; }
+
+    .plans .pl-org { margin-top: 44px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; text-align: center; }
+    .plans .pl-org-h { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+    .plans .pl-org-d { font-size: 14px; line-height: 1.6; color: var(--text2); margin: 8px 0 0; }
+    .plans .pl-org-a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13.5px; font-weight: 600; color: var(--goldd); margin-top: 6px; }
+
+    @media (min-width: 760px) {
+      .plans .pl-grid { grid-template-columns: 1fr 1fr; align-items: stretch; gap: 20px; }
+      .plans .pl-hero h1 { font-size: 40px; }
+    }
+    @media (max-width: 620px) {
+      .plans .pl-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .plans .pl-table tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--line); }
+      .plans .pl-table th, .plans .pl-table td { display: block; border: 0; padding: 2px 0; }
+      .plans .pl-table tbody th { font-size: 14px; color: var(--text); margin-bottom: 4px; }
+      .plans .pl-table td { font-size: 13px; color: var(--muted); padding-left: 0; }
+      .plans .pl-table td::before { content: attr(data-lbl) ' '; color: var(--muted); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .plans .seg-o { transition: none; }
+    }
   </style>
 </DeclareLayout>

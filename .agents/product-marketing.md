@@ -7,7 +7,7 @@
 **What it does:** Declare & Believe is a faith-based web app for Christians stuck in a specific mindset struggle (fear, shame, failure, loneliness, doubt). The visitor names what they're carrying, by typing it or picking from a list, and the app returns 3 relevant Bible verses (NKJV/NLT/NIV), a short pastoral explanation, a personalized prayer, and present-tense "I am / I declare" statements rooted in the verse. One interaction, one moment, God's Word for their exact situation. Built on Romans 12:2.
 **Product category:** Christian faith app / Bible tool / mind renewal. We sit in a **transformation-and-freedom lane** (getting unstuck in a single moment), not the daily-habit devotional lane.
 **Product type:** Web app (Astro + Cloudflare + Anthropic Claude + Convex). Free accounts that sync a saved "vault," profile, and a guided journey across devices.
-**Business model:** Free, no ads, no paywall. Funded by donations (the Give page; Stripe is the next build). Owner: JC Kingdom Ventures, LLC.
+**Business model:** Free tier plus an optional **Declare Plus** subscription ($8.99/month or $79.99/year). No ads. Scripture, the core experience and crisis support stay free on every plan; Plus lifts the daily and concurrent limits. Purchasing is not yet activated in production. Owner: JC Kingdom Ventures, LLC.
 
 ## Target Audience
 **Who it's for:** Christian men and women (equally) carrying a private inner struggle, who won't call a pastor at 3am but will open a search bar. Functional on the outside, fighting a quiet war inside.

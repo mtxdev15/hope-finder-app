@@ -55,23 +55,6 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
           </div>
         </section>
 
-        {/* ── 2. Plan & billing ───────────────────────────────────────── */}
-        <section class="ysec" aria-labelledby="yPlanH">
-          <h2 class="ysec-h serif" id="yPlanH" data-i18n="you.planBillingH">Plan &amp; billing</h2>
-          <div class="pbcard m-rise" id="plan-billing" aria-labelledby="pbTitle" aria-busy="true">
-            <div class="pb-top">
-              <div class="pb-id">
-                <div class="pb-nm serif" id="pbTitle" data-i18n="plan.loadingName">Loading your plan</div>
-                <div class="pb-meta" id="pbMeta" hidden></div>
-              </div>
-              <span class="pb-state" id="pbState" hidden></span>
-            </div>
-            <ul class="pb-list" id="pbList" hidden></ul>
-            <p class="pb-msg" id="pbMsg" role="status" hidden></p>
-            <div class="pb-acts" id="pbActs"></div>
-          </div>
-        </section>
-
         {/* ── 3. Your Formation ───────────────────────────────────────────
             The Declare-specific section. Reflective, never gamified: no
             streaks, no scores, no achievements, no "you missed a day". Every
@@ -113,17 +96,17 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
               </span>
               <span class="yrow-x" aria-hidden="true">›</span>
             </button>
-            <a class="yrow" href="#plan-billing">
+            <a class="yrow" href="/billing">
               <span class="yrow-m">
-                <span class="yrow-t" data-i18n="you.planBillingH">Plan &amp; billing</span>
-                <span class="yrow-d" data-i18n="you.planRowD">See what you hold and manage billing</span>
+                <span class="yrow-t" data-i18n="you.billing">Billing</span>
+                <span class="yrow-d" data-i18n="you.billingD">Manage your existing subscription</span>
               </span>
               <span class="yrow-x" aria-hidden="true">›</span>
             </a>
             <a class="yrow" href="/pricing">
               <span class="yrow-m">
                 <span class="yrow-t" data-i18n="you.plans">Plans</span>
-                <span class="yrow-d" data-i18n="you.plansD">What’s free, and what Plus adds</span>
+                <span class="yrow-d" data-i18n="you.plansD">Compare Free and Plus</span>
               </span>
               <span class="yrow-x" aria-hidden="true">›</span>
             </a>
@@ -348,11 +331,10 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { initRateReview } from '../app/declare/rate-review.js';
     import { noteSubmitted } from '../app/declare/rate-gate.js';
-    import { reviewsSubmit, reviewsMine, myEntitlements, openBillingPortal } from '../app/declare/convex-data.js';
-    import {
-      planState, showsPlusBadge, showsManageBilling, periodLabelKey,
-      cadenceKey, formatPeriodEnd, planNameKey, STATE_LABEL_KEYS,
-    } from '../app/declare/plan-display.js';
+    import { reviewsSubmit, reviewsMine, myEntitlements } from '../app/declare/convex-data.js';
+    /* Only the two the identity badge needs. No billing ACTION is imported at
+       all, so no Portal or Checkout session can be created from this page. */
+    import { planState, showsPlusBadge } from '../app/declare/plan-display.js';
 
     const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     /* Every id passed to $() is rendered unconditionally by this page, so a
@@ -1399,194 +1381,26 @@ const GMAPS_KEY = import.meta.env.PUBLIC_GMAPS_KEY || '';
     // refresh the whole profile (name, church, interests) when it syncs in
     onAccountSync(() => { P = getProfile(); renderRail(); renderFacts(); renderChips(); renderChurchHub(); });
 
-    /* ── Plan & billing ────────────────────────────────────────────────────
-       Renders ONE state from the shared helper in plan-display.js. The states
-       are deliberately distinct, because the ways they can be got wrong are the
-       ways that matter: telling a cancelled subscriber their plan renews,
-       telling a failing card it is Active, or telling a paying subscriber they
-       are on Free because a read happened to fail.
+    /* Plan & billing MOVED to /billing.
+       Billing MANAGEMENT is its own job and now its own page. Leaving the card
+       here would mean two surfaces rendering subscription state, and two
+       surfaces rendering one fact is how they end up disagreeing — the exact
+       failure plan-display.js was written to prevent. The Account hub links to
+       it instead.
 
-       Reads getMyEntitlements only. No Stripe id, no localStorage, no URL. */
-    type PbEls = {
-      card: HTMLElement; nm: HTMLElement; meta: HTMLElement; state: HTMLElement;
-      list: HTMLElement; msg: HTMLElement; acts: HTMLElement; badge: HTMLElement | null;
-    };
-    /* Resolved once, with a single guard, so every later use is non-null. */
-    function pbEls(): PbEls | null {
-      const card = document.getElementById('plan-billing');
-      const nm = document.getElementById('pbTitle');
-      const meta = document.getElementById('pbMeta');
-      const state = document.getElementById('pbState');
-      const list = document.getElementById('pbList');
-      const msg = document.getElementById('pbMsg');
-      const acts = document.getElementById('pbActs');
-      if (!card || !nm || !meta || !state || !list || !msg || !acts) return null;
-      return { card, nm, meta, state, list, msg, acts, badge: document.getElementById('yPlusBadge') };
-    }
-
-    /* I18N.t already falls back to its second argument. */
-    const pbT = (k: string, fallback: string): string =>
-      window.I18N ? window.I18N.t(k, fallback) : fallback;
-
-    const PB_FALLBACK: Record<string, string> = {
-      'plan.plusName': 'Declare Plus',
-      'plan.freeName': 'Free plan',
-      'plan.loadingName': 'Loading your plan',
-      'plan.stateActive': 'ACTIVE',
-      'plan.stateCancelling': 'ENDING',
-      'plan.stateAttention': 'NEEDS ATTENTION',
-      'plan.stateAmbiguous': 'NEEDS REVIEW',
-      'plan.stateFree': 'FREE',
-      'plan.monthly': 'Monthly plan',
-      'plan.annual': 'Annual plan',
-      'plan.renews': 'Renews',
-      'plan.cancels': 'Cancels',
-      'plan.manage': 'Manage billing',
-      'plan.upgrade': 'Upgrade to Plus',
-      'plan.retry': 'Try again',
-      'plan.unavailableMsg': 'We could not load your plan right now.',
-      'plan.cancellingMsg': 'Your Plus access remains available until then.',
-      'plan.attentionMsg': 'Something about your payment needs a second look. You still have access while we sort it out.',
-      'plan.ambiguousMsg': 'This account looks like it is being billed in more than one place. Open billing to review it, or contact support and we will sort it out.',
-      'plan.b1': 'Unlimited Gentle Guidance',
-      'plan.b2': 'Unlimited Journeys',
-      'plan.b3': 'Unlimited active Journeys',
-      'plan.portalErr': 'We could not open billing just now. Please try again.',
-      'plan.noSub': 'There is no subscription on this account yet.',
-      'plan.freeGuidance': 'Gentle Guidance left today',
-      'plan.freeSlots': 'active Journey slots left',
-    };
-    const pbTx = (k: string): string => pbT(k, PB_FALLBACK[k] || '');
-
-    function pbButton(label: string, onClick: (b: HTMLButtonElement) => void, variant: string): HTMLButtonElement {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pb-btn ' + variant;
-      b.textContent = label;
-      b.addEventListener('click', () => onClick(b));
-      return b;
-    }
-    function pbLink(label: string, href: string): HTMLAnchorElement {
-      const a = document.createElement('a');
-      a.className = 'pb-btn pb-primary';
-      a.href = href;
-      a.textContent = label;
-      return a;
-    }
-
-    /* Single-flight and click-only. Disabled the moment it is pressed and left
-       disabled while the request is in flight, so a double tap cannot mint two
-       Portal sessions. Sends nothing — see openBillingPortal(). */
-    let pbPortalBusy = false;
-    async function pbManageBilling(btn: HTMLButtonElement): Promise<void> {
-      if (pbPortalBusy) return;
-      pbPortalBusy = true;
-      btn.disabled = true;
-      const els = pbEls();
-      try {
-        const res = await openBillingPortal();
-        if (res && res.url) { window.location.href = res.url; return; }
-        if (els) {
-          els.msg.textContent = res && res.error === 'no-subscription'
-            ? pbTx('plan.noSub') : pbTx('plan.portalErr');
-          els.msg.hidden = false;
-        }
-      } catch (e) {
-        if (els) { els.msg.textContent = pbTx('plan.portalErr'); els.msg.hidden = false; }
-      }
-      pbPortalBusy = false;
-      btn.disabled = false;
-    }
-
-    function pbRender(ent: any, opts?: { loading?: boolean }): void {
-      const els = pbEls();
-      if (!els) return;
-      const state: string = planState(ent, opts);
-      const lang: string = window.I18N ? window.I18N.lang() : 'en';
-
-      els.card.setAttribute('data-plan-state', state);
-      els.card.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
-
-      /* Badge: identity only, and never before loading completes. */
-      if (els.badge) els.badge.hidden = !showsPlusBadge(state);
-
-      els.nm.textContent = state === 'loading'
-        ? pbTx('plan.loadingName') : pbTx(planNameKey(state));
-
-      /* Status chip. Absent while loading, so nothing claims a state we do not
-         have yet. A WORD, never colour alone. */
-      const stateKey = STATE_LABEL_KEYS[state];
-      if (stateKey && state !== 'loading' && state !== 'guest') {
-        els.state.textContent = pbTx(stateKey);
-        els.state.hidden = false;
-      } else { els.state.hidden = true; }
-
-      /* Cadence and the date. The word in front of the date comes from the
-         shared helper, so a scheduled cancellation can never read "Renews".
-         No date is shown when we do not have one. */
-      const bits: string[] = [];
-      const ck = cadenceKey(ent);
-      if (ck && state.indexOf('plus-') === 0) bits.push(pbTx(ck));
-      const pk = periodLabelKey(state);
-      const when = formatPeriodEnd(ent && ent.periodEndAt, lang);
-      if (pk && when) bits.push(pbTx(pk) + ' ' + when);
-      if (bits.length) { els.meta.textContent = bits.join(' \u00b7 '); els.meta.hidden = false; }
-      else { els.meta.hidden = true; }
-
-      /* Benefits, or the free plan's real remaining allowance. */
-      els.list.innerHTML = '';
-      if (state.indexOf('plus-') === 0) {
-        for (const k of ['plan.b1', 'plan.b2', 'plan.b3']) {
-          const li = document.createElement('li'); li.textContent = pbTx(k); els.list.appendChild(li);
-        }
-        els.list.hidden = false;
-      } else if (state === 'free' && ent && ent.remaining) {
-        const r = ent.remaining;
-        const rows: string[] = [];
-        if (typeof r.gentleGuidanceToday === 'number') {
-          rows.push(r.gentleGuidanceToday + ' ' + pbTx('plan.freeGuidance'));
-        }
-        if (typeof r.activeJourneySlots === 'number') {
-          rows.push(r.activeJourneySlots + ' ' + pbTx('plan.freeSlots'));
-        }
-        for (const text of rows) {
-          const li = document.createElement('li'); li.textContent = text; els.list.appendChild(li);
-        }
-        els.list.hidden = rows.length === 0;
-      } else { els.list.hidden = true; }
-
-      /* Message line. */
-      const MSG: Record<string, string> = {
-        'plus-cancelling': 'plan.cancellingMsg',
-        'plus-attention': 'plan.attentionMsg',
-        'plus-ambiguous': 'plan.ambiguousMsg',
-        unavailable: 'plan.unavailableMsg',
-      };
-      const msgKey = MSG[state];
-      if (msgKey) { els.msg.textContent = pbTx(msgKey); els.msg.hidden = false; }
-      else { els.msg.hidden = true; }
-
-      /* Actions. */
-      els.acts.innerHTML = '';
-      if (showsManageBilling(state)) {
-        els.acts.appendChild(pbButton(pbTx('plan.manage'), pbManageBilling, 'pb-primary'));
-      } else if (state === 'free' || state === 'guest') {
-        els.acts.appendChild(pbLink(pbTx('plan.upgrade'), '/pricing'));
-      } else if (state === 'unavailable') {
-        els.acts.appendChild(pbButton(pbTx('plan.retry'), () => { pbLoad(); }, 'pb-ghost'));
-      }
-    }
-
-    async function pbLoad(): Promise<void> {
-      /* Loading never renders Free — that is the bug this guards against. */
-      pbRender(null, { loading: true });
+       What stays is the PLUS identity badge beside the name, because that is
+       identity rather than billing: it says who this person is to us, not what
+       their payment is doing. So this reads entitlement for one boolean and
+       renders nothing else — no status word, no date, no cadence, no action,
+       and no Portal. showsPlusBadge() is the same shared helper /billing uses,
+       so the badge and the card cannot disagree about who is a member. */
+    (async () => {
+      const badge = document.getElementById('yPlusBadge');
+      if (!badge) return;
       let ent: any = null;
       try { ent = await myEntitlements(); } catch (e) { ent = null; }
-      pbRender(ent);
-    }
-    pbLoad();
-    try { onAuthChange(() => { pbLoad(); }); } catch (e) {}
-
+      badge.hidden = !showsPlusBadge(planState(ent));
+    })();
 
     /* ── Your Formation ────────────────────────────────────────────────────
        Built ONLY from data the app already holds:
