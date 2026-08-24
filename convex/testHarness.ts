@@ -55,6 +55,11 @@ import {
   isNormalizable,
   isAdvanceResumable,
   isRecoveryResumable,
+  resolveEffectivePaymentMethod,
+  effectiveMethodPolicy,
+  assessRecoveryInvoiceState,
+  shouldRestoreCustomerDefault,
+  assessFailureMethodState,
   isCancelResumable,
   isSingleFailedAttempt,
   fixtureListPath,
@@ -253,7 +258,13 @@ async function assertInvoiceOwned(
   fixtureSubscriptionId: string | undefined,
 ): Promise<{ ok: true; object: any } | { ok: false; error: ErrorCode }> {
   if (!invoiceId || !fixtureSubscriptionId) return { ok: false, error: "clock-not-owned" };
-  const res = await stripeGet("/invoices/" + encodeURIComponent(invoiceId), secret);
+  /* `payments` is EXPANDED on purpose. An invoice's own status cannot tell a
+     single payment from two; the payment list can, and a resumed recovery has
+     to be able to prove it did not add one. */
+  const res = await stripeGet(
+    "/invoices/" + encodeURIComponent(invoiceId) + "?expand[]=payments",
+    secret,
+  );
   if (!res.ok || !res.data) return { ok: false, error: "stripe-error" };
   const verdict = invoiceOwnershipVerdict({
     invoiceLivemode: res.data.livemode,
@@ -974,20 +985,32 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
   const cust = await assertClockOwned(secret, "customers", fx.stripeCustomerId, fx.testClockId);
   if (!cust.ok) return { ok: false, error: cust.error };
 
-  const restore = await stripePost(
-    "/customers/" + encodeURIComponent(fx.stripeCustomerId),
-    secret,
-    {
-      "invoice_settings[default_payment_method]":
-        fx.originalCustomerDefaultPaymentMethodId,
-    },
-    idempotencyKey(token, "pm_restore"),
-  );
-  if (!restore.ok) return { ok: false, error: "stripe-error" };
+  /* Restore the working Customer default — but only when it is not already
+     there. A resumed run that rewrites a value which is already correct is a
+     needless mutation, and on a path whose whole job is to be safe to repeat,
+     every avoidable write is one more call that can fail. */
+  const wantsRestore = shouldRestoreCustomerDefault({
+    currentCustomerDefault: cust.object?.invoice_settings?.default_payment_method,
+    originalCustomerDefault: fx.originalCustomerDefaultPaymentMethodId,
+  });
+  if (wantsRestore) {
+    const restore = await stripePost(
+      "/customers/" + encodeURIComponent(fx.stripeCustomerId),
+      secret,
+      {
+        "invoice_settings[default_payment_method]":
+          fx.originalCustomerDefaultPaymentMethodId,
+      },
+      idempotencyKey(token, "pm_restore"),
+    );
+    if (!restore.ok) return { ok: false, error: "stripe-error" };
+  }
 
-  /* Prove precedence resolves to the working method BEFORE attempting payment.
-     Paying first and checking after is how a second failed attempt happens. */
-  const check = await assertClockOwned(secret, "customers", fx.stripeCustomerId, fx.testClockId);
+  /* Re-read only what we changed. If nothing was written, `cust` IS the fresh
+     read, and fetching it twice would prove nothing new. */
+  const check = wantsRestore
+    ? await assertClockOwned(secret, "customers", fx.stripeCustomerId, fx.testClockId)
+    : cust;
   if (!check.ok) return { ok: false, error: check.error };
   if (
     check.object?.invoice_settings?.default_payment_method !==
@@ -995,6 +1018,7 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
   ) {
     return { ok: false, error: "not-converged" };
   }
+
   const subCheck = await assertClockOwned(
     secret,
     "subscriptions",
@@ -1002,22 +1026,48 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
     fx.testClockId,
   );
   if (!subCheck.ok) return { ok: false, error: subCheck.error };
-  const subDefault = subCheck.object?.default_payment_method ?? null;
-  if (subDefault !== (fx.originalSubscriptionDefaultPaymentMethodId ?? null)) {
-    return { ok: false, error: "not-converged" };
-  }
 
-  /* The invoice is verified HERE, immediately before it is paid — not trusted
-     from the fixture. This is the only money-moving call in the harness, so it
-     is the last place that should take a stored id on faith. */
+  /* THE INVOICE IS READ BEFORE THE PAYMENT METHOD IS JUDGED, and the order is
+     the point: whether money is still owed is what decides how strict the
+     method has to be. Verified HERE, immediately before it could be paid — not
+     trusted from the fixture. */
   const inv = await assertInvoiceOwned(secret, fx.renewalInvoiceId, fx.stripeSubscriptionId);
   if (!inv.ok) return { ok: false, error: inv.error };
 
-  /* Already paid? Then the payment happened and this is a resumed run. Skip it
-     and go observe — repeating it is the one thing this operation must never
-     do. Evidence, not the stored label, decides. */
-  const alreadyPaid = inv.object?.status === "paid";
-  if (!alreadyPaid) {
+  const invoiceState = assessRecoveryInvoiceState({
+    invoiceStatus: inv.object?.status,
+    paymentCount: Array.isArray(inv.object?.payments?.data)
+      ? inv.object.payments.data.length
+      : undefined,
+    amountOverpaid: inv.object?.amount_overpaid,
+  });
+  if (!invoiceState.ok) return { ok: false, error: invoiceState.error };
+
+  /* Which method would ACTUALLY be charged, by Stripe's own precedence — not
+     which method we wrote down at provisioning.
+     See resolveEffectivePaymentMethod for why that distinction cost a run. */
+  const effective = resolveEffectivePaymentMethod({
+    subscriptionDefault: subCheck.object?.default_payment_method,
+    customerDefault: check.object?.invoice_settings?.default_payment_method,
+  });
+  const policy = effectiveMethodPolicy({
+    mustPay: invoiceState.mustPay,
+    effectiveId: effective?.id,
+    originalWorkingId: fx.originalCustomerDefaultPaymentMethodId,
+    failingId: fx.failingPaymentMethodId,
+  });
+  if (!policy.ok) return { ok: false, error: policy.error };
+
+  /* An id in a field is not proof the object behind it is ours. Retrieve it and
+     let its own attachment decide — the same rule assertClockOwned follows. */
+  const effOwned = await assertPaymentMethodOwned(
+    secret,
+    (effective as { id: string }).id,
+    fx.stripeCustomerId,
+  );
+  if (!effOwned.ok) return { ok: false, error: effOwned.error };
+
+  if (invoiceState.mustPay) {
     /* Exactly once, with a stable key. A repeated call returns Stripe's cached
        result rather than making a second payment. */
     const pay = await stripePost(
@@ -1031,40 +1081,72 @@ async function opRestoreAndPay(ctx: any, secret: string, fx: any, token: string)
 
   /* BOUNDED polling, not a single read. Recovery converges through a webhook
      exactly as provisioning does, and reading once immediately is how a
-     successful recovery reports failure. */
+     successful recovery reports failure.
+
+     `paymentNeedsAttention` is not asserted directly because it is not stored:
+     it is a pure function of this status, so `active` IS that assertion. */
   const recovered = await pollUntil(async () => {
     const after = await stripeGet(
       "/subscriptions/" + encodeURIComponent(fx.stripeSubscriptionId), secret,
     );
     if (!after.ok || after.data?.status !== "active") return false;
+    /* A pending cancellation must not be carried into cleanup: cancel_fixture
+       expects to be the thing that ends this subscription, and a scheduled end
+       already in flight would make its terminal webhook ambiguous. */
+    if (after.data?.cancel_at !== null) return false;
     const canonical = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
       userId: fx.userId, provider: "stripe" as const,
     });
-    return !!canonical && canonical.status === "active" && canonical.planKey === "plus_annual";
+    return (
+      !!canonical &&
+      canonical.status === "active" &&
+      canonical.tier === "plus" &&
+      canonical.planKey === "plus_annual" &&
+      canonical.billingInterval === "year" &&
+      canonical.cancelAtPeriodEnd === false
+    );
   });
   if (!recovered) return { ok: false, error: "not-converged" };
 
-  /* Only after recovery is proven, and only the temporary method — verified
-     still attached to THIS fixture's Customer before it is detached.
+  /* Only after recovery is proven, and only the temporary method.
 
      The key is `pm_detach`, not `pm_restore`. Those were the same value, which
      meant two different requests shared one idempotency key: Stripe refuses a
      key replayed with different parameters, and the result was never checked,
-     so the detach failed silently. Found in review of PR #37. */
+     so the detach failed silently. Found in review of PR #37.
+
+     A method that is ALREADY detached is observed and accepted rather than
+     refused — see assessFailureMethodState. Refusing it punished a resumed run
+     for having already done the right thing. */
   if (fx.failingPaymentMethodId) {
-    const pm = await assertPaymentMethodOwned(
+    const pmRes = await stripeGet(
+      "/payment_methods/" + encodeURIComponent(fx.failingPaymentMethodId),
       secret,
-      fx.failingPaymentMethodId,
-      fx.stripeCustomerId,
     );
-    if (!pm.ok) return { ok: false, error: pm.error };
-    const detached = await stripePost(
-      "/payment_methods/" + encodeURIComponent(fx.failingPaymentMethodId) + "/detach",
-      secret,
-      {},
-      idempotencyKey(token, "pm_detach"),
-    );
-    if (!detached.ok) return { ok: false, error: "stripe-error" };
+    if (!pmRes.ok || !pmRes.data) return { ok: false, error: "stripe-error" };
+    const state = assessFailureMethodState({
+      pmLivemode: pmRes.data.livemode,
+      pmId: pmRes.data.id,
+      expectedPmId: fx.failingPaymentMethodId,
+      pmCustomer: pmRes.data.customer,
+      expectedCustomerId: fx.stripeCustomerId,
+    });
+    if (!state.ok) return { ok: false, error: state.error };
+    if (state.action === "detach") {
+      const detached = await stripePost(
+        "/payment_methods/" + encodeURIComponent(fx.failingPaymentMethodId) + "/detach",
+        secret,
+        {},
+        idempotencyKey(token, "pm_detach"),
+      );
+      if (!detached.ok) return { ok: false, error: "stripe-error" };
+      /* Inspect the RESULT, not just the status code. A detach that really
+         happened reports no customer; anything else means the method is still
+         attached and the fixture would be left dirty. */
+      if (asId(detached.data?.customer) !== null) {
+        return { ok: false, error: "not-converged" };
+      }
+    }
   }
 
   return { ok: true, patch: { failingPaymentMethodId: undefined } };

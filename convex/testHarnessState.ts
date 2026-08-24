@@ -581,6 +581,167 @@ export function paymentMethodOwnershipVerdict(
 }
 
 
+/* ── EFFECTIVE PAYMENT METHOD ────────────────────────────────────────────── */
+
+/* WHY THIS REPLACED A SNAPSHOT COMPARISON
+ *
+ * Recovery used to require that the subscription-level default still equal the
+ * value captured at provisioning. For this fixture that captured value is
+ * ABSENT on purpose — the subscription is created with no subscription-level
+ * default so that the Customer default is the effective one.
+ *
+ * Then the hosted Billing Portal recovered a real failed payment, and did what
+ * a Portal is supposed to do: it set `subscription.default_payment_method` to
+ * the working card the person chose. The subscription was now in a BETTER state
+ * than the one recorded, and recovery refused it — because the question being
+ * asked was "does this still equal what I wrote down?" rather than "is the
+ * method that would actually be charged a good one?"
+ *
+ * That is the mistake of PR #44 and #45 in a new place: a stored value standing
+ * in for evidence about the world. The snapshot remains in the fixture as
+ * history. It is no longer an authorization boundary.
+ *
+ * Stripe's precedence, mirrored here: the subscription-level default wins when
+ * set; otherwise the Customer's invoice-settings default applies. */
+export type EffectiveMethodSource = "subscription" | "customer";
+
+export type EffectiveMethod = { id: string; source: EffectiveMethodSource };
+
+export function resolveEffectivePaymentMethod(input: {
+  subscriptionDefault: unknown;
+  customerDefault: unknown;
+}): EffectiveMethod | null {
+  /* clockIdOf accepts a bare id or an expanded object, which is how Stripe
+     returns a reference depending on the request. */
+  const sub = clockIdOf(input.subscriptionDefault);
+  if (sub) return { id: sub, source: "subscription" };
+  const cus = clockIdOf(input.customerDefault);
+  if (cus) return { id: cus, source: "customer" };
+  return null;
+}
+
+/* How strict the effective method must be, decided by whether money is about to
+ * move.
+ *
+ *   Invoice still OPEN   the harness is about to pay. Demand the exact method
+ *                        this fixture already proved works. "Looks valid" is
+ *                        not good enough when the next call is a charge.
+ *   Invoice already PAID nothing is being spent. The only question is whether
+ *                        the subscription is left healthy, so any method that
+ *                        genuinely belongs to this Customer and is not the
+ *                        failing one is acceptable — including one the hosted
+ *                        Portal chose, which we must not second-guess.
+ *
+ * The failing method is refused in BOTH branches, and so is absence. This
+ * function decides policy only; that the id names a real, sandbox, correctly
+ * attached object is proven separately by retrieving it. */
+export function effectiveMethodPolicy(input: {
+  mustPay: unknown;
+  effectiveId: unknown;
+  originalWorkingId: unknown;
+  failingId: unknown;
+}): { ok: true } | { ok: false; error: ErrorCode } {
+  const id =
+    typeof input.effectiveId === "string" && input.effectiveId ? input.effectiveId : null;
+  if (!id) return { ok: false, error: "not-converged" };
+  if (typeof input.failingId === "string" && input.failingId && id === input.failingId) {
+    return { ok: false, error: "not-converged" };
+  }
+  if (input.mustPay === true) {
+    const original =
+      typeof input.originalWorkingId === "string" && input.originalWorkingId
+        ? input.originalWorkingId
+        : null;
+    if (!original || id !== original) return { ok: false, error: "not-converged" };
+  }
+  return { ok: true };
+}
+
+/* ── RECOVERY INVOICE STATE ──────────────────────────────────────────────── */
+
+export type RecoveryInvoiceState =
+  | { ok: true; mustPay: boolean }
+  | { ok: false; error: ErrorCode };
+
+/* Whether the renewal invoice still needs paying, and whether what has already
+ * happened to it is what we expect.
+ *
+ * `paid` is not merely tolerated here, it is a first-class outcome: the hosted
+ * Portal pays this invoice through the flow a real subscriber would use, and a
+ * resumed recovery has to be able to SEE that and carry on. What it must never
+ * do is pay again — so the paid branch also checks the two observable
+ * signatures of a double charge: more than one payment, or an overpayment. */
+export function assessRecoveryInvoiceState(input: {
+  invoiceStatus: unknown;
+  paymentCount: unknown;
+  amountOverpaid: unknown;
+}): RecoveryInvoiceState {
+  if (input.invoiceStatus === "open") return { ok: true, mustPay: true };
+  if (input.invoiceStatus !== "paid") return { ok: false, error: "not-converged" };
+  /* Counted only when Stripe returned the expanded list. Absence is not proof
+     of anything, so it is not treated as a failure; a wrong count is. */
+  if (typeof input.paymentCount === "number" && input.paymentCount !== 1) {
+    return { ok: false, error: "unexpected-attempt-count" };
+  }
+  if (typeof input.amountOverpaid === "number" && input.amountOverpaid !== 0) {
+    return { ok: false, error: "unexpected-attempt-count" };
+  }
+  return { ok: true, mustPay: false };
+}
+
+/* ── IDEMPOTENT SUB-OPERATIONS ───────────────────────────────────────────── */
+
+/* A resumed recovery must not re-issue a write whose intended effect is already
+ * present. Not because the write would be harmful, but because every avoidable
+ * mutation is one more call that can fail on a path whose entire job is to be
+ * safe to repeat. */
+export function shouldRestoreCustomerDefault(input: {
+  currentCustomerDefault: unknown;
+  originalCustomerDefault: unknown;
+}): boolean {
+  const want =
+    typeof input.originalCustomerDefault === "string" && input.originalCustomerDefault
+      ? input.originalCustomerDefault
+      : null;
+  if (!want) return false;
+  return clockIdOf(input.currentCustomerDefault) !== want;
+}
+
+/* ── TEMPORARY FAILURE METHOD ────────────────────────────────────────────── */
+
+export type FailureMethodState =
+  | { ok: true; action: "detach" | "already-detached" }
+  | { ok: false; error: ErrorCode };
+
+/* A detached PaymentMethod reports `customer: null`.
+ *
+ * Before this distinction existed, a recovery interrupted AFTER a successful
+ * detach could never finish: the resumed run re-validated ownership, saw no
+ * customer, and refused — the fixture was punished for having already done the
+ * right thing. That is the same trap as the invoice guard that refused a `paid`
+ * invoice, and it is fixed the same way.
+ *
+ * Detached is therefore an accepted terminal observation rather than an error.
+ * It is accepted ONLY for the id this fixture recorded, and only in sandbox; a
+ * method attached to somebody else is still refused, which is the case that
+ * actually matters. */
+export function assessFailureMethodState(
+  input: PaymentMethodOwnershipInput,
+): FailureMethodState {
+  if (input.pmLivemode !== false) return { ok: false, error: "not-sandbox" };
+  if (typeof input.expectedPmId !== "string" || !input.expectedPmId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  if (input.pmId !== input.expectedPmId) return { ok: false, error: "clock-not-owned" };
+  if (typeof input.expectedCustomerId !== "string" || !input.expectedCustomerId) {
+    return { ok: false, error: "clock-not-owned" };
+  }
+  const attachedTo = clockIdOf(input.pmCustomer);
+  if (!attachedTo) return { ok: true, action: "already-detached" };
+  if (attachedTo !== input.expectedCustomerId) return { ok: false, error: "clock-not-owned" };
+  return { ok: true, action: "detach" };
+}
+
 /* ── CONVERGENCE POLLING ─────────────────────────────────────────────────── */
 
 /* Webhook delivery is asynchronous. The first real provisioning run created the
