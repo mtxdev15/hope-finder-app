@@ -34,6 +34,17 @@ import {
   planNameKey,
   STATE_LABEL_KEYS,
   PLAN_STATES,
+  currentPlanId,
+  currentPlanCount,
+  isCurrentPlan,
+  planStatusKey,
+  plusCtaIntent,
+  freeCtaIntent,
+  initialInterval,
+  monthlyEquivalentCents,
+  annualSavingPercent,
+  PLAN_IDS,
+  PRICING_ENABLED,
 } from "../src/app/declare/plan-display.js";
 import { stateForEntitlement } from "../src/app/declare/checkout-return.js";
 
@@ -58,6 +69,12 @@ const ENTITLEMENTS = read("convex/entitlements.ts");
 const YOU = read("src/pages/you.astro");
 const SUCCESS = read("src/pages/checkout/success.astro");
 const PRICING = read("src/pages/pricing.astro");
+/* The plan card MOVED off /you to its own page. Billing management and
+   plan comparison are different customer jobs; /you was a third surface
+   rendering subscription state, and three readers of one fact is exactly
+   how they end up disagreeing. These assertions moved with the markup
+   they describe — none of them was dropped. */
+const BILLING = read("src/pages/billing.astro");
 const CONVEX_DATA = read("src/app/declare/convex-data.js");
 const I18N = read("public/declare/i18n-strings.js");
 
@@ -197,7 +214,7 @@ section("5. Checkout success");
 
 check("welcome copy exists", /data-i18n="checkout\.welcomePlusT"/.test(SUCCESS));
 check("welcome names Declare Plus", /Welcome to Declare Plus/.test(SUCCESS));
-check("it links to the account plan anchor", /href="\/you#plan-billing"/.test(SUCCESS));
+check("it links to the Billing page", /href="\/billing"/.test(SUCCESS));
 check("the continue action is present", /data-i18n="checkout\.continueToDeclare"/.test(SUCCESS));
 check("the view-my-plan action is present", /data-i18n="checkout\.viewMyPlan"/.test(SUCCESS));
 check("the cadence line exists", /id="corCadence"/.test(SUCCESS));
@@ -237,41 +254,53 @@ check("polling stays bounded", /pollExhausted\(attempts\)/.test(SUCCESS_CODE));
 check("the success page creates no Checkout or Portal session",
   !/createCheckoutSession|createPortalSession/.test(SUCCESS_CODE));
 
-/* ── 6. The /you Plan & Billing card ─────────────────────────────────────── */
-section("6. The persistent Plan & Billing section");
+/* ── 6. The Billing page ─────────────────────────────────────────────────── */
+section("6. The focused Billing page");
 
-check("the stable anchor exists", /id="plan-billing"/.test(YOU));
+check("the account page hands billing off instead of duplicating it",
+  /href="\/billing"/.test(YOU) && !/openBillingPortal/.test(YOU));
+check("the Billing page owns the plan card", /id="blPlan"/.test(BILLING));
 /* UPDATED for the account redesign. This matched the plan card being ITSELF a
  * <section class="pbcard">. It is now a labelled <section> containing an <h2>
  * and the card, which is stronger semantics, not weaker: the heading is real
  * text in the outline rather than an aria-label on a card. The property —
  * "the plan lives in a real, headed, labelled section" — is asserted directly. */
 check("the plan card sits inside a labelled section",
-  /<section class="ysec" aria-labelledby="yPlanH">[\s\S]{0,400}id="plan-billing"/.test(YOU));
+  /<section class="bl-card m-rise" id="blPlan" aria-labelledby="blPlanH"/.test(BILLING));
 check("that section carries a real heading element",
-  /<h2 class="ysec-h serif" id="yPlanH"[^>]*>/.test(YOU));
-check("the card is still labelled by its plan name",
-  /id="plan-billing"[^>]*aria-labelledby="pbTitle"/.test(YOU));
-check("it is not behind a developer flag",
-  !/import\.meta\.env\.DEV[\s\S]{0,400}plan-billing/.test(YOU));
-check("it reads the normal entitlement query", /myEntitlements/.test(YOU));
-check("it renders through the shared helper", /planState\(ent, opts\)/.test(YOU));
+  /<h2 class="bl-h" id="blPlanH"[^>]*>/.test(BILLING));
+check("the page has exactly one h1", (BILLING.match(/<h1\b/g) || []).length === 1);
+/* The PAGE is not dev-gated — it is a real customer route. The only DEV-gated
+   thing on it is the state-preview fixture, which is asserted separately in
+   verify-plans-billing-states.ts. */
+check("the page itself is not behind a developer flag",
+  !/getStaticPaths/.test(BILLING));
+check("the plan card renders unconditionally",
+  !/import\.meta\.env\.DEV[\s\S]{0,200}id="blPlan"/.test(BILLING));
+/* Counted over CODE, not comments — the comment above the gate explains why
+   DEV is the load-bearing half, and counting it would report two gates. */
+check("only the preview fixture is developer-gated",
+  (stripComments(BILLING).match(/import\.meta\.env\.DEV/g) || []).length === 1 &&
+  /import\.meta\.env\.DEV && import\.meta\.env\.PUBLIC_PLANS_PREVIEW/.test(stripComments(BILLING)));
+check("it reads the normal entitlement query", /myEntitlements/.test(BILLING));
+check("it renders through the shared helper", /planState\(ent, opts\)/.test(BILLING));
 
 const YOU_CODE = stripComments(YOU);
+const BILLING_CODE = stripComments(BILLING);
 /* Loading must never render Free. */
 check("loading is rendered before the read, not Free",
-  /pbRender\(null, \{ loading: true \}\)[\s\S]{0,200}await myEntitlements\(\)/.test(YOU_CODE));
+  /render\(null, \{ loading: true \}\)[\s\S]{0,200}await myEntitlements\(\)/.test(BILLING_CODE));
 check("a failed read renders the response, which is 'unavailable'",
-  /catch \(e\) \{ ent = null; \}\s*\n\s*pbRender\(ent\)/.test(YOU_CODE));
+  /catch \(e\) \{ ent = null; \} \}\s*\n\s*render\(ent\)/.test(BILLING_CODE));
 
 /* Manage billing: click-only, single-flight, empty payload. */
 check("manage billing is bound to a click, not page load",
-  /addEventListener\('click', \(\) => onClick\(b\)\)/.test(YOU_CODE));
-check("the portal call is single-flight", /if \(pbPortalBusy\) return;/.test(YOU_CODE));
+  /addEventListener\('click', \(\) => onClick\(\)\)/.test(BILLING_CODE));
+check("the portal call is single-flight", /if \(portalBusy\) return;/.test(BILLING_CODE));
 check("the button disables before the request",
-  /btn\.disabled = true;[\s\S]{0,120}await openBillingPortal\(\)/.test(YOU_CODE));
+  /btn\.disabled = true;[\s\S]{0,160}await openBillingPortal\(\)/.test(BILLING_CODE));
 check("no Portal call happens at page load",
-  !/openBillingPortal\(\)[^\n]*\n[\s\S]{0,40}pbLoad\(\)/.test(YOU_CODE));
+  !/openBillingPortal\(\)[^\n]*\n[\s\S]{0,40}load\(\)/.test(BILLING_CODE));
 
 /* The wrapper is where the empty payload is enforced. */
 check("openBillingPortal sends an EMPTY payload",
@@ -281,29 +310,29 @@ for (const banned of ["customer", "userId", "email", "subscription", "price", "r
   check(`the portal wrapper sends no "${banned}"`,
     !PORTAL_FN.slice(0, 200).includes(banned));
 }
-check("the browser cannot supply a Customer id anywhere on /you",
-  !/cus_|stripeCustomerId|customerId/.test(YOU_CODE));
+check("the browser cannot supply a Customer id anywhere on /billing",
+  !/cus_|stripeCustomerId|customerId/.test(BILLING_CODE));
 
 /* Each state's copy. */
-check("the card can show ACTIVE", /'plan\.stateActive'/.test(YOU));
-check("the cancelling state has its own message", /'plan\.cancellingMsg'/.test(YOU));
-check("the attention state has its own message", /'plan\.attentionMsg'/.test(YOU));
-check("the ambiguous state has its own message", /'plan\.ambiguousMsg'/.test(YOU));
-check("the unavailable state has its own message", /'plan\.unavailableMsg'/.test(YOU));
-check("free shows remaining Gentle Guidance", /gentleGuidanceToday/.test(YOU));
-check("free shows remaining Journey slots", /activeJourneySlots/.test(YOU));
-check("free offers upgrade to the existing pricing route",
-  /pbLink\(pbTx\('plan\.upgrade'\), '\/pricing'\)/.test(YOU));
+check("the card can show ACTIVE", /STATE_LABEL_KEYS\['plus-active'\]/.test(BILLING));
+check("the cancelling state has its own message", /'plan\.cancellingMsg'/.test(BILLING));
+check("the attention state has its own message", /'plan\.attentionMsg'/.test(BILLING));
+check("the ambiguous state has its own message", /'plan\.ambiguousMsg'/.test(BILLING));
+check("the unavailable state has its own message", /'plan\.unavailableMsg'/.test(BILLING));
+check("free shows remaining Gentle Guidance", /gentleGuidanceToday/.test(BILLING));
+check("free shows remaining Journey slots", /activeJourneySlots/.test(BILLING));
+check("free is sent to Plans, not offered billing management",
+  /'billing\.viewPlans'[\s\S]{0,40}'\/pricing'/.test(BILLING));
 check("unavailable offers retry, not upgrade",
-  /state === 'unavailable'[\s\S]{0,120}'plan\.retry'/.test(YOU));
-check("benefits are listed", /'plan\.b1'/.test(YOU) && /'plan\.b3'/.test(YOU));
+  /state === 'unavailable'[\s\S]{0,120}'plan\.retry'/.test(BILLING));
+check("benefits are listed", /'plan\.b1'/.test(BILLING) && /'plan\.b3'/.test(BILLING));
 
 /* The badge. */
 check("the badge markup exists", /id="yPlusBadge"/.test(YOU));
 check("the badge is hidden by default", /id="yPlusBadge" hidden/.test(YOU));
 check("the badge has an accessible label", /aria-label="Declare Plus subscriber"/.test(YOU));
 check("the badge visibility comes from the shared helper",
-  /els\.badge\.hidden = !showsPlusBadge\(state\)/.test(YOU));
+  /showsPlusBadge\(planState\(ent\)\)/.test(YOU));
 check("the badge says PLUS, never Active", />PLUS</.test(YOU));
 /* Applied to CODE, not comments: the comments above the badge say "No crown",
  * and failing the file for documenting its own restraint would be absurd. */
@@ -312,34 +341,57 @@ check("no crown or trophy glyph is used", !/crown|👑|🏆|trophy/i.test(YOU_CO
 /* ── 7. Pricing reflects the current plan ────────────────────────────────── */
 section("7. Pricing reflects the authenticated current plan");
 
-check("the free card can be marked current", /id="pcFreeCur"/.test(PRICING));
-check("the plus card can be marked current", /id="pcPlusCur"/.test(PRICING));
-check("free marker copy exists", /data-i18n="pricing\.currentPlan"/.test(PRICING));
-check("plus marker copy exists", /data-i18n="pricing\.yourCurrentPlan"/.test(PRICING));
-check("a subscriber gets a manage link to the account anchor",
-  /id="pcPlusManage"[^>]*href="\/you#plan-billing"/.test(PRICING));
+/* REWRITTEN, because the design these described was the defect.
+ *
+ * Each card used to reveal its own marker — `pcFreeCur` on Free, `pcPlusCur` on
+ * Plus — with two DIFFERENT labels ("Current plan" and "Your current plan") for
+ * one idea, computed twice, and nothing anywhere forbidding both from winning.
+ * Asserting that each marker exists could never catch the state that actually
+ * hurts: both of them showing at once.
+ *
+ * Current plan is now derived ONCE by currentPlanId(), and the cards only ask.
+ * So the assertions are stronger rather than merely different: instead of
+ * "each card has a marker", the invariant itself is executed over every state
+ * the app can be in. */
+check("both cards carry one shared badge element",
+  /id="plFreeBadge"/.test(PRICING) && /id="plPlusBadge"/.test(PRICING));
+check("neither card computes current plan for itself",
+  !/pcFreeCur|pcPlusCur|yourCurrentPlan/.test(PRICING));
+check("the page asks the shared derivation instead",
+  /isCurrentPlan\(planId, state\)/.test(PRICING) && /planStatusKey\(planId, state\)/.test(PRICING));
+check("one label, not two, for the one idea",
+  /'plans\.currentPlan'/.test(I18N) && !/'pricing\.yourCurrentPlan'/.test(I18N));
+check("a subscriber is sent to the Billing page",
+  /a\.href = '\/billing'/.test(PRICING));
 
 const PRICING_CODE = stripComments(PRICING);
 /* The page must stay non-transactional. */
 check("pricing imports NO billing action",
   !/createCheckoutSession|createPortalSession|api\.billing/.test(PRICING_CODE));
-check("the CTA is still disabled in the served markup", /disabled data-i18n="pricing\.plusCta"/.test(PRICING));
-check("a subscriber's CTA is hidden, never enabled",
-  /cta\.disabled = true; cta\.hidden = true;/.test(PRICING_CODE));
+check("the CTA is still disabled in the served markup", /disabled data-i18n="plans\.launchSoon"/.test(PRICING));
+check("a subscriber never gets a purchase control at all",
+  /if \(!mayStartCheckout\(state\)\)/.test(PRICING_CODE) &&
+  /b\.disabled = true;/.test(PRICING_CODE));
 check("the CTA is never set to enabled anywhere", !/disabled = false/.test(PRICING_CODE));
 /* Fail closed: an unresolved read changes nothing. */
-check("loading/unavailable/guest return before any change",
-  /if \(state === 'loading' \|\| state === 'unavailable' \|\| state === 'guest'\) return;/.test(PRICING_CODE));
+/* Fail-closed is now a property of the derivation rather than an early return:
+   currentPlanId() answers null for loading, unavailable AND guest, so no card
+   can be marked current and no purchase intent is produced. Executed, not read. */
+check("an unresolved read marks no card current",
+  currentPlanCount("loading") === 0 && currentPlanCount("unavailable") === 0);
+check("a signed-out reader marks no card current", currentPlanCount("guest") === 0);
+check("an unresolved read produces no purchase intent",
+  plusCtaIntent("loading", true) === "none" && plusCtaIntent("unavailable", true) === "none");
 /* Scoped to the SCRIPT. Comparing against the whole file would compare a markup
  * position to a script position, which proves nothing about execution order. */
 const PRICING_SCRIPT = PRICING_CODE.slice(PRICING_CODE.indexOf("<script>"));
-check("the fail-closed guard precedes any marker being revealed",
-  PRICING_SCRIPT.indexOf("=== 'unavailable'") < PRICING_SCRIPT.indexOf("pcFreeCur") &&
-  PRICING_SCRIPT.indexOf("=== 'unavailable'") < PRICING_SCRIPT.indexOf("pcPlusCur"));
-check("the guard returns rather than falling through",
-  /=== 'guest'\) return;/.test(PRICING_SCRIPT));
+check("a badge is only ever revealed through the shared status key",
+  /const key = planStatusKey\(planId, state\)/.test(PRICING_SCRIPT));
+check("no card is revealed without one",
+  /if \(key\) \{/.test(PRICING_SCRIPT) && /badge\.hidden = true;/.test(PRICING_SCRIPT));
 check("pricing shows real lifecycle instead of Active when not simply active",
-  /state !== 'plus-active'[\s\S]{0,200}cancellingMsg/.test(PRICING_CODE));
+  /'plus-cancelling': 'plan\.cancellingMsg'/.test(PRICING_CODE) &&
+  /'plus-attention': 'plan\.attentionMsg'/.test(PRICING_CODE));
 check("pricing double-checks checkout gating with the shared helper",
   /!mayStartCheckout\(state\)/.test(PRICING_CODE));
 
@@ -351,9 +403,14 @@ const NEW_KEYS = [
   "plan.stateAttention", "plan.monthly", "plan.annual", "plan.renews", "plan.cancels",
   "plan.manage", "plan.upgrade", "plan.retry", "plan.cancellingMsg", "plan.attentionMsg",
   "plan.ambiguousMsg", "plan.unavailableMsg", "plan.b1", "plan.b2", "plan.b3",
-  "you.planBillingH", "checkout.welcomePlusT", "checkout.welcomePlusD",
+  "you.billing", "you.billingD", "checkout.welcomePlusT", "checkout.welcomePlusD",
   "checkout.continueToDeclare", "checkout.viewMyPlan",
-  "pricing.currentPlan", "pricing.yourCurrentPlan", "pricing.manageBilling",
+  /* One label for one idea. "pricing.yourCurrentPlan" is deliberately gone:
+     two spellings of "this is your plan" is what let the page say both. */
+  "plans.currentPlan", "plan.stateEnding", "plan.updatePayment", "plan.keepPlus",
+  "billing.h1", "billing.viewPlans", "billing.freeMsg", "billing.paymentNote",
+  "plans.h1", "plans.sub", "plans.launchSoon", "plans.upgrade", "plans.monthly",
+  "plans.annual", "plans.orgH",
 ];
 for (const k of NEW_KEYS) {
   check(`"${k}" has Spanish`, new RegExp(`'${k.replace(".", "\\.")}':`).test(I18N));
@@ -365,16 +422,26 @@ check("renews and cancels are DIFFERENT in Spanish too",
 /* ── 9. Accessibility and design hooks ───────────────────────────────────── */
 section("9. Accessibility and design");
 
-check("the card exposes a busy state while loading", /aria-busy/.test(YOU));
-check("the card is labelled by its heading", /aria-labelledby="pbTitle"/.test(YOU));
-check("the message line is a live region", /id="pbMsg" role="status"/.test(YOU));
-check("status is a WORD, not colour alone", /els\.state\.textContent = pbTx\(stateKey\)/.test(YOU));
-check("buttons meet the 44px target", /\.pb-btn \{[^}]*min-height: 44px/.test(YOU));
-check("buttons have visible keyboard focus", /\.pb-btn:focus-visible \{[^}]*outline/.test(YOU));
-check("the card uses existing surface tokens", /\.pbcard \{[^}]*var\(--surface\)/.test(YOU));
+check("the card exposes a busy state while loading", /aria-busy/.test(BILLING));
+check("the card is labelled by its heading", /aria-labelledby="blPlanH"/.test(BILLING));
+check("the message line is a live region", /id="blMsg" role="status"/.test(BILLING));
+check("status is a WORD, not colour alone", /st\.textContent = tx\(shown/.test(BILLING));
+check("buttons meet the 44px target", /\.billing \.bl-btn \{[^}]*min-height: 48px/.test(BILLING));
+check("buttons have visible keyboard focus", /\.billing \.bl-btn:focus-visible \{[^}]*outline/.test(BILLING));
+check("the card uses existing surface tokens", /\.billing \.bl-card \{[^}]*var\(--surface\)/.test(BILLING));
 check("the badge uses existing accent tokens", /\.ybadge \{[^}]*var\(--goldd\)/.test(YOU));
-check("no gradient decoration was added to the card", !/\.pbcard \{[^}]*gradient/.test(YOU));
-check("no second navigation landmark was added", !/<nav[^>]*plan-billing/.test(YOU));
+check("no gradient decoration was added to the card", !/\.bl-card \{[^}]*gradient/.test(BILLING));
+check("no second navigation landmark was added", !/<nav\b/.test(BILLING));
+/* The Plans page carries its own accessibility contract. */
+check("the plans page has exactly one h1", (PRICING.match(/<h1\b/g) || []).length === 1);
+check("plan cards are labelled groups", (PRICING.match(/<article class="pl-card[^"]*"[^>]*aria-labelledby=/g) || []).length === 2);
+check("the cadence control is a radiogroup", /role="radiogroup"/.test(PRICING));
+check("the cadence options announce their state", (PRICING.match(/aria-checked=/g) || []).length >= 2);
+check("cadence options meet the 44px target", /\.plans \.seg-o \{[^}]*min-height: 44px/.test(PRICING));
+check("cadence options show keyboard focus", /\.plans \.seg-o:focus-visible \{[^}]*outline/.test(PRICING));
+check("the comparison table has a caption", /<caption/.test(PRICING));
+check("the comparison table stacks on mobile", /max-width: 620px[\s\S]{0,400}\.pl-table tr \{ display: block/.test(PRICING));
+check("reduced motion is honoured", /prefers-reduced-motion: reduce/.test(PRICING));
 
 /* ── 10. No identifier reaches any normal UI ─────────────────────────────── */
 section("10. No Stripe identifier in normal UI");
@@ -405,12 +472,20 @@ function walk(dir: string, acc: string[] = []): string[] {
 }
 const files = walk(DIST);
 check("the build produced files", files.length > 0);
-check("the account page ships the plan anchor",
-  readFileSync(join(DIST, "you/index.html"), "utf8").includes('id="plan-billing"'));
+check("the account page ships the billing hand-off",
+  readFileSync(join(DIST, "you/index.html"), "utf8").includes('href="/billing"'));
+check("the billing page ships its plan card",
+  readFileSync(join(DIST, "billing/index.html"), "utf8").includes('id="blPlan"'));
 check("the success page ships the welcome copy",
   readFileSync(join(DIST, "checkout/success/index.html"), "utf8").includes("Welcome to Declare Plus"));
-check("pricing ships the current-plan markers",
-  readFileSync(join(DIST, "pricing/index.html"), "utf8").includes('id="pcPlusCur"'));
+check("pricing ships the shared current-plan badges",
+  readFileSync(join(DIST, "pricing/index.html"), "utf8").includes('id="plPlusBadge"'));
+check("no shipped page still says 'Declare stays free'",
+  !readFileSync(join(DIST, "pricing/index.html"), "utf8").includes("Declare stays free"));
+check("no shipped page still says 'Opening soon'",
+  !readFileSync(join(DIST, "pricing/index.html"), "utf8").includes("Opening soon"));
+check("no shipped page still says 'Nothing here charges you'",
+  !readFileSync(join(DIST, "pricing/index.html"), "utf8").includes("Nothing here charges you"));
 /* The development billing controls must STILL be absent. */
 check("dist/dev does not exist", !existsSync(join(DIST, "dev")));
 for (const needle of ["createCheckoutSession", "Stripe sandbox", "dbGoAnnual", "dbPortal"]) {

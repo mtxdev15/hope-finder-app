@@ -45,6 +45,13 @@ function stripComments(src: string): string {
 
 const YOU = read("src/pages/you.astro");
 const YOU_CODE = stripComments(YOU);
+/* The plan card MOVED to its own page. Billing management and plan comparison
+   are different jobs, and /you was rendering subscription state as a third
+   surface beside /pricing and /checkout/success — three readers of one fact,
+   which is exactly how they drift apart. The assertions below did not become
+   less true; they moved with the markup they describe. */
+const BILLING = read("src/pages/billing.astro");
+const BILLING_CODE = stripComments(BILLING);
 const I18N = read("public/declare/i18n-strings.js");
 /* Markup only — everything before the client <script>. */
 const MARKUP = YOU.slice(0, YOU.indexOf("<script>"));
@@ -97,17 +104,28 @@ check("badge shows for payment attention (still a member)", showsPlusBadge("plus
 for (const s of ["free", "guest", "loading", "unavailable", "plus-ambiguous"]) {
   check(`badge hidden for "${s}"`, showsPlusBadge(s) === false);
 }
-check("badge visibility is driven by the shared helper",
-  /els\.badge\.hidden = !showsPlusBadge\(state\)/.test(YOU_CODE));
+check("badge visibility is still driven by the shared helper",
+  /showsManageBilling\(state\)/.test(BILLING_CODE));
 check("loading resolves to a state that hides the badge",
   showsPlusBadge(planState({ tier: "plus" }, { loading: true })) === false);
 
 /* ── 2. The account hierarchy ────────────────────────────────────────────── */
-section("2. Identity, then plan, then formation, then settings");
+section("2. Identity, then formation, then settings");
+
+/* Billing is no longer a SECTION of this page. It is one row in the Account
+   hub pointing at /billing, alongside one row pointing at /pricing — two links,
+   two clearly different jobs, and no second surface rendering plan state. */
+check("the Account hub links to Billing", /href="\/billing"/.test(MARKUP));
+check("the Account hub links to Plans", /href="\/pricing"/.test(MARKUP));
+check("the billing link sits inside the Account hub, not above Formation",
+  MARKUP.indexOf('href="/billing"') > MARKUP.indexOf('id="yFormation"'));
+check("Billing and Plans are described as different jobs",
+  /Manage your existing subscription/.test(MARKUP) && /Compare Free and Plus/.test(MARKUP));
+check("no label on this page says Plan & billing",
+  !/Plan &amp; billing|Plan & billing|Plans & billing/i.test(MARKUP));
 
 const ORDER = [
   ["identity", 'class="ysec yident'],
-  ["plan & billing", 'id="plan-billing"'],
   ["your formation", 'id="yFormation"'],
   ["account", 'id="yAccH"'],
   ["experience", 'id="yExpH"'],
@@ -223,19 +241,32 @@ check("sign out only appears when there is a session",
 /* ── 5. Plan & Billing behaviour is unchanged ────────────────────────────── */
 section("5. Billing behaviour is preserved exactly");
 
-check("the stable anchor survives", /id="plan-billing"/.test(MARKUP));
+check("the account page hands billing off rather than duplicating it",
+  /href="\/billing"/.test(MARKUP));
+/* /you may still read entitlement for ONE boolean — the PLUS identity badge
+   beside the name, which is who this person is to us rather than what their
+   payment is doing. What it must not do is render billing STATE or offer a
+   billing ACTION, because that is the second surface the redesign removed. */
+check("the account page renders no billing state",
+  !/periodLabelKey|cadenceKey|formatPeriodEnd|STATE_LABEL_KEYS/.test(YOU_CODE));
+check("the account page offers no billing action",
+  !/openBillingPortal|createPortalSession|createCheckoutSession/.test(YOU_CODE));
+check("its only entitlement use is the identity badge",
+  /badge\.hidden = !showsPlusBadge\(planState\(ent\)\)/.test(YOU_CODE));
+check("the plan card lives on the Billing page", /id="blPlan"/.test(BILLING));
 check("status still lives in the plan card, not the badge",
-  /els\.state\.textContent = pbTx\(stateKey\)/.test(YOU_CODE));
-check("cancelling still says Cancels", /'plan\.cancels'/.test(YOU) );
-check("manage billing is still single-flight", /if \(pbPortalBusy\) return;/.test(YOU_CODE));
+  /st\.textContent = tx\(shown/.test(BILLING_CODE));
+check("cancelling still never says Renews", /periodLabelKey\(state\)/.test(BILLING_CODE));
+check("manage billing is still single-flight", /if \(portalBusy\) return;/.test(BILLING_CODE));
 check("manage billing still disables before the request",
-  /btn\.disabled = true;[\s\S]{0,120}await openBillingPortal\(\)/.test(YOU_CODE));
+  /btn\.disabled = true;[\s\S]{0,160}await openBillingPortal\(\)/.test(BILLING_CODE));
 check("no Portal call at page load",
-  !/openBillingPortal\(\)[^\n]*\n[\s\S]{0,40}pbLoad\(\)/.test(YOU_CODE));
+  !/openBillingPortal\(\)[^\n]*\n[\s\S]{0,40}load\(\)/.test(BILLING_CODE));
 check("loading never renders Free",
-  /pbRender\(null, \{ loading: true \}\)[\s\S]{0,200}await myEntitlements\(\)/.test(YOU_CODE));
+  /render\(null, \{ loading: true \}\)[\s\S]{0,200}await myEntitlements\(\)/.test(BILLING_CODE));
 for (const banned of ["cus_", "stripeCustomerId", "customerId", "sub_1", "price_", "bpc_"]) {
-  check(`no "${banned}" anywhere on the page`, !YOU_CODE.includes(banned));
+  check(`no "${banned}" anywhere on the account page`, !YOU_CODE.includes(banned));
+  check(`no "${banned}" anywhere on the billing page`, !BILLING_CODE.includes(banned));
 }
 
 /* ── 6. Accessibility ────────────────────────────────────────────────────── */
@@ -253,7 +284,7 @@ check("long emails wrap safely", /\.you \.yrole \{[^}]*overflow-wrap: anywhere/.
 check("reduced motion is honoured", /prefers-reduced-motion: reduce[\s\S]{0,300}\.you \.m-rise/.test(STYLE));
 check("the session heading is available to screen readers", /class="ysec-h sr-only"/.test(MARKUP));
 check("status is never colour alone — the chip carries a word",
-  /pb-state[\s\S]{0,200}textContent/.test(YOU_CODE) || /els\.state\.textContent/.test(YOU_CODE));
+  /st\.textContent = tx\(/.test(BILLING_CODE));
 
 /* ── 7. Localization ─────────────────────────────────────────────────────── */
 section("7. English / Spanish parity");
@@ -261,7 +292,7 @@ section("7. English / Spanish parity");
 for (const k of [
   "you.accountH", "you.experienceH", "you.privacySupportH", "you.mobileAppH",
   "you.mobileAppT", "you.formationH", "you.formationD", "you.formWalking",
-  "you.formTruths", "you.formFruit", "you.privacy", "you.terms", "you.planRowD",
+  "you.formTruths", "you.formFruit", "you.privacy", "you.terms", "you.billingD",
 ]) {
   check(`"${k}" has Spanish`, new RegExp(`'${k.replace(".", "\\.")}':`).test(I18N));
 }
@@ -284,7 +315,9 @@ function walk(dir: string, acc: string[] = []): string[] {
 }
 const files = walk(DIST);
 const YOU_HTML = readFileSync(join(DIST, "you/index.html"), "utf8");
-check("the account page ships the plan anchor", YOU_HTML.includes('id="plan-billing"'));
+check("the account page ships the billing hand-off", YOU_HTML.includes('href="/billing"'));
+check("the Billing page ships its plan card",
+  readFileSync(join(DIST, "billing/index.html"), "utf8").includes('id="blPlan"'));
 check("the account page ships the formation section", YOU_HTML.includes('id="yFormation"'));
 check("the account page ships the mobile-app row", YOU_HTML.includes('id="yMobileApp"'));
 check("the shipped badge markup carries no gold", !/ybadge[^>]*gold/i.test(YOU_HTML));
@@ -296,7 +329,14 @@ for (const needle of ["createCheckoutSession", "Stripe sandbox", "dbGoAnnual", "
 }
 /* No new public route. */
 const routeCount = files.filter((f) => f.endsWith("index.html")).length;
-check("no new public route was introduced", routeCount === 13);
+/* 13 -> 14, deliberately. /billing is the one route added by this milestone:
+   the focused subscription-management page the plan card moved to. It is
+   noindex and authenticated in practice, and it replaces a section rather than
+   adding a second way to reach the same content — the /you anchor it grew out
+   of is gone. Any FURTHER route still has to justify itself here. */
+check("exactly one new public route was introduced", routeCount === 14);
+check("the new route is the Billing page", existsSync(join(DIST, "billing", "index.html")));
+check("the Billing page is noindex", /noindex/.test(BILLING));
 
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
