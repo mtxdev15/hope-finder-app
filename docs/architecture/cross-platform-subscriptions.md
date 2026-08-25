@@ -111,23 +111,50 @@ One canonical plan key per row. Provider identifiers hang off it.
 
 | Canonical plan | Stripe sandbox Price | Stripe live Price | Apple product ID |
 |---|---|---|---|
-| `plus_monthly` | `price_1U6hytLShxhb4mBzduppVOya` | pending | pending |
-| `plus_annual` | `price_1U6i0TLShxhb4mBzAldYiOcA` | pending | pending |
+| `plus_monthly` | `price_1U6hytLShxhb4mBzduppVOya` | `price_1U87XpLL3Uli7L4xsFjWeKNY` | pending |
+| `plus_annual` | `price_1U6i0TLShxhb4mBzAldYiOcA` | `price_1U87hRLL3Uli7L4xapodTc3C` | pending |
+| `plus_lifetime` | none — never created | `price_1U8MnmLL3Uli7L4xRdhFyo2I` | pending |
 
 Sandbox Prices created 2026-08-21 against Product `prod_V6voPpxBKesWPc`
 ("Declare Plus"), account `acct_1TmENuLShxhb4mBz` (Declare checkout dev), both
 `livemode: false`. Monthly is 899 usd / month; annual is 7999 usd / year; both
 `tax_behavior: exclusive` with no trial.
 
-The lookup keys `plus_monthly_usd_v1` and `plus_annual_usd_v1` are the stable
-handles. Prefer them over the raw ids when a price has to be named somewhere
+Live Prices verified 2026-08-24 against Product `prod_V8OKKIMHiVw0KE` ("Declare
+Plus"), account `acct_1Mf55qLL3Uli7L4x` (JC Kingdom Ventures). That Product is
+`active`, `livemode: true`, `type: service`, and both live Prices belong to it.
+Monthly is `price_1U87XpLL3Uli7L4xsFjWeKNY`, 899 usd / month, lookup key
+`plus_monthly_usd_v1`; annual is `price_1U87hRLL3Uli7L4xapodTc3C`, 7999 usd /
+year, lookup key `plus_annual_usd_v1`. Both are `interval_count: 1` with no
+trial, and both carry `tax_behavior: exclusive`, matching the sandbox contract
+exactly, so there is no price drift between environments. The live Product
+additionally carries `tax_code: txcd_10103000` and
+`statement_descriptor: DECLARE PLUS`, neither of which the sandbox Product sets.
+
+`plus_lifetime` was added 2026-08-25, directly in live mode: $149.00 USD,
+**one-off** (`mode: payment`, not recurring), lookup key `plus_lifetime_usd_v1`,
+on the same live Product `prod_V8OKKIMHiVw0KE`. It has **no sandbox
+counterpart** — it was never created there, so unlike monthly and annual there is
+no cross-environment contract to compare it against, and the no-price-drift
+claim above does not extend to it. Its `tax_behavior` has **not** been read back
+and is not recorded here rather than assumed to match.
+
+Its Apple equivalent will be a **non-consumable in-app purchase**, not an
+auto-renewable subscription — see the one-time-plan addendum near the top of this
+document.
+
+The lookup keys `plus_monthly_usd_v1`, `plus_annual_usd_v1` and
+`plus_lifetime_usd_v1` are the stable handles. Prefer them over the raw ids when a price has to be named somewhere
 other than an environment variable: a future price change creates `_v2` rather
 than mutating a Price existing subscribers already hold.
 
 **Do not create Apple product IDs yet.** The Apple column stays `pending` until
-an App Store Connect app record exists. The live column stays `pending` until
-Plus is promoted, and filling it is a separate approval — a live Price is not
-created by copying a sandbox one.
+an App Store Connect app record exists.
+
+The live column now records Prices that already exist in the live account.
+Recording a live Price is not the same as selling it: what is offered for
+purchase is decided by the activation flag, not by what this table holds. A live
+Price is still never created by copying a sandbox one.
 
 Resolution is table-driven in both directions:
 
