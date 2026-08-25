@@ -136,8 +136,14 @@ http.route({
   path: "/billing/subscription-event",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
-    const secretHeader = req.headers.get("x-billing-secret") || "";
-    const expected = process.env.BILLING_WEBHOOK_SECRET || "";
+    /* Both sides trimmed. This secret is set by hand in two different
+     * dashboards and must match exactly, so one invisible trailing space
+     * produces a 401 on every delivery with nothing to indicate why. The
+     * Worker trims before sending; trimming here too means neither side has to
+     * trust the other to have done it. No entropy is lost — a shared secret
+     * cannot legitimately begin or end with whitespace. */
+    const secretHeader = (req.headers.get("x-billing-secret") || "").trim();
+    const expected = (process.env.BILLING_WEBHOOK_SECRET || "").trim();
     if (!expected || secretHeader !== expected) {
       return new Response("Unauthorized", { status: 401 });
     }

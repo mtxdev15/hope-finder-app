@@ -471,8 +471,29 @@ async function handleBillingWebhook(request, env) {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
+  /* Trimmed at the boundary, both of them.
+   *
+   * The Stripe secret was already trimmed at its point of use, for a reason
+   * worth repeating: a trailing newline from a piped `wrangler secret put` is
+   * invisible in every dashboard and in `secret list`, and fails identically to
+   * a completely wrong value.
+   *
+   * BILLING_WEBHOOK_SECRET was NOT trimmed, and it is the one where a stray
+   * character is hardest to diagnose. Convex compares it character-for-
+   * character against what we send, and both sides are set by hand in separate
+   * dashboards — so one invisible space produces a 401 on every delivery with
+   * nothing anywhere to indicate why. Defending one secret and not the other
+   * was an asymmetry, not a decision.
+   *
+   * Trimming costs nothing: neither value can legitimately contain leading or
+   * trailing whitespace. Checked AFTER trimming so a whitespace-only value is
+   * treated as absent rather than passing the presence check and then failing
+   * downstream as a mismatch. */
+  const stripeSigningSecret = (env.STRIPE_BILLING_WEBHOOK_SECRET || '').trim();
+  const sharedSecret = (env.BILLING_WEBHOOK_SECRET || '').trim();
+
   // No STRIPE_SECRET_KEY in this list, and none read anywhere below.
-  if (!env.STRIPE_BILLING_WEBHOOK_SECRET || !env.CONVEX_SITE_URL || !env.BILLING_WEBHOOK_SECRET) {
+  if (!stripeSigningSecret || !env.CONVEX_SITE_URL || !sharedSecret) {
     return new Response('Webhook not configured', { status: 500 });
   }
 
@@ -486,11 +507,7 @@ async function handleBillingWebhook(request, env) {
   const verdict = await verifyStripeSignature(
     payload,
     request.headers.get('Stripe-Signature'),
-    /* Defensive trim. A trailing newline from a piped `wrangler secret put`
-     * is invisible in every dashboard and every `secret list`, and fails
-     * verification identically to a wrong secret. Stripe signing secrets never
-     * contain leading or trailing whitespace, so trimming can only help. */
-    (env.STRIPE_BILLING_WEBHOOK_SECRET || '').trim(),
+    stripeSigningSecret,
   );
   if (!verdict.ok) {
     // Reason to the log ONLY. The response stays opaque — see the note on
@@ -510,7 +527,7 @@ async function handleBillingWebhook(request, env) {
   try {
     const r = await fetch(env.CONVEX_SITE_URL + '/billing/subscription-event', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-billing-secret': env.BILLING_WEBHOOK_SECRET },
+      headers: { 'Content-Type': 'application/json', 'x-billing-secret': sharedSecret },
       // Forwarded verbatim. The Worker extracts nothing.
       body: payload,
     });
