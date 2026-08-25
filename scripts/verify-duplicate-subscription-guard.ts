@@ -179,8 +179,25 @@ check("a conflict emits a structured log line",
 check("the log line carries no subscription id",
   !/duplicate-subscription-conflict[\s\S]{0,400}canonicalSubscriptionId \+/.test(SUBS));
 
-check("http.ts still calls applyWebhook exactly once, for every event type",
-  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.applyWebhook/g) || []).length === 1);
+/* THE PROPERTY IS "ONE MUTATION", NOT "ONE CALL SITE".
+ *
+ * This used to assert a single call site, which was the same thing while every
+ * event was subscription-shaped. Lifetime added two paths that cannot share
+ * that code — a one-time purchase has no Subscription to fetch, and a refund
+ * resolves through a PaymentIntent — so there are now three call sites.
+ *
+ * What must remain true is what the guard actually depends on: every path
+ * writes subscription state through applyWebhook and nothing else, so the
+ * duplicate check runs on all of them. A path that wrote the table directly
+ * would bypass the guard entirely, which is the regression to catch. */
+const APPLY_CALLS =
+  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.applyWebhook/g) || []).length;
+check("http.ts routes every event through applyWebhook", APPLY_CALLS === 3);
+check("applyWebhook is the ONLY subscriptions mutation http.ts calls",
+  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.\w+/g) || [])
+    .every((m) => m.includes("applyWebhook")));
+check("no path writes the subscriptions table directly",
+  !/ctx\.db\.(insert|patch|replace)/.test(HTTP));
 check("the Worker remains a verify-and-relay boundary — no guard added there",
   !/duplicateSubscription|classifyIncomingSubscription/.test(WORKER));
 check("the Worker still holds no Stripe credential", !/env\.STRIPE_SECRET_KEY/.test(WORKER));

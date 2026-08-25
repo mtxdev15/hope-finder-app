@@ -235,9 +235,27 @@ check("Convex billing uses the shared client, not raw fetch",
 
 section("7. Provenance is stamped where later events can read it");
 
-check("checkout stamps metadata AND subscription_data metadata",
-  /form\["metadata\[" \+ k \+ "\]"\]/.test(BILLING) &&
-  /form\["subscription_data\[metadata\]\[" \+ k \+ "\]"\]/.test(BILLING));
+/* Provenance is stamped TWICE: once on the session, and once on whichever
+   object OUTLIVES it — because the session is gone by the time later events
+   arrive, and classification would then have nothing to read.
+
+   Which durable object that is depends on the mode, and the choice is not
+   cosmetic. A subscription carries subscription_data forward onto every
+   lifecycle event. A one-time payment has no such field at all — sending it in
+   payment mode is an API error — so its copy goes on the PaymentIntent, which
+   is also what a refund event resolves back to. */
+check("checkout stamps the session's own metadata",
+  /form\["metadata\[" \+ k \+ "\]"\]/.test(BILLING));
+check("a subscription's copy goes on subscription_data",
+  /"subscription_data\[metadata\]\["/.test(BILLING));
+check("a one-time payment's copy goes on the PaymentIntent",
+  /"payment_intent_data\[metadata\]\["/.test(BILLING));
+check("the durable home is chosen by mode, never sent as both",
+  /oneTime \? "payment_intent_data\[metadata\]\[" : "subscription_data\[metadata\]\["/
+    .test(BILLING));
+check("mode itself is chosen from the plan, not from a browser input",
+  /mode: oneTime \? "payment" : "subscription"/.test(BILLING) &&
+  /const oneTime = isOneTimePlan\(planKey\)/.test(BILLING));
 check("checkout stamps the canonical plan key, not the browser alias",
   /plan:\s*planKey/.test(BILLING));
 check("automatic tax is explicitly disabled for this phase",

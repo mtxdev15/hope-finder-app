@@ -2,12 +2,14 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent, createAuth } from "./auth";
-import { fetchSubscription } from "./stripeApi";
+import { fetchSubscription, stripeGet } from "./stripeApi";
 import {
   classifyPlusSubscription,
+  classifyLifetimePurchase,
   approvedPricesFromEnv,
   environmentForSecret,
   stampedUserId,
+  CHECKOUT_SOURCE,
 } from "./plusPlans";
 import { deriveCancelAtPeriodEnd } from "./stripeCancellation";
 
@@ -65,6 +67,12 @@ const BILLING_EVENTS = new Set([
   "invoice.paid",
   "invoice.payment_failed",
   "invoice.payment_action_required",
+  /* The one-time plan's two events. A lifetime purchase arrives as a completed
+   * Checkout Session in payment mode, and the ONLY way it can ever be undone is
+   * a refund — there is no cancellation, no lapse and no failed renewal. Without
+   * `charge.refunded` here, refunding a lifetime purchase would return the money
+   * and leave the entitlement granted forever. */
+  "charge.refunded",
 ]);
 
 /* Refuse absurd bodies before parsing. The Worker bounds this too; doing it in
@@ -166,6 +174,101 @@ http.route({
     if (!environment) return new Response("Billing not configured", { status: 503 });
 
     const obj = event?.data?.object || {};
+    const approvedPrices = approvedPricesFromEnv(
+      process.env as Record<string, string | undefined>,
+    );
+
+    /* ══ THE ONE-TIME PATH ═════════════════════════════════════════════════
+     * Handled here, before anything subscription-shaped, because a lifetime
+     * purchase has no Subscription object for the code below to fetch — every
+     * check from `fetchSubscription` onwards would have nothing to read.
+     *
+     * `mode` decides only WHICH SHAPE this is, never whether it is Plus. That
+     * distinction is the same one the note below makes, and it matters more
+     * here, not less: a one-time DONATION is also mode payment, also complete,
+     * also paid. classifyLifetimePurchase is the only thing that decides, and
+     * scripts/verify-plus-classification.ts runs the real archived gift against
+     * it to prove a donor can never be granted Plus this way. */
+    if (eventType === "checkout.session.completed" && obj?.mode === "payment") {
+      /* Stripe does not expand line items on the webhook payload, so the
+       * approved-Price check has nothing to read until we fetch them. */
+      const li = await stripeGet("/checkout/sessions/" + String(obj.id) + "/line_items", stripeSecret);
+      if (!li.ok) return new Response("Upstream error", { status: 502 });
+
+      const verdict = classifyLifetimePurchase({
+        session: obj,
+        lineItems: li.data?.data,
+        approvedPrices,
+        environment,
+      });
+      if (!verdict.ok) {
+        console.log(
+          "[billing] not-plus event=" + eventId + " type=" + eventType +
+            " reason=" + verdict.reason,
+        );
+        return ACK();
+      }
+
+      const buyerId = stampedUserId(null, obj);
+      const customerId = asId(obj.customer);
+      const priceId = li.data?.data?.[0]?.price?.id;
+
+      await ctx.runMutation(internal.subscriptions.applyWebhook, {
+        provider: "stripe" as const,
+        environment,
+        planKey: verdict.planKey,
+        eventId,
+        eventType,
+        eventCreated,
+        /* Stripe's own payment_status, stored verbatim like every other status
+         * on this table. Not "active": that word belongs to the subscription
+         * vocabulary and this row has no subscription. */
+        status: "paid",
+        ...(customerId ? { stripeCustomerId: customerId } : {}),
+        ...(typeof priceId === "string" ? { stripePriceId: priceId } : {}),
+        ...(buyerId ? { metadataUserId: buyerId } : {}),
+        /* No subscription id, no interval, no period, no cancellation. Absent
+         * rather than filled with plausible values — a lifetime purchase
+         * genuinely has none of them, and entitlements.ts reads that absence. */
+      });
+      return ACK();
+    }
+
+    /* ── A refund is the only way a lifetime purchase ends ────────────────
+     * Our provenance lives on the PaymentIntent (see billing.ts), not on the
+     * Charge, so the Charge is resolved to its PaymentIntent first. Anything
+     * that fails to prove itself ours is acknowledged and ignored: a refund on
+     * some other charge in this account must not touch an entitlement. */
+    if (eventType === "charge.refunded") {
+      const piId = asId(obj.payment_intent);
+      if (!piId) return ACK();
+
+      const pi = await stripeGet("/payment_intents/" + piId, stripeSecret);
+      if (!pi.ok) return new Response("Upstream error", { status: 502 });
+
+      const md = pi.data?.metadata || {};
+      if (md.source !== CHECKOUT_SOURCE) return ACK();      // not ours
+      if (md.plan !== "plus_lifetime") return ACK();        // not the one-time plan
+      if (md.environment !== environment) return ACK();     // not this runtime
+      if (typeof md.userId !== "string" || !md.userId) return ACK();
+
+      await ctx.runMutation(internal.subscriptions.applyWebhook, {
+        provider: "stripe" as const,
+        environment,
+        planKey: "plus_lifetime" as const,
+        eventId,
+        eventType,
+        eventCreated,
+        /* Not a Stripe status — no Stripe object reads "refunded" — but the
+         * honest name for the state, and the one entitlements.ts fails closed
+         * on: anything that is not `paid` on a lifetime row grants nothing. */
+        status: "refunded",
+        ...(asId(obj.customer) ? { stripeCustomerId: asId(obj.customer) as string } : {}),
+        metadataUserId: md.userId,
+      });
+      return ACK();
+    }
+
     let subscriptionId: string | null = null;
     let session: any = null;
 
@@ -204,7 +307,7 @@ http.route({
     const verdict = classifyPlusSubscription({
       subscription: sub,
       session,
-      approvedPrices: approvedPricesFromEnv(process.env as Record<string, string | undefined>),
+      approvedPrices,
       environment,
     });
 

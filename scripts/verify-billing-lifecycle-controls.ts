@@ -197,9 +197,19 @@ check("no Stripe Price id literal appears in the inspector module",
 section("4. The duplicate guard is plan-independent, so annual inherits it");
 
 /* THE ARGUMENT, and why it is stronger than a per-plan assertion:
- * the guard queries by (userId, provider) and never reads planKey, so it cannot
- * distinguish monthly from annual. Annual is covered because the guard is
- * blind to the plan, not because someone remembered to list annual. */
+ * the guard queries by (userId, provider) and cannot distinguish monthly from
+ * annual. Annual is covered because the guard is BLIND TO CADENCE, not because
+ * someone remembered to list annual — and a fourth recurring plan would be
+ * covered for the same reason, without touching this code.
+ *
+ * Lifetime is the one plan it must recognise, and that is not an exception to
+ * the argument. Its status vocabulary is DISJOINT: a lifetime row reads `paid`,
+ * a word that appears in neither BLOCKS_NEW_CHECKOUT nor ALLOWS_NEW_CHECKOUT.
+ * Without the branch it would reach the unrecognised-lifecycle refusal at the
+ * end — the right answer for the wrong reason, returning a status string no
+ * surface knows how to render. So the property asserted below is not "never
+ * reads planKey" but the one that was always doing the work: it never names a
+ * recurring plan. */
 const GUARD = CHECKOUT.slice(
   CHECKOUT.indexOf("getByUserProviderInternal"),
   CHECKOUT.indexOf("3b. Cross-provider guard"),
@@ -207,7 +217,12 @@ const GUARD = CHECKOUT.slice(
 check("the duplicate guard block can be located", GUARD.length > 0);
 check("the guard queries by userId and provider only",
   /\{ userId, provider: "stripe" as const \}/.test(GUARD));
-check("the guard never reads planKey", !GUARD.includes("planKey"));
+check("the guard never names a recurring plan",
+  !GUARD.includes("plus_monthly") && !GUARD.includes("plus_annual"));
+check("the only plan it recognises is the one-time one",
+  (GUARD.match(/plus_\w+/g) || []).every((m) => m === "plus_lifetime"));
+check("and it recognises that plan by its disjoint status, not by cadence",
+  /planKey === "plus_lifetime" && existing\.status === "paid"/.test(GUARD));
 check("the guard never reads the plan alias", !GUARD.includes("args.plan"));
 check("the guard never reads a Price", !GUARD.includes("price"));
 check("an existing live subscription answers already-subscribed",

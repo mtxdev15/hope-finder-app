@@ -51,6 +51,27 @@ export const ONE_TIME_PLAN_KEYS: readonly PlanKey[] = ["plus_lifetime"];
 export function isOneTimePlan(key: PlanKey): boolean {
   return (ONE_TIME_PLAN_KEYS as readonly string[]).includes(key);
 }
+
+/* How many lifetime purchases may exist, per environment.
+ *
+ * WHY A CAP EXISTS AT ALL
+ * Plus is unlimited Gentle Guidance and unlimited Journeys, and every one of
+ * those is a live model call. Unlike a media app, this product has a real
+ * recurring cost per active user, so a lifetime purchase converts an ongoing
+ * cost into one-time revenue with no way to reprice later. The price alone
+ * cannot bound that; the COUNT can.
+ *
+ * DELIBERATELY A SOFT CAP, and the honesty matters more than the tidiness.
+ * It is checked when a Checkout is opened, not reserved — a seat is only
+ * consumed when the webhook records a paid purchase. Two people checking out
+ * at once can therefore both pass, and a Session stays payable for 24 hours,
+ * so the real total can exceed this by a small number. That is acceptable for
+ * a founding-member round and would NOT be acceptable for, say, event tickets.
+ * Making it exact would need a reservation record with expiry, which is real
+ * complexity to buy a precision this does not need.
+ *
+ * Counted per environment so sandbox testing can never consume a live seat. */
+export const LIFETIME_SEATS = 200;
 export const PROVIDERS: readonly Provider[] = ["stripe", "app_store"];
 
 /* Bumped only when the provenance contract itself changes. A subscription

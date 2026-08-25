@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { classifyIncomingSubscription } from "./subscriptionGuard";
+import { LIFETIME_SEATS } from "./plusPlans";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -114,6 +115,31 @@ export const getByUserProviderInternal = internalQuery({
         q.eq("userId", args.userId).eq("provider", args.provider),
       )
       .first();
+  },
+});
+
+/* INTERNAL: how many lifetime seats are actually sold in this environment.
+ *
+ * Counts only rows that are still PAID. A refunded lifetime returns its seat —
+ * the money went back, so holding the seat would shrink the founding round by
+ * someone who is no longer in it.
+ *
+ * Reads a bounded slice: `by_plan_environment` narrows to lifetime rows in one
+ * environment, and there can never be many more of those than the cap, since
+ * the cap is what gates creating them. Takes LIFETIME_SEATS + 1 rather than
+ * collecting, so an unexpected overshoot cannot turn this into an unbounded
+ * read — the caller only needs to know whether the cap is reached, not the
+ * true total. */
+export const countLifetimeSoldInternal = internalQuery({
+  args: { environment: environmentValidator },
+  handler: async (ctx, args): Promise<number> => {
+    const rows = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_plan_environment", (q) =>
+        q.eq("planKey", "plus_lifetime" as const).eq("environment", args.environment),
+      )
+      .take(LIFETIME_SEATS + 1);
+    return rows.filter((r) => LIFETIME_PLUS_STATUSES.has(r.status)).length;
   },
 });
 

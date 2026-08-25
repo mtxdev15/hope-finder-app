@@ -186,6 +186,10 @@ export default defineSchema({
     // One row per provider per user, so a web and an App Store subscription
     // coexist rather than overwriting each other.
     .index("by_user_provider", ["userId", "provider"])
+    /* Counting sold lifetime seats. Scoped by environment so a sandbox
+       purchase can never consume a production seat, and so the count reads a
+       bounded slice rather than scanning every subscription. */
+    .index("by_plan_environment", ["planKey", "environment"])
     .index("by_subscription", ["stripeSubscriptionId"])
     .index("by_customer", ["stripeCustomerId"])
     .index("by_apple_original_tx", ["appleOriginalTransactionId"]),
