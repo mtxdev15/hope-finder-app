@@ -132,7 +132,14 @@ has paid you money.
       2026-08-24) — records the verified live Stripe product and prices. Overlaps
       the 2026-08-25 addendum in `cross-platform-subscriptions.md`; reconcile
       rather than merging blind.
-- [ ] **E3. Delete the ~30 fully-merged branches.** Everything with `ahead: 0`
+- [ ] **E3. Delete the 37 fully-merged branches** — `./scripts/delete-merged-branches.sh --yes`.
+      Prepared but **not executed**: the cloud session cannot delete remote
+      branches (403 on `push --delete`; it may push its own branch only). The
+      script recomputes the merged set at run time rather than trusting a list,
+      so a branch that gained unmerged work since is skipped automatically. Tip
+      SHAs recorded in `docs/operations/branch-cleanup-2026-08-25.md` — restore any
+      with `git push origin <sha>:refs/heads/<branch>`.
+      ~~Delete the ~30 fully-merged branches.~~ Everything with `ahead: 0`
       against main — the `fix/harness-*`, `verify/stripe-*`, `docs/billing-*`
       and `feature/*` sets. **Keep `release-c1-monetization`** until
       `convex function-spec --prod` confirms production no longer needs it as a

@@ -1,7 +1,14 @@
 # Branch cleanup record — 2026-08-25
 
-Thirty-seven remote branches were deleted because every one of their commits
-was already reachable from `main` (`ahead: 0`). **Nothing was lost** — the
+> **Not yet executed.** The cloud session that produced this record cannot delete
+> remote branches — its git credentials allow pushing its own branch but return
+> **403** on `git push origin --delete`. Run
+> `./scripts/delete-merged-branches.sh --yes` from a machine with normal push
+> rights. The script recomputes the merged set at run time rather than trusting
+> the table below, so it stays correct as branches land.
+
+Thirty-seven remote branches are queued for deletion because every one of their commits
+is already reachable from `main` (`ahead: 0`). **Nothing will be lost** — the
 commits live in main's history. This file exists so the deletion is reversible
 without archaeology.
 
