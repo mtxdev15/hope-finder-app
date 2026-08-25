@@ -1,16 +1,53 @@
 # Declare & Believe — Open Items
 
-A running list of work to continue on the site. Newest priorities at the top of each section.
-Done items move to the bottom or get deleted.
+A running list of work to continue on the site. **Newest first within each section.**
+Open work is at the top; everything finished lives under **Done** at the bottom.
+Reordered 2026-08-25 after the live-billing activation pass.
+
+## ⏭️ Next up — after the production deploy
+
+*Added 2026-08-25. Every Stripe, Convex and Cloudflare variable is now set and
+verified; what remains needs a terminal. Do these in order — each one's failure
+mode is easier to read if the one before it succeeded.*
+
+- [ ] **1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
+      compared against `main` (`c44f8c0`). This is the one thing that could not be checked from
+      the web session — `release-c1-monetization @ 332e611` is not in the cloud clone. The audit
+      claims 51 functions and zero `testHarness` entries; `main` carries `testHarness.ts` and
+      later billing fixes, so there is probably drift. **Do this before deploying anything.**
+- [ ] **2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
+      found without adding billing behaviour — the harness fails closed, its two env vars were
+      never set. Capture the Worker version id first (`npx wrangler deployments list`) so
+      rollback has an explicit target rather than a guess.
+- [ ] **3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
+      Run `npm run check:types`, `npm run build && ls dist/dev` (must not exist) and every
+      `scripts/verify-*.ts` first — 12 suites, 2,237 checks. Schema change is additive
+      (`planKey` gains `plus_lifetime`, plus a `by_plan_environment` index) and needs **no
+      backfill**: production holds zero billing rows. The Worker needs redeploying too — this
+      branch changed `worker/src/index.js`.
+- [ ] **4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
+      The destination currently listens to 8. A refund is the **only** way a lifetime purchase
+      can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
+      $149 returns the money and leaves Plus granted forever.
+- [ ] **5. Stage 5 real-money smoke test.** The only true proof: Stripe permits no synthetic
+      events in live mode, and the endpoint has 0 deliveries ever. Run
+      `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` with `PUBLIC_CONVEX_SITE_URL` pointed at
+      production. Monthly, annual, lifetime, portal, cancel-at-period-end and its reversal.
+      **Decide before charging** whether to refund or keep as a canary — record it first, not after.
+- [ ] **Open risk — webhook API version cannot be changed.** The destination is pinned to
+      `2026-07-29.dahlia`; the code pins `2026-06-24.dahlia`. Exposure is narrow because the
+      handler re-fetches the subscription through the pinned client, so `classifyPlusSubscription`,
+      `readPeriod` and `deriveCancelAtPeriodEnd` are insulated. The one reader touching the
+      delivered payload's nested shape is `readInvoiceSubscriptionId` (`convex/http.ts`), which
+      reads `obj.parent.subscription_details.subscription`. If that moved between versions,
+      `invoice.*` events resolve no subscription and are acknowledged-but-ignored. **Unverified** —
+      settle it by capturing a real `invoice.paid` payload during step 5.
+- [ ] **Then Stage 6 — merge the pricing CTA.** Held on `claude/billing-pricing-cta-stage6`,
+      deliberately unmerged. Production is currently *structurally* incapable of starting a
+      Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
+      suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
 
 ## 🔧 In progress / immediate
-- [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
-      on `main` still carries legacy checkout handlers, including the billing-portal IDOR
-      that searched Stripe customers by a browser-submitted email. Production runs the hardened
-      Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
-      not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
-      backwards into those vulnerabilities. See
-      `docs/operations/convex-production-parity-audit.md`.
 - [ ] **Improvements deferred out of the Convex parity port.** The parity branch ports production
       logic **verbatim** — nothing was tidied on the way through, on purpose, because a parity
       port whose behaviour differs is not a parity port. Candidates noticed while reading the
@@ -83,17 +120,6 @@ Done items move to the bottom or get deleted.
       normal production CTA," but it currently renders unconditionally with no gating. Fix: hide it
       from production (dev-console-only, or a `?debug=1`-style flag) and keep `previewTomorrow()`
       reachable for QA.
-- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
-      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
-      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
-      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
-      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
-      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
-      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
-      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
-      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
-      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
-      interpret it.
 - [ ] **Lead magnet: free declarations download (PAUSED — needs Jeff's 4 answers).** Replace the
       weak "early access" band at the bottom of `/welcome` (and 15 other pages, the `fsignup`/`nlForm`
       block) with a free PDF download offer. Today the form redirects to a broken `Signin.html` and
@@ -115,13 +141,363 @@ Done items move to the bottom or get deleted.
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
 
-## Deferred — Stripe sandbox checkout and subscription validation
+
+## 🚀 Next features
+- [ ] **Navigation IA Migration — Bible · Journeys · Declare · Saved · You.**
+      Status: **approved and deferred.** Begin after the current Spanish Journey surface
+      work is complete and stable. Documentation-only for now; no navigation code, labels,
+      routes, analytics, SEO, GTM or Search Console changes have been made.
+
+      **Sequencing decision — 2026-08-21.** Do **not** begin this migration inside PR #20
+      or during the current billing and type-check cleanup. Finish the Stage 2
+      billing/type-check plan first. After PR #20 is merged or otherwise closed, create a
+      dedicated navigation planning branch. This is in addition to the Spanish-Journey
+      gate above, not a replacement for it.
+
+      Five things must be settled on that branch **before any implementation begins**:
+
+      1. Reconcile this route map with the approved app.declareandbelieve.com split plan
+         below — they currently disagree (see finding 2).
+      2. Decide the canonical account route: `/you` or `/profile`.
+      3. Decide the canonical authentication route: `/signin` or `/login`.
+      4. Include `/journey`→`/journeys` and `/vault`→`/saved` in the final unified map;
+         the app.* plan predates both and omits them.
+      5. Resolve the `/declare` static-asset namespace collision before renaming
+         `/today`→`/declare` (see finding 1).
+
+      The eventual migration must be **coordinated across all of it in one pass**: English
+      and Spanish tab labels; page and file routes; one-hop permanent redirects; active
+      states and accessibility; internal and deep links; Journey-resume and Saved-content
+      links; authentication **and billing** return paths; canonical, hreflang, sitemap,
+      robots, metadata and Open Graph URLs; GTM, GA, funnels, conversions and historical
+      analytics mapping; Cloudflare redirects and Search Console verification; and mobile
+      tab bar, tablet rail and desktop sidebar parity. The detailed requirements for each
+      are already specified further down this item — this list is the scope, not a second
+      copy of the spec.
+
+      One dependency worth naming because nothing else records it: Stage 2 billing builds
+      Checkout `success_url` and `cancel_url` from `SITE_URL` in `convex/billing.ts`, and
+      those point at `/checkout/success` and `/checkout/cancelled`, which do not exist as
+      routes yet. Whoever builds those routes and whoever renames routes are touching the
+      same return-path surface, so the billing return paths must be part of the unified
+      map rather than discovered afterwards.
+
+      **Changing only Word→Bible or Vault→Saved is not implementation and is not
+      completion.** (Restated here because it is the tempting subset; the guardrail at the
+      end of this item says the same thing.)
+
+      The **mast-avatar duplicate-navigation question** (see "🔧 In progress / immediate")
+      stays a separate sitewide decision. Do not bundle it into this route migration or
+      into the current type-cleanup work.
+
+      **Approved tab bar:** Bible · Journeys · Declare · Saved · You
+
+      **Intended route migration:** `/word`→`/bible`, `/journey`→`/journeys`,
+      `/today`→`/declare`, `/vault`→`/saved`, `/you` stays `/you`.
+
+      **Two things found while recording this, both of which change the audit:**
+
+      1. **`/declare` is not a page route — it is the static asset directory.**
+         `public/declare/` holds ~30 shipped assets (`atmosphere.css`, `card-studio.js`,
+         `i18n-strings.js`, `theme.js`, and the rest), all served from `/declare/*` and
+         referenced from versioned `<script>`/`<link>` tags across every page. Renaming
+         `/today`→`/declare` puts a page route on top of that prefix. Resolve this BEFORE
+         any rename: either move the assets to a different prefix (a cache-busting event
+         for every returning reader, so it needs its own version bump plan) or choose a
+         different Declare destination. The brief's "prevent route collision between the
+         current Declare experience and /today" is really this.
+      2. **An already-approved plan disagrees with this one.** The
+         app.declareandbelieve.com split below specifies `/you`→`/profile` and
+         `/signin`→`/login`; this migration keeps `/you` and is silent on `/signin`. It
+         also predates `/journey`→`/journeys` and `/vault`→`/saved`. **Reconcile the two
+         into one route map before either starts** — whichever ships first will make the
+         other's redirect matrix wrong.
+
+      **Required pre-implementation audit.** Before changing code: audit the existing
+      `/declare` prefix and the declaration flow; prevent the collision above; inventory
+      every English and Spanish navigation label; inventory every internal link, deep
+      link, authentication return URL, Journey resume link, saved-content link and
+      external link; inventory canonical URLs, hreflang, sitemap entries, structured data,
+      page metadata, Open Graph URLs and robots behaviour; inventory GTM triggers,
+      variables, lookup tables, analytics events, funnels, conversions, content groups and
+      dashboards; prepare the Search Console migration checklist; prepare the Cloudflare
+      redirect matrix; preserve historical analytics mapping where practical.
+
+      **Accessibility and UX requirements.** 44×44 minimum targets; visible active state;
+      `aria-current` on the active destination; accurate screen-reader labels; keyboard
+      navigation; reduced-motion behaviour; light and dark parity; mobile tab bar; tablet
+      rail; desktop sidebar; no duplicate navigation landmarks; no duplicate page-level
+      headings.
+
+      **Redirect requirements.** Every replaced public URL redirects permanently in ONE
+      hop: `/word`→`/bible`, `/journey`→`/journeys`, `/today`→the approved Declare
+      destination, `/vault`→`/saved`. Also cover trailing-slash variants, Spanish
+      equivalents, nested legacy routes, query parameters, safe deep-link state, canonical
+      tags, sitemap entries and internal links. No chains, no loops.
+
+      **Three mandatory sweeps.**
+      - [ ] **Sweep 1 — source and configuration.** Search the whole repository for `Word`,
+        `Journey`, `Today`, `Vault`, `/word`, `/journey`, `/today`, `/vault` and the Spanish
+        equivalents and route variants. Classify every hit as intentionally retained,
+        redirect compatibility, historical documentation, unrelated natural-language use,
+        or a defect requiring conversion.
+      - [ ] **Sweep 2 — built output and runtime.** Build and serve production output.
+        Verify new labels, new URLs, one-hop redirects, no broken links, no redirect loops,
+        correct active state, canonical, hreflang and sitemap, correct English and Spanish
+        behaviour, no stale user-facing labels, and no stale routes in generated HTML or JS.
+      - [ ] **Sweep 3 — external systems.** Audit and update GTM, Google Analytics, Search
+        Console, Cloudflare routing, sitemap submission, external links, documentation,
+        screenshots, emails and notifications, browser history and bookmarks, and
+        authenticated return paths. Repeat the full repository search and produce a final
+        legacy-match report.
+
+      **Deliverables.** (1) route and navigation inventory; (2) `/declare` collision
+      decision; (3) final route map; (4) English and Spanish prototypes; (5) redirect
+      matrix; (6) SEO migration plan; (7) GTM and analytics migration plan; (8) Search
+      Console checklist; (9) implementation commits; (10) three completed sweep reports;
+      (11) production verification; (12) rollback and post-launch monitoring plan.
+
+      **Guardrails.** Do not combine with Fruit Log or another Spanish Journey surface. Do
+      not remove legacy routes without redirects. Do not rename routes before resolving
+      the `/declare` prefix. Do not mark complete after changing labels only. Do not leave
+      analytics, SEO, Spanish routes or external systems behind. Do not accept completion
+      until all three sweeps pass.
+
+- [ ] **i18n release hardening (from the two bugs found closing Release B).**
+      - [x] **Harness evaluates the catalog instead of text-matching it.** Done in Release
+        B. `scripts/verify-journey-locale.ts` now executes `i18n-strings.js` and asserts on
+        the resulting object. The bug it missed: sixteen ported keys sat inside an
+        unterminated `/* */` block, so the file parsed, the keys were plainly visible, and
+        the Spanish review silently rendered its English fallbacks. A substring check is
+        true whether or not a key survives parsing. Confirmed by reintroducing the bug and
+        watching the suite fail.
+      - [ ] **Release check: the i18n asset version MUST change when the catalog changes.**
+        `i18n-strings.js` is loaded from a versioned URL (`?v=3.21.0`) from
+        `src/layouts/DeclareLayout.astro` and `src/pages/index.astro`. Release B added
+        sixteen keys without bumping it at first; every returning reader would have kept
+        the stale catalog and seen the Spanish review in English — a release-day bug that
+        reads as a translation failure rather than a caching one. Make this mechanical:
+        fail the build or the harness when `public/declare/i18n-strings.js` changes and the
+        `?v=` stamp does not.
+      - [ ] **Verify the deployed page references the new versioned catalog URL.** A
+        post-deploy assertion that the live HTML carries the expected `?v=`, and that
+        fetching it returns the expected key count. Both halves matter: the stamp can be
+        right while the file is stale behind a CDN.
+
+- [ ] **Split the app onto app.declareandbelieve.com (studied Psalmlog's app.psalmlog.com
+      structure as the reference).** Full architecture + phase breakdown lives in
+      `.claude/plans/please-use-the-skills-shimmying-wombat.md` — plan approved 2026-07-16,
+      not yet started. Goal: `declareandbelieve.com` stays the marketing/SEO site,
+      `app.declareandbelieve.com` becomes the actual app, with `/today`→`/declare`,
+      `/word`→`/bible`, `/you`→`/profile`, `/signin`→`/login` (all real URL renames with
+      redirects). One Cloudflare Pages project, both domains attached, a new
+      `functions/_middleware.ts` does Host-based routing — no repo restructuring, no second
+      build pipeline. Do the 7 phases below **in order, one at a time**, verifying each
+      before moving on:
+      - [ ] **Phase 1 — add `app.declareandbelieve.com`** as a custom domain in Cloudflare
+        Pages on the existing Pages project (zero risk, mirrors current site, nothing on
+        `declareandbelieve.com` changes).
+      - [ ] **Phase 2 — add a no-op `functions/_middleware.ts`** (pure passthrough) to prove
+        Cloudflare Pages Functions work before adding real routing logic.
+      - [ ] **Phase 3 — fix the relative `/welcome` link** in `DeclareLayout.astro` and
+        `index.astro` (currently breaks on `app.*` since it's a relative link).
+      - [ ] **Phase 4 — wire up auth for the new domain.** `convex/auth.ts` `trustedOrigins`
+        needs to support both origins; update Convex dashboard `SITE_URL` on dev
+        (`good-dotterel-906`) first, test Google + email sign-in on `app.*`, then repeat on
+        prod (`keen-hamster-650`). Also verify Google Cloud Console "Authorized JavaScript
+        origins."
+      - [ ] **Phase 5 — rename the 4 routes on `app.*` only** (no real traffic there yet):
+        `today.astro`→`declare.astro`, `word.astro`→`bible.astro`, `you.astro`→`profile.astro`,
+        `signin.astro`→`login.astro`. Update `TabBar.astro`, `auth-modal.js`'s default
+        `?return=` target, `create-account.astro`/`reset-password.astro` cross-links. Click
+        through the whole app on `app.*` to confirm nothing 404s.
+      - [ ] **Phase 6 — update canonical/OG tags** in `DeclareLayout.astro` and `index.astro`
+        to the new `app.*` base (accepted risk: could re-trigger Google's OAuth branding
+        review, per Jeff's call).
+      - [ ] **Phase 7 — the actual cutover (needs Jeff's explicit go-ahead).** Add
+        Host-conditional single-hop 301s in `functions/_middleware.ts` sending old
+        `declareandbelieve.com` routes straight to their final `app.*` names (e.g.
+        `/today`→`app.declareandbelieve.com/declare`). Excludes `/crisis` and `/` — crisis
+        must never depend on a redirect, and root-domain `/` is a separate later decision.
+        Expect a temporary Search Console ranking dip on `/declare` and `/bible` (both
+        currently indexed) for 1–2 weeks post-redirect — normal, not a break.
+      **Not part of this project:** journaling, paywalls, or any Psalmlog product features —
+      only the domain/routing structure is being adopted. Comparison report + a
+      `/declare-vs-psalmlog` page, and a Mobbin-referenced dashboard/marketing redesign, are
+      separate follow-on efforts (references saved in the plan file).
+- [ ] **iOS app (Capacitor, same repo).** Decided 2026-07-02: wrap the existing web app with
+      Capacitor rather than rewriting native — `npx cap add ios` creates an `ios/` folder Xcode opens
+      directly; web changes flow with `npm run build && npx cap sync`. Prereq: Apple Developer Program
+      ($99/yr, JC Kingdom Ventures). Bundle assets locally + add native touches (push notifications
+      for Journey reminders, haptics, splash, Sign in with Apple) so App Review doesn't see a bare
+      wrapper. Also drop the real store IDs into `rate.js` at launch (see Polish).
+- [ ] **Performance round 2 (from the 2026-07-02 infra audit; round 1 shipped in v3.17.0).**
+      Ranked leftovers: (a) **long-term asset caching** — version the remaining unversioned
+      `/declare/*` references (declare.css, motion.css, route-loader.css, brand images, tree JPEGs),
+      set `_headers` to `max-age=31536000, immutable` for `/_astro/*` + versioned `/declare/*`, then
+      flip the Cloudflare zone Browser Cache TTL to "Respect Existing Headers" (never before versioning
+      — an unversioned ref under immutable = sticky stale); (b) **GTM delay** to window.load + idle
+      (~122 KB br off first paint; Jeff to accept slight undercount of instant bounces); (c) **fonts**
+      — self-host latin-subset woff2, preload the 2 critical faces, metric-override fallback (kills the
+      FOUT reflow); (d) **tree JPEGs → WebP** (~1 MB → ~300 KB); (e) `modulepreload` for the shared
+      auth/module chain; (f) split `journey-data.js` (294 KB) per struggle, fetch on demand; (g) drop
+      the unused `react()` Astro integration (193 KB dead build output); (h) compress `brand/og.png`
+      (582 KB, unfurls only).
+- [ ] **Spanish for NEW content (the launch itself is DONE, v3.16.0).** Standing rules as the site
+      grows: every new English struggle page ships with its `/es` twin (hreflang + sitemap + luchas
+      hub row); every new app string gets a `data-i18n` key or an `esLock()`/`esW()` ternary; every
+      What's-new entry is bilingual (`['New', en, es]`); any changed `/declare/*.js` bumps its `?v=`
+      at every load site (4h browser cache otherwise serves stale).
+- [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
+      If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
+      links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
+      record then to keep verification emails out of spam.
+- [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
+      because it links to 6 sibling pages that don't exist yet (control, depression, fear,
+      overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
+- [ ] **Build out SEO struggle pages for the remaining chips — one new page per week.** 15 of 35
+      struggles have a `/public/<slug>.html` page (each with an `/es/` twin); ~20 remain. The weekly cadence is deliberate: a
+      steady publishing rhythm signals to Google that the site keeps adding fresh content. Each new
+      page copies the `public/anxiety.html` template exactly (GTM analytics `GTM-T65GXR22`, fixed
+      header/nav + slide-out menu + footer, `.rv` scroll reveals, `data-atmos` atmosphere zones), with
+      researched pastoral content written **real and raw** for the 3am reader, and 12 FAQs targeting
+      what people actually ask across Google + the AI engines (ChatGPT, Perplexity, Copilot, Gemini,
+      Apple AI, Claude) with a matching `FAQPage` JSON-LD, plus a curated Related Articles block.
+      Verse citations deep-link into the in-app `/word` reader, and each verse has a "Break this down"
+      commentary popup (shared `public/declare/commentary.{js,css}`, breakdown text kept in the DOM for
+      SEO). Register each page in `public/struggles.html` + `public/sitemap.xml`, and backfill Related
+      Articles links on existing pages so internal linking stays complete. **Process each week:**
+      search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
+      sitemap. Check off each chip as it ships.
+      - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [x] Stress & Burnout
+        (shipped 2026-07-02, EN `/burnout` + ES `/es/estres-y-agotamiento`) · [x] Rejection & Abandonment
+        (shipped 2026-07-15 as a 3-page mini-cluster, see below) · [ ] Addiction · [ ] Waiting on God
+      - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
+        (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
+        existing 988 banner pattern. Confirm final copy with Jeff before shipping.
+      - **Remaining:** [ ] Comparison · [ ] Feeling Unworthy · [ ] Broken Identity ·
+        [ ] People Pleasing · [ ] Emotional & Verbal Abuse · [ ] Betrayal · [ ] Self-Sabotage ·
+        [ ] Family Conflict · [ ] Divorce / Separation · [ ] Control · [ ] Perfectionism ·
+        [ ] Spiritual Dryness · [ ] Sexual Temptation · [ ] Faith Crisis ·
+        [ ] Feeling Spiritually Attacked · [ ] Drifting from God ·
+        [ ] **Parental Abandonment** (added 2026-07-15, not one of the original 33 chips — a real,
+        searched, previously-uncovered wound: a parent, often a mother, who gave a child up or never
+        wanted them; shipped as part of the Rejection & Abandonment batch below, kept in this list as
+        a permanent addition to the backlog going forward)
+      - **Next up:** Addiction, then Waiting on God, then Betrayal (unchanged order — betrayal/
+        infidelity/"a partner who's been lying to me" content stays queued for the dedicated Betrayal
+        page rather than pulled forward).
+      - **AEO requirements for every new page (added 2026-07-13):** keyword-first H1
+        ("Keyword — emotional line"), `Article` JSON-LD, a line in `llms.txt`, sitemap entry with
+        reciprocal EN/ES hreflang, then after deploy: ping IndexNow (key `8ae6ca7f…` at site root)
+        and Request Indexing in GSC.
+
+## 🎨 Polish / ongoing
+- [ ] **Homepage SEO watch.** `/` is the (thin) Begin page; the keyword-rich `<noscript>` block
+      is preserved for crawlers. Monitor that the homepage keeps its indexing.
+- [ ] **Add a logo to the Google consent screen** once you're ready for Google's brand verification
+      review (separate, multi-day). Makes the sign-in screen show your mark + "Sign in to Declare."
+- [ ] **Real store IDs in `public/declare/rate.js`.** The Rate & Review flow still ships with
+      placeholder App Store / Play IDs (`TODO dev` at `rate.js:24`). Drop in the real IDs before the
+      iOS launch so the "rate us" links point somewhere.
+- [ ] **Re-submit the sitemap** to Google Search Console after any big sitemap change to force a
+      re-read (initial submit already succeeded).
+- [ ] **Spanish strings for `/checkout/success` (found 2026-08-24 during the Plans/Billing work).**
+      Twelve `checkout.*` keys used by that page have no Spanish entry in
+      `public/declare/i18n-strings.js`, so a Spanish reader falls back to English at the moment they
+      have just paid. Pre-existing, not introduced by the Plans/Billing redesign, and unrelated to
+      it — Plans and Billing both have full parity. Worth closing before production activation.
+
+## ✅ Verify on the live site (manual)
+- [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
+      password-reset email (Resend).
+- [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
+      skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
+
+## 🔒 Billing guardrails (standing)
+
+- Do not reuse archived legacy Products, Prices, sessions or metadata. Seven
+  archived sessions and two archived Products remain in the sandbox from an
+  earlier integration and are permanent negative test fixtures, not building
+  material.
+- Do not point sandbox webhooks at the production Worker.
+- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
+  asserted by `scripts/verify-plus-classification.ts`.
+- Do not enable production checkout without a separate live-promotion approval.
+- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
+- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
+  source of truth.
+
+
+## ✔️ Done
+
+*Everything below is finished. Newest first. Kept rather than deleted because
+several of these are permanent negative fixtures, or explain why something is
+deliberately absent.*
+
+### Live billing activation (2026-08-25)
+
+- [x] **Live Stripe catalog complete.** Product `Declare Plus` (`prod_V8OKKIMHiVw0KE`) with
+      three prices, all carrying versioned lookup keys: $8.99/mo `plus_monthly_usd_v1`,
+      $79.99/yr `plus_annual_usd_v1`, $149.00 **one-off** `plus_lifetime_usd_v1`.
+- [x] **Live webhook destination exists and is correct.** `Declare Production Billing` → the
+      production Worker's `/billing/webhook`, Active, 8 events. The legacy donation endpoint is
+      **gone** — it had been pointing at `/give/webhook`, which answers `410 Gone`.
+- [x] **Convex production fully configured.** `STRIPE_SECRET_KEY` (`rk_live_`, from the scoped
+      restricted key `declare-production-billing-convex`), all three price IDs,
+      `BILLING_WEBHOOK_SECRET`, `SITE_URL`. `GIFT_WEBHOOK_SECRET` removed.
+- [x] **Worker secrets set from known-good sources**, so the two `BILLING_WEBHOOK_SECRET` values
+      match by construction rather than by inspection — Cloudflare secrets cannot be read back,
+      so inspection was never available.
+- [x] **The suspected bug did not exist.** `BILLING_WEBHOOK_SECRET` on Convex was correct all
+      along — random text, never a `whsec_`. Nothing was broken; the setup had simply never been
+      exercised. 0 deliveries, 0 failures.
+- [x] **`docs/operations/billing-production-activation-readiness.md` is unreliable.** Four
+      separate claims in it were false by the time they were checked. Treat it as history.
+      `docs/operations/billing-secret-topology.md` replaces it for the secrets.
+- [x] **Lifetime plan built** — catalog, one-time classifier, entitlement resolution, schema
+      widening, `mode: payment` Checkout, `charge.refunded` revocation, and a soft
+      founding-member seat cap (`LIFETIME_SEATS = 200`).
+- [x] **Family and Church offers removed** from `/pricing`. The church *finder* is untouched.
+- [x] **Shared-secret trim asymmetry fixed.** The Worker trimmed `STRIPE_BILLING_WEBHOOK_SECRET`
+      but not `BILLING_WEBHOOK_SECRET`, which is the harder one to diagnose — one invisible
+      trailing space is a 401 on every delivery with nothing to indicate why. Both sides trim now.
+
+### Worker source parity — resolved
+
+- [x] **Worker source parity.** ~~`main` still carries legacy checkout handlers, including the
+      billing-portal IDOR that searched Stripe customers by a browser-submitted email.~~
+      **Verified false 2026-08-25.** `main`'s `worker/src/index.js` answers all four `/give/*`
+      routes with `410 Gone` and reads `env.STRIPE_SECRET_KEY` nowhere. Deploying the Worker from
+      `main` does not roll production backwards. Original note kept verbatim below.
+
+  > - [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
+  >       on `main` still carries legacy checkout handlers, including the billing-portal IDOR
+  >       that searched Stripe customers by a browser-submitted email. Production runs the hardened
+  >       Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
+  >       not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
+  >       backwards into those vulnerabilities. See
+  >       `docs/operations/convex-production-parity-audit.md`.
+
+- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
+      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
+      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
+      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
+      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
+      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
+      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
+      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
+      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
+      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
+      interpret it.
+
+### Stripe sandbox checkout and subscription validation
 
 **Paused at a verified checkpoint, 2026-08-21.** Everything below is sandbox-only.
 Nothing in live mode has been created or touched. Full record in
 `docs/operations/stage-2-sandbox-billing.md`; PR #20 is the active review surface.
 
-### Completed
+#### Completed
 
 - [x] Stripe sandbox account confirmed: **Declare checkout dev** (`acct_1TmENuLShxhb4mBz`)
 - [x] Sandbox Product created: `prod_V6voPpxBKesWPc`
@@ -153,7 +529,7 @@ Nothing in live mode has been created or touched. Full record in
       `scripts/verify-billing-dev-control.ts` (98 checks) against a **hostile**
       build made with `PUBLIC_BILLING_DEV_CONTROL=1`. Nothing has been clicked.
 
-### Intentionally not completed
+#### Intentionally not completed
 
 None of these are oversights. Each is a deliberate stop.
 
@@ -188,18 +564,22 @@ None of these are oversights. Each is a deliberate stop.
       `cancelAtPeriodEnd: true` correctly. What remains is the real monthly
       subscriber reaching its already-set end date
 - [ ] No production billing CTA is enabled — the pricing page CTA is still a
-      disabled "Opening soon" button
-- [ ] No live Stripe Product, Price, webhook or secret has been created
+      disabled "Plus launches soon" button. **Still true and deliberate
+      (2026-08-25):** the wiring exists on `claude/billing-pricing-cta-stage6`
+      and is held unmerged until Stage 6. See *Next up*, last item
+- [x] ~~No live Stripe Product, Price, webhook or secret has been created~~
+      **Superseded 2026-08-25** — all of it now exists. See *Live billing
+      activation* at the top of Done
 - [ ] No StoreKit or App Store Connect product has been created
-- [ ] **Stale live Stripe secrets on the production Worker (found 2026-08-24).**
-      `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are still set on
-      `hope-finder-worker` and are referenced **nowhere** in its source. They are
-      leftovers from a legacy checkout integration and they contradict rule C5,
-      which says the Worker holds no Stripe credential. Two unused live-mode
-      secrets on an internet-facing service is avoidable exposure. Rotate or
-      remove them as a deliberate step, separate from billing activation
+- [x] **Stale live Stripe secrets on the production Worker (found 2026-08-24,
+      removed by 2026-08-25).** ~~`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+      are still set on `hope-finder-worker`~~ — both are gone. Verified: the
+      Worker's variable list holds only `ANTHROPIC_API_KEY`, `BIBLE_API_KEY`,
+      `BILLING_WEBHOOK_SECRET`, `CONVEX_SITE_URL`, `JOURNEY_TRANSLATE_SECRET`,
+      `STRIPE_BILLING_WEBHOOK_SECRET` and `UNSPLASH_ACCESS_KEY`. Rule C5 holds:
+      the Worker carries no Stripe credential
 
-### Resume point
+#### Resume point
 
 When Stage 2 resumes, in this order:
 
@@ -513,7 +893,7 @@ When Stage 2 resumes, in this order:
    until the period actually ends, so cancelling does not free that account
    quickly.
 
-### Account experience
+#### Account experience
 
 - [x] **Plus identity badge is no longer gold** (2026-08-22, §6.14). Root cause
       was a `.ybadge` class collision with the church-finder "Home" marker, not
@@ -537,294 +917,7 @@ When Stage 2 resumes, in this order:
       switching locale writes Convex data via `userdata:set`
 - [ ] Signed-out success and pricing verified in an isolated browser context
 
-### Guardrails
-
-- Do not reuse archived legacy Products, Prices, sessions or metadata. Seven
-  archived sessions and two archived Products remain in the sandbox from an
-  earlier integration and are permanent negative test fixtures, not building
-  material.
-- Do not point sandbox webhooks at the production Worker.
-- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
-  asserted by `scripts/verify-plus-classification.ts`.
-- Do not enable production checkout without a separate live-promotion approval.
-- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
-- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
-  source of truth.
-
-
-## ✅ Verify on the live site (manual)
-- [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
-      password-reset email (Resend).
-- [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
-      skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
-
-## 🚀 Next features
-- [ ] **Navigation IA Migration — Bible · Journeys · Declare · Saved · You.**
-      Status: **approved and deferred.** Begin after the current Spanish Journey surface
-      work is complete and stable. Documentation-only for now; no navigation code, labels,
-      routes, analytics, SEO, GTM or Search Console changes have been made.
-
-      **Sequencing decision — 2026-08-21.** Do **not** begin this migration inside PR #20
-      or during the current billing and type-check cleanup. Finish the Stage 2
-      billing/type-check plan first. After PR #20 is merged or otherwise closed, create a
-      dedicated navigation planning branch. This is in addition to the Spanish-Journey
-      gate above, not a replacement for it.
-
-      Five things must be settled on that branch **before any implementation begins**:
-
-      1. Reconcile this route map with the approved app.declareandbelieve.com split plan
-         below — they currently disagree (see finding 2).
-      2. Decide the canonical account route: `/you` or `/profile`.
-      3. Decide the canonical authentication route: `/signin` or `/login`.
-      4. Include `/journey`→`/journeys` and `/vault`→`/saved` in the final unified map;
-         the app.* plan predates both and omits them.
-      5. Resolve the `/declare` static-asset namespace collision before renaming
-         `/today`→`/declare` (see finding 1).
-
-      The eventual migration must be **coordinated across all of it in one pass**: English
-      and Spanish tab labels; page and file routes; one-hop permanent redirects; active
-      states and accessibility; internal and deep links; Journey-resume and Saved-content
-      links; authentication **and billing** return paths; canonical, hreflang, sitemap,
-      robots, metadata and Open Graph URLs; GTM, GA, funnels, conversions and historical
-      analytics mapping; Cloudflare redirects and Search Console verification; and mobile
-      tab bar, tablet rail and desktop sidebar parity. The detailed requirements for each
-      are already specified further down this item — this list is the scope, not a second
-      copy of the spec.
-
-      One dependency worth naming because nothing else records it: Stage 2 billing builds
-      Checkout `success_url` and `cancel_url` from `SITE_URL` in `convex/billing.ts`, and
-      those point at `/checkout/success` and `/checkout/cancelled`, which do not exist as
-      routes yet. Whoever builds those routes and whoever renames routes are touching the
-      same return-path surface, so the billing return paths must be part of the unified
-      map rather than discovered afterwards.
-
-      **Changing only Word→Bible or Vault→Saved is not implementation and is not
-      completion.** (Restated here because it is the tempting subset; the guardrail at the
-      end of this item says the same thing.)
-
-      The **mast-avatar duplicate-navigation question** (see "🔧 In progress / immediate")
-      stays a separate sitewide decision. Do not bundle it into this route migration or
-      into the current type-cleanup work.
-
-      **Approved tab bar:** Bible · Journeys · Declare · Saved · You
-
-      **Intended route migration:** `/word`→`/bible`, `/journey`→`/journeys`,
-      `/today`→`/declare`, `/vault`→`/saved`, `/you` stays `/you`.
-
-      **Two things found while recording this, both of which change the audit:**
-
-      1. **`/declare` is not a page route — it is the static asset directory.**
-         `public/declare/` holds ~30 shipped assets (`atmosphere.css`, `card-studio.js`,
-         `i18n-strings.js`, `theme.js`, and the rest), all served from `/declare/*` and
-         referenced from versioned `<script>`/`<link>` tags across every page. Renaming
-         `/today`→`/declare` puts a page route on top of that prefix. Resolve this BEFORE
-         any rename: either move the assets to a different prefix (a cache-busting event
-         for every returning reader, so it needs its own version bump plan) or choose a
-         different Declare destination. The brief's "prevent route collision between the
-         current Declare experience and /today" is really this.
-      2. **An already-approved plan disagrees with this one.** The
-         app.declareandbelieve.com split below specifies `/you`→`/profile` and
-         `/signin`→`/login`; this migration keeps `/you` and is silent on `/signin`. It
-         also predates `/journey`→`/journeys` and `/vault`→`/saved`. **Reconcile the two
-         into one route map before either starts** — whichever ships first will make the
-         other's redirect matrix wrong.
-
-      **Required pre-implementation audit.** Before changing code: audit the existing
-      `/declare` prefix and the declaration flow; prevent the collision above; inventory
-      every English and Spanish navigation label; inventory every internal link, deep
-      link, authentication return URL, Journey resume link, saved-content link and
-      external link; inventory canonical URLs, hreflang, sitemap entries, structured data,
-      page metadata, Open Graph URLs and robots behaviour; inventory GTM triggers,
-      variables, lookup tables, analytics events, funnels, conversions, content groups and
-      dashboards; prepare the Search Console migration checklist; prepare the Cloudflare
-      redirect matrix; preserve historical analytics mapping where practical.
-
-      **Accessibility and UX requirements.** 44×44 minimum targets; visible active state;
-      `aria-current` on the active destination; accurate screen-reader labels; keyboard
-      navigation; reduced-motion behaviour; light and dark parity; mobile tab bar; tablet
-      rail; desktop sidebar; no duplicate navigation landmarks; no duplicate page-level
-      headings.
-
-      **Redirect requirements.** Every replaced public URL redirects permanently in ONE
-      hop: `/word`→`/bible`, `/journey`→`/journeys`, `/today`→the approved Declare
-      destination, `/vault`→`/saved`. Also cover trailing-slash variants, Spanish
-      equivalents, nested legacy routes, query parameters, safe deep-link state, canonical
-      tags, sitemap entries and internal links. No chains, no loops.
-
-      **Three mandatory sweeps.**
-      - [ ] **Sweep 1 — source and configuration.** Search the whole repository for `Word`,
-        `Journey`, `Today`, `Vault`, `/word`, `/journey`, `/today`, `/vault` and the Spanish
-        equivalents and route variants. Classify every hit as intentionally retained,
-        redirect compatibility, historical documentation, unrelated natural-language use,
-        or a defect requiring conversion.
-      - [ ] **Sweep 2 — built output and runtime.** Build and serve production output.
-        Verify new labels, new URLs, one-hop redirects, no broken links, no redirect loops,
-        correct active state, canonical, hreflang and sitemap, correct English and Spanish
-        behaviour, no stale user-facing labels, and no stale routes in generated HTML or JS.
-      - [ ] **Sweep 3 — external systems.** Audit and update GTM, Google Analytics, Search
-        Console, Cloudflare routing, sitemap submission, external links, documentation,
-        screenshots, emails and notifications, browser history and bookmarks, and
-        authenticated return paths. Repeat the full repository search and produce a final
-        legacy-match report.
-
-      **Deliverables.** (1) route and navigation inventory; (2) `/declare` collision
-      decision; (3) final route map; (4) English and Spanish prototypes; (5) redirect
-      matrix; (6) SEO migration plan; (7) GTM and analytics migration plan; (8) Search
-      Console checklist; (9) implementation commits; (10) three completed sweep reports;
-      (11) production verification; (12) rollback and post-launch monitoring plan.
-
-      **Guardrails.** Do not combine with Fruit Log or another Spanish Journey surface. Do
-      not remove legacy routes without redirects. Do not rename routes before resolving
-      the `/declare` prefix. Do not mark complete after changing labels only. Do not leave
-      analytics, SEO, Spanish routes or external systems behind. Do not accept completion
-      until all three sweeps pass.
-
-- [ ] **i18n release hardening (from the two bugs found closing Release B).**
-      - [x] **Harness evaluates the catalog instead of text-matching it.** Done in Release
-        B. `scripts/verify-journey-locale.ts` now executes `i18n-strings.js` and asserts on
-        the resulting object. The bug it missed: sixteen ported keys sat inside an
-        unterminated `/* */` block, so the file parsed, the keys were plainly visible, and
-        the Spanish review silently rendered its English fallbacks. A substring check is
-        true whether or not a key survives parsing. Confirmed by reintroducing the bug and
-        watching the suite fail.
-      - [ ] **Release check: the i18n asset version MUST change when the catalog changes.**
-        `i18n-strings.js` is loaded from a versioned URL (`?v=3.21.0`) from
-        `src/layouts/DeclareLayout.astro` and `src/pages/index.astro`. Release B added
-        sixteen keys without bumping it at first; every returning reader would have kept
-        the stale catalog and seen the Spanish review in English — a release-day bug that
-        reads as a translation failure rather than a caching one. Make this mechanical:
-        fail the build or the harness when `public/declare/i18n-strings.js` changes and the
-        `?v=` stamp does not.
-      - [ ] **Verify the deployed page references the new versioned catalog URL.** A
-        post-deploy assertion that the live HTML carries the expected `?v=`, and that
-        fetching it returns the expected key count. Both halves matter: the stamp can be
-        right while the file is stale behind a CDN.
-
-- [ ] **Split the app onto app.declareandbelieve.com (studied Psalmlog's app.psalmlog.com
-      structure as the reference).** Full architecture + phase breakdown lives in
-      `.claude/plans/please-use-the-skills-shimmying-wombat.md` — plan approved 2026-07-16,
-      not yet started. Goal: `declareandbelieve.com` stays the marketing/SEO site,
-      `app.declareandbelieve.com` becomes the actual app, with `/today`→`/declare`,
-      `/word`→`/bible`, `/you`→`/profile`, `/signin`→`/login` (all real URL renames with
-      redirects). One Cloudflare Pages project, both domains attached, a new
-      `functions/_middleware.ts` does Host-based routing — no repo restructuring, no second
-      build pipeline. Do the 7 phases below **in order, one at a time**, verifying each
-      before moving on:
-      - [ ] **Phase 1 — add `app.declareandbelieve.com`** as a custom domain in Cloudflare
-        Pages on the existing Pages project (zero risk, mirrors current site, nothing on
-        `declareandbelieve.com` changes).
-      - [ ] **Phase 2 — add a no-op `functions/_middleware.ts`** (pure passthrough) to prove
-        Cloudflare Pages Functions work before adding real routing logic.
-      - [ ] **Phase 3 — fix the relative `/welcome` link** in `DeclareLayout.astro` and
-        `index.astro` (currently breaks on `app.*` since it's a relative link).
-      - [ ] **Phase 4 — wire up auth for the new domain.** `convex/auth.ts` `trustedOrigins`
-        needs to support both origins; update Convex dashboard `SITE_URL` on dev
-        (`good-dotterel-906`) first, test Google + email sign-in on `app.*`, then repeat on
-        prod (`keen-hamster-650`). Also verify Google Cloud Console "Authorized JavaScript
-        origins."
-      - [ ] **Phase 5 — rename the 4 routes on `app.*` only** (no real traffic there yet):
-        `today.astro`→`declare.astro`, `word.astro`→`bible.astro`, `you.astro`→`profile.astro`,
-        `signin.astro`→`login.astro`. Update `TabBar.astro`, `auth-modal.js`'s default
-        `?return=` target, `create-account.astro`/`reset-password.astro` cross-links. Click
-        through the whole app on `app.*` to confirm nothing 404s.
-      - [ ] **Phase 6 — update canonical/OG tags** in `DeclareLayout.astro` and `index.astro`
-        to the new `app.*` base (accepted risk: could re-trigger Google's OAuth branding
-        review, per Jeff's call).
-      - [ ] **Phase 7 — the actual cutover (needs Jeff's explicit go-ahead).** Add
-        Host-conditional single-hop 301s in `functions/_middleware.ts` sending old
-        `declareandbelieve.com` routes straight to their final `app.*` names (e.g.
-        `/today`→`app.declareandbelieve.com/declare`). Excludes `/crisis` and `/` — crisis
-        must never depend on a redirect, and root-domain `/` is a separate later decision.
-        Expect a temporary Search Console ranking dip on `/declare` and `/bible` (both
-        currently indexed) for 1–2 weeks post-redirect — normal, not a break.
-      **Not part of this project:** journaling, paywalls, or any Psalmlog product features —
-      only the domain/routing structure is being adopted. Comparison report + a
-      `/declare-vs-psalmlog` page, and a Mobbin-referenced dashboard/marketing redesign, are
-      separate follow-on efforts (references saved in the plan file).
-- [ ] **iOS app (Capacitor, same repo).** Decided 2026-07-02: wrap the existing web app with
-      Capacitor rather than rewriting native — `npx cap add ios` creates an `ios/` folder Xcode opens
-      directly; web changes flow with `npm run build && npx cap sync`. Prereq: Apple Developer Program
-      ($99/yr, JC Kingdom Ventures). Bundle assets locally + add native touches (push notifications
-      for Journey reminders, haptics, splash, Sign in with Apple) so App Review doesn't see a bare
-      wrapper. Also drop the real store IDs into `rate.js` at launch (see Polish).
-- [ ] **Performance round 2 (from the 2026-07-02 infra audit; round 1 shipped in v3.17.0).**
-      Ranked leftovers: (a) **long-term asset caching** — version the remaining unversioned
-      `/declare/*` references (declare.css, motion.css, route-loader.css, brand images, tree JPEGs),
-      set `_headers` to `max-age=31536000, immutable` for `/_astro/*` + versioned `/declare/*`, then
-      flip the Cloudflare zone Browser Cache TTL to "Respect Existing Headers" (never before versioning
-      — an unversioned ref under immutable = sticky stale); (b) **GTM delay** to window.load + idle
-      (~122 KB br off first paint; Jeff to accept slight undercount of instant bounces); (c) **fonts**
-      — self-host latin-subset woff2, preload the 2 critical faces, metric-override fallback (kills the
-      FOUT reflow); (d) **tree JPEGs → WebP** (~1 MB → ~300 KB); (e) `modulepreload` for the shared
-      auth/module chain; (f) split `journey-data.js` (294 KB) per struggle, fetch on demand; (g) drop
-      the unused `react()` Astro integration (193 KB dead build output); (h) compress `brand/og.png`
-      (582 KB, unfurls only).
-- [ ] **Spanish for NEW content (the launch itself is DONE, v3.16.0).** Standing rules as the site
-      grows: every new English struggle page ships with its `/es` twin (hreflang + sitemap + luchas
-      hub row); every new app string gets a `data-i18n` key or an `esLock()`/`esW()` ternary; every
-      What's-new entry is bilingual (`['New', en, es]`); any changed `/declare/*.js` bumps its `?v=`
-      at every load site (4h browser cache otherwise serves stale).
-- [ ] **(Optional, later) Email verification via magic-link.** Dropped for now (simple sign-up).
-      If re-added, use a magic-link flow (it can carry a session cross-domain; plain email-confirm
-      links can't). The email template is still in `convex/email.ts`, dormant. Also add a DMARC DNS
-      record then to keep verification emails out of spam.
-- [ ] **`bible-verses-for-*` SEO cluster.** The `bible-verses-for-anxiety` landing was deferred
-      because it links to 6 sibling pages that don't exist yet (control, depression, fear,
-      overthinking, stress-and-burnout, waiting-on-god). Build the cluster, then ship the landing.
-- [ ] **Build out SEO struggle pages for the remaining chips — one new page per week.** 15 of 35
-      struggles have a `/public/<slug>.html` page (each with an `/es/` twin); ~20 remain. The weekly cadence is deliberate: a
-      steady publishing rhythm signals to Google that the site keeps adding fresh content. Each new
-      page copies the `public/anxiety.html` template exactly (GTM analytics `GTM-T65GXR22`, fixed
-      header/nav + slide-out menu + footer, `.rv` scroll reveals, `data-atmos` atmosphere zones), with
-      researched pastoral content written **real and raw** for the 3am reader, and 12 FAQs targeting
-      what people actually ask across Google + the AI engines (ChatGPT, Perplexity, Copilot, Gemini,
-      Apple AI, Claude) with a matching `FAQPage` JSON-LD, plus a curated Related Articles block.
-      Verse citations deep-link into the in-app `/word` reader, and each verse has a "Break this down"
-      commentary popup (shared `public/declare/commentary.{js,css}`, breakdown text kept in the DOM for
-      SEO). Register each page in `public/struggles.html` + `public/sitemap.xml`, and backfill Related
-      Articles links on existing pages so internal linking stays complete. **Process each week:**
-      search-intent research → Claude drafts content → Jeff approves → build → ship → re-submit
-      sitemap. Check off each chip as it ships.
-      - **Batch 1 (high search / need):** [x] Overthinking (shipped 2026-07-01) · [x] Stress & Burnout
-        (shipped 2026-07-02, EN `/burnout` + ES `/es/estres-y-agotamiento`) · [x] Rejection & Abandonment
-        (shipped 2026-07-15 as a 3-page mini-cluster, see below) · [ ] Addiction · [ ] Waiting on God
-      - [ ] **Suicidal Thoughts** — build crisis-first: lead with the 988 Suicide & Crisis Lifeline
-        (help before content, visible immediately), hope-first non-triggering copy, reuse the app's
-        existing 988 banner pattern. Confirm final copy with Jeff before shipping.
-      - **Remaining:** [ ] Comparison · [ ] Feeling Unworthy · [ ] Broken Identity ·
-        [ ] People Pleasing · [ ] Emotional & Verbal Abuse · [ ] Betrayal · [ ] Self-Sabotage ·
-        [ ] Family Conflict · [ ] Divorce / Separation · [ ] Control · [ ] Perfectionism ·
-        [ ] Spiritual Dryness · [ ] Sexual Temptation · [ ] Faith Crisis ·
-        [ ] Feeling Spiritually Attacked · [ ] Drifting from God ·
-        [ ] **Parental Abandonment** (added 2026-07-15, not one of the original 33 chips — a real,
-        searched, previously-uncovered wound: a parent, often a mother, who gave a child up or never
-        wanted them; shipped as part of the Rejection & Abandonment batch below, kept in this list as
-        a permanent addition to the backlog going forward)
-      - **Next up:** Addiction, then Waiting on God, then Betrayal (unchanged order — betrayal/
-        infidelity/"a partner who's been lying to me" content stays queued for the dedicated Betrayal
-        page rather than pulled forward).
-      - **AEO requirements for every new page (added 2026-07-13):** keyword-first H1
-        ("Keyword — emotional line"), `Article` JSON-LD, a line in `llms.txt`, sitemap entry with
-        reciprocal EN/ES hreflang, then after deploy: ping IndexNow (key `8ae6ca7f…` at site root)
-        and Request Indexing in GSC.
-
-## 🎨 Polish / ongoing
-- [ ] **Homepage SEO watch.** `/` is the (thin) Begin page; the keyword-rich `<noscript>` block
-      is preserved for crawlers. Monitor that the homepage keeps its indexing.
-- [ ] **Add a logo to the Google consent screen** once you're ready for Google's brand verification
-      review (separate, multi-day). Makes the sign-in screen show your mark + "Sign in to Declare."
-- [ ] **Real store IDs in `public/declare/rate.js`.** The Rate & Review flow still ships with
-      placeholder App Store / Play IDs (`TODO dev` at `rate.js:24`). Drop in the real IDs before the
-      iOS launch so the "rate us" links point somewhere.
-- [ ] **Re-submit the sitemap** to Google Search Console after any big sitemap change to force a
-      re-read (initial submit already succeeded).
-- [ ] **Spanish strings for `/checkout/success` (found 2026-08-24 during the Plans/Billing work).**
-      Twelve `checkout.*` keys used by that page have no Spanish entry in
-      `public/declare/i18n-strings.js`, so a Spanish reader falls back to English at the moment they
-      have just paid. Pre-existing, not introduced by the Plans/Billing redesign, and unrelated to
-      it — Plans and Billing both have full parity. Worth closing before production activation.
-
-## ✔️ Recently shipped
+### Recently shipped
 *App is on **v3.20.2**. Newest first.*
 - **Plans and Billing separated into two surfaces (2026-08-24, branch
   `feat/plans-billing-experience`).** `/pricing` became **Plans** — one job, "which plan is right
