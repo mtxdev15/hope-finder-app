@@ -104,12 +104,26 @@ has paid you money.
       Spanish-speaking customer reaches immediately after paying.
 - [ ] **D3. Verify analytics fire** on the Checkout and Portal paths, so you can
       tell whether any of this is working.
+- [ ] **D5. `/billing/webhook` returns 500 for a switched-off integration.**
+      Arguably wrong: 500 says "misconfigured" when the truth is "switched off".
+      Stripe treats **5xx as retryable and 4xx as delivered**, so the current
+      shape invites redelivery that a 4xx would stop. Less likely to fire now
+      that all three Worker variables are set, but the same reasoning applies to
+      the `Downstream error` 500. Decide the right code — 503, or a
+      retired-style 410. *Carried over from `chore/retired-webhook-secret-hygiene`,
+      merged 2026-08-25.*
 - [ ] **D4. Settle the webhook API-version question** by capturing a real
       `invoice.paid` payload during A5. See *Next up*.
 
 ### Phase E — hygiene, parallel, blocks nothing
 
-- [ ] **E1. Merge `chore/retired-webhook-secret-hygiene`** (unmerged since
+- [x] **E1. Merge `chore/retired-webhook-secret-hygiene`** — DONE 2026-08-25.
+      ~~Merge it and run it.~~ Merged; `scripts/audit-retired-secrets.ts` run, and
+      both retired secrets confirmed gone. Its three open items resolved as: the
+      secret-hygiene block is **cleared** (both removed, verified in the
+      dashboards), the stale agent worktree is **already pruned**, and the
+      500-vs-4xx question moved to D5. Original item below.
+- [ ] ~~**E1. Merge `chore/retired-webhook-secret-hygiene`**~~ (unmerged since
       2026-08-20, 3 commits). It carries `scripts/audit-retired-secrets.ts` — a
       character-level scanner that answers "does anything shipping still read
       these retired secrets?" mechanically. We answered that **by hand** on
