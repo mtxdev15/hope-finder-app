@@ -55,6 +55,33 @@ hope-finder-app/
 
 ---
 
+## Billing (added 2026-08-25)
+
+Plus is sold through **Stripe**, with **Convex as the entitlement source of truth** —
+Stripe and Apple are billing *providers*, never the authority on who has access.
+
+- **Plans:** `plus_monthly` $8.99/mo, `plus_annual` $79.99/yr, `plus_lifetime` $149
+  one-off. Defined once in `convex/plusPlans.ts`; the browser may name a **plan
+  alias** and nothing else — never a Price id, amount, customer or user id.
+- **The Worker verifies and relays. Convex talks to Stripe.** The Worker holds **no
+  Stripe credential** (rule C5) — it checks the signature and forwards the verbatim
+  bytes. One credential, one runtime, one pinned API version.
+- **Four secrets, three of which look alike.** `BILLING_WEBHOOK_SECRET` is *not* a
+  Stripe secret — it is a shared password between our Worker and our Convex, and it
+  must be identical in both. Read
+  `docs/operations/billing-secret-topology.md` before touching any of them.
+- **Purchasing is off.** `PRICING_ENABLED` in `src/app/declare/plan-display.js` is
+  `false`, and production is *structurally* incapable of starting a Checkout — four
+  suites scan `dist/` to keep it that way. Turning it on is a commit, not a
+  dashboard setting.
+- **Only our own Checkout can grant Plus.** Classification requires provenance
+  metadata that a hand-made Dashboard subscription or Payment Link never carries.
+
+Never trust `docs/operations/billing-production-activation-readiness.md` — several
+of its claims were false when checked. `TODO.md` → *Next up* is the live list.
+
+---
+
 ## Current Status
 - [x] Working app built (src/pages/index.astro — migrated from declare-and-believe.html)
 - [x] System prompt written
@@ -67,6 +94,9 @@ hope-finder-app/
 - [x] Cloudflare Pages connected to GitHub
 - [x] declareandbelieve.com domain connected
 - [x] Live
+- [x] Live Stripe catalog, webhook endpoint and all platform secrets configured (2026-08-25)
+- [ ] Billing backend deployed to production — **pending**, see `TODO.md` → *Next up*
+- [ ] Public purchasing enabled — deliberately last
 
 ---
 

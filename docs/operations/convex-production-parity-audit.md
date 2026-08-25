@@ -1,3 +1,26 @@
+
+> # ✅ RESOLVED — the problem this describes is fixed
+>
+> The divergence audited here was reconciled by **`6746655`** (2026-08-20,
+> "chore(convex): reconcile main with production backend (#15)"). `main` became
+> the authoritative source for production Convex and the deploy freeze closed —
+> see `production-deployment-status.md`.
+>
+> **`main` no longer carries `convex/gifts.ts`,** and it does carry every billing
+> file. Verified 2026-08-25. The warning below about deploying from `main` being
+> unsafe is **obsolete**; do not act on it.
+>
+> **But `main` has moved ahead of production since.** Twelve commits have touched
+> `convex/` since the reconciliation — the `cancel_at` period-end normalization
+> (`cda4a84`, `e7501bd`) and the gated test-clock harness with its fixes
+> (`8a74786` … `5fa51bd`). The readiness audit found **zero** deployed
+> `testHarness` entries as of 2026-08-24, so at least the harness commits are not
+> in production.
+>
+> Before the next deploy, re-establish ground truth with
+> `npx convex function-spec --prod` rather than trusting any document — including
+> this one.
+
 # Convex production-parity audit
 
 **Status: audit complete. Source ported, nothing deployed to production.**

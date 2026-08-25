@@ -1,3 +1,20 @@
+
+> # ✅ RESOLVED — the problem this describes is fixed
+>
+> Worker source parity was reconciled by **`a224ac7`** (2026-08-20) — see
+> `production-deployment-status.md`.
+>
+> Verified 2026-08-25 against `origin/main`: `worker/src/index.js` answers all four
+> `/give/*` routes with **`410 Gone`** and reads `env.STRIPE_SECRET_KEY` **nowhere**.
+> Deploying the Worker from `main` does not reintroduce the billing-portal IDOR.
+>
+> The Worker's live secrets have also changed since this was written: the stale
+> `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are gone, and
+> `BILLING_WEBHOOK_SECRET` / `STRIPE_BILLING_WEBHOOK_SECRET` are set.
+>
+> Note that `main` now contains a Worker change not yet deployed: both shared
+> secrets are trimmed at the route boundary (`f9cb327`).
+
 # Cloudflare Worker production-parity audit
 
 **Status: audit complete. Source ported, nothing deployed to production.**
