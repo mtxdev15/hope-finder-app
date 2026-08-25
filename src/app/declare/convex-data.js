@@ -191,3 +191,32 @@ export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gift
 export async function openBillingPortal() {
   return (await ensure()) ? runAction(apiRef.billing.createPortalSession, {}) : null;
 }
+
+/* ── Stripe Checkout ──────────────────────────────────────────────────────
+ * The ONE place the app asks for a Checkout session, for the same reason
+ * openBillingPortal is: the argument shape is a property of the wrapper, not
+ * something every call site has to remember.
+ *
+ * The browser sends a plan ALIAS and nothing else. It cannot send a Price id,
+ * an amount, a user id, a Customer id or a return URL, because the deployed
+ * action has no such argument — it maps the alias to a trusted Price id from
+ * server env, resolves identity from the session, and builds both return URLs
+ * from SITE_URL server-side. `lang` only decides which language the customer
+ * comes BACK to; it can change no price and grant no entitlement.
+ *
+ * Valid aliases are fixed by PLAN_CATALOG in convex/plusPlans.ts:
+ * 'plus-monthly' and 'plus-annual'. Anything else is refused as `unknown-plan`
+ * rather than guessed at.
+ *
+ * Returns { url } on success, { error } for a handled refusal
+ * (`not-authenticated`, `billing-not-configured`, `unknown-plan`,
+ * `already-subscribed` — which also carries `status` —, `stripe-error`,
+ * `customer-mapping-conflict`), or null when the client is unavailable.
+ * Callers must treat null as "unknown", never as success. */
+export async function startCheckout(plan, lang) {
+  if (!(await ensure())) return null;
+  return runAction(apiRef.billing.createCheckoutSession, {
+    plan,
+    ...(lang === 'es' ? { lang: 'es' } : {}),
+  });
+}

@@ -8,10 +8,17 @@
  * apart: comparing plans and managing the one you hold are different jobs, and
  * a page that tries to do both does neither clearly.
  *
- * NON-TRANSACTIONAL BY CONSTRUCTION: no Checkout call, no Stripe reference and
- * no enabled purchase control anywhere on this page. It performs exactly one
- * authenticated read — getMyEntitlements — so a signed-in reader can see which
- * plan they already hold. That is a Convex query, not a Stripe call.
+ * WHAT THIS PAGE MAY DO WITH MONEY
+ * Exactly one thing: START a Checkout, through the shared startCheckout
+ * wrapper in convex-data.js. It reads no Stripe object, names no Price and
+ * shows no Stripe identifier — the browser submits a plan ALIAS and the server
+ * maps it to a trusted Price from its own environment. Its one other call is
+ * an authenticated read, getMyEntitlements, so a signed-in reader can see
+ * which plan they already hold.
+ *
+ * WHETHER it may do that is decided elsewhere, once: PRICING_ENABLED in
+ * plan-display.js. While that is false the control renders disabled and the
+ * Checkout path is unreachable, so this wiring ships inert.
  *
  * ONE CURRENT PLAN, DERIVED ONCE
  * Each card used to decide for itself whether it was current, with two
@@ -107,6 +114,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
                 it lives in one place — PRICING_ENABLED in plan-display.js. */}
             <button type="button" class="btn btn-primary" id="plPlusBtn" disabled data-i18n="plans.launchSoon">Plus launches soon</button>
           </div>
+          {/* A Checkout attempt that did not complete. Deliberately separate
+              from pl-life below: that one carries lifecycle truth about a plan
+              already HELD, this one is about an attempt to buy. Collapsing them
+              would let "your plan is ending" and "we could not open checkout"
+              overwrite each other in one element. */}
+          <p class="pl-msg" id="plPlusMsg" role="status" hidden></p>
           <p class="pl-life" id="plPlusLife" role="status" hidden></p>
         </article>
       </div>
@@ -201,12 +214,13 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 <script>
   /* Reflect the signed-in reader's CURRENT plan, and run the cadence selector.
    *
-   * This page imports no billing action and can create no Checkout or Portal
-   * session. A subscriber is routed to /billing, which owns that.
+   * This page starts Checkout and nothing else. It creates no Portal session —
+   * a subscriber is routed to /billing, which owns managing what they hold.
+   * Buying is this page's job; managing is that one's.
    *
    * FAILS CLOSED: while entitlement state is loading, unknown or ambiguous,
    * neither card is marked current and nothing becomes purchasable. */
-  import { myEntitlements } from '../app/declare/convex-data.js';
+  import { myEntitlements, startCheckout } from '../app/declare/convex-data.js';
   import {
     planState, mayStartCheckout, currentPlanId, isCurrentPlan, planStatusKey,
     plusCtaIntent, freeCtaIntent, initialInterval, formatPeriodEnd,
@@ -242,6 +256,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     'plans.freeCreate': 'Create a free account',
     'plans.launchSoon': 'Plus launches soon',
     'plans.upgrade': 'Upgrade to Plus',
+    'plans.opening': 'Opening secure checkout\u2026',
+    'plans.coErr': 'We could not open checkout just now. Please try again.',
+    'plans.coNotOpen': 'Plus is not open for purchase yet. Please check back soon.',
+    'plans.coSignIn': 'Please sign in first, then choose your plan.',
+    'plans.coHave': 'This account already has Plus.',
+    'plans.coManage': 'Manage your plan',
     'plans.perMonth': '/ month',
     'plans.perYear': '/ year',
     'plans.billedMonthly': 'Billed monthly',
@@ -319,6 +339,90 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     });
   }
 
+  /* ── STARTING A PURCHASE ──────────────────────────────────────────────
+     The button's ENABLED-ness is never decided here. It is decided once, by
+     plusCtaIntent, from the reader's state and PRICING_ENABLED — so this
+     function is only ever reached from a control that intent already
+     approved. Nothing below re-enables a control intent left disabled.
+
+     Re-entrancy is guarded by a flag rather than by toggling `disabled`,
+     because a disabled button loses focus mid-flight: a keyboard reader would
+     be dropped to the top of the document while Stripe is being contacted. */
+  let checkoutBusy = false;
+
+  function showPlusMsg(text: string, href?: string, linkLabel?: string): void {
+    const m = el('plPlusMsg');
+    if (!m) return;
+    m.textContent = text;
+    if (href && linkLabel) {
+      m.appendChild(document.createTextNode(' '));
+      const a = document.createElement('a');
+      a.href = href; a.textContent = linkLabel;
+      m.appendChild(a);
+    }
+    m.hidden = false;
+  }
+
+  function clearPlusMsg(): void {
+    const m = el('plPlusMsg');
+    if (!m) return;
+    m.textContent = ''; m.hidden = true;
+  }
+
+  /* Alias, not a Price id and not an amount. The server maps it to a trusted
+     Price from its own env; the browser could not name a price if it tried. */
+  function planAlias(): string {
+    return interval === 'year' ? 'plus-annual' : 'plus-monthly';
+  }
+
+  async function startUpgrade(btn: HTMLButtonElement, state: string): Promise<void> {
+    if (checkoutBusy) return;
+
+    /* A guest has no session, so createCheckoutSession would refuse them with
+       `not-authenticated` after a round trip. Send them to create an account
+       and bring them back here, rather than spending a request to be told. */
+    if (state === 'guest') {
+      window.location.href = '/create-account?return=' + encodeURIComponent('/pricing');
+      return;
+    }
+
+    checkoutBusy = true;
+    clearPlusMsg();
+    btn.setAttribute('aria-busy', 'true');
+    const label = btn.textContent || '';
+    btn.textContent = tx('plans.opening', 'Opening secure checkout\u2026');
+
+    /* Resolved here rather than closed over: the page's other `lang` is local
+       to paintPlans, and the value can change between a render and a click if
+       the reader switches language. Read it at the moment of purchase. */
+    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+
+    try {
+      const res = await startCheckout(planAlias(), lang);
+      /* Only a url is success. `null` means the client was unavailable, which
+         is unknown — never treat it as a completed purchase. */
+      if (res && res.url) { window.location.href = res.url; return; }
+
+      const err = res && res.error;
+      if (err === 'already-subscribed') {
+        showPlusMsg(tx('plans.coHave', 'This account already has Plus.'),
+          '/billing', tx('plans.coManage', 'Manage your plan'));
+      } else if (err === 'billing-not-configured') {
+        showPlusMsg(tx('plans.coNotOpen', 'Plus is not open for purchase yet. Please check back soon.'));
+      } else if (err === 'not-authenticated') {
+        showPlusMsg(tx('plans.coSignIn', 'Please sign in first, then choose your plan.'));
+      } else {
+        showPlusMsg(tx('plans.coErr', 'We could not open checkout just now. Please try again.'));
+      }
+    } catch (e) {
+      showPlusMsg(tx('plans.coErr', 'We could not open checkout just now. Please try again.'));
+    }
+
+    btn.removeAttribute('aria-busy');
+    btn.textContent = label;
+    checkoutBusy = false;
+  }
+
   /* Render both cards from ONE resolved state. Neither card computes current
      plan for itself, so "both selected" is not a state this page can reach. */
   function paintPlans(state: string, ent: any): void {
@@ -381,12 +485,16 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         } else {
           b.textContent = tx('plans.upgrade', 'Upgrade to Plus');
           b.addEventListener('click', () => {
+            /* The event fires on the SELECTION, before the outcome is known,
+               and carries no price, no id and no email — see the property
+               allow-list in scripts/verify-plans-billing-states.ts. */
             track('upgrade_cta_selected', {
               authenticated: state !== 'guest',
               displayed_tier: currentPlanId(state) || 'none',
               selected_interval: interval,
               pricing_enabled: PRICING_ENABLED,
             });
+            void startUpgrade(b, state);
           });
         }
         pCta.appendChild(b);
@@ -528,6 +636,8 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .plans .pl-cta .btn[disabled], .plans .pl-cta .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
     .plans .btn-quiet { border: 1px solid var(--line); border-radius: 14px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; }
     .plans .pl-life { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 12px 0 0; }
+    .plans .pl-msg { font-size: 12.5px; line-height: 1.55; color: var(--error); margin: 12px 0 0; }
+    .plans .pl-msg a { color: inherit; text-underline-offset: 2px; }
 
     /* Comparison — a real table on desktop, stacked rows on mobile. */
     .plans .pl-cmp { margin-top: 40px; }

@@ -264,8 +264,38 @@ check("Plans builds no payment-method interface",
 check("Plans renders no invoice or payment section",
   !/id="pl(Inv|Pay)/.test(PLANS));
 check("Plans creates no Portal session", !/createPortalSession|openBillingPortal/.test(PLANS_CODE));
-check("Plans creates no Checkout session", !/createCheckoutSession/.test(PLANS_CODE));
 check("Plans never enables the purchase control", !/disabled = false/.test(PLANS_CODE));
+
+/* ── 6b. Starting a purchase IS this page's job ──────────────────────────
+   This section replaces an assertion that read `!/createCheckoutSession/` on
+   the page source. That was correct while the page had no purchase path at
+   all, and became a LIE the moment one was added through a wrapper: the
+   literal string moved to convex-data.js, so the old check would have gone on
+   passing while the page turned transactional. A green test that cannot fail
+   is worse than no test, so it is replaced rather than relaxed.
+
+   What follows asserts the contract that actually holds now. */
+section("6b. Plans may start a purchase, and only through the one wrapper");
+
+check("Plans starts Checkout through the shared wrapper",
+  /import \{[^}]*\bstartCheckout\b[^}]*\} from '\.\.\/app\/declare\/convex-data\.js'/.test(PLANS_CODE) &&
+  /startCheckout\(/.test(PLANS_CODE));
+check("Plans never calls the Convex billing action directly",
+  !/createCheckoutSession|api\.billing|anyApi\.billing/.test(PLANS_CODE));
+check("the browser submits a plan alias, never a Price or an amount",
+  /'plus-annual'\s*:\s*'plus-monthly'/.test(PLANS_CODE) &&
+  !/price_|line_items|unit_amount/.test(PLANS_CODE));
+check("a guest is sent to create an account, never to Checkout",
+  /state === 'guest'[\s\S]{0,200}\/create-account\?return=/.test(PLANS_CODE));
+check("a second click cannot open a second session",
+  /if \(checkoutBusy\) return;/.test(PLANS_CODE));
+check("only a url counts as success",
+  /if \(res && res\.url\)/.test(PLANS_CODE));
+check("every refusal the action can return has its own English",
+  ["plans.coErr", "plans.coNotOpen", "plans.coSignIn", "plans.coHave"]
+    .every((k) => PLANS_CODE.includes("'" + k + "'")));
+check("a refusal is shown apart from the lifecycle sentence",
+  /id="plPlusMsg"/.test(PLANS) && /id="plPlusLife"/.test(PLANS));
 
 /* Family and Church are not a third consumer plan. */
 check("Family is no longer presented as a plan", !/Family/.test(PLANS));
