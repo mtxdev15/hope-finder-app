@@ -410,7 +410,10 @@ const NEW_KEYS = [
   "plans.currentPlan", "plan.stateEnding", "plan.updatePayment", "plan.keepPlus",
   "billing.h1", "billing.viewPlans", "billing.freeMsg", "billing.paymentNote",
   "plans.h1", "plans.sub", "plans.launchSoon", "plans.upgrade", "plans.monthly",
-  "plans.annual", "plans.orgH",
+  "plans.annual",
+  /* "plans.orgH" was the "For churches and groups" heading. That offer was
+     removed from the product, so the key is gone from both languages and there
+     is no longer a string to hold to parity. */
 ];
 for (const k of NEW_KEYS) {
   check(`"${k}" has Spanish`, new RegExp(`'${k.replace(".", "\\.")}':`).test(I18N));

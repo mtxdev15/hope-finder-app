@@ -186,15 +186,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         </details>
       </section>
 
-      {/* ── Churches and groups. Deliberately BELOW the plans and visually
-           quiet: it is an invitation to talk, not a third plan a person can
-           choose today, and presenting it as one would be a promise the
-           product cannot keep. */}
-      <section class="pl-org rise d4" aria-labelledby="plOrgH">
-        <h2 class="pl-org-h" id="plOrgH" data-i18n="plans.orgH">For churches and groups</h2>
-        <p class="pl-org-d" data-i18n="plans.orgD">Bring Declare to your community.</p>
-        <a class="pl-org-a" href="mailto:support@declareandbelieve.com?subject=Declare%20for%20our%20community" data-i18n="plans.orgCta">Contact us</a>
-      </section>
     </div>
   </main>
 
@@ -551,10 +542,6 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .plans .pl-q summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
     .plans .pl-q p { font-size: 13.5px; line-height: 1.7; color: var(--muted); margin: 0 0 16px; max-width: 60ch; }
 
-    .plans .pl-org { margin-top: 44px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; text-align: center; }
-    .plans .pl-org-h { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
-    .plans .pl-org-d { font-size: 14px; line-height: 1.6; color: var(--text2); margin: 8px 0 0; }
-    .plans .pl-org-a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13.5px; font-weight: 600; color: var(--goldd); margin-top: 6px; }
 
     @media (min-width: 760px) {
       .plans .pl-grid { grid-template-columns: 1fr 1fr; align-items: stretch; gap: 20px; }

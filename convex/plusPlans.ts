@@ -76,8 +76,9 @@ export function isPlanKey(x: unknown): x is PlanKey {
   return typeof x === "string" && (PLAN_KEYS as readonly string[]).includes(x);
 }
 
-/* Browser-supplied alias -> canonical plan. Family and Church have no alias, so
- * they are unrepresentable rather than merely unhandled. */
+/* Browser-supplied alias -> canonical plan. Only a purchasable plan has an
+ * alias, so anything else a browser might name is unrepresentable rather than
+ * merely unhandled — there is no branch to reach. */
 export function planKeyForAlias(alias: string): PlanKey | null {
   for (const key of PLAN_KEYS) {
     if (PLAN_CATALOG[key].alias === alias) return key;

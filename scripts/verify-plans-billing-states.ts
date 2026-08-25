@@ -102,7 +102,8 @@ for (const s of ["guest", "loading", "unavailable"]) {
 check("only the two plans exist", PLAN_IDS.length === 2 &&
   PLAN_IDS.includes("free") && PLAN_IDS.includes("plus"));
 check("an unknown plan id is never current",
-  !isCurrentPlan("family", "plus-active") && !isCurrentPlan("church", "free"));
+  !isCurrentPlan("family", "plus-active") && !isCurrentPlan("church", "free") &&
+  !isCurrentPlan("lifetime", "plus-active"));
 check("a non-string state is never current", currentPlanId(undefined as any) === null &&
   currentPlanId(null as any) === null && currentPlanId(42 as any) === null);
 
@@ -267,13 +268,20 @@ check("Plans creates no Portal session", !/createPortalSession|openBillingPortal
 check("Plans creates no Checkout session", !/createCheckoutSession/.test(PLANS_CODE));
 check("Plans never enables the purchase control", !/disabled = false/.test(PLANS_CODE));
 
-/* Family and Church are not a third consumer plan. */
-check("Family is no longer presented as a plan", !/Family/.test(PLANS));
-check("churches appear once, quietly, below the plans",
-  /For churches and groups/.test(PLANS) &&
-  PLANS.indexOf("For churches and groups") > PLANS.indexOf('id="plPlus"'));
-check("the church section is an invitation, not a purchase",
-  /Contact us/.test(PLANS) && !/pl-card[^>]*>[\s\S]{0,200}churches/i.test(PLANS));
+/* The page offers consumer plans and nothing else. Family and Church were
+   never purchasable — Family was already absent, and Church was a quiet
+   "contact us" invitation below the plans. Both are now gone entirely, so the
+   assertion is no longer "present but quiet"; it is ABSENT.
+
+   Kept as a standing ban rather than deleted: a contact-to-buy block is the
+   kind of thing that gets re-added as "just a mailto", and a mailto asking a
+   church for money is a plan whether or not it is drawn like one. */
+check("Family is not presented as a plan", !/Family/.test(PLANS));
+check("no church or group offer appears at all",
+  !/For churches and groups/.test(PLANS) && !/pl-org/.test(PLANS) &&
+  !/iglesias/.test(PLANS));
+check("the page solicits no contact-to-buy", !/Contact us/.test(PLANS));
+check("no orphaned org styling survives the removal", !/pl-org/.test(PLANS_CODE));
 check("nothing on the page says 'Coming soon'", !/Coming soon/i.test(PLANS));
 
 /* ── 7. The Billing page ─────────────────────────────────────────────────── */
