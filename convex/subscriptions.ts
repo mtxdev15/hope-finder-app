@@ -228,7 +228,8 @@ export const applyWebhook = internalMutation({
     type EventOutcome = "applied" | "stale" | "unmatched" | "duplicate-subscription-conflict";
     type ConflictDetail = {
       conflictReason: string;
-      canonicalSubscriptionId: string;
+      /* Absent on a lifetime conflict: that row has no subscription to name. */
+      canonicalSubscriptionId?: string;
       incomingSubscriptionId?: string;
       userId: string;
     };
@@ -328,7 +329,9 @@ export const applyWebhook = internalMutation({
       );
       await recordEvent("duplicate-subscription-conflict", {
         conflictReason: verdict.reason,
-        canonicalSubscriptionId: verdict.canonicalSubscriptionId,
+        ...(verdict.canonicalSubscriptionId
+          ? { canonicalSubscriptionId: verdict.canonicalSubscriptionId }
+          : {}),
         ...(verdict.incomingSubscriptionId
           ? { incomingSubscriptionId: verdict.incomingSubscriptionId }
           : {}),

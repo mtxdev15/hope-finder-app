@@ -209,6 +209,56 @@ for (const leak of ["stripeSubscriptionId", "stripeCustomerId", "stripePriceId",
   check(`the entitlement response exposes no ${leak}`, !returned.includes(leak));
 }
 
+/* ── A lifetime row is the one row that legitimately has no id ──────────── */
+section("5. A lifetime purchase is never replaced by a subscription");
+
+/* WHY THIS SECTION EXISTS
+ *
+ * Section 1 asserts "existing row with no subscription id yet -> accepted".
+ * That allowance is correct for a subscription row we have not yet learned the
+ * id of — but a LIFETIME row has no id permanently, because it was bought in
+ * `mode: "payment"` and no Subscription object was ever created.
+ *
+ * Without the lifetime rule, that allowance would let any subscription event
+ * patch the lifetime row in place. The window is the same 24-hour stale-session
+ * window this whole file exists for: a Checkout Session minted before the
+ * lifetime purchase stays payable afterwards. The customer would keep Plus via
+ * the new subscription, and the $149 they paid would stop existing in our data. */
+const lifetimeRow = (over: Record<string, any> = {}) => ({
+  status: "paid",
+  planKey: "plus_lifetime",
+  ...over,
+});
+
+const lifeVsB = decide(lifetimeRow(), B);
+check("lifetime row + incoming subscription -> CONFLICT", lifeVsB.ok === false);
+check("the conflict is reported as lifetime-not-replaceable",
+  lifeVsB.ok === false && lifeVsB.reason === "lifetime-not-replaceable");
+check("it names the incoming subscription", 
+  lifeVsB.ok === false && lifeVsB.incomingSubscriptionId === B);
+check("it names no canonical subscription, because there is none",
+  lifeVsB.ok === false && lifeVsB.canonicalSubscriptionId === undefined);
+
+/* The rule is about the PLAN, not the status: a refunded lifetime row must not
+   become a silent upgrade path either. Whether a refunded buyer may subscribe
+   again is a checkout-time decision, not something a stale session settles. */
+check("a refunded lifetime row is still not replaceable",
+  decide(lifetimeRow({ status: "refunded" }), B).ok === false);
+
+/* It must not over-refuse. An event carrying no subscription id is not a
+   subscription trying to take the row — it is the lifetime path itself. */
+check("lifetime row + no incoming id -> accepted (its own webhook)",
+  decide(lifetimeRow(), null).ok === true);
+check("a non-Stripe provider is still never touched",
+  decide(lifetimeRow(), B, "app_store").ok === true);
+
+/* And it must not change any existing verdict for subscription rows. */
+check("a normal row with no id yet is still accepted",
+  decide(rowA({ stripeSubscriptionId: undefined, planKey: "plus_monthly" }), B).ok === true);
+check("a live subscription row still conflicts as duplicate-subscription",
+  (() => { const v = decide(rowA({ planKey: "plus_monthly" }), B);
+    return v.ok === false && v.reason === "duplicate-subscription"; })());
+
 console.log("\n" + "─".repeat(62));
 if (failures.length) {
   console.log(`FAILED — ${passed} passed, ${failures.length} failed`);
