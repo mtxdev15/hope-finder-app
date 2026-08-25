@@ -1,6 +1,9 @@
 > **Scope note added 2026-08-25.** This file is named *current* but documents the
-> schema on `redesign/desktop-web-shell` and `feature/root-pattern-insight` — both
-> of which still exist, neither of which is `main`. It lists **four** tables.
+> schema on `redesign/desktop-web-shell` and `feature/root-pattern-insight`,
+> neither of which is `main`. (`redesign/desktop-web-shell` was deleted on
+> 2026-08-25 as fully merged — its commits are in main's history, and its tip SHA
+> is recorded in `docs/operations/branch-cleanup-2026-08-25.md` if it is ever
+> needed back.) It lists **four** tables.
 > **`main` now has thirteen.** Read the table below for what production actually
 > has; the original branch-scoped analysis follows underneath and is still valid
 > for those branches.
