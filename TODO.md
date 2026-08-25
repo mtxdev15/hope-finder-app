@@ -47,6 +47,90 @@ mode is easier to read if the one before it succeeded.*
       Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
       suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
 
+## 💳 Path to the first paying subscriber
+
+*Senior-dev audit, 2026-08-25. Ordered by what blocks revenue, then by what
+protects the people who pay. Phase A is the at-home commands above; nothing in
+Phase B can start until A5 passes.*
+
+### Phase B — required before ANY real customer can subscribe
+
+These are not polish. Each one, missing, produces a specific harm to someone who
+has paid you money.
+
+- [ ] **B1. Configure the live Customer Portal.** Without it a subscriber cannot
+      cancel, cannot update a failing card, and cannot see what they were
+      charged. Shape it like the sandbox: cancel at period end **on**; plan
+      switching, quantity and pause **off**. *Harm if skipped: a paying customer
+      with no way out. That is a consumer-protection problem, not a UX one.*
+- [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
+      **off**, so this path has never run once. Portal recovery works — but
+      nothing currently tells anyone their card failed. *Harm if skipped: silent
+      involuntary churn. They think they still have Plus; they don't.*
+- [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
+      unpaid" are very different outcomes for a real subscriber, and the sandbox
+      default is cancel. *Harm if skipped: subscriptions ending without anyone
+      choosing that.*
+- [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
+      failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
+      cancellation). *An alert with no resolution check is how a silently
+      cancelled subscriber goes unnoticed.*
+- [ ] **B5. Confirm privacy and terms are reachable** from `/pricing` and from
+      Checkout. Required by Stripe, and by anyone deciding whether to trust you
+      with a card.
+
+### Phase C — open the doors
+
+- [ ] **C1. Merge `claude/billing-pricing-cta-stage6`.** Nine assertions across
+      four suites must be **rewritten, not relaxed** — they enforce that
+      production is *structurally* incapable of starting a Checkout, and merging
+      deliberately trades that for a runtime flag.
+- [ ] **C2. Flip `PRICING_ENABLED` to `true`** in `src/app/declare/plan-display.js`,
+      update the one guard assertion, deploy. **This is the moment money can
+      move.** Everything above must be done first.
+- [ ] **C3. Watch the first real subscriber end to end** — Checkout, webhook,
+      entitlement, `/you`, `/billing`. Roll back on: webhook failures above a
+      small threshold over 15 minutes; any entitlement granted without a matching
+      subscription row; any duplicate subscription for one account; any Checkout
+      success that does not produce Plus within a minute.
+
+### Phase D — right after launch, not before
+
+- [ ] **D1. Tax.** `automatic_tax` is explicitly `false` and that was a deliberate
+      deferral, not an oversight. Before volume: review Stripe Tax, home-state
+      obligations, economic-nexus thresholds and the product tax code **with an
+      accountant**.
+- [ ] **D2. Spanish for `/checkout/success`** — English-only today, on a page a
+      Spanish-speaking customer reaches immediately after paying.
+- [ ] **D3. Verify analytics fire** on the Checkout and Portal paths, so you can
+      tell whether any of this is working.
+- [ ] **D4. Settle the webhook API-version question** by capturing a real
+      `invoice.paid` payload during A5. See *Next up*.
+
+### Phase E — hygiene, parallel, blocks nothing
+
+- [ ] **E1. Merge `chore/retired-webhook-secret-hygiene`** (unmerged since
+      2026-08-20, 3 commits). It carries `scripts/audit-retired-secrets.ts` — a
+      character-level scanner that answers "does anything shipping still read
+      these retired secrets?" mechanically. We answered that **by hand** on
+      2026-08-25 while this tool sat on a branch. Merge it and run it.
+- [ ] **E2. Merge `docs/cross-platform-subscription-contract`** (1 commit,
+      2026-08-24) — records the verified live Stripe product and prices. Overlaps
+      the 2026-08-25 addendum in `cross-platform-subscriptions.md`; reconcile
+      rather than merging blind.
+- [ ] **E3. Delete the ~30 fully-merged branches.** Everything with `ahead: 0`
+      against main — the `fix/harness-*`, `verify/stripe-*`, `docs/billing-*`
+      and `feature/*` sets. **Keep `release-c1-monetization`** until
+      `convex function-spec --prod` confirms production no longer needs it as a
+      reference.
+- [ ] **E4. Decide the fate of the pre-parity branches** — `feat/give-*`,
+      `v2.0-redesign`, `v3*-redesign`, `welcome-copy-pass`, `fix/billing-portal`,
+      `fix/nav-footer-links`. All 137 behind main, all from June/July, several
+      carrying the retired donation code and the billing-portal IDOR. Archive as
+      tags and delete, or delete outright.
+
+---
+
 ## 🔧 In progress / immediate
 - [ ] **Improvements deferred out of the Convex parity port.** The parity branch ports production
       logic **verbatim** — nothing was tidied on the way through, on purpose, because a parity
