@@ -1,3 +1,9 @@
+> **Scope note added 2026-08-25.** This compares two competing route-map
+> *proposals*; "the two plans" throughout means those proposals, not subscription
+> plans. Routes shipped since it was written and not covered here: `/billing`,
+> `/checkout/success`, `/checkout/cancelled`. `/pricing` now offers three plans —
+> monthly, annual and lifetime — though public purchasing remains off.
+
 # Current Route Map
 
 *The actual routes in `src/pages/` today, what each one does, and a recommended outline for

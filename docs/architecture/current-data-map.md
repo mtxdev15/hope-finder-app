@@ -1,3 +1,39 @@
+> **Scope note added 2026-08-25.** This file is named *current* but documents the
+> schema on `redesign/desktop-web-shell` and `feature/root-pattern-insight` — both
+> of which still exist, neither of which is `main`. It lists **four** tables.
+> **`main` now has thirteen.** Read the table below for what production actually
+> has; the original branch-scoped analysis follows underneath and is still valid
+> for those branches.
+>
+> ### The real schema on `main` (`convex/schema.ts`)
+>
+> | Table | Indexes |
+> |---|---|
+> | `vaultItems` | `by_user`, `by_user_and_client` |
+> | `userData` | `by_user`, `by_user_and_key` |
+> | `vaultCollections` | `by_user`, `by_user_and_name` |
+> | `reviews` | `by_user`, `by_status_public` |
+> | `subscriptions` | `by_user`, `by_user_provider`, `by_plan_environment`, `by_subscription`, `by_customer`, `by_apple_original_tx` |
+> | `billingCustomers` | `by_user`, `by_customer` |
+> | `billingEvents` | `by_provider_event` |
+> | `billingTestFixtures` | `by_user` |
+> | `accountSettings` | `by_user` |
+> | `usageCounters` | `by_user_feature_day`, `by_user` |
+> | `usageReservations` | `by_user_request`, `by_user_feature_day`, `by_status_expiry` |
+> | `journeyTranslations` | `by_user_key`, `by_user` |
+> | `journeySlots` | `by_user_status`, `by_user_journey` |
+>
+> The nine tables absent from the analysis below are the billing, entitlement and
+> Journey-pacing layers, added after it was written.
+>
+> **Not declared by the schema but still holding rows in production:**
+> `giftEvents`, `giftHistory`, `giftStats` — legacy donation tables. Convex does
+> not drop undeclared tables, so the rows persist untouched.
+>
+> `subscriptions.planKey` is `plus_monthly | plus_annual | plus_lifetime`;
+> `by_plan_environment` exists to count sold lifetime seats within one
+> environment. See `docs/architecture/cross-platform-subscriptions.md`.
+
 # Current Data Map
 
 *The real Convex schema, tables, and auth model on `redesign/desktop-web-shell`, plus what exists on

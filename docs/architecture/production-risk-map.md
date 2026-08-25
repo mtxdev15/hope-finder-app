@@ -1,3 +1,10 @@
+> **Review note added 2026-08-25.** Predates the live billing configuration. Two
+> risks it could not have covered: the webhook destination is pinned to an API
+> version that **cannot be changed** (`2026-07-29.dahlia`, against code pinned to
+> `2026-06-24.dahlia`), and a refunded lifetime purchase would grant Plus forever
+> without the `charge.refunded` event, which is not yet subscribed. Both are
+> tracked in `TODO.md` → *Next up*.
+
 # Production Risk Map
 
 *Branch/worktree state, what's protected, what's unmerged and where, the deployment pipeline, and

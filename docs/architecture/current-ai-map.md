@@ -1,3 +1,7 @@
+> **Verified current 2026-08-25.** The models named here match the code:
+> `claude-haiku-4-5-20251001` for the instant struggle response,
+> `claude-sonnet-4-6` for the Journey. No correction needed.
+
 # Current AI Map
 
 *The live AI systems exactly as they run today. No prompt, model, or parameter was changed while
