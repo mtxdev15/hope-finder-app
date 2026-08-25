@@ -139,6 +139,11 @@ has paid you money.
       so a branch that gained unmerged work since is skipped automatically. Tip
       SHAs recorded in `docs/operations/branch-cleanup-2026-08-25.md` — restore any
       with `git push origin <sha>:refs/heads/<branch>`.
+      **Three ways to run it, pick one:**
+      `bash scripts/delete-branches-oneliner.sh` (one push, 37 branches, fastest),
+      `./scripts/delete-merged-branches.sh --yes` (recomputes the set first —
+      safest if time has passed), or paste from
+      `docs/operations/branches-to-delete.txt` (plain list, one per line).
       ~~Delete the ~30 fully-merged branches.~~ Everything with `ahead: 0`
       against main — the `fix/harness-*`, `verify/stripe-*`, `docs/billing-*`
       and `feature/*` sets. **Keep `release-c1-monetization`** until

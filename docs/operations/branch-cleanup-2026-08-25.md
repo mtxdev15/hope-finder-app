@@ -12,6 +12,18 @@ is already reachable from `main` (`ahead: 0`). **Nothing will be lost** — the
 commits live in main's history. This file exists so the deletion is reversible
 without archaeology.
 
+**To run it at home**, any of:
+
+```bash
+bash scripts/delete-branches-oneliner.sh        # one push, all 37
+./scripts/delete-merged-branches.sh --yes       # recomputes first — safest if time has passed
+cat docs/operations/branches-to-delete.txt      # plain list, one per line
+```
+
+Prefer the recomputing script if more than a few days have passed: the list forms
+are a snapshot, and a branch that has gained unmerged work since would still
+appear in them.
+
 Restore any one with:
 
 ```bash
