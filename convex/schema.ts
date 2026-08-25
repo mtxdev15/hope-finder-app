@@ -133,7 +133,15 @@ export default defineSchema({
     provider: v.union(v.literal("stripe"), v.literal("app_store")),
     // Canonical plan. Provider-independent: an Apple product and a Stripe
     // Price both resolve to the same key.
-    planKey: v.union(v.literal("plus_monthly"), v.literal("plus_annual")),
+    planKey: v.union(
+      v.literal("plus_monthly"),
+      v.literal("plus_annual"),
+      /* Bought once, in `mode: "payment"`. Its row carries no interval, no
+         period and no cancellation — those fields stay absent rather than
+         being filled with plausible-looking values, because a lifetime
+         purchase genuinely has none of them. */
+      v.literal("plus_lifetime"),
+    ),
     // A sandbox purchase must never grant production Plus. Derived from the
     // credential in use, never from a request.
     environment: v.union(v.literal("sandbox"), v.literal("production")),

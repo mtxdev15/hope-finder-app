@@ -20,6 +20,7 @@
 import { readFileSync } from "node:fs";
 import {
   classifyPlusSubscription,
+  classifyLifetimePurchase,
   approvedPricesFromEnv,
   environmentForSecret,
   BILLING_SCHEMA_VERSION,
@@ -571,6 +572,181 @@ check("subscription.created arriving second is not stale", stale(1787342147, 178
 check("a genuinely older event IS stale", stale(1787342100, 1787342147) === true);
 check("an equal timestamp is applied, not dropped — Stripe batches within a second",
   stale(1787342147, 1787342147) === false);
+
+/* ══ LIFETIME — the one-time purchase path ═══════════════════════════════
+ *
+ * WHY THIS SECTION IS THE MOST IMPORTANT ONE IN THE FILE
+ *
+ * Fixture C above is a REAL archived $250 one-time donation. Until lifetime
+ * existed, `mode: "payment"` was rejected outright — there was no one-time
+ * purchase, so the mode alone was disqualifying, and fixture C could not
+ * possibly be accepted.
+ *
+ * Lifetime removes that blanket refusal. A one-time gift and a lifetime
+ * purchase are now structurally identical in exactly the way a recurring gift
+ * and a Plus subscription were: same mode, same completed status, same
+ * payment_status, both real money that really arrived. This is the SAME class
+ * of bug as C2, re-opened by a product decision, and the only thing separating
+ * the two is the provenance our own Checkout stamps.
+ *
+ * So fixture C is re-run against the NEW classifier below. If it is ever
+ * accepted, a donor gets Plus forever for a gift they made.
+ */
+section("9. Lifetime: a one-time purchase, and everything it must not accept");
+
+const LIFETIME_PRICE = "price_TEST_plus_lifetime";
+const lifetimeApproved = approvedPricesFromEnv({
+  ...ENV,
+  STRIPE_PLUS_LIFETIME_PRICE_ID: LIFETIME_PRICE,
+});
+
+function lifetimeMeta(over: Record<string, any> = {}) {
+  return {
+    userId: USER,
+    plan: "plus_lifetime",
+    source: CHECKOUT_SOURCE,
+    billing_schema_version: BILLING_SCHEMA_VERSION,
+    environment: "sandbox",
+    ...over,
+  };
+}
+
+/* A complete, paid, provenance-stamped one-time session — the shape our own
+ * Checkout produces. Overrides let each negative below change exactly one
+ * thing, so a rejection is always attributable to that one change. */
+function paymentSession(over: Record<string, any> = {}, metaOver: Record<string, any> = {}) {
+  return {
+    id: "cs_test_lifetime",
+    mode: "payment",
+    status: "complete",
+    payment_status: "paid",
+    client_reference_id: USER,
+    metadata: lifetimeMeta(metaOver),
+    ...over,
+  };
+}
+const lifetimeItems = (priceOver: Record<string, any> = {}) => [
+  { price: { id: LIFETIME_PRICE, recurring: null, ...priceOver } },
+];
+
+function classifyLife(
+  session: any,
+  lineItems: any = lifetimeItems(),
+  environment: any = "sandbox",
+) {
+  return classifyLifetimePurchase({
+    session,
+    lineItems,
+    approvedPrices: lifetimeApproved,
+    environment,
+  });
+}
+
+/* ── The genuine article ─────────────────────────────────────────────────── */
+const okLife = classifyLife(paymentSession());
+check("a genuine lifetime purchase is ACCEPTED", okLife.ok === true);
+check("and resolves to plus_lifetime", okLife.ok === true && okLife.planKey === "plus_lifetime");
+
+/* ── C-REDUX: the archived donation, against the new path ────────────────── */
+const giftOneTime = {
+  id: "cs_test_gift_250",
+  mode: "payment",
+  status: "complete",
+  payment_status: "paid",
+  client_reference_id: null,
+  metadata: {},
+};
+const rCLife = classifyLifetimePurchase({
+  session: giftOneTime,
+  lineItems: [{ price: { id: "price_GIFT_250_once", recurring: null } }],
+  approvedPrices: lifetimeApproved,
+  environment: "sandbox",
+});
+check("C-redux: the real $250 one-time gift is REJECTED by the lifetime path",
+  rCLife.ok === false);
+check("C-redux: rejected on the Price, not on mode or status",
+  rCLife.ok === false && rCLife.reason === "price-not-approved");
+/* And with metadata forged to look like ours, it still dies on the Price —
+   because the Price is checked BEFORE any metadata is trusted. */
+const rCForged = classifyLifetimePurchase({
+  session: { ...giftOneTime, client_reference_id: USER, metadata: lifetimeMeta() },
+  lineItems: [{ price: { id: "price_GIFT_250_once", recurring: null } }],
+  approvedPrices: lifetimeApproved,
+  environment: "sandbox",
+});
+check("C-redux: gift Price + forged provenance is STILL rejected",
+  rCForged.ok === false && rCForged.reason === "price-not-approved");
+
+/* ── Cross-contamination, both directions ────────────────────────────────── */
+const lifeOnSub = classifyPlusSubscription({
+  subscription: {
+    id: "sub_test", status: "active", metadata: lifetimeMeta(),
+    items: { data: [{ price: { id: LIFETIME_PRICE } }] },
+  },
+  session: null,
+  approvedPrices: lifetimeApproved,
+  environment: "sandbox",
+});
+check("a lifetime Price on a SUBSCRIPTION is rejected",
+  lifeOnSub.ok === false && lifeOnSub.reason === "one-time-price-on-subscription");
+
+const subOnPayment = classifyLife(
+  paymentSession({}, { plan: "plus_monthly" }),
+  [{ price: { id: MONTHLY_PRICE, recurring: { interval: "month" } } }],
+);
+check("a recurring Price on a PAYMENT session is rejected",
+  subOnPayment.ok === false && subOnPayment.reason === "recurring-price-on-payment");
+
+/* ── L1: it must have completed AND been paid ────────────────────────────── */
+check("a subscription-mode session is refused by the lifetime path",
+  classifyLife(paymentSession({ mode: "subscription" })).reason === "not-a-payment-session");
+check("an incomplete session grants nothing",
+  classifyLife(paymentSession({ status: "open" })).reason === "session-not-complete");
+check("a COMPLETE but UNPAID session grants nothing",
+  classifyLife(paymentSession({ payment_status: "unpaid" })).reason === "session-not-paid");
+check("no_payment_required does not count as paid",
+  classifyLife(paymentSession({ payment_status: "no_payment_required" })).reason === "session-not-paid");
+
+/* ── L2: exactly one approved Price ──────────────────────────────────────── */
+check("no line items grants nothing", classifyLife(paymentSession(), []).reason === "no-line-items");
+check("unretrieved line items grant nothing",
+  classifyLife(paymentSession(), null).reason === "no-line-items");
+check("a multi-item session grants nothing",
+  classifyLife(paymentSession(), [...lifetimeItems(), ...lifetimeItems()]).reason === "unexpected-multiple-items");
+check("an unapproved Price grants nothing",
+  classifyLife(paymentSession(), [{ price: { id: "price_someone_elses" } }]).reason === "price-not-approved");
+check("the versioned lookup key is an accepted second route",
+  classifyLife(paymentSession(), [{ price: { id: "price_unknown", lookup_key: "plus_lifetime_usd_v1" } }]).ok === true);
+
+/* ── L3/L4: provenance, every field ──────────────────────────────────────── */
+check("missing plan metadata grants nothing",
+  classifyLife(paymentSession({ metadata: {} })).reason === "plan-metadata-missing");
+check("a plan disagreeing with the Price grants nothing",
+  classifyLife(paymentSession({}, { plan: "plus_annual" })).reason === "plan-price-mismatch");
+check("a wrong schema version grants nothing",
+  classifyLife(paymentSession({}, { billing_schema_version: "0" })).reason === "provenance-schema-version");
+check("a session we did not create grants nothing",
+  classifyLife(paymentSession({}, { source: "somewhere.else" })).reason === "provenance-source");
+check("no stamped userId grants nothing",
+  classifyLife(paymentSession({}, { userId: "" })).reason === "provenance-user-missing");
+check("a client_reference_id disagreeing with metadata grants nothing",
+  classifyLife(paymentSession({ client_reference_id: "user_someone_else" })).reason ===
+    "provenance-client-reference-mismatch");
+
+/* ── L5: environment ─────────────────────────────────────────────────────── */
+check("a sandbox purchase cannot grant production Plus",
+  classifyLife(paymentSession(), lifetimeItems(), "production").reason === "environment-mismatch");
+check("an unresolvable environment grants nothing",
+  classifyLife(paymentSession(), lifetimeItems(), null).reason === "environment-unresolvable");
+check("a missing session grants nothing",
+  classifyLife(null).reason === "no-session");
+
+/* ── The absent-env default ──────────────────────────────────────────────── */
+check("with no lifetime Price configured, nothing classifies as lifetime",
+  classifyLifetimePurchase({
+    session: paymentSession(), lineItems: lifetimeItems(),
+    approvedPrices: approvedPricesFromEnv(ENV), environment: "sandbox",
+  }).ok === false);
 
 console.log("\n" + "─".repeat(62));
 if (failures.length) {

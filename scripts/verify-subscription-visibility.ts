@@ -126,6 +126,24 @@ check("periodEndAt is null unless the winner grants Plus",
 check("billingInterval is an enum, never a Price id",
   !/billingInterval[\s\S]{0,120}price/i.test(ENTITLEMENTS));
 
+/* A lifetime row has no lifecycle, so it must be decided BEFORE the
+   subscription branches and never fall through to them. Falling through would
+   be actively wrong rather than merely untidy: past_due grace is meaningless on
+   a plan that never bills again, and an absent currentPeriodEnd would make the
+   cancelAtPeriodEnd comparison silently pass. Source-asserted because
+   entitlements.ts imports Convex and cannot be executed here. */
+check("lifetime is interpreted before any subscription status branch",
+  ENT_CODE.indexOf('planKey === "plus_lifetime"') > -1 &&
+  ENT_CODE.indexOf('planKey === "plus_lifetime"') <
+    ENT_CODE.indexOf('status === "past_due"'));
+check("lifetime grants Plus only on the paid status",
+  /planKey === "plus_lifetime"[\s\S]{0,400}status === "paid"/.test(ENT_CODE));
+check("an unrecognised lifetime status falls closed to free",
+  /planKey === "plus_lifetime"[\s\S]{0,400}tier: "free"/.test(ENT_CODE));
+check("lifetime claims no renewal date and no attention state",
+  /planKey === "plus_lifetime"[\s\S]{0,400}needsAttention: false[\s\S]{0,120}graceEndsAt: null/
+    .test(ENT_CODE));
+
 /* ── 2. The shared state machine, executed ───────────────────────────────── */
 section("2. The shared display state machine");
 

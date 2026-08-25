@@ -38,12 +38,25 @@ async function requireUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
  * the instant a card retry fails would be the wrong pastoral default. */
 const PLUS_STATUSES = new Set(["active", "trialing", "past_due"]);
 
-function tierForStatus(status: string): "free" | "plus" {
-  return PLUS_STATUSES.has(status) ? "plus" : "free";
+/* A lifetime row's status is Stripe's payment_status on the one-time Checkout
+ * Session, so it shares no vocabulary with the subscription statuses above:
+ * `paid` is its only Plus-ish value, and `active` never appears on one. Keeping
+ * the two vocabularies apart — rather than adding `paid` to PLUS_STATUSES —
+ * means a subscription that somehow arrived with `paid` is still not treated as
+ * Plus, and a lifetime row that somehow arrived with `active` is not either. */
+const LIFETIME_PLUS_STATUSES = new Set(["paid"]);
+
+function tierForStatus(status: string, planKey: string): "free" | "plus" {
+  const set = planKey === "plus_lifetime" ? LIFETIME_PLUS_STATUSES : PLUS_STATUSES;
+  return set.has(status) ? "plus" : "free";
 }
 
 const providerValidator = v.union(v.literal("stripe"), v.literal("app_store"));
-const planKeyValidator = v.union(v.literal("plus_monthly"), v.literal("plus_annual"));
+const planKeyValidator = v.union(
+  v.literal("plus_monthly"),
+  v.literal("plus_annual"),
+  v.literal("plus_lifetime"),
+);
 const environmentValidator = v.union(v.literal("sandbox"), v.literal("production"));
 
 /* ── reads ───────────────────────────────────────────────────────────────── */
@@ -357,7 +370,7 @@ export const applyWebhook = internalMutation({
       provider: args.provider,
       environment: args.environment,
       planKey: args.planKey,
-      tier: tierForStatus(args.status),
+      tier: tierForStatus(args.status, args.planKey),
       status: args.status,
       lastProviderEventId: args.eventId,
       lastProviderEventAt: args.eventCreated,

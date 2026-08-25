@@ -37,6 +37,7 @@ import {
   PLAN_KEYS,
   planKeyForAlias,
   approvedPricesFromEnv,
+  isOneTimePlan,
 } from "../convex/plusPlans.ts";
 import {
   projectEntitlement,
@@ -98,8 +99,33 @@ check("the two plans use DIFFERENT env vars",
 check("annual is a yearly interval", PLAN_CATALOG.plus_annual.interval === "year");
 check("annual carries its own versioned lookup key",
   PLAN_CATALOG.plus_annual.lookupKey === "plus_annual_usd_v1");
-check("the catalog holds exactly the two Plus plans",
-  PLAN_KEYS.slice().sort().join(",") === "plus_annual,plus_monthly");
+check("the catalog holds exactly the three Plus plans",
+  PLAN_KEYS.slice().sort().join(",") === "plus_annual,plus_lifetime,plus_monthly");
+
+/* Lifetime is the one plan bought in `mode: "payment"`. Every property that
+   makes it different from the two recurring plans is pinned here, because each
+   one is load-bearing: a shared env var would let one Price sell two plans, a
+   shared lookup key would let classification confuse them, and an interval on a
+   plan that never recurs would put a renewal date on a page that must not
+   claim one. */
+check("lifetime resolves from its own alias",
+  planKeyForAlias("plus-lifetime") === "plus_lifetime");
+check("lifetime is bound to STRIPE_PLUS_LIFETIME_PRICE_ID",
+  PLAN_CATALOG.plus_lifetime.envVar === "STRIPE_PLUS_LIFETIME_PRICE_ID");
+check("every plan uses a DIFFERENT env var",
+  new Set(PLAN_KEYS.map((k) => PLAN_CATALOG[k].envVar)).size === PLAN_KEYS.length);
+check("every plan carries its own versioned lookup key",
+  new Set(PLAN_KEYS.map((k) => PLAN_CATALOG[k].lookupKey)).size === PLAN_KEYS.length);
+check("lifetime carries its own versioned lookup key",
+  PLAN_CATALOG.plus_lifetime.lookupKey === "plus_lifetime_usd_v1");
+check("lifetime is one-time and the other two are not",
+  PLAN_CATALOG.plus_lifetime.kind === "one_time" &&
+  PLAN_CATALOG.plus_monthly.kind === "subscription" &&
+  PLAN_CATALOG.plus_annual.kind === "subscription");
+check("a plan that never recurs claims no interval",
+  PLAN_CATALOG.plus_lifetime.interval === null);
+check("isOneTimePlan agrees with the catalog for every plan",
+  PLAN_KEYS.every((k) => isOneTimePlan(k) === (PLAN_CATALOG[k].kind === "one_time")));
 
 /* The env var is read through the catalog, so naming a plan can never name an
  * arbitrary environment variable. */
