@@ -579,320 +579,82 @@ None of these are oversights. Each is a deliberate stop.
       `STRIPE_BILLING_WEBHOOK_SECRET` and `UNSPLASH_ACCESS_KEY`. Rule C5 holds:
       the Worker carries no Stripe credential
 
-#### Resume point
+#### Stage 2 sandbox validation — outcome
 
-When Stage 2 resumes, in this order:
+*Condensed 2026-08-25. This ran from 2026-08-21 to 2026-08-24 and is finished
+except for the four items at the bottom. The full step-by-step narrative is in
+git history and, in more detail than was ever here, in
+`docs/operations/stage-2-sandbox-billing.md` §6.1–§6.20.*
 
-1. ~~**Build a development-only authenticated monthly checkout control.**~~
-   **DONE.** `src/pages/dev/[control].astro`. Enable with
-   `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`, then open
-   `http://localhost:4321/dev/billing-sandbox`. The browser sends only
-   `{ plan: 'plus-monthly' }`; the user, the Price and the Customer all resolve
-   server-side in Convex. See `docs/operations/stage-2-sandbox-billing.md` §6.
-2. **Create one sandbox monthly Checkout Session through the actual app**, not
-   through the API directly. The point is to exercise the real path.
-3. **Complete a test subscription payment.**
-4. **Capture real payloads** for the pinned API version.
-5. **Verify against those payloads:**
-   - Checkout Session ownership
-   - Customer mapping
-   - subscription period fields
-   - invoice-to-subscription relationship
-   - metadata provenance
-   - cancellation state
-   - entitlement activation
-6. ~~**Narrow the provisional webhook field readers.**~~ **DONE.** Narrowed
-   against the real payloads captured at step 3, not from memory:
-   `readPeriod` now reads only `subscription.items.data[0]`, and
-   `readInvoiceSubscriptionId` only
-   `invoice.parent.subscription_details.subscription`. The Checkout Session
-   reader and all cancellation fields were unchanged, because the captured
-   payloads showed neither moved. `verify-plus-classification.ts` grew 44 -> 96
-   checks and the new assertions were mutation-tested. See
-   `docs/operations/stage-2-sandbox-billing.md` §6.9.
-6b. ~~**Add the duplicate-subscription webhook guard.**~~ **DONE.** A webhook
-   for a DIFFERENT Stripe subscription id can no longer replace a nonterminal
-   one for the same user. The checkout-time guard in `billing.ts` could not
-   cover this: a Session minted before the first subscription existed stays
-   payable for 24 hours, and completing it later produces a second real
-   subscription that guard never saw — after which `applyWebhook` would have
-   repointed the canonical row in place, leaving one tidy Convex row reading
-   Plus while Stripe billed twice. The guard lives in `applyWebhook`, the one
-   mutation that writes the `subscriptions` table, with the decision in the
-   dependency-free `convex/subscriptionGuard.ts`. Conflicts leave the canonical
-   row untouched, record `outcome: "duplicate-subscription-conflict"` on the
-   event, log for alerting, and return 200 so Stripe stops retrying.
-   `verify-duplicate-subscription-guard.ts`, 71 checks, mutation-tested both
-   ways. **It protects Convex state; it does NOT cancel or refund a duplicate
-   Stripe charge** — that remediation is manual and documented in
-   `docs/operations/stage-2-sandbox-billing.md` §6.10.
+**Proven end to end in the sandbox** (`Declare checkout dev`): monthly and annual
+Checkout through the real app path; webhook ingestion with correct provenance and
+no conflicts; Customer mapping resolved server-side; entitlement activation;
+Billing Portal sessions, invoice viewing and payment-method replacement; failed
+renewal and recovery via Test Clock; cancellation scheduled at period end and
+reversed; `cancel_at` → `cancelAtPeriodEnd` normalization against a real Portal
+action.
 
-   *Further Checkout Session testing is now unblocked by this guard, but the
-   remaining items below are still outstanding.*
-6c. ~~**Build the checkout return pages.**~~ **DONE.** `/checkout/success` and
-   `/checkout/cancelled` exist; a completed payment no longer lands on a 404.
-   The success page treats `session_id` as UNTRUSTED — it observes only that
-   the parameter exists, strips it from the visible URL with
-   `history.replaceState`, and never renders, stores, logs or sends it.
-   Confirmation comes only from `getMyEntitlements`, polled on a bound (~2s
-   interval, ~30s cap, single-flight, stops when hidden or confirmed).
-   `paymentNeedsAttention` never renders as success, and the timeout state
-   explicitly says not to pay again. The cancelled page is inert: no Convex or
-   Stripe call, never auto-retries, and allowlists `?plan=`. Neither page
-   activates public billing. `verify-checkout-return-pages.ts`, 118 checks,
-   mutation-tested. See `docs/operations/stage-2-sandbox-billing.md` §6.11.
-6d. ~~**Prepare the annual, Portal and lifecycle controls.**~~ **DONE — built
-   and tested, never exercised.** Three controls on `/dev/billing-sandbox`:
-   annual Checkout (`{ plan: 'plus-annual' }` and nothing else), Billing Portal
-   (an **empty** payload — Convex resolves the Customer from our own mapping),
-   and a read-only lifecycle inspector that renders an allowlist projection so
-   no Stripe identifier can reach the screen. Annual did not fork the Checkout
-   path: one implementation, the plan typed as a closed two-member union, the
-   alias a hardcoded literal at each call site. `createPortalSession` already
-   existed and already met every requirement, so no Convex change was needed —
-   only a caller and the tests that pin it.
-   `verify-billing-lifecycle-controls.ts` (149 checks) plus
-   `verify-billing-dev-control.ts` (98 -> 136), four mutations applied and each
-   caught. See `docs/operations/stage-2-sandbox-billing.md` §6.12.
+**Built during it, and still load-bearing:**
 
-   **Nothing here has been run against Stripe.** No annual Session, no Portal
-   session, no cancellation, no payment failure, no deployment.
+- `src/pages/dev/[control].astro` — the dev-only checkout, annual and Portal
+  controls, plus a read-only lifecycle inspector that renders an allowlist
+  projection so no Stripe identifier reaches the screen (§6, §6.12)
+- `convex/subscriptionGuard.ts` — the duplicate-subscription guard, in
+  `applyWebhook` because the checkout-time guard cannot see a Session minted
+  before the first subscription existed and completed within its 24-hour window
+  (§6.10)
+- `/checkout/success` and `/checkout/cancelled` — success treats `session_id` as
+  untrusted and confirms only from `getMyEntitlements` (§6.11)
+- `src/app/declare/plan-display.js` — one shared interpreter so `/you`,
+  `/pricing` and `/billing` cannot drift (§6.13)
+- The webhook field readers, **narrowed against captured payloads rather than
+  memory**: `readPeriod` reads only `subscription.items.data[0]`,
+  `readInvoiceSubscriptionId` only
+  `invoice.parent.subscription_details.subscription` (§6.9)
+- The Test Clock harness, behind two unset flags and deployed nowhere
+  (`docs/implementation/billing-test-harness-brief.md` §13,
+  `docs/operations/billing-test-harness-execution-readiness.md`). Getting it to
+  run took three provisioning stops and seven safe-stop fixes (PRs #39–#47),
+  four of them the same bug — a webhook-driven convergence checked with a single
+  immediate read, fixed as a class with one bounded poller everywhere. Records:
+  `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`,
+  `docs/operations/billing-test-harness-stale-error-stop-2026-08-23.md`
 
-   **Do not exercise annual on the account holding the active monthly
-   subscription.** Convex refuses a second purchase and the webhook guard
-   refuses to repoint the row, but **neither cancels or refunds** — Stripe would
-   still bill twice. Use a separate sandbox QA account, or wait until the
-   monthly subscription is genuinely terminal.
+Suites that pin all of it: `verify-plus-classification.ts`,
+`verify-duplicate-subscription-guard.ts`, `verify-checkout-return-pages.ts`,
+`verify-billing-lifecycle-controls.ts`, `verify-billing-dev-control.ts`,
+`verify-subscription-visibility.ts`, `verify-billing-test-harness.ts`.
 
-   *Known gap:* `getMyEntitlements` does not surface `cancelAtPeriodEnd`, so a
-   scheduled cancellation still reads as `active` in the inspector. Confirm
-   cancellation in the Stripe Dashboard. Surfacing that field is an
-   entitlement-contract change, deliberately out of scope.
-7. ~~**Configure and read back the Stripe sandbox Billing Portal settings.**~~
-   **DONE 2026-08-22.** The active default configuration exists in **Declare
-   checkout dev** and was verified through read-only Stripe API responses:
-   `active=true`, `is_default=true`, `livemode=false`, one configuration
-   returned. Plan switching and quantity updates disabled, cancellation enabled
-   at `at_period_end`, cancellation reasons enabled, payment-method updates
-   enabled, invoice history enabled. Retention coupons are
-   **NOT EXPOSED BY READ API** — they are a Dashboard deflection feature and do
-   not appear on the configuration object, so absence was not read as proof.
-   `proration_behavior` is `none`, correct for end-of-period cancellation.
-   Full result in `docs/operations/stage-2-sandbox-billing.md` §6.12.1.
+**Never observed anywhere, and production prerequisites:** Stripe's automatic
+Smart Retry cadence actually firing (recovery was always driven manually), and
+failed-payment notification delivery (sandbox emails were disabled). Records:
+`docs/operations/billing-test-harness-execution-record-2026-08-23.md`,
+`docs/operations/billing-portal-release-gate-2026-08-23.md`.
 
-   `is_default` matters because `createPortalSession` sends no `configuration`
-   parameter, so Stripe uses the account default.
+**Why a one-off invoice cannot exercise payment-attention** (§6.20) — worth
+keeping because it looks like a shortcut and is not. Two independent reasons,
+both deliberate fail-closed design, neither a defect:
+`readInvoiceSubscriptionId` never reads invoice *lines*, so a one-off invoice
+resolves to `null` and `http.ts` ACKs before `applyWebhook`; and
+`paymentNeedsAttention` is a pure function of the stored **subscription**
+status, which a failed one-off invoice never changes. The path is reachable
+only by genuinely moving a subscription to `past_due`.
 
-   **Configuration is not validation.** Everything below is still outstanding.
+**Standing rule — do not run a second Checkout on an account that already holds
+a live subscription.** Convex refuses the purchase and the webhook guard refuses
+to repoint the canonical row, but **neither cancels nor refunds** — Stripe would
+still bill twice. Use a separate QA account. Note that end-of-period
+cancellation leaves a subscription `active` until the period actually ends, so
+cancelling does not free an account quickly.
 
-8. **Validate the Portal and the rest of the lifecycle.** **Portal smoke
-   testing is COMPLETE (2026-08-22, §6.12.2); Portal lifecycle validation is
-   NOT.** One session was created through the app, the hosted page rendered the
-   configured controls, and the return to `/you` worked. Nothing was cancelled,
-   changed or paid. The remaining items:
+**Still open from Stage 2:**
 
-   - [x] deploy the PR #23 code to Convex development after merge
-         (2026-08-22, `good-dotterel-906`)
-   - [x] create and open one sandbox Portal session (2026-08-22, §6.12.2)
-   - [x] verify Portal return to `/you` — exact path, no Stripe id appended,
-         session survived
-   - [x] verify the Portal resolves the authenticated user's server-side
-         Customer mapping — browser sent `{}`; the deployed action accepts
-         `lang` only
-   - [x] verify invoice-history visibility (present, not opened)
-   - [x] verify payment-method management control visibility (present, not used)
-   - [x] verify cancellation control visibility (present, not used)
-   - [x] **schedule cancellation at period end** — done 2026-08-22 through the
-         Portal; the subscription is scheduled to end September 21, 2026 (§6.12.2,
-         §6.16)
-   - [x] **verify a post-fix `customer.subscription.updated`** — one genuinely new
-         event (new provider event id, `outcome: applied`) generated by a
-         same-state `cancel_at` reassertion. The two earlier events were NOT
-         replayed: they are idempotency keys and would have been deduplicated
-   - [x] **verify `cancelAtPeriodEnd=true` in Convex** — the deployed normalizer
-         resolved `cancel_at === currentPeriodEnd` to `true` (§6.16)
-   - [x] **verify active Plus access remains through period end** — status stays
-         `active`, tier stays Plus, period end unchanged
-   - [x] **verify `/you` renders the cancellation-scheduled state** — "Cancels
-         September 21, 2026", chip reads ENDING, "Renews" absent
-   - [x] **verify `/you` removes renewal language** — confirmed absent
-   - [x] **verify pricing keeps Plus as current plan and blocks duplicate
-         Checkout** — "Your current plan", CTA hidden and disabled, zero enabled
-         purchase controls
-   - [ ] verify the subscription remains active for the entire remaining period
-   - [ ] verify terminal `customer.subscription.deleted` at the real period end
-   - [ ] verify access changes at terminal cancellation
-   - [x] **commit the regenerated `convex/_generated/api.d.ts`** — done
-         2026-08-22. Regenerated from merged main with `npx convex codegen`, so
-         `stripeCancellation` is now represented in the generated module map.
-         Two lines: one `import type` and one entry in `fullApi`. It adds **no
-         remotely callable Convex function** — the module exports only ordinary
-         TypeScript helpers and declares no query, mutation, action or HTTP
-         action, and the deployment still attributes zero functions to it. No
-         deployment was required: `convex codegen` writes local files only.
-   - [x] **actually update a payment method** — DONE 2026-08-22 (§6.18), on the
-         **annual QA account**; the monthly subscriber was untouched and is
-         byte-identical. One Portal session, one replacement, sandbox Visa →
-         sandbox Mastercard, no real card. The subscription-level
-         `default_payment_method` override was **cleared** and the customer
-         default now points at the new method, so the next annual invoice
-         resolves to it (Acceptable result B). No charge, no new invoice, no
-         refund or credit, renewal date unchanged.
-         *Note:* clearing the override fired a real `customer.subscription.updated`
-         webhook (`billingEvents` 9 → 10, `outcome: applied`), which changed only
-         `lastProviderEventAt` / `updatedAt` on the canonical row. Expected and
-         benign — that type is subscribed because cancellation needs it.
-   - [x] **open or download an invoice** — DONE 2026-08-23 UTC (§6.19), on the
-         **annual QA account**; the monthly subscriber was untouched and its
-         invoice history was never opened. One Portal session (browser payload
-         `args:[{}]`, zero provider identifiers), the one existing paid annual
-         invoice opened once, and exactly one invoice PDF downloaded. The
-         **receipt was deliberately not downloaded**. The PDF was validated
-         outside the repository and then deleted along with every extracted
-         byte; nothing was retained.
-         Stripe is field-identical before and after — Customers 2, Subscriptions
-         2, Invoices 1, PaymentIntents 1, Checkout Sessions 1, credit-note
-         amounts 0, `next_invoice_sequence` still 2. Convex is byte-identical in
-         all seven tables and **`billingEvents` stayed at 10**: reading an
-         invoice fires no subscribed webhook at all.
-         *Limit:* PDF **text** could not be validated from the command line — no
-         `pdftotext`/`pdfinfo`/`mutool`/`qpdf`/`pypdf` here, and the browser
-         blocks `file:`. Amount, paid state, cadence and period are recorded
-         from the hosted invoice page and the Stripe API instead. See [[§6.19]].
-   - [x] **verify payment-failure / payment-attention behaviour** — DONE
-         2026-08-23 UTC. Record:
-         `docs/operations/billing-test-harness-execution-record-2026-08-23.md`.
-         A Test Clock fixture on a third disposable QA account ran the full
-         lifecycle: healthy -> failure armed -> `past_due` -> recovered ->
-         cancelled -> clock deleted. `/you` showed "NEEDS ATTENTION", the
-         non-gold badge and **no renewal date** while `past_due`, then returned
-         to a normal renewal line after recovery, with zero identifier leaks.
-         Both existing subscribers were **not written at all** during the test
-         window (their `updatedAt` values both precede it); `billingEvents` grew
-         by exactly the 8 expected lifecycle events; 0 Test Clocks remain.
-         Six safe stops were fixed and merged first (PRs #39-#45), four of them
-         the same bug: a webhook-driven convergence checked with a single
-         immediate read. PR #45 fixed the class — one bounded poller everywhere,
-         plus skip-if-already-done guards. Harness re-disabled afterwards (both
-         flags removed); functions stay deployed to development and inert.
-         *Not observed:* Stripe's automatic Smart Retry cadence (recovery was
-         driven manually), failed-payment emails (disabled), and Portal dunning.
-         *Portal dunning closed 2026-08-24* on a second disposable fixture —
-         hosted recovery, cancellation scheduling and cancellation reversal, plus
-         the authenticated disabled-gate refusal observed live. A seventh safe
-         stop was found and fixed first (PR #47): recovery required the
-         subscription-level default payment method to still equal the value
-         captured at provisioning, and the hosted Portal legitimately sets that
-         field, so a fixture the Portal had already recovered was refused before
-         its invoice was ever inspected. Snapshot equality replaced with a
-         semantic check of the *effective* method under Stripe's own precedence;
-         a Portal-set default is preserved, and an already-paid invoice is
-         observed rather than paid again. Suite 538 -> 592, 31/31 mutations
-         caught. Record:
-         `docs/operations/billing-portal-release-gate-2026-08-23.md`.
-         Smart Retry cadence and failed-payment notification remain unobserved
-         and are production activation prerequisites — see
-         `docs/operations/billing-production-activation-readiness.md`.
-         **Design locked 2026-08-23** — see
-         `docs/implementation/billing-test-harness-brief.md`. Route is a Test
-         Clock fixture on a third disposable QA account, driven by a
-         development-only Convex harness. The ownership contract needs no
-         change: a directly-created Customer + Subscription carrying the five
-         provenance fields binds through the same trusted path Checkout uses,
-         and `applyWebhook` creates both the mapping and the canonical row
-         itself. The harness exists only because the MCP exposes no Test Clock,
-         PaymentMethod, or Invoice write operations.
-         *Sandbox recovery policy, read 2026-08-23:* Smart Retries, up to 8
-         retries in 2 weeks, first retry dynamic, **final action cancel**,
-         failure emails disabled, no active automations. Because the final
-         action is cancel, an over-advanced clock destroys the fixture — hence
-         the standing rule: advance only to the first renewal attempt, require
-         `attempt_count=1`, read `next_payment_attempt`, and recover before
-         advancing again.
-         **Execution-readiness audit complete 2026-08-23** — runbook at
-         `docs/operations/billing-test-harness-execution-readiness.md`. The
-         harness remains disabled, undeployed (0 of 47 deployed functions are
-         `testHarness`), and unexecuted. Separate authorization is required to
-         set either flag, deploy to development, or create the disposable
-         account.
-         *Denominator corrected 2026-08-24:* production actually holds **51**
-         function-spec entries, not 47 (and not the 46 recorded earlier in
-         `docs/operations/convex-production-parity-audit.md`). Both older totals
-         came from counting lines of pretty-printed JSON rather than parsing it.
-         The number that mattered was never the denominator: **zero** deployed
-         production `testHarness` entries was correct then and is correct now,
-         re-verified by parsing `convex function-spec` as JSON.
-         **Two provisioning stops 2026-08-23; lifecycle NOT yet run.** Neither
-         reached `arm_failure`; no clock advanced, no payment attempted, both
-         existing subscribers unchanged. The second run proved the ownership
-         contract — webhook-created mapping and canonical row, no manual write.
-         Three fixes added: bounded convergence polling, incremental provider
-         persistence, and read-only adoption via the same `provision` command.
-         See `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
-         **Third stop 2026-08-23:** adoption succeeded read-only with zero Stripe
-         mutations, but the fixture still reported a stale `not-converged`
-         because `undefined` is dropped from serialized Convex arguments. Fixed
-         with an explicit clear signal plus a read-only healthy-normalization
-         path. Lifecycle stopped before `arm_failure`.
-         **Harness implemented behind gates 2026-08-23; execution NOT started.**
-         See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
-         are unset, nothing was deployed, and no Stripe object exists from it.
-         266 verification checks, mutation-tested against 12 regressions.
-         **BLOCKED as originally planned** — audited 2026-08-23 UTC (§6.20), no
-         Stripe write made. A one-off $1.00 invoice cannot exercise this path,
-         for two independent reasons in the shipped code:
-         (1) `readInvoiceSubscriptionId` reads only
-         `invoice.parent.subscription_details.subscription` and never invoice
-         lines, so a one-off invoice resolves to `null` and `http.ts` ACKs before
-         `applyWebhook` — no `billingEvents` row, no state change;
-         (2) `paymentNeedsAttention` is a pure function of the stored
-         subscription **status** (`past_due`/`unpaid`), and the webhook writes
-         status from the live *subscription*, never the invoice — a failed
-         one-off invoice leaves the annual subscription `active`.
-         Neither is a defect; both are deliberate fail-closed design. The path is
-         reachable only by genuinely moving a subscription to `past_due`. Next
-         attempt should use a **Stripe test clock on its own throwaway QA
-         subscription**, which leaves both existing subscribers untouched.
-   - [x] **surface entitlement state and add a billing entry point** — DONE
-         2026-08-22 (§6.13). `getMyEntitlements` now returns `periodEndAt`,
-         `cancelAtPeriodEnd` and `billingInterval`; `/checkout/success` welcomes
-         confirmed subscribers; `/you` has a persistent Plan & Billing card at
-         `#plan-billing` with a click-only, single-flight Manage billing button;
-         `/pricing` reflects the authenticated current plan and stays
-         non-transactional. One shared interpreter
-         (`src/app/declare/plan-display.js`) so the three surfaces cannot drift.
-         `verify-subscription-visibility.ts`, 374 checks, four mutations caught.
-         **No Stripe lifecycle test was performed.**
-   - [x] **test annual Checkout with a separate sandbox QA account** — DONE
-         2026-08-22 (§6.17), on commit `203a800` against `good-dotterel-906`.
-         No Convex redeploy was needed. Subchecks:
-         - [x] successful annual sandbox payment ($79.99/year, test card, one
-               Checkout Session, one submit that actually charged)
-         - [x] webhook ingestion — `checkout.session.completed`,
-               `customer.subscription.created` and `invoice.paid`, each with a
-               new provider event id and `outcome: applied`, no conflicts
-         - [x] annual entitlement — `planKey: plus_annual`, `tier: plus`,
-               `status: active`, `billingInterval: year`,
-               `cancelAtPeriodEnd: false`, period end present
-         - [x] account display — `/you` shows "Annual plan · Renews August 22,
-               2027", non-gold PLUS badge, benefits, Manage billing
-         - [x] pricing behaviour — Plus marked current, duplicate Checkout
-               blocked, zero enabled purchase controls
-         - [x] Portal visibility — annual subscription, $79.99/year, matching
-               renewal date, paid invoice, no plan switching or quantity
-         **The monthly subscriber was not used and is byte-identical.**
-         Public billing remains intentionally inactive: `/pricing` has no annual
-         control, so the existing development-only control was used.
-   - [ ] production Portal activation
-
-   **Do not use the current active monthly subscriber for annual Checkout.**
-   Convex refuses a second purchase and the webhook guard refuses to repoint the
-   row, but **neither cancels or refunds** — Stripe would still bill twice. Use a
-   separate sandbox QA account, or wait until that monthly subscription is
-   genuinely terminal. Note that end-of-period cancellation leaves it `active`
-   until the period actually ends, so cancelling does not free that account
-   quickly.
-
+- [ ] verify the sandbox subscription remains active for its entire remaining period
+- [ ] verify terminal `customer.subscription.deleted` at the real period end
+- [ ] verify access changes at terminal cancellation
+- [ ] production Portal activation — configure the live Portal to the sandbox's
+      shape (cancel at period end **on**; plan switching, quantity and pause
+      **off**). See the live-activation steps under *Next up*
 #### Account experience
 
 - [x] **Plus identity badge is no longer gold** (2026-08-22, §6.14). Root cause
