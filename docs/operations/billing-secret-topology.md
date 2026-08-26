@@ -279,3 +279,40 @@ are rejected before any handler runs: delivery goes unrecorded, and the
 bounce-suppression logic has nothing to read. Neither failure is loud on its own,
 so both are listed as launch steps in `TODO.md` → *Next up* rather than trusted
 to be already set.
+
+---
+
+## 10. `OPERATOR_EMAIL` — the one that is not a secret at all
+
+Added 2026-08-26 with the operator alerts. **It is an address, not a
+credential**, and it is listed here for the opposite reason to everything above:
+not because leaking it would hurt, but because *forgetting* it is silent.
+
+| Variable | Lives in | Looks like | Read by |
+|---|---|---|---|
+| `OPERATOR_EMAIL` | Convex only | `jeff@…` | `convex/dunning.ts` → `notifyOperator` |
+
+**What it turns on.** Four situations where money moved and Stripe and Convex
+disagree about what it bought:
+
+| Alert | What has actually happened |
+|---|---|
+| `unmatched-payment` | Somebody paid and holds no entitlement. They will not know why. |
+| `duplicate-subscription` | Stripe is billing one account twice and will keep going. |
+| `lifetime-not-replaceable` | A subscription landed on an account that already paid $149. |
+| `lifetime-upgrade-needs-human` | A refund we owe and could not send. |
+
+Before this existed, all four were `console.log` lines in the Convex log.
+Nobody watches a log, and none of these are found by looking. They are found
+when a customer emails weeks later asking where their money went.
+
+**Unset means silence, not an error.** `notifyOperator` returns
+`{ sent: false, reason: "no-operator-email" }` and the webhook carries on
+normally, because an alert must never be able to fail a payment. So an unset
+variable is indistinguishable from a quiet month. Set it before launch and
+confirm it by reading the value back, exactly as you would a secret.
+
+**It is not on the alert path for anything routine.** Ordinary lifecycle,
+dunning, cancellations, grace expiry and successful lifetime upgrades all stay
+in the log. That restraint is the feature: an alert that fires during normal
+operation is one nobody reads by week three.
