@@ -76,6 +76,24 @@ A half-updated email is worse than an outdated one.
   no `url(`. See below.
 - **A link off our domain.**
 
+### The brand rule that catches people out
+
+**No em dashes. Ever. In any form.** A locked brand rule for every word a
+reader sees: emails, pages, video, all of it. Engineering notes like this one
+are not customer copy and are not held to it. The instruction is to **rewrite
+the sentence** rather than swap the punctuation for a comma and move on. A full
+stop usually does the job better anyway.
+
+The en dash is not a loophole and is banned in the same check. Both are asserted
+against the rendered text, in both languages, footer included.
+
+This was not obeyed when these emails were first written: eight sentences went
+out with em dashes in them and were rewritten on 2026-08-26. The check exists so
+that cannot happen quietly again.
+
+Also banned brand-wide: **courtroom words.** No "verdict", "judge" as a noun,
+"defendant", "sentence". Use plain words for what is actually happening.
+
 ### The tone rule
 
 **"Your card, not you."** Up to 40% of subscription churn is involuntary and

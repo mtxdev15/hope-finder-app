@@ -163,7 +163,7 @@ function copyEs(
         `Tu pago${amount} de Declare Plus no se completó${card}. ` +
           `Casi siempre es una tarjeta vencida o reemplazada, no algo que hayas hecho tú.`,
         `No has perdido nada. Tu Plus sigue activo hasta el <strong>${pausesOn}</strong> mientras lo intentamos de nuevo.`,
-        `Puedes actualizar tu tarjeta con el botón de abajo — o, si prefieres no abrir un enlace de un correo, ` +
+        `Puedes actualizar tu tarjeta con el botón de abajo. Si prefieres no abrir un enlace de un correo, ` +
           `entra a Declare y ve a Facturación. Los dos llevan al mismo lugar.`,
         `Y si el motivo es el dinero, respóndenos a este correo y dínoslo. ` +
           `Lo resolvemos. No tendrás que explicarlo dos veces.`,
@@ -181,7 +181,7 @@ function copyEs(
         `Seguimos sin poder procesar tu pago${amount} de Declare Plus${card}. ` +
           `Lo vamos a seguir intentando, y mientras tanto tu Plus sigue activo.`,
         `Si es una tarjeta vencida, actualizarla toma como un minuto. ` +
-          `Puedes usar el botón, o entrar a Declare e ir a Facturación — lo que prefieras.`,
+          `Puedes usar el botón, o entrar a Declare e ir a Facturación, lo que prefieras.`,
         `Tu Plus sigue activo hasta el <strong>${pausesOn}</strong>.`,
       ],
       cta: "Actualizar mi tarjeta",
@@ -195,7 +195,7 @@ function copyEs(
       heading: "Solo para avisarte",
       body: [
         `Todavía no hemos podido procesar tu tarjeta${card}, así que Declare Plus se pausa el <strong>${pausesOn}</strong>.`,
-        `Actualizar tu tarjeta toma como un minuto y todo vuelve enseguida — no se borra nada, ` +
+        `Actualizar tu tarjeta toma como un minuto y todo vuelve enseguida. No se borra nada, ` +
           `y nada de lo que has guardado se va a ningún lado.`,
         `Como antes, puedes usar el botón o entrar a Declare e ir a Facturación.`,
       ],
@@ -210,7 +210,7 @@ function copyEs(
     body: [
       `No pudimos procesar tu tarjeta${card}, así que Declare Plus está en pausa.`,
       `Sigues teniendo Declare. La Palabra de cada día, las Escrituras y todo lo que has guardado siguen aquí, ` +
-        `tal como lo dejaste — pausar Plus no te quita nada de eso.`,
+        `tal como lo dejaste. Pausar Plus no te quita nada de eso.`,
       `Cuando quieras, actualizar tu tarjeta vuelve a activar Plus al instante. No hay prisa y no hay penalización.`,
     ],
     cta: "Activar Plus de nuevo",
@@ -246,7 +246,7 @@ export function copyFor(
         `Your payment${amount} for Declare Plus didn't go through${card}. ` +
           `That's almost always an expired or replaced card rather than anything you did.`,
         `Nothing has been lost. Your Plus features stay on until <strong>${facts.pausesOn}</strong> while we try again.`,
-        `You can update your card from the button below — or, if you'd rather not click a link in an email, ` +
+        `You can update your card from the button below. If you'd rather not click a link in an email, ` +
           `just open Declare and go to Billing. Both go to the same place.`,
         `And if money is the reason, please reply to this email and say so. ` +
           `We'll sort something out. You will not be asked to explain yourself twice.`,
@@ -264,7 +264,7 @@ export function copyFor(
         `We're still not able to take your payment${amount} for Declare Plus${card}. ` +
           `We'll keep trying, and Plus stays on in the meantime.`,
         `If it's an expired card, updating it takes about a minute. ` +
-          `You can use the button, or open Declare and go to Billing — whichever you prefer.`,
+          `You can use the button, or open Declare and go to Billing, whichever you prefer.`,
         `Plus stays on until <strong>${facts.pausesOn}</strong>.`,
       ],
       cta: "Update your card",
@@ -278,7 +278,7 @@ export function copyFor(
       heading: "Just a heads up",
       body: [
         `We still haven't been able to reach your card${card}, so Declare Plus will pause on <strong>${facts.pausesOn}</strong>.`,
-        `Updating your card takes about a minute and everything comes straight back — nothing is deleted, ` +
+        `Updating your card takes about a minute and everything comes straight back. Nothing is deleted, ` +
           `and nothing you've saved goes anywhere.`,
         `As before, you can use the button or open Declare and go to Billing.`,
       ],
@@ -293,7 +293,7 @@ export function copyFor(
     body: [
       `We weren't able to reach your card${card}, so Declare Plus is paused.`,
       `You still have Declare. The daily Word, Scripture and everything you've saved are all still here, ` +
-        `exactly as you left them — pausing Plus doesn't take any of that away.`,
+        `exactly as you left them. Pausing Plus doesn't take any of that away.`,
       `Whenever you're ready, updating your card turns Plus back on right away. There's no rush and no penalty.`,
     ],
     cta: "Turn Plus back on",

@@ -276,6 +276,18 @@ for (const lang of EMAIL_LANGS) {
     !/[A-Z]{4,}/.test(rendered.replace(/Declare|Plus|Visa|Billing|Facturación|Palabra|Escrituras/g, "")));
   check(`[${lang}] no exclamation marks`, !rendered.includes("!") && !rendered.includes("¡"));
 
+  /* A LOCKED BRAND RULE, and it applies to the emails exactly as it applies to
+     the site: no em dashes, in any form. The instruction is to rewrite the
+     sentence rather than swap the punctuation, so this is asserted against the
+     RENDERED text — where a full stop or a comma has already done the work.
+     The rule survives here and not only in someone's memory. */
+  check(`[${lang}] no em dash anywhere in the copy`,
+    !rendered.includes("—"));
+  /* The en dash is the one people reach for when the em dash is banned, and it
+     is the same typographic gesture. It is not a loophole. */
+  check(`[${lang}] and no en dash standing in for one`,
+    !/\s–\s/.test(rendered));
+
   /* Every email carries the four fields the good ones do, and exactly one
      action — in whichever language it went out in. */
   for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
@@ -292,6 +304,10 @@ for (const lang of EMAIL_LANGS) {
        footer is a half-translated email. */
     check(`[${lang}] "${stage}" renders a footer in its own language`,
       html.includes(c.footer) && c.footer.length > 0);
+    /* The footer is copy too, and it is the piece most likely to be written
+       once and never re-read. */
+    check(`[${lang}] "${stage}" footer carries no em dash`,
+      !c.footer.includes("\u2014"));
   }
 
   check(`[${lang}] every email before the pause names the date it happens`,
