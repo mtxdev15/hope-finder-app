@@ -405,6 +405,8 @@ window.__I18N_STRINGS = {
     'plan.b3': 'Caminos activos ilimitados',
     'plan.portalErr': 'No pudimos abrir la facturación ahora. Inténtalo de nuevo.',
     'plan.keepErr': 'No pudimos restaurar tu plan ahora. Inténtalo de nuevo.',
+    'plan.stateLapsed': 'PLUS EN PAUSA',
+    'plan.lapsedMsg': 'Tu último pago no se procesó, así que Plus está en pausa. Actualiza tu tarjeta y se reanuda enseguida — no has perdido nada.',
     'plan.noSub': 'Todavía no hay una suscripción en esta cuenta.',
     'plan.freeGuidance': 'Guía Suave disponible hoy',
     'plan.freeSlots': 'espacios de Camino activos disponibles',

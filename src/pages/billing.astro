@@ -144,6 +144,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     'plan.updatePayment': 'Update payment',
     'plan.keepPlus': 'Keep Plus',
     'plan.keepErr': 'We could not restore your plan just now. Please try again.',
+    /* Reads beside the card title, which for this state is "Free plan" —
+       so the badge has to name what is paused, or it says the free plan is. */
+    'plan.stateLapsed': 'Plus paused',
+    'plan.lapsedMsg': 'Your last payment did not go through, so Plus is paused. Update your card and it starts again right away — nothing has been lost.',
     'billing.updateCard': 'Update card on Stripe',
     'billing.upgradeH': 'Switch to annual',
     'billing.switchToAnnual': 'Switch to annual',
@@ -545,7 +549,11 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       const rows: string[] = [];
       if (current === 'plus') {
         for (const k of ['plan.b1', 'plan.b2', 'plan.b3']) rows.push(tx(k, ''));
-      } else if (state === 'free' && ent && ent.remaining) {
+      } else if ((state === 'free' || state === 'lapsed') && ent && ent.remaining) {
+        /* `lapsed` too: they are on Free allowances now, and showing what they
+           currently have is more use than an empty card. The message directly
+           below still says Plus is paused and how to restart it, so this cannot
+           be mistaken for "nothing happened". */
         const r = ent.remaining;
         if (typeof r.gentleGuidanceToday === 'number') {
           rows.push(r.gentleGuidanceToday + ' ' + tx('plan.freeGuidance', 'Gentle Guidance left today'));
@@ -567,6 +575,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         'plus-cancelling': 'plan.cancellingMsg',
         'plus-attention': 'plan.attentionMsg',
         'plus-ambiguous': 'plan.ambiguousMsg',
+        lapsed: 'plan.lapsedMsg',
         unavailable: 'plan.unavailableMsg',
         free: 'billing.freeMsg',
       };
@@ -591,7 +600,16 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
           ? 'payment_attention_cta_selected'
           : intent === 'keep-plus' ? 'keep_plus_selected' : 'manage_billing_selected';
         acts.appendChild(button(label, (self) => {
-          track(evt, { authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing' });
+          /* displayed_tier is what the PAGE is showing them, not what they once
+             had. A lapsed subscriber is being shown Free, and reporting 'plus'
+             here would make the funnel read as though paying subscribers were
+             clicking Update payment. */
+          track(evt, {
+            authenticated: true,
+            displayed_tier: current || 'free',
+            presentation: state,
+            source: 'billing',
+          });
           /* Keep Plus resolves in place; every other intent needs the portal,
              which is the right tool for card changes and invoice PDFs. */
           if (intent === 'keep-plus') keepPlus(self); else manageBilling(self);

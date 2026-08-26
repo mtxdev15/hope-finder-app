@@ -36,6 +36,7 @@ export const PLAN_STATES = /** @type {const} */ ([
   'plus-cancelling', // paid through the period, then ends
   'plus-attention',  // payment needs attention; access may still be live
   'plus-ambiguous',  // more than one provider is billing — do not guess
+  'lapsed',          // a payment failed AND the grace window has now expired
 ]);
 
 /* Statuses we recognise as a live subscription. Anything outside this set is
@@ -62,6 +63,25 @@ export function planState(ent, opts) {
   /* Ambiguity outranks everything except not-knowing. Two providers billing the
      same account is a real problem and the UI must not silently pick one. */
   if (ent.duplicateProviders === true) return 'plus-ambiguous';
+
+  /* LAPSED — a failed payment whose grace window has run out.
+   *
+   * This MUST be tested before the tier shortcut below. entitlements.ts returns
+   * `{ tier: 'free', needsAttention: true }` for exactly one situation — a
+   * past_due or unpaid subscription past its grace end (entitlements.ts:128) —
+   * and the old ordering returned 'free' before that flag was ever read.
+   *
+   * The consequence was not cosmetic. 'free' hides the billing sections, so the
+   * one route to the Stripe Portal disappeared; `past_due` is in
+   * BLOCKS_NEW_CHECKOUT so they could not buy again either; and the page told
+   * them they were "using the essential Declare experience" without once
+   * mentioning that their card had failed. A subscriber whose card expired was
+   * silently downgraded and left with no way back.
+   *
+   * No other branch of interpret() pairs a free tier with needsAttention: the
+   * lifetime, cancelled-past-period and fallback branches all return
+   * needsAttention: false. So this pair identifies the lapse unambiguously. */
+  if (tier === 'free' && ent.paymentNeedsAttention === true) return 'lapsed';
 
   if (tier !== 'plus') {
     /* Not Plus. `free` is only correct for a tier we actually recognise. */
@@ -96,7 +116,13 @@ export function mayStartCheckout(state) {
 
 /** True when this state should offer the Stripe Portal. */
 export function showsManageBilling(state) {
-  return state === 'plus-active' || state === 'plus-cancelling' || state === 'plus-attention';
+  /* `lapsed` is here for the reason the whole state exists: their subscription
+     is in past_due or unpaid, which is recoverable through the Portal and ONLY
+     through the Portal — BLOCKS_NEW_CHECKOUT refuses them a fresh Checkout on
+     exactly those statuses. Withholding this control is what turned an expired
+     card into a dead end. */
+  return state === 'plus-active' || state === 'plus-cancelling' ||
+         state === 'plus-attention' || state === 'lapsed';
 }
 
 /* Which word goes in front of the period-end date. Getting this wrong tells
@@ -105,7 +131,7 @@ export function showsManageBilling(state) {
 export function periodLabelKey(state) {
   if (state === 'plus-cancelling') return 'plan.cancels';
   if (state === 'plus-active') return 'plan.renews';
-  return null; // attention/ambiguous/free: no date claim
+  return null; // attention/ambiguous/free/lapsed: no date claim
 }
 
 /* Cadence, from the provider-neutral interval the contract now returns. Never
@@ -146,6 +172,7 @@ export const STATE_LABEL_KEYS = {
   'plus-cancelling': 'plan.stateCancelling',
   'plus-attention': 'plan.stateAttention',
   'plus-ambiguous': 'plan.stateAmbiguous',
+  lapsed: 'plan.stateLapsed',
   free: 'plan.stateFree',
   guest: 'plan.stateGuest',
   loading: 'plan.stateLoading',
@@ -195,6 +222,13 @@ export const PLAN_IDS = /** @type {const} */ (['free', 'plus']);
  */
 export function currentPlanId(state) {
   if (typeof state !== 'string') return null;
+  /* A lapsed subscriber holds FREE. Their Plus subscription still exists in
+     Stripe and is recoverable, but access has genuinely stopped — saying "your
+     current plan is Plus" to somebody who lost Plus this morning is the lie
+     this module exists to prevent. Tested before the prefix rule, which is also
+     why the state is named `lapsed` and not `plus-lapsed`: one exception is
+     easier to keep true than a name that reads as its own opposite. */
+  if (state === 'lapsed') return 'free';
   if (state.indexOf('plus-') === 0) return 'plus';
   if (state === 'free') return 'free';
   return null; // guest, loading, unavailable
@@ -245,6 +279,10 @@ export function planStatusKey(planId, state) {
   if (state === 'plus-attention') return 'plan.stateAttention';
   if (state === 'plus-cancelling') return 'plan.stateEnding';
   if (state === 'plus-ambiguous') return 'plan.stateAmbiguous';
+  /* Reached through the FREE card, since currentPlanId('lapsed') is 'free'. It
+     outranks "Current plan" for the same reason attention does: when something
+     needs doing, that is the thing to say. */
+  if (state === 'lapsed') return 'plan.stateLapsed';
   return 'plans.currentPlan';
 }
 
@@ -281,7 +319,10 @@ export function plusCtaIntent(state, pricingEnabled) {
   /* A subscriber never sees a purchase control, enabled or not. What they need
      is a way to manage what they already have — and which management action
      depends on what is wrong, if anything. */
-  if (state === 'plus-attention') return 'update-payment';
+  /* Same action as attention, and deliberately so: the fix is identical — put a
+     working card on the existing subscription. What differs is only whether
+     access is still running while they do it. */
+  if (state === 'plus-attention' || state === 'lapsed') return 'update-payment';
   if (state === 'plus-cancelling') return 'keep-plus';
   if (state === 'plus-active' || state === 'plus-ambiguous') return 'manage-billing';
   /* Not a subscriber. Only a state we RECOGNISE may offer a purchase: a failed
