@@ -22,6 +22,7 @@ window.__I18N_STRINGS = {
     'nav.plans': 'Planes',
     'nav.about': 'Acerca de',
     'nav.help': 'Ayuda y soporte',
+    'legal.seller': 'Declare & Believe es un producto de JC Kingdom Ventures, LLC.',
     'nav.privacy': 'Privacidad',
     'nav.terms': 'Términos',
     'nav.giveTerms': 'Términos de donación',

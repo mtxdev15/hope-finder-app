@@ -264,12 +264,23 @@ has paid you money.
       failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
       cancellation). *An alert with no resolution check is how a silently
       cancelled subscriber goes unnoticed.*
-- [ ] **B5. Confirm privacy and terms are reachable** from `/pricing` and from
-      Checkout. Required by Stripe, and by anyone deciding whether to trust you
-      with a card.
-
-### Phase C — open the doors
-
+- [x] ~~**B5. Privacy and terms reachable — DONE 2026-08-26.**
+      **Stripe side already done:** Settings → Business → Public details carries the privacy
+      policy URL and terms of service URL, so Checkout shows them. (Customer support URL is
+      still blank — optional; `/help` exists if it is ever wanted.)
+      **App side was the real gap.** Both documents existed in both languages, but were linked
+      only from `/` and `/you` — **`/pricing` had nothing**, which is the page where money is
+      decided and the only one Stripe cares about.
+      Added `src/components/LegalFooter.astro`, used on all four money pages: `/pricing`,
+      `/billing`, `/checkout/success`, `/checkout/cancelled`. One component rather than four
+      copies, because the copy that drifts is always the one nobody looks at again.
+      It also **names the seller** — an unrecognised card descriptor is one of the most common
+      causes of a chargeback, and a dispute over $8.99 costs more than the $8.99.
+      Links carry `data-i18n-href` to `/es/privacidad` and `/es/terminos`: dropping a Spanish
+      reader into English legal text is the one place in the app where the wrong language is
+      more than awkward.
+      Asserted in `verify-plans-billing-states.ts` against the **built** `dist/` html, not the
+      source — a component that fails to render leaves the source identical.
 - [ ] **C1. Merge `claude/billing-pricing-cta-stage6`.** Nine assertions across
       four suites must be **rewritten, not relaxed** — they enforce that
       production is *structurally* incapable of starting a Checkout, and merging

@@ -12,6 +12,7 @@
  * allowlisted before it can reach the page: see checkout-return.js.
  */
 import DeclareLayout from '../../layouts/DeclareLayout.astro';
+import LegalFooter from '../../components/LegalFooter.astro';
 ---
 <DeclareLayout
   title="Declare — Checkout cancelled"
@@ -43,6 +44,7 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
         <a class="cor-link" href="/you" data-i18n="checkout.viewAccount">View your account</a>
       </div>
     </div>
+  <LegalFooter />
   </main>
 </DeclareLayout>
 

@@ -5,6 +5,10 @@
 `convex/subscriptions.ts:applyWebhook`. Asserted by
 `scripts/verify-dunning-emails.ts`.
 
+> **Changing these emails?** `editing-the-billing-emails.md` is the practical
+> guide — what to edit, what the suite will reject, and why there is no logo
+> image. This document is the reasoning behind them.
+
 ---
 
 ## A note on the research behind this

@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
    are. A grep proves the file mentions a rule; running it proves the rule. */
 import {
   dunningDelayMs, dunningSchedule, copyFor, render, money, longDate,
-  billingUrl, emailLang,
+  billingUrl, homeUrl, emailLang,
 } from "../convex/dunningSchedule.ts";
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
@@ -284,9 +284,9 @@ for (const lang of EMAIL_LANGS) {
     check(`[${lang}] "${stage}" names the card`, c.body.join(" ").includes(facts.card));
     check(`[${lang}] "${stage}" offers exactly one action`,
       typeof c.cta === "string" && c.cta.length > 0);
-    const html = render(c, billingUrl("https://declareandbelieve.com", lang));
-    check(`[${lang}] "${stage}" renders exactly one link`,
-      (html.match(/<a /g) || []).length === 1);
+    const html = render(c, billingUrl("https://declareandbelieve.com", lang), homeUrl("https://declareandbelieve.com", lang));
+    check(`[${lang}] "${stage}" renders one action and one way home`,
+      (html.match(/<a /g) || []).length === 2);
     check(`[${lang}] "${stage}" renders no image or tracking pixel`, !/<img/i.test(html));
     /* The footer is part of the message, so a translated email with an English
        footer is a half-translated email. */
@@ -347,6 +347,53 @@ check("[es] an alternative to clicking the link is offered",
 check("[es] the emails address the reader as tú, matching the app",
   /\btu tarjeta\b/.test(renderedFor("es")) && !/\bsu tarjeta\b/.test(renderedFor("es")) &&
   !/\busted\b/i.test(renderedFor("es")));
+
+/* ── 5b. It looks like Declare, without an image ─────────────────────────── */
+section("5b. Branded, with nothing to load and nothing to block");
+
+for (const lang of EMAIL_LANGS) {
+  for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
+    const html = render(copyFor(stage, factsFor(lang), lang),
+      billingUrl("https://declareandbelieve.com", lang),
+      homeUrl("https://declareandbelieve.com", lang));
+
+    check(`[${lang}] "${stage}" carries the wordmark`,
+      html.includes("Declare &amp; Believe"));
+    /* Georgia is the one that actually renders. Cormorant Garamond is named
+       first so a client that somehow has it uses it, but a stack that ends at a
+       webfont this email never loads is a declaration with no font behind it. */
+    check(`[${lang}] "${stage}" sets a serif with a fallback that exists`,
+      /font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif/.test(html));
+
+    /* THE CONSTRAINT THAT MAKES THE TEXT WORDMARK NECESSARY. A remote image is
+       the exact mechanism an open-tracking pixel uses, and Gmail strips inline
+       SVG anyway, so neither is a way to add a logo later. */
+    check(`[${lang}] "${stage}" loads nothing from anywhere`,
+      !/<img/i.test(html) && !/<svg/i.test(html) && !/\ssrc=/i.test(html) &&
+      !/background-image/i.test(html) && !/url\(/i.test(html));
+
+    /* THE INVARIANT, and it is about destinations rather than count. Every
+       anchor points at our own domain — a link anywhere else is the phishing
+       shape we are defending against — and exactly one of them is an ACTION.
+       The wordmark links home so an anxious reader can reach the site without
+       following a link about money. */
+    const hrefs = Array.from(html.matchAll(/<a\s[^>]*href="([^"]*)"/g)).map((m) => m[1]);
+    check(`[${lang}] "${stage}" links only to our own domain`,
+      hrefs.length > 0 &&
+      hrefs.every((h) => h.startsWith("https://declareandbelieve.com")));
+    check(`[${lang}] "${stage}" offers exactly one action`,
+      hrefs.filter((h) => h.includes("/billing")).length === 1);
+    check(`[${lang}] "${stage}" gives the reader a way back to the site`,
+      hrefs.some((h) => /^https:\/\/declareandbelieve\.com\/(\?|$)/.test(h)));
+    check(`[${lang}] "${stage}" links the wordmark, as the way home`,
+      /<a href="[^"]*"[^>]*>Declare &amp; Believe<\/a>/.test(html));
+  }
+}
+/* The palette is the app's, not a generic email template's. */
+const BRANDED = render(copyFor("failed", FACTS), billingUrl("https://declareandbelieve.com"), homeUrl("https://declareandbelieve.com"));
+check("the button is forest, the app's primary", /background:#2D4A3E/.test(BRANDED));
+check("the ground is cream and the rules are parchment",
+  /background:#FAF7F2/.test(BRANDED) && /#E8E0D0/.test(BRANDED));
 
 /* ── 6. The language actually reaches the email ──────────────────────────── */
 section("6. A Spanish subscriber is written to in Spanish");
