@@ -29,6 +29,7 @@
  * declare-lang cookie), reached as /pricing?lang=es.
  */
 import DeclareLayout from '../layouts/DeclareLayout.astro';
+import LegalFooter from '../components/LegalFooter.astro';
 ---
 <DeclareLayout
   title="Declare — Plans"
@@ -178,15 +179,16 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         </details>
         <details class="pl-q">
           <summary data-i18n="plans.q3">What if a payment fails?</summary>
-          <p data-i18n="plans.a3">You keep your access while we sort it out, and you will see a note asking you to take a second look at your payment method.</p>
+          <p data-i18n="plans.a3">Nothing shuts off that day. Your Plus stays on for 16 days while we keep trying the card, and we email you along the way so nothing is a surprise. Most of the time it is simply an expired or replaced card, and updating it in Billing takes about a minute. If money is the reason, reply to any of those emails and tell us. We will work something out.</p>
         </details>
         <details class="pl-q">
           <summary data-i18n="plans.q4">Can I switch between monthly and annual?</summary>
-          <p data-i18n="plans.a4">Yes. You can manage your plan and payment method any time from Billing.</p>
+          <p data-i18n="plans.a4">Yes. You can switch to annual any time from Billing. We credit the days you have already paid for and not used, so you only pay the difference, and your next renewal is the annual price.</p>
         </details>
       </section>
 
     </div>
+  <LegalFooter />
   </main>
 
 <script>
@@ -236,7 +238,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     'plans.perMonth': '/ month',
     'plans.perYear': '/ year',
     'plans.billedMonthly': 'Billed monthly',
-    'plans.billedAnnual': 'Billed annually \u2014 about $6.67 a month',
+    'plans.billedAnnual': 'Billed annually, about $6.67 a month',
   };
 
   /* The fallback is looked up per key. A caller may still pass one explicitly,
@@ -273,7 +275,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     if (interval === 'year') {
       if (amt) amt.textContent = money(ANNUAL_CENTS);
       if (per) per.textContent = tx('plans.perYear', '/ year');
-      if (note) note.textContent = tx('plans.billedAnnual', 'Billed annually — about $6.67 a month');
+      if (note) note.textContent = tx('plans.billedAnnual', 'Billed annually, about $6.67 a month');
     } else {
       if (amt) amt.textContent = money(MONTHLY_CENTS);
       if (per) per.textContent = tx('plans.perMonth', '/ month');

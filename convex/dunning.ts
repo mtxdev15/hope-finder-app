@@ -63,6 +63,7 @@ import { PAST_DUE_GRACE_MS } from "./entitlementCatalog";
 import {
   type DunningStage,
   billingUrl,
+  homeUrl,
   copyFor,
   emailLang,
   longDate,
@@ -189,7 +190,7 @@ export const sendDunningEmail = internalAction({
       from: FROM_EMAIL,
       to,
       subject: copy.subject,
-      html: render(copy, billingUrl(site, lang)),
+      html: render(copy, billingUrl(site, lang), homeUrl(site, lang)),
     });
 
     /* The join between "we sent this" and whatever Resend later says about it.

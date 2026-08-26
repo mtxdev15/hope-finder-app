@@ -146,35 +146,43 @@ real charges instead of two.
       Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
       suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
 
-- [ ] **The dashboard steps for the billing-page + dunning work.** All the code is
-      merged and deployed by then; these four cannot be done from a terminal, and the
-      sequence below is deliberate — each one is safe only once the one above it has landed.
+- [x] ~~**The dashboard steps for the billing-page + dunning work. ALL DONE 2026-08-26.**
 
-      1. **`npx convex deploy`** — ships the emails, the `locale` and `dunningSends`
-         schema additions, and the `lapsed` billing state. Both schema changes are
-         additive and need no backfill.
-      2. **Stripe → Settings → Billing → *Subscriptions and emails*: turn OFF
-         "Send emails when card payments fail"** and "Send emails when bank debit
-         payments fail". **Only after step 1.** Off with nothing deployed is not
-         "fewer emails", it is none. Confirmed **ON** in a screenshot on 2026-08-26 —
-         `dunning-plan.md` had assumed otherwise and has been corrected.
-      3. **Stripe → same page → *Manage failed payments* → Subscription status:
-         change "cancel the subscription" to "leave the subscription past-due"** (B3).
-         Confirmed as `cancel` in the same screenshot. This is what lets a returning
-         subscriber repair a card in the Portal instead of buying again, and it is what
-         the `lapsed` state on `/billing` exists to serve.
-      4. **Resend → Webhooks → add `https://<convex-site>/resend/email-event`**, then
-         set its signing secret as `RESEND_WEBHOOK_SECRET` in Convex production. Until
-         this exists, delivery events fail closed and are simply not recorded — the
-         suppression-on-bounce logic has nothing to read.
+      1. **`npx convex deploy`** — clean. `Schema validation complete`, `No indexes are deleted`,
+         and both `dunningSends` indexes added. The `locale` field does not appear in that output
+         because an optional field creates no index; that is expected, not a miss.
+      2. **Stripe failed-payment emails OFF** — both *card payments fail* and *bank debit
+         payments fail*, verified off in a screenshot after saving. Done AFTER step 1, which was
+         the ordering that mattered.
+      3. **Smart Retry final action → `leave the subscription past-due`** (B3). Verified.
+      4. **Resend webhook** → `https://keen-hamster-650.convex.site/resend/email-event`,
+         confirmed via the Resend API as `enabled` with exactly six events —
+         `sent, delivered, bounced, complained, failed, delivery_delayed` — and **no
+         `opened`/`clicked`**, which our code ignores by design.
+         `RESEND_WEBHOOK_SECRET` set on prod. `RESEND_API_KEY` confirmed already present.
 
-      Also confirm **`RESEND_API_KEY`** is set in Convex production. Without it every
-      send throws and the whole sequence is silent.
+      **The near-miss worth remembering.** *Manage payments that require confirmation* has a
+      **Subscription status** dropdown that reads almost identically to the one in *Manage failed
+      payments*, and it was changed to `leave the subscription past-due` along with the intended
+      one. It governs `incomplete` — somebody who started Checkout and never confirmed 3D Secure,
+      **so never paid**. `entitlements.ts:119` treats `past_due` as grace and grace grants
+      `tier: "plus"`, and with no period end the clock runs from `updatedAt` — so that person
+      would have received **16 days of Plus for free**, plus the full four-email sequence telling
+      them their Plus "stays on until…". Reverted to `cancel`, which is correct: an initial
+      payment never confirmed should expire, not become a debt.
+      **If that dropdown ever reads anything but `cancel the subscription`, this is why.**~~
 
-      Deliberately **not** changed: *"if a recurring payment is incomplete for 15 days,
-      cancel"* governs `incomplete` — a first payment where 3D Secure was never
-      confirmed — which is a different state from `past_due` and is right as it is.
-      *"Send finalized invoices and credit notes"* stays **on**; those are receipts.
+- [ ] **SECURITY — rotate `RESEND_API_KEY`.** The live key was pasted into a chat transcript on
+      2026-08-26 (`re_AnQGhWaD…`) and should be treated as compromised. Deliberately deferred at
+      the time, recorded here so it is not lost. Nothing is at risk while no subscriber has a
+      failing card, but a leaked sending key is a spam-from-your-domain problem, and domain
+      reputation is what gets these emails delivered at all.
+      Order matters — a new key is useless if Convex still holds the old one:
+      1. Resend → API Keys → new key with **Sending access**
+      2. `npx convex env set RESEND_API_KEY <new> --prod`
+      3. Resend → delete the old key
+      Between 2 and 3 both work, so there is no window where sending breaks.
+      To check presence without printing values: `npx convex env list --prod | grep -o '^[A-Z_]*'`
 
 ## 💳 Path to the first paying subscriber
 
@@ -246,23 +254,33 @@ has paid you money.
       (0, 2, 3) but became 0, 15, 16 at sixteen — one email, two weeks of silence, then two inside
       a day. A midpoint `reminder` stage was added, so the sequence is now 0, 8, 15, 16. Four
       emails, against Stripe's eight.
-- [ ] **B3. Smart Retry's final action — CONFIRMED as `cancel`, still to change.**
-      No longer an assumption: a screenshot of the live Dashboard on 2026-08-26 shows
-      *"If all retries for a payment fail, cancel the subscription"*. Recommendation is
-      **leave the subscription past-due**, so a returning subscriber repairs a card through the
-      Portal rather than buying again from scratch — which is what the `lapsed` state on
-      `/billing` exists to keep open. Dashboard-only; a restricted key is refused for it.
-      *Harm if skipped: subscriptions ending without anyone choosing that.*
+- [x] ~~**B3. Smart Retry's final action — DONE 2026-08-26.** Changed from the default
+      `cancel the subscription` to **`leave the subscription past-due`**, verified in a
+      screenshot after saving. A returning subscriber now repairs a card through the Portal
+      rather than buying again from scratch — which is exactly what the `lapsed` state on
+      `/billing` exists to serve. On `cancel` that state would have rendered a button leading
+      nowhere.~~
 - [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
       failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
       cancellation). *An alert with no resolution check is how a silently
       cancelled subscriber goes unnoticed.*
-- [ ] **B5. Confirm privacy and terms are reachable** from `/pricing` and from
-      Checkout. Required by Stripe, and by anyone deciding whether to trust you
-      with a card.
-
-### Phase C — open the doors
-
+- [x] ~~**B5. Privacy and terms reachable — DONE 2026-08-26.**
+      **Stripe side already done:** Settings → Business → Public details carries the privacy
+      policy URL and terms of service URL, so Checkout shows them. (Customer support URL is
+      still blank — optional; `/help` exists if it is ever wanted.)
+      **App side was the real gap.** Both documents existed in both languages, but were linked
+      only from `/` and `/you` — **`/pricing` had nothing**, which is the page where money is
+      decided and the only one Stripe cares about.
+      Added `src/components/LegalFooter.astro`, used on all four money pages: `/pricing`,
+      `/billing`, `/checkout/success`, `/checkout/cancelled`. One component rather than four
+      copies, because the copy that drifts is always the one nobody looks at again.
+      It also **names the seller** — an unrecognised card descriptor is one of the most common
+      causes of a chargeback, and a dispute over $8.99 costs more than the $8.99.
+      Links carry `data-i18n-href` to `/es/privacidad` and `/es/terminos`: dropping a Spanish
+      reader into English legal text is the one place in the app where the wrong language is
+      more than awkward.
+      Asserted in `verify-plans-billing-states.ts` against the **built** `dist/` html, not the
+      source — a component that fails to render leaves the source identical.
 - [ ] **C1. Merge `claude/billing-pricing-cta-stage6`.** Nine assertions across
       four suites must be **rewritten, not relaxed** — they enforce that
       production is *structurally* incapable of starting a Checkout, and merging

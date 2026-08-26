@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
    are. A grep proves the file mentions a rule; running it proves the rule. */
 import {
   dunningDelayMs, dunningSchedule, copyFor, render, money, longDate,
-  billingUrl, emailLang,
+  billingUrl, homeUrl, emailLang,
 } from "../convex/dunningSchedule.ts";
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
@@ -276,6 +276,18 @@ for (const lang of EMAIL_LANGS) {
     !/[A-Z]{4,}/.test(rendered.replace(/Declare|Plus|Visa|Billing|Facturación|Palabra|Escrituras/g, "")));
   check(`[${lang}] no exclamation marks`, !rendered.includes("!") && !rendered.includes("¡"));
 
+  /* A LOCKED BRAND RULE, and it applies to the emails exactly as it applies to
+     the site: no em dashes, in any form. The instruction is to rewrite the
+     sentence rather than swap the punctuation, so this is asserted against the
+     RENDERED text — where a full stop or a comma has already done the work.
+     The rule survives here and not only in someone's memory. */
+  check(`[${lang}] no em dash anywhere in the copy`,
+    !rendered.includes("—"));
+  /* The en dash is the one people reach for when the em dash is banned, and it
+     is the same typographic gesture. It is not a loophole. */
+  check(`[${lang}] and no en dash standing in for one`,
+    !/\s–\s/.test(rendered));
+
   /* Every email carries the four fields the good ones do, and exactly one
      action — in whichever language it went out in. */
   for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
@@ -284,14 +296,18 @@ for (const lang of EMAIL_LANGS) {
     check(`[${lang}] "${stage}" names the card`, c.body.join(" ").includes(facts.card));
     check(`[${lang}] "${stage}" offers exactly one action`,
       typeof c.cta === "string" && c.cta.length > 0);
-    const html = render(c, billingUrl("https://declareandbelieve.com", lang));
-    check(`[${lang}] "${stage}" renders exactly one link`,
-      (html.match(/<a /g) || []).length === 1);
+    const html = render(c, billingUrl("https://declareandbelieve.com", lang), homeUrl("https://declareandbelieve.com", lang));
+    check(`[${lang}] "${stage}" renders one action and one way home`,
+      (html.match(/<a /g) || []).length === 2);
     check(`[${lang}] "${stage}" renders no image or tracking pixel`, !/<img/i.test(html));
     /* The footer is part of the message, so a translated email with an English
        footer is a half-translated email. */
     check(`[${lang}] "${stage}" renders a footer in its own language`,
       html.includes(c.footer) && c.footer.length > 0);
+    /* The footer is copy too, and it is the piece most likely to be written
+       once and never re-read. */
+    check(`[${lang}] "${stage}" footer carries no em dash`,
+      !c.footer.includes("\u2014"));
   }
 
   check(`[${lang}] every email before the pause names the date it happens`,
@@ -347,6 +363,53 @@ check("[es] an alternative to clicking the link is offered",
 check("[es] the emails address the reader as tú, matching the app",
   /\btu tarjeta\b/.test(renderedFor("es")) && !/\bsu tarjeta\b/.test(renderedFor("es")) &&
   !/\busted\b/i.test(renderedFor("es")));
+
+/* ── 5b. It looks like Declare, without an image ─────────────────────────── */
+section("5b. Branded, with nothing to load and nothing to block");
+
+for (const lang of EMAIL_LANGS) {
+  for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
+    const html = render(copyFor(stage, factsFor(lang), lang),
+      billingUrl("https://declareandbelieve.com", lang),
+      homeUrl("https://declareandbelieve.com", lang));
+
+    check(`[${lang}] "${stage}" carries the wordmark`,
+      html.includes("Declare &amp; Believe"));
+    /* Georgia is the one that actually renders. Cormorant Garamond is named
+       first so a client that somehow has it uses it, but a stack that ends at a
+       webfont this email never loads is a declaration with no font behind it. */
+    check(`[${lang}] "${stage}" sets a serif with a fallback that exists`,
+      /font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif/.test(html));
+
+    /* THE CONSTRAINT THAT MAKES THE TEXT WORDMARK NECESSARY. A remote image is
+       the exact mechanism an open-tracking pixel uses, and Gmail strips inline
+       SVG anyway, so neither is a way to add a logo later. */
+    check(`[${lang}] "${stage}" loads nothing from anywhere`,
+      !/<img/i.test(html) && !/<svg/i.test(html) && !/\ssrc=/i.test(html) &&
+      !/background-image/i.test(html) && !/url\(/i.test(html));
+
+    /* THE INVARIANT, and it is about destinations rather than count. Every
+       anchor points at our own domain — a link anywhere else is the phishing
+       shape we are defending against — and exactly one of them is an ACTION.
+       The wordmark links home so an anxious reader can reach the site without
+       following a link about money. */
+    const hrefs = Array.from(html.matchAll(/<a\s[^>]*href="([^"]*)"/g)).map((m) => m[1]);
+    check(`[${lang}] "${stage}" links only to our own domain`,
+      hrefs.length > 0 &&
+      hrefs.every((h) => h.startsWith("https://declareandbelieve.com")));
+    check(`[${lang}] "${stage}" offers exactly one action`,
+      hrefs.filter((h) => h.includes("/billing")).length === 1);
+    check(`[${lang}] "${stage}" gives the reader a way back to the site`,
+      hrefs.some((h) => /^https:\/\/declareandbelieve\.com\/(\?|$)/.test(h)));
+    check(`[${lang}] "${stage}" links the wordmark, as the way home`,
+      /<a href="[^"]*"[^>]*>Declare &amp; Believe<\/a>/.test(html));
+  }
+}
+/* The palette is the app's, not a generic email template's. */
+const BRANDED = render(copyFor("failed", FACTS), billingUrl("https://declareandbelieve.com"), homeUrl("https://declareandbelieve.com"));
+check("the button is forest, the app's primary", /background:#2D4A3E/.test(BRANDED));
+check("the ground is cream and the rules are parchment",
+  /background:#FAF7F2/.test(BRANDED) && /#E8E0D0/.test(BRANDED));
 
 /* ── 6. The language actually reaches the email ──────────────────────────── */
 section("6. A Spanish subscriber is written to in Spanish");
@@ -432,6 +495,38 @@ check("hardship help is offered in the first email",
   /if money is the reason/i.test(SCHEDULE));
 check("the hardship offer asks for no proof",
   /not be asked to explain yourself twice/.test(SCHEDULE));
+
+/* ── 6b. What we tell people BEFORE they buy ─────────────────────────────── */
+section("6b. The promise on /pricing is the promise the code keeps");
+
+/* The FAQ now states the grace window as a number, because a specific is
+   believed where "we'll sort it out" is not. A number in customer-facing copy
+   that nobody derives is a number that goes stale silently — and this one is a
+   PROMISE about how long somebody keeps paid access. So it is checked against
+   the same constant the entitlement layer enforces. */
+const PRICING = read("src/pages/pricing.astro");
+const STRINGS = read("public/declare/i18n-strings.js");
+const faqEn = PRICING.slice(PRICING.indexOf('data-i18n="plans.a3"'));
+const faqEnAnswer = faqEn.slice(0, faqEn.indexOf("</p>"));
+
+check("the pricing FAQ states the grace window as a number",
+  new RegExp("\\b" + PAST_DUE_GRACE_DAYS + " days\\b").test(faqEnAnswer));
+check("and the Spanish says the same number",
+  new RegExp("\\b" + PAST_DUE_GRACE_DAYS + " días\\b").test(STRINGS));
+/* If the window ever moves, these two fail together and name themselves — which
+   is the only reason it is safe to print the number at all. */
+check("no OTHER day count is promised in the same answer",
+  (faqEnAnswer.match(/\b\d+ days\b/g) || []).every((m) => m === PAST_DUE_GRACE_DAYS + " days"));
+
+/* The brand rule is "no em dashes, ever". Asserted on the answers rather than
+   the file, because every other one in pricing.astro is in a code comment. */
+check("the FAQ answer carries no em dash", !faqEnAnswer.includes("—"));
+/* It also promises the hardship reply, which the first email actually honours.
+   A promise on the pricing page that the email never mentions would be a
+   promise nobody could act on. */
+check("the hardship offer is promised where it is also delivered",
+  /reply to any of those emails/i.test(faqEnAnswer) &&
+  /if money is the reason/i.test(SCHEDULE));
 
 /* ── 7. We know whether it arrived ───────────────────────────────────────── */
 section("7. A dunning email that does not arrive is not silent");

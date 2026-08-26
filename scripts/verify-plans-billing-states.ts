@@ -508,6 +508,47 @@ if (existsSync(DIST)) {
   check("no shipped page contains the preview function", !shipped.includes("previewEntitlement"));
   check("no shipped page contains the preview flag", !shipped.includes("PUBLIC_PLANS_PREVIEW"));
   check("no shipped page contains fixture data", !shipped.includes("gentleGuidanceToday: 3"));
+
+  /* ── B5: reachable privacy and terms ──────────────────────────────────
+   *
+   * A Stripe requirement, and it is not satisfied by the documents merely
+   * existing on the site — they must be reachable FROM the page that sells.
+   * Asserted against the BUILT html rather than the source, because a
+   * component that fails to render produces exactly the same source and a
+   * page with nothing on it.
+   *
+   * All four money pages, not just /pricing: somebody deciding whether to
+   * keep paying deserves the same links as somebody deciding to start. */
+  const MONEY_PAGES = [
+    "pricing/index.html",
+    "billing/index.html",
+    "checkout/success/index.html",
+    "checkout/cancelled/index.html",
+  ];
+  for (const rel of MONEY_PAGES) {
+    const page = existsSync(join(DIST, rel))
+      ? readFileSync(join(DIST, rel), "utf8")
+      : "";
+    check(`${rel} was built`, page.length > 0);
+    check(`${rel} links the privacy policy`, /href="\/privacy"/.test(page));
+    check(`${rel} links the terms of service`, /href="\/terms"/.test(page));
+    /* A Spanish reader must not be dropped into English legal text — the one
+       place in the app where the wrong language is more than awkward. */
+    check(`${rel} points a Spanish reader at the Spanish documents`,
+      /data-i18n-href="\/es\/privacidad"/.test(page) &&
+      /data-i18n-href="\/es\/terminos"/.test(page));
+    /* Who they are paying, before they pay — an unrecognised card descriptor
+       is one of the most common causes of a chargeback. */
+    check(`${rel} names the seller`, /JC Kingdom Ventures, LLC/.test(page));
+  }
+  check("the Spanish seller line exists, so the footer is not half-translated",
+    /'legal\.seller':/.test(I18N));
+  /* The documents themselves, in both languages. A link to a 404 is worse than
+     no link: it looks like an answer. */
+  for (const doc of ["privacy.html", "terms.html", "cookies.html",
+                     "es/privacidad.html", "es/terminos.html", "es/cookies.html"]) {
+    check(`the ${doc} document ships`, existsSync(join(DIST, doc)));
+  }
 } else {
   check("dist/ present for the build assertions (run `npm run build` first)", false);
 }

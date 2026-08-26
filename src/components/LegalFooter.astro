@@ -1,0 +1,80 @@
+---
+/* The legal footer for the pages where money is decided or shown.
+ *
+ * WHY THIS IS A COMPONENT AND NOT FOUR COPIES
+ * Stripe requires a reachable privacy policy and terms of service from the page
+ * that sells, and the requirement is not satisfied by having the documents
+ * somewhere on the site — they must be reachable from where the decision is
+ * made. Four hand-written copies would drift, and the one that drifted would be
+ * the one nobody looked at again.
+ *
+ * WHY IT ALSO NAMES THE SELLER
+ * The person paying should be able to see who they are paying before they pay,
+ * not first discover the name on a card statement. An unrecognised descriptor is
+ * one of the most common causes of a chargeback, and a chargeback from someone
+ * who simply forgot is a fee and a dispute over an $8.99 subscription.
+ *
+ * The links carry `data-i18n-href` so the Spanish menus land on the Spanish
+ * documents (/es/privacidad, /es/terminos, /es/cookies) rather than dropping a
+ * Spanish reader into English legal text — which is the one place in the app
+ * where the wrong language is not merely awkward.
+ */
+---
+
+<div class="lgf">
+  <p class="lgf-links">
+    <a href="/privacy" data-i18n-href="/es/privacidad" data-i18n="nav.privacy">Privacy</a>
+    <span aria-hidden="true">&middot;</span>
+    <a href="/terms" data-i18n-href="/es/terminos" data-i18n="nav.terms">Terms</a>
+    <span aria-hidden="true">&middot;</span>
+    <a href="/cookies" data-i18n-href="/es/cookies" data-i18n="nav.cookies">Cookies</a>
+    <span aria-hidden="true">&middot;</span>
+    <a href="/help" data-i18n-href="/es/ayuda" data-i18n="nav.help">Help &amp; support</a>
+  </p>
+  <p class="lgf-seller" data-i18n="legal.seller">
+    Declare &amp; Believe is a product of JC Kingdom Ventures, LLC.
+  </p>
+</div>
+
+<style>
+  .lgf {
+    max-width: 640px;
+    margin: 40px auto 0;
+    padding: 22px 16px 4px;
+    border-top: 1px solid var(--line, rgba(34, 56, 46, .08));
+    text-align: center;
+  }
+  .lgf-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 0 0 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .lgf-links a {
+    color: var(--text2, #465A50);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .lgf-links a:hover { color: var(--text, #22382E); border-bottom-color: currentColor; }
+  .lgf-links a:focus-visible {
+    outline: 2px solid var(--text2, #465A50);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  .lgf-links span { color: var(--muted, #7E8E84); }
+  .lgf-seller {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--muted, #7E8E84);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lgf-links a { transition: none; }
+  }
+</style>

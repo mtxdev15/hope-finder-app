@@ -163,7 +163,7 @@ function copyEs(
         `Tu pago${amount} de Declare Plus no se completó${card}. ` +
           `Casi siempre es una tarjeta vencida o reemplazada, no algo que hayas hecho tú.`,
         `No has perdido nada. Tu Plus sigue activo hasta el <strong>${pausesOn}</strong> mientras lo intentamos de nuevo.`,
-        `Puedes actualizar tu tarjeta con el botón de abajo — o, si prefieres no abrir un enlace de un correo, ` +
+        `Puedes actualizar tu tarjeta con el botón de abajo. Si prefieres no abrir un enlace de un correo, ` +
           `entra a Declare y ve a Facturación. Los dos llevan al mismo lugar.`,
         `Y si el motivo es el dinero, respóndenos a este correo y dínoslo. ` +
           `Lo resolvemos. No tendrás que explicarlo dos veces.`,
@@ -181,7 +181,7 @@ function copyEs(
         `Seguimos sin poder procesar tu pago${amount} de Declare Plus${card}. ` +
           `Lo vamos a seguir intentando, y mientras tanto tu Plus sigue activo.`,
         `Si es una tarjeta vencida, actualizarla toma como un minuto. ` +
-          `Puedes usar el botón, o entrar a Declare e ir a Facturación — lo que prefieras.`,
+          `Puedes usar el botón, o entrar a Declare e ir a Facturación, lo que prefieras.`,
         `Tu Plus sigue activo hasta el <strong>${pausesOn}</strong>.`,
       ],
       cta: "Actualizar mi tarjeta",
@@ -195,7 +195,7 @@ function copyEs(
       heading: "Solo para avisarte",
       body: [
         `Todavía no hemos podido procesar tu tarjeta${card}, así que Declare Plus se pausa el <strong>${pausesOn}</strong>.`,
-        `Actualizar tu tarjeta toma como un minuto y todo vuelve enseguida — no se borra nada, ` +
+        `Actualizar tu tarjeta toma como un minuto y todo vuelve enseguida. No se borra nada, ` +
           `y nada de lo que has guardado se va a ningún lado.`,
         `Como antes, puedes usar el botón o entrar a Declare e ir a Facturación.`,
       ],
@@ -210,7 +210,7 @@ function copyEs(
     body: [
       `No pudimos procesar tu tarjeta${card}, así que Declare Plus está en pausa.`,
       `Sigues teniendo Declare. La Palabra de cada día, las Escrituras y todo lo que has guardado siguen aquí, ` +
-        `tal como lo dejaste — pausar Plus no te quita nada de eso.`,
+        `tal como lo dejaste. Pausar Plus no te quita nada de eso.`,
       `Cuando quieras, actualizar tu tarjeta vuelve a activar Plus al instante. No hay prisa y no hay penalización.`,
     ],
     cta: "Activar Plus de nuevo",
@@ -246,7 +246,7 @@ export function copyFor(
         `Your payment${amount} for Declare Plus didn't go through${card}. ` +
           `That's almost always an expired or replaced card rather than anything you did.`,
         `Nothing has been lost. Your Plus features stay on until <strong>${facts.pausesOn}</strong> while we try again.`,
-        `You can update your card from the button below — or, if you'd rather not click a link in an email, ` +
+        `You can update your card from the button below. If you'd rather not click a link in an email, ` +
           `just open Declare and go to Billing. Both go to the same place.`,
         `And if money is the reason, please reply to this email and say so. ` +
           `We'll sort something out. You will not be asked to explain yourself twice.`,
@@ -264,7 +264,7 @@ export function copyFor(
         `We're still not able to take your payment${amount} for Declare Plus${card}. ` +
           `We'll keep trying, and Plus stays on in the meantime.`,
         `If it's an expired card, updating it takes about a minute. ` +
-          `You can use the button, or open Declare and go to Billing — whichever you prefer.`,
+          `You can use the button, or open Declare and go to Billing, whichever you prefer.`,
         `Plus stays on until <strong>${facts.pausesOn}</strong>.`,
       ],
       cta: "Update your card",
@@ -278,7 +278,7 @@ export function copyFor(
       heading: "Just a heads up",
       body: [
         `We still haven't been able to reach your card${card}, so Declare Plus will pause on <strong>${facts.pausesOn}</strong>.`,
-        `Updating your card takes about a minute and everything comes straight back — nothing is deleted, ` +
+        `Updating your card takes about a minute and everything comes straight back. Nothing is deleted, ` +
           `and nothing you've saved goes anywhere.`,
         `As before, you can use the button or open Declare and go to Billing.`,
       ],
@@ -293,7 +293,7 @@ export function copyFor(
     body: [
       `We weren't able to reach your card${card}, so Declare Plus is paused.`,
       `You still have Declare. The daily Word, Scripture and everything you've saved are all still here, ` +
-        `exactly as you left them — pausing Plus doesn't take any of that away.`,
+        `exactly as you left them. Pausing Plus doesn't take any of that away.`,
       `Whenever you're ready, updating your card turns Plus back on right away. There's no rush and no penalty.`,
     ],
     cta: "Turn Plus back on",
@@ -318,13 +318,45 @@ export function billingUrl(site: string, lang: EmailLang = "en"): string {
   return lang === "es" ? base + "?lang=es" : base;
 }
 
+/* Home, for a reader who would rather start from the front door than follow a
+ * link about money. Carries the language for the same reason billingUrl does. */
+export function homeUrl(site: string, lang: EmailLang = "en"): string {
+  const base = site.replace(/\/+$/, "") + "/";
+  return lang === "es" ? base + "?lang=es" : base;
+}
+
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
 /* Deliberately plain. A billing email that arrives looking like a marketing
  * campaign is both less trusted and more likely to be filtered, and this one
  * has to survive a reader who has been trained to distrust exactly this
- * message. Inline styles because email clients discard <style> blocks. */
-export function render(copy: Copy, url: string): string {
+ * message. Inline styles because email clients discard <style> blocks.
+ *
+ * THE WORDMARK IS TEXT, NOT AN IMAGE, and that is the whole trick. Every other
+ * company puts a logo file at the top of a billing email; we cannot, because a
+ * remote image is exactly the mechanism an open-tracking pixel uses and this
+ * file renders no <img> at all — a suite asserts it. Gmail also strips inline
+ * SVG, so that is not a way round it either. Set in the app's own Cormorant
+ * Garamond with Georgia as the real fallback, it carries the brand with no
+ * external request, nothing for a client to block, and nothing to load.
+ *
+ * IT LINKS HOME, and the invariant it lives under is worth stating exactly.
+ * An earlier version of this file allowed exactly ONE anchor, on the reasoning
+ * that a single unambiguous action is what resists phishing. That was stricter
+ * than the real property. What actually protects the reader is the card's last
+ * four, a link on our own domain, and the stated alternative to clicking at all
+ * — and a second link to our own front door weakens none of them. Somebody
+ * anxious about a payment should not have to follow a link about money just to
+ * reach the site.
+ *
+ * So the rule is: EVERY anchor points at our own domain, and exactly ONE of
+ * them is an action. The suite asserts both halves, which is the part that
+ * matters — the count was never the point, the destination is.
+ *
+ * The headings use the same serif as the app's headings; the body stays in the
+ * system sans stack, because a webfont this email never loads would be a
+ * declaration with no font behind it. */
+export function render(copy: Copy, url: string, home: string): string {
   const paras = copy.body
     .map(
       (t) =>
@@ -340,8 +372,13 @@ export function render(copy: Copy, url: string): string {
     : "";
   return `<div style="background:#FAF7F2;padding:32px 16px;">
     <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #E8E0D0;
-         border-radius:14px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-      <h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#2D4A3E;font-weight:600;">
+         border-radius:14px;padding:30px 32px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <p style="margin:0 0 22px;padding-bottom:17px;border-bottom:1px solid #E8E0D0;
+         font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:19px;
+         line-height:1;font-weight:600;letter-spacing:.005em;">
+         <a href="${home}" style="color:#2D4A3E;text-decoration:none;">Declare &amp; Believe</a></p>
+      <h1 style="margin:0 0 18px;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+         font-size:27px;line-height:1.22;color:#2D4A3E;font-weight:600;letter-spacing:-.005em;">
         ${copy.heading}
       </h1>
       ${paras}
