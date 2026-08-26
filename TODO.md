@@ -39,12 +39,64 @@ real charges instead of two.
       can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
       $149 returns the money and leaves Plus granted forever.
       **DONE 2026-08-26.** Destination now listens to 9 events.~~
+- [ ] **A0. Temporarily let localhost sign in to production — and take it back off.**
+      *Needed only for step 5. This is the one deliberate widening of production
+      auth in the whole launch, so it gets its own item rather than a footnote.*
+
+      **Why it is needed.** Better Auth only accepts sign-ins from websites on an
+      approved list. Production's list holds exactly one entry, the live domain,
+      built from `SITE_URL`. The dev checkout control exists only under
+      `npm run dev`, so the tester's browser is on `http://localhost:4321` — not on
+      the list — and Better Auth's `formCsrfMiddleware` refuses it with
+      `FORBIDDEN / INVALID_ORIGIN`. That refusal is the guard working correctly;
+      it is not a bug and must not be "fixed" by weakening the check.
+
+      `convex/auth.ts` therefore appends **one** extra origin read from
+      `EXTRA_TRUSTED_ORIGIN`, absent by default — so setting it is a visible,
+      deliberate act rather than a hardcoded hole.
+
+      **To turn it on:**
+      ```bash
+      npx convex deploy                                    # ship the auth.ts change
+      npx convex env set EXTRA_TRUSTED_ORIGIN "http://localhost:4321" --prod
+      ```
+
+      **To take it back off — do this the same day:**
+      ```bash
+      npx convex env remove EXTRA_TRUSTED_ORIGIN --prod
+      npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN   # must print NOTHING
+      ```
+      No redeploy is needed. Convex reads environment variables at call time, so the
+      removal takes effect on the very next sign-in attempt.
+
+      **How to confirm it is really gone.** The grep above printing nothing is the
+      check. If it still prints a line, the variable is still set and production
+      still trusts localhost — run the remove again and re-grep. Do not rely on
+      memory, the dashboard rendering, or this checkbox: run the command.
+
+      **What it does NOT do.** It does not change which backend your local site
+      talks to — that is decided only by `.env.development.local` on your own Mac.
+      Delete that file and local development points at dev Convex again exactly as
+      before. Nothing about the normal develop-then-push loop changes.
+
+      **The actual risk.** Small while it is set: browsers set the `Origin` header
+      themselves, so a remote attacker's site cannot forge `http://localhost:4321` —
+      someone would have to run a hostile app on that exact port on their own
+      machine. The real risk is **forgetting to remove it** and leaving production's
+      auth list widened for months. That is why C2 below is blocked on it.
+
 - [ ] **5. Stage 5 real-money smoke test.** *(Do **B1** first — see the ordering
-      correction above.)* The only true proof: Stripe permits no synthetic
-      events in live mode, and the endpoint has 0 deliveries ever. Run
-      `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` with `PUBLIC_CONVEX_SITE_URL` pointed at
-      production. Monthly, annual, lifetime, portal, cancel-at-period-end and its reversal.
-      **Decide before charging** whether to refund or keep as a canary — record it first, not after.
+      correction above. Requires **A0** directly above, and A0 must be undone afterwards.)*
+      The only true proof: Stripe permits no synthetic events in live mode, and the
+      endpoint has 0 deliveries ever. Run `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`
+      with `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` pointed at production.
+      **Decided 2026-08-26:** one **$8.99 monthly** purchase only, then refunded.
+      Not annual, not lifetime — one charge proves the whole live path (signature →
+      shared secret → classification → entitlement grant) and the refund exercises
+      `charge.refunded` on the way back out. Cost is the ~56¢ Stripe fee, which a
+      refund never returns.
+      Also **capture the real `invoice.paid` payload** while you are in there — it is
+      the only way to settle the API-version risk below.
 - [ ] **Open risk — webhook API version cannot be changed.** The destination is pinned to
       `2026-07-29.dahlia`; the code pins `2026-06-24.dahlia`. Exposure is narrow because the
       handler re-fetches the subscription through the pinned client, so `classifyPlusSubscription`,
@@ -71,11 +123,12 @@ portal that does not exist. B2–B5 still wait on step 5 passing.*
 These are not polish. Each one, missing, produces a specific harm to someone who
 has paid you money.
 
-- [ ] **B1. Configure the live Customer Portal.** Without it a subscriber cannot
+- [x] ~~**B1. Configure the live Customer Portal.** Without it a subscriber cannot
       cancel, cannot update a failing card, and cannot see what they were
       charged. Shape it like the sandbox: cancel at period end **on**; plan
       switching, quantity and pause **off**. *Harm if skipped: a paying customer
       with no way out. That is a consumer-protection problem, not a UX one.*
+      **DONE 2026-08-26.** Cancel subscriptions on, at end of billing period; cancellation reason collected; plan switching and quantity change off; payment-method updates and invoice history on. "Next generation portal experience" left **off** on purpose - it is a preview whose behaviour can change underneath us, and this path has carried zero real deliveries.~~
 - [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
       **off**, so this path has never run once. Portal recovery works — but
       nothing currently tells anyone their card failed. *Harm if skipped: silent
@@ -101,6 +154,17 @@ has paid you money.
 - [ ] **C2. Flip `PRICING_ENABLED` to `true`** in `src/app/declare/plan-display.js`,
       update the one guard assertion, deploy. **This is the moment money can
       move.** Everything above must be done first.
+
+      **BLOCKED until `EXTRA_TRUSTED_ORIGIN` is gone from production.** Run this
+      first, every time, and read the output rather than assuming:
+      ```bash
+      npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN
+      ```
+      **It must print nothing.** If it prints a line, stop — production auth still
+      trusts `localhost`, and opening purchasing on top of that is exactly the
+      combination nobody would choose deliberately. Remove it (see **A0**), re-run
+      the grep, and only then flip the flag. This gate exists because the failure
+      mode of A0 is forgetting, and forgetting is not something a checkbox catches.
 - [ ] **C3. Watch the first real subscriber end to end** — Checkout, webhook,
       entitlement, `/you`, `/billing`. Roll back on: webhook failures above a
       small threshold over 15 minutes; any entitlement granted without a matching
