@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
-import { stripePost } from "./stripeApi";
+import { stripeGet, stripePost } from "./stripeApi";
 import {
   PLAN_CATALOG,
   BILLING_SCHEMA_VERSION,
@@ -414,5 +414,91 @@ export const resumeSubscription = action({
      * getMyEntitlements, so there is exactly one description of what someone
      * holds and it is never this function's guess about what Stripe just did. */
     return { ok: true };
+  },
+});
+
+/* Billing history, read from Stripe on demand and sanitised on the way out.
+ *
+ * WHY NOT A TABLE
+ * The obvious alternative is to persist invoices as `invoice.*` webhooks
+ * arrive. It was rejected for two reasons. It would only ever show invoices
+ * from the day the feature shipped, so every existing subscriber would open
+ * their history and find it empty — the exact opposite of what a history is
+ * for. And it would create a second copy of a fact Stripe already owns, which
+ * can then drift from it. Reading through is one call on a page nobody visits
+ * in a loop, and it cannot be wrong.
+ *
+ * WHY THE RETURN SHAPE CARRIES NO IDENTIFIER
+ * `scripts/verify-subscription-visibility.ts` bans every Stripe id prefix from
+ * the built bundle, and the entitlement contract bans invoice identifiers by
+ * name. That is not incidental strictness: an id in the browser is the raw
+ * material for pointing a request at somebody else's object. So this returns
+ * amounts, dates and a status word — the things a person reads — and nothing
+ * that could address a Stripe object.
+ *
+ * Amounts stay in MINOR UNITS with their currency. Formatting is the caller's
+ * job, in the caller's locale; a server that pre-formats "$8.99" has silently
+ * decided the reader is American. */
+export const listInvoices = action({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<{
+    invoices?: Array<{
+      createdAt: number;
+      amountPaid: number;
+      currency: string;
+      status: string;
+      description: string | null;
+    }>;
+    error?: string;
+  }> => {
+    let user: AuthedUser;
+    try {
+      user = await requireUser(ctx);
+    } catch {
+      return { error: "not-authenticated" };
+    }
+
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (!secret) return { error: "billing-not-configured" };
+
+    /* The customer comes ONLY from our stored mapping — same rule as
+     * createPortalSession, and for the same reason: no email lookup, no id from
+     * the browser, no search. Without a mapping the answer is an empty history,
+     * not somebody else's. */
+    const mapping = await ctx.runQuery(
+      internal.subscriptions.getCustomerInternal,
+      { userId: user._id },
+    );
+    if (!mapping?.stripeCustomerId) return { invoices: [] };
+
+    /* Bounded. A subscriber with years of history does not need all of it on a
+     * settings page, and an unbounded list is an unbounded response. */
+    const res = await stripeGet(
+      "/invoices?limit=12&customer=" + encodeURIComponent(mapping.stripeCustomerId),
+      secret,
+    );
+    if (!res.ok) return { error: "stripe-error" };
+
+    const raw = Array.isArray(res.data?.data) ? res.data.data : [];
+    /* An allowlist, built field by field. Spreading Stripe's object and
+     * deleting the ids would leak every field Stripe adds in future versions —
+     * this leaks nothing that is not named here. */
+    const invoices = raw.map((inv: any) => ({
+      createdAt: typeof inv?.created === "number" ? inv.created * 1000 : 0,
+      amountPaid: typeof inv?.amount_paid === "number" ? inv.amount_paid : 0,
+      currency: typeof inv?.currency === "string" ? inv.currency : "usd",
+      /* Stripe's own vocabulary: draft | open | paid | uncollectible | void.
+       * Passed through rather than remapped, so the page never claims a state
+       * Stripe does not report. */
+      status: typeof inv?.status === "string" ? inv.status : "unknown",
+      description:
+        typeof inv?.lines?.data?.[0]?.description === "string"
+          ? inv.lines.data[0].description
+          : null,
+    }));
+
+    return { invoices };
   },
 });

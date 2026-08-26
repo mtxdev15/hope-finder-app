@@ -207,3 +207,16 @@ export async function openBillingPortal() {
 export async function resumeSubscription() {
   return (await ensure()) ? runAction(apiRef.billing.resumeSubscription, {}) : null;
 }
+
+/* Billing history for the signed-in account. Sends nothing — the customer is
+ * resolved server-side, and the response deliberately carries no Stripe id.
+ *
+ * Amounts arrive in MINOR UNITS with a currency code, not pre-formatted: a
+ * server that returns "$8.99" has decided the reader's locale for them.
+ *
+ * Returns { invoices: [...] } (possibly empty), { error }, or null when the
+ * client is unavailable. An empty list and a failed read are different things
+ * and callers must not render them the same way. */
+export async function listInvoices() {
+  return (await ensure()) ? runAction(apiRef.billing.listInvoices, {}) : null;
+}

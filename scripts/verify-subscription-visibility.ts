@@ -313,8 +313,26 @@ check("a failed read renders the response, which is 'unavailable'",
 
 /* Manage billing: click-only, single-flight, empty payload. */
 check("manage billing is bound to a click, not page load",
-  /addEventListener\('click', \(\) => onClick\(\)\)/.test(BILLING_CODE));
-check("the portal call is single-flight", /if \(portalBusy\) return;/.test(BILLING_CODE));
+  /addEventListener\('click', \(\) => onClick\(/.test(BILLING_CODE));
+
+/* WHY THIS IS NO LONGER /if \(portalBusy\) return;/
+   That matched one shared module-level flag, which was the correct design only
+   while every state rendered exactly one action button. With Resume sitting
+   beside Manage billing, one flag becomes a bug with no error message: clicking
+   either latches it and the other silently does nothing. The guard is now keyed
+   per action. The PROPERTY — a second click cannot fire the same request twice —
+   is unchanged, so it is asserted directly instead of through the old shape. */
+check("each billing action is single-flight",
+  /if \(isBusy\('portal'\)\) return;/.test(BILLING_CODE) &&
+  /if \(isBusy\('resume'\)\) return;/.test(BILLING_CODE));
+check("the two actions do not share one in-flight flag",
+  /const busy: Record<string, boolean> = \{\}/.test(BILLING_CODE) &&
+  !/let portalBusy/.test(BILLING_CODE));
+/* The click handler must act on the button that was clicked. Re-finding it with
+   querySelector returns the FIRST button in the row, which disables the wrong
+   control the moment a state renders two. */
+check("a handler acts on its own button, not the first one in the row",
+  !/acts\.querySelector\('button'\)/.test(BILLING_CODE));
 check("the button disables before the request",
   /btn\.disabled = true;[\s\S]{0,160}await openBillingPortal\(\)/.test(BILLING_CODE));
 check("no Portal call happens at page load",

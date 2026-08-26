@@ -298,14 +298,48 @@ check("it offers ONE primary action", /id="blActs"/.test(BILLING));
 check("it offers View plans for Free", /billing\.viewPlans/.test(BILLING));
 check("payment is a Portal hand-off, not a rebuild",
   /Payment details are managed securely through Stripe/.test(BILLING));
-check("invoice history is a Portal hand-off, not a rebuild",
-  /available in the billing portal/.test(BILLING));
+/* WHY THIS IS NO LONGER "invoice history is a Portal hand-off"
+   It asserted the literal copy "available in the billing portal", which encoded
+   a decision that has since been reversed: the HISTORY is rendered on this page
+   now, because "did that charge go through, and when?" is the question people
+   actually open this page to answer, and sending them to Stripe to read it was
+   a worse answer than rendering it.
+   What did NOT change is the part that genuinely must stay handed off — the
+   downloadable receipt and tax document. So both halves are asserted, and the
+   split is stated rather than assumed. */
+check("invoice history is rendered here, not handed off",
+  /id="blInvList"/.test(BILLING));
+check("the history distinguishes empty from unreadable",
+  /id="blInvEmpty"/.test(BILLING) && /id="blInvErr"/.test(BILLING));
+check("downloadable receipts are still a Portal hand-off",
+  /billing portal/.test(BILLING));
+/* The rows may not be built from a Stripe identifier, whatever the markup. */
+check("no invoice identifier appears on the page", !/\bin_[A-Za-z0-9]{6}/.test(BILLING));
 
-/* It must NOT drift into Plans' job. */
-check("Billing does not repeat the plan comparison", !/<table/.test(BILLING));
-check("Billing shows no cadence selector", !/role="radiogroup"/.test(BILLING));
-check("Billing shows no prices", !/\$\d/.test(BILLING));
-check("Billing has no plan cards", !/pl-card/.test(BILLING));
+/* It must NOT drift into Plans' job.
+ *
+ * APPLIED TO CODE, NOT PROSE. These bans are about what the page RENDERS. The
+ * file's own comments necessarily describe the patterns being banned — the
+ * invoice list carries a comment explaining why it is a list and not the banned
+ * element, and the money formatter explains why the server does not return a
+ * pre-formatted price. Grepping raw text failed the file for documenting its
+ * own rules, which is the same trap verify-billing-dev-control.ts calls out and
+ * solves the same way. */
+const BILLING_MARKUP = BILLING
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/<!--[\s\S]*?-->/g, "")
+  .split("\n")
+  .filter((l) => !/^\s*(\/\/|\*)/.test(l))
+  .join("\n");
+check("Billing does not repeat the plan comparison", !/<table/.test(BILLING_MARKUP));
+check("Billing shows no cadence selector", !/role="radiogroup"/.test(BILLING_MARKUP));
+check("Billing shows no prices", !/\$\d/.test(BILLING_MARKUP));
+check("Billing has no plan cards", !/pl-card/.test(BILLING_MARKUP));
+/* The comment-stripping must not become a hole: prove it actually removed
+   something, so a future refactor that drops the comments does not silently
+   turn these four into assertions over the raw file again. */
+check("the markup view is genuinely narrower than the raw file",
+  BILLING_MARKUP.length < BILLING.length);
 
 /* Free must not be shown payment furniture it does not have. */
 check("payment and invoice sections are hidden by default",
