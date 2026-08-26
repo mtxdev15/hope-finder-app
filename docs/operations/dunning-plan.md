@@ -73,15 +73,16 @@ Plus with a day's notice. Below a week the three-stage shape is still right and
 the reminder is dropped.
 
 **The cadence is derived from `PAST_DUE_GRACE_DAYS`, never typed twice.** If that
-number changes, every send time moves with it. This mattered immediately: grace
-is 3 days while Stripe retries for 14, so a schedule written against Stripe's
-retry window would have promised a week the entitlement layer does not honour.
+number changes, every send time moves with it. That is not theoretical: the
+window moved from 3 days to 16 in the same session this was written, and the
+schedule followed without a line being retyped.
 
 At a grace shorter than 3 days the `ending` email is dropped rather than
 squeezed — "it pauses tomorrow" and "it has paused" landing hours apart reads as
-nagging, not warning. `verify-dunning-emails.ts` proves the schedule stays
-correct at 2, 3, 7, 14 and 28 days, so the grace setting can change without
-anyone re-deriving this by hand.
+nagging, not warning. Below a week the `reminder` is dropped for the same
+reason. `verify-dunning-emails.ts` proves the schedule stays correct at 2, 3, 7,
+14, 16 and 28 days, so the grace setting can change without anyone re-deriving
+this by hand.
 
 ### Why it fires on the transition, not the event
 
