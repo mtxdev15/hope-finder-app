@@ -32,6 +32,7 @@ export const PLAN_STATES = /** @type {const} */ ([
   'unavailable',  // the read failed — never render Free here either
   'guest',        // signed out
   'free',         // signed in, no subscription
+  'plus-trial',   // inside the 7-day free trial: everything unlocked, nothing charged yet
   'plus-active',  // healthy, paid, renewing
   'plus-cancelling', // paid through the period, then ends
   'plus-attention',  // payment needs attention; access may still be live
@@ -91,6 +92,18 @@ export function planState(ent, opts) {
   /* Attention outranks active: a failing card during the grace window still
      grants access, and saying "Active" there is the lie this guards against. */
   if (ent.paymentNeedsAttention === true) return 'plus-attention';
+
+  /* THE TRIAL, checked before cancelling and before active.
+     A trial is not "Active": nothing has been charged. Calling it active and
+     labelling its end date "Renews" tells somebody their plan is already
+     running, and then charges them. That sentence is the reason this state
+     exists rather than being folded into plus-active.
+     It sits AFTER attention because a trial whose card is already failing is a
+     payment problem first. It sits BEFORE cancelling because somebody who
+     cancels during a trial is still in the trial until it ends, and the date
+     they need is the same one. */
+  if (String(ent.subscriptionStatus || '') === 'trialing') return 'plus-trial';
+
   if (ent.cancelAtPeriodEnd === true) return 'plus-cancelling';
 
   /* Plus on a status we do not recognise: fail closed rather than claim health. */
@@ -104,7 +117,8 @@ export function showsPlusBadge(state) {
   /* A subscriber whose payment needs attention is still a subscriber, so the
      badge stays — but the badge says PLUS, never "Active". The Plan & Billing
      card carries the lifecycle truth. Ambiguity does not earn a badge. */
-  return state === 'plus-active' || state === 'plus-cancelling' || state === 'plus-attention';
+  return state === 'plus-active' || state === 'plus-cancelling' ||
+         state === 'plus-attention' || state === 'plus-trial';
 }
 
 /** True when this state may start a new Checkout. Fails closed. */
@@ -121,8 +135,10 @@ export function showsManageBilling(state) {
      through the Portal — BLOCKS_NEW_CHECKOUT refuses them a fresh Checkout on
      exactly those statuses. Withholding this control is what turned an expired
      card into a dead end. */
+  /* A trialist needs it MOST: their card is on file and a charge is coming, so
+     the way to stop it has to be reachable without hunting. */
   return state === 'plus-active' || state === 'plus-cancelling' ||
-         state === 'plus-attention' || state === 'lapsed';
+         state === 'plus-attention' || state === 'lapsed' || state === 'plus-trial';
 }
 
 /* Which word goes in front of the period-end date. Getting this wrong tells
@@ -131,6 +147,11 @@ export function showsManageBilling(state) {
 export function periodLabelKey(state) {
   if (state === 'plus-cancelling') return 'plan.cancels';
   if (state === 'plus-active') return 'plan.renews';
+  /* NOT "Renews". A trial has never been paid, so nothing renews: it starts.
+     The date is the same instant Stripe reports as the period end, and calling
+     it a renewal is how somebody reads "your plan is running" and is then
+     surprised by the first charge. */
+  if (state === 'plus-trial') return 'plan.trialEnds';
   return null; // attention/ambiguous/free/lapsed: no date claim
 }
 
@@ -168,6 +189,7 @@ export function formatPeriodEnd(ms, lang) {
  * the screen, so there is no passthrough branch here. */
 /** @type {Record<string, string>} */
 export const STATE_LABEL_KEYS = {
+  'plus-trial': 'plan.stateTrial',
   'plus-active': 'plan.stateActive',
   'plus-cancelling': 'plan.stateCancelling',
   'plus-attention': 'plan.stateAttention',
@@ -279,6 +301,9 @@ export function planStatusKey(planId, state) {
   if (state === 'plus-attention') return 'plan.stateAttention';
   if (state === 'plus-cancelling') return 'plan.stateEnding';
   if (state === 'plus-ambiguous') return 'plan.stateAmbiguous';
+  /* Outranks "Current plan" for the same reason the others do: a charge is
+     coming, and that is the thing to say. */
+  if (state === 'plus-trial') return 'plan.stateTrial';
   /* Reached through the FREE card, since currentPlanId('lapsed') is 'free'. It
      outranks "Current plan" for the same reason attention does: when something
      needs doing, that is the thing to say. */
@@ -312,7 +337,7 @@ export const PRICING_ENABLED = false;
 /**
  * @param {string} state
  * @param {boolean} [pricingEnabled]
- * @returns {'create-account'|'upgrade'|'launches-soon'|'manage-billing'|'update-payment'|'keep-plus'|'none'}
+ * @returns {'create-account'|'upgrade'|'launches-soon'|'manage-billing'|'update-payment'|'keep-plus'|'cancel-trial'|'none'}
  */
 export function plusCtaIntent(state, pricingEnabled) {
   const enabled = pricingEnabled === undefined ? PRICING_ENABLED : pricingEnabled === true;
@@ -323,6 +348,11 @@ export function plusCtaIntent(state, pricingEnabled) {
      working card on the existing subscription. What differs is only whether
      access is still running while they do it. */
   if (state === 'plus-attention' || state === 'lapsed') return 'update-payment';
+  /* A trialist's one question is "how do I stop before I am charged", and the
+     answer must be a control on our page rather than a hunt through the Portal
+     while a date approaches. Offering it costs some conversions and is the
+     thing that makes the trial's promise real. */
+  if (state === 'plus-trial') return 'cancel-trial';
   if (state === 'plus-cancelling') return 'keep-plus';
   if (state === 'plus-active' || state === 'plus-ambiguous') return 'manage-billing';
   /* Not a subscriber. Only a state we RECOGNISE may offer a purchase: a failed

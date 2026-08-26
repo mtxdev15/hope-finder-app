@@ -58,6 +58,18 @@ export type Resolved = {
    * screen. It was already read by `interpret` internally; it simply was never
    * returned, which is exactly the gap the Portal smoke test exposed. */
   periodEndAt: number | null;
+  /* When a free trial converts to a charge, in milliseconds. Null unless this
+   * account is actually in a trial right now.
+   *
+   * SEPARATE FROM periodEndAt ON PURPOSE, even though Stripe makes them the
+   * same instant during a trial. They mean different things to a reader: one is
+   * "your plan renews", the other is "your card gets charged for the first
+   * time". Rendering the second with the first one's words is how somebody is
+   * charged by a sentence that told them their plan was already active.
+   *
+   * Read from the stored trial_end rather than inferred from the period, so the
+   * date on the page is the date Stripe will actually bill. */
+  trialEndsAt: number | null;
   cancelAtPeriodEnd: boolean;
   billingInterval: "month" | "year" | null;
   accountDay: string;
@@ -160,6 +172,7 @@ function resolveAcrossProviders(rows: any[], now: number) {
       planKey: null as Resolved["planKey"],
       duplicateProviders: false,
       periodEndAt: null as number | null,
+      trialEndsAt: null as number | null,
       cancelAtPeriodEnd: false,
       billingInterval: null as Resolved["billingInterval"],
     };
@@ -200,6 +213,14 @@ function resolveAcrossProviders(rows: any[], now: number) {
       winner.verdict.tier === "plus" && winner.row.currentPeriodEnd
         ? winner.row.currentPeriodEnd * 1000
         : null,
+    /* Only while the trial is actually running. A converted subscription still
+       carries trial_end on the Stripe object for ever, and reporting it after
+       the fact would put "your trial ends" on the screen of somebody who has
+       been paying for months. */
+    trialEndsAt:
+      winner.verdict.status === "trialing" && winner.row.trialEnd
+        ? winner.row.trialEnd * 1000
+        : null,
     cancelAtPeriodEnd:
       winner.verdict.tier === "plus" ? winner.row.cancelAtPeriodEnd === true : false,
     billingInterval: (winner.verdict.tier === "plus" && winner.row.billingInterval === "year"
@@ -227,7 +248,7 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
 
   const {
     tier, status, needsAttention, graceEndsAt, provider, planKey, duplicateProviders,
-    periodEndAt, cancelAtPeriodEnd, billingInterval,
+    periodEndAt, trialEndsAt, cancelAtPeriodEnd, billingInterval,
   } = resolveAcrossProviders(subs, now);
   const def = definitionFor(tier);
 
@@ -261,6 +282,7 @@ async function resolveFor(ctx: QueryCtx, userId: string, now: number): Promise<R
     planKey,
     duplicateProviders,
     periodEndAt,
+    trialEndsAt,
     cancelAtPeriodEnd,
     billingInterval,
     accountDay,
@@ -296,6 +318,7 @@ export const getMyEntitlements = query({
         planKey: null,
         duplicateProviders: false,
         periodEndAt: null,
+        trialEndsAt: null,
         cancelAtPeriodEnd: false,
         billingInterval: null,
         accountDay: dayKeyInZone(now, "UTC"),

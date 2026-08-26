@@ -37,6 +37,8 @@ import {
   currentPlanCount,
   isCurrentPlan,
   planStatusKey,
+  STATE_LABEL_KEYS,
+  showsPlusBadge,
   plusCtaIntent,
   freeCtaIntent,
   initialInterval,
@@ -187,7 +189,13 @@ check("G. terminal: no Manage billing", showsManageBilling(S_TERM) === false);
 /* Exactly one Plus label, ever. */
 section("3. Never two badges on one card");
 
-const PLUS_LABELS = ["plans.currentPlan", "plan.stateAttention", "plan.stateEnding", "plan.stateAmbiguous"];
+/* A CLOSED allowlist on purpose: adding a plan state without deciding its badge
+   fails here rather than shipping a card with no label or two. That is how
+   plus-trial was caught. */
+const PLUS_LABELS = [
+  "plans.currentPlan", "plan.stateAttention", "plan.stateEnding",
+  "plan.stateAmbiguous", "plan.stateTrial",
+];
 for (const s of PLAN_STATES) {
   const key = planStatusKey("plus", s);
   check(`"${s}": the Plus card carries at most one label`,
@@ -196,6 +204,40 @@ for (const s of PLAN_STATES) {
   check(`"${s}": Free and Plus never both carry a label`,
     !(key !== null && freeKey !== null));
 }
+
+/* ── 3b. A trial is not an active subscription ───────────────────────────── */
+section("3b. The trial says what it is");
+
+const TRIALING = {
+  tier: "plus", subscriptionStatus: "trialing", billingInterval: "month",
+  cancelAtPeriodEnd: false, paymentNeedsAttention: false,
+  periodEndAt: 1_800_000_000_000, trialEndsAt: 1_800_000_000_000,
+};
+const S_TRIAL = planState(TRIALING);
+check("a trialing subscription is its own state", S_TRIAL === "plus-trial");
+/* THE SENTENCE THIS EXISTS TO PREVENT. Before this state, a trial fell through
+   HEALTHY_STATUSES to plus-active and /billing read "Active · Renews <trial
+   end>" — telling somebody their plan was already running, then charging them. */
+check("it is never labelled Active", STATE_LABEL_KEYS[S_TRIAL] !== "plan.stateActive");
+check("and its date is never called a renewal",
+  periodLabelKey(S_TRIAL) === "plan.trialEnds" &&
+  periodLabelKey(S_TRIAL) !== "plan.renews");
+check("a trialist holds Plus", currentPlanId(S_TRIAL) === "plus");
+check("and carries the Plus badge", showsPlusBadge(S_TRIAL) === true);
+/* Their card is on file and a charge is coming, so the way to stop it must be
+   reachable from our page rather than hunted for in the Portal. */
+check("the way out is offered on our own page",
+  plusCtaIntent(S_TRIAL) === "cancel-trial" && showsManageBilling(S_TRIAL) === true);
+check("a trialist is never offered a second purchase",
+  mayStartCheckout(S_TRIAL) === false);
+
+/* Precedence, which is where this kind of state usually goes wrong. */
+const TRIAL_FAILING = { ...TRIALING, paymentNeedsAttention: true };
+check("a trial whose card is already failing is a payment problem first",
+  planState(TRIAL_FAILING) === "plus-attention");
+const TRIAL_CANCELLING = { ...TRIALING, cancelAtPeriodEnd: true };
+check("cancelling during a trial still shows the trial and its date",
+  planState(TRIAL_CANCELLING) === "plus-trial");
 
 /* ── 4. Purchasing disabled must not change who is current ───────────────── */
 section("4. The activation flag decides what is SOLD, never what is HELD");

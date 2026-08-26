@@ -52,6 +52,7 @@ import LegalFooter from '../components/LegalFooter.astro';
           <div class="bl-id">
             <div class="bl-nm serif" id="blNm" data-i18n="plan.loadingName">Loading your plan</div>
             <div class="bl-meta" id="blMeta" hidden></div>
+            <p class="bl-trial-note" id="blTrialNote" hidden></p>
           </div>
           <span class="bl-state" id="blState" hidden></span>
         </div>
@@ -149,6 +150,11 @@ import LegalFooter from '../components/LegalFooter.astro';
     /* Reads beside the card title, which for this state is "Free plan" —
        so the badge has to name what is paused, or it says the free plan is. */
     'plan.stateLapsed': 'Plus paused',
+    'plan.stateTrial': 'Free trial',
+    'plan.trialEnds': 'Trial ends',
+    'plan.trialNote': 'Your trial ends {date}. Your card is charged {amount} then.',
+    'plan.trialNoDate': 'Your trial is running. Check your email for the date your card is charged.',
+    'plan.cancelTrial': 'Cancel trial',
     'plan.lapsedMsg': 'Your last payment did not go through, so Plus is paused. Update your card and it starts again right away — nothing has been lost.',
     'billing.updateCard': 'Update card on Stripe',
     'billing.upgradeH': 'Switch to annual',
@@ -534,7 +540,16 @@ import LegalFooter from '../components/LegalFooter.astro';
       const ck = cadenceKey(ent);
       if (ck && current === 'plus') bits.push(tx(ck, ''));
       const pk = periodLabelKey(state);
-      const when = formatPeriodEnd(ent && ent.periodEndAt, lang);
+      /* A TRIAL'S DATE COMES FROM trialEndsAt, NOT periodEndAt.
+         Stripe reports them as the same instant today, and relying on that
+         would put the wrong date on screen the moment it stops being true.
+         The contract returns trialEndsAt only while a trial is actually
+         running, so this is the authoritative field for the one sentence that
+         tells somebody when their card gets charged. */
+      const dateSource = state === 'plus-trial'
+        ? (ent && ent.trialEndsAt)
+        : (ent && ent.periodEndAt);
+      const when = formatPeriodEnd(dateSource, lang);
       if (pk && when) bits.push(tx(pk, '') + ' ' + when);
       if (bits.length) { meta.textContent = bits.join(' · '); meta.hidden = false; }
       else { meta.hidden = true; }
@@ -545,6 +560,28 @@ import LegalFooter from '../components/LegalFooter.astro';
        about this account rather than a sales point — losing it when the card
        moved would have been a quiet capability regression. Neither is a
        pricing comparison; that lives on /pricing. */
+    /* The one sentence a trialist actually needs: the date AND the amount, on
+       the page rather than only in an email. Somebody who deleted the email
+       should never have to guess what is about to leave their account. */
+    const trialNote = el('blTrialNote');
+    if (trialNote) {
+      if (state === 'plus-trial') {
+        const cents = ent && ent.billingInterval === 'year'
+          ? PLUS_ANNUAL_CENTS : PLUS_MONTHLY_CENTS;
+        const when = formatPeriodEnd(ent && ent.trialEndsAt, lang);
+        trialNote.textContent = when
+          ? tx('plan.trialNote', 'Your trial ends {date}. Your card is charged {amount} then.')
+              .replace('{date}', when)
+              .replace('{amount}', moneyText(cents, 'usd'))
+          /* No date means no claim. A trial note without the date is the vague
+             warning this was written to replace. */
+          : tx('plan.trialNoDate', 'Your trial is running. Check your email for the date your card is charged.');
+        trialNote.hidden = false;
+      } else {
+        trialNote.hidden = true;
+      }
+    }
+
     const list = el('blList');
     if (list) {
       list.innerHTML = '';
@@ -597,10 +634,14 @@ import LegalFooter from '../components/LegalFooter.astro';
           ? tx('plan.updatePayment', 'Update payment')
           : intent === 'keep-plus'
             ? tx('plan.keepPlus', 'Keep Plus')
-            : tx('plan.manage', 'Manage billing');
+            : intent === 'cancel-trial'
+              ? tx('plan.cancelTrial', 'Cancel trial')
+              : tx('plan.manage', 'Manage billing');
         const evt = intent === 'update-payment'
           ? 'payment_attention_cta_selected'
-          : intent === 'keep-plus' ? 'keep_plus_selected' : 'manage_billing_selected';
+          : intent === 'keep-plus' ? 'keep_plus_selected'
+            : intent === 'cancel-trial' ? 'cancel_trial_selected'
+              : 'manage_billing_selected';
         acts.appendChild(button(label, (self) => {
           /* displayed_tier is what the PAGE is showing them, not what they once
              had. A lapsed subscriber is being shown Free, and reporting 'plus'
@@ -627,7 +668,13 @@ import LegalFooter from '../components/LegalFooter.astro';
          * Only for keep-plus: 'update-payment' already IS the portal under a
          * different name, and 'manage-billing' is the primary here, so adding a
          * second portal button to either would be the same button twice. */
-        if (intent === 'keep-plus') {
+        /* A trialist gets the same pairing as a cancelling subscriber, and for
+         * the mirror-image reason. Their primary action is the way OUT, because
+         * a charge is coming and hiding the exit is what makes a card-up-front
+         * trial the kind people resent. But somebody who wants to keep Plus and
+         * fix a card must not have lost the route to do it, so billing
+         * management stays beside it rather than being replaced by it. */
+        if (intent === 'keep-plus' || intent === 'cancel-trial') {
           acts.appendChild(button(tx('plan.manage', 'Manage billing'), (self) => {
             track('manage_billing_selected', {
               authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing',
@@ -757,6 +804,8 @@ import LegalFooter from '../components/LegalFooter.astro';
     .billing .bl-id { min-width: 0; }
     .billing .bl-nm { font-family: 'Cormorant Garamond', serif; font-size: 26px; line-height: 1.2; color: var(--text); font-weight: 500; }
     .billing .bl-meta { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 5px; }
+  .bl-trial-note { margin: 8px 0 0; font-size: 13px; line-height: 1.55;
+    color: var(--text2, #465A50); }
     /* Status is a WORD first. Colour only reinforces it, so the meaning
        survives for anyone who cannot see the difference. */
     .billing .bl-state { flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); white-space: nowrap; }
