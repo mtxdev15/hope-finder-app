@@ -480,6 +480,38 @@ check("hardship help is offered in the first email",
 check("the hardship offer asks for no proof",
   /not be asked to explain yourself twice/.test(SCHEDULE));
 
+/* ── 6b. What we tell people BEFORE they buy ─────────────────────────────── */
+section("6b. The promise on /pricing is the promise the code keeps");
+
+/* The FAQ now states the grace window as a number, because a specific is
+   believed where "we'll sort it out" is not. A number in customer-facing copy
+   that nobody derives is a number that goes stale silently — and this one is a
+   PROMISE about how long somebody keeps paid access. So it is checked against
+   the same constant the entitlement layer enforces. */
+const PRICING = read("src/pages/pricing.astro");
+const STRINGS = read("public/declare/i18n-strings.js");
+const faqEn = PRICING.slice(PRICING.indexOf('data-i18n="plans.a3"'));
+const faqEnAnswer = faqEn.slice(0, faqEn.indexOf("</p>"));
+
+check("the pricing FAQ states the grace window as a number",
+  new RegExp("\\b" + PAST_DUE_GRACE_DAYS + " days\\b").test(faqEnAnswer));
+check("and the Spanish says the same number",
+  new RegExp("\\b" + PAST_DUE_GRACE_DAYS + " días\\b").test(STRINGS));
+/* If the window ever moves, these two fail together and name themselves — which
+   is the only reason it is safe to print the number at all. */
+check("no OTHER day count is promised in the same answer",
+  (faqEnAnswer.match(/\b\d+ days\b/g) || []).every((m) => m === PAST_DUE_GRACE_DAYS + " days"));
+
+/* The brand rule is "no em dashes, ever". Asserted on the answers rather than
+   the file, because every other one in pricing.astro is in a code comment. */
+check("the FAQ answer carries no em dash", !faqEnAnswer.includes("—"));
+/* It also promises the hardship reply, which the first email actually honours.
+   A promise on the pricing page that the email never mentions would be a
+   promise nobody could act on. */
+check("the hardship offer is promised where it is also delivered",
+  /reply to any of those emails/i.test(faqEnAnswer) &&
+  /if money is the reason/i.test(SCHEDULE));
+
 /* ── 7. We know whether it arrived ───────────────────────────────────────── */
 section("7. A dunning email that does not arrive is not silent");
 
