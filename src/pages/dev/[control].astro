@@ -54,6 +54,37 @@ export function getStaticPaths() {
 
 const control = Astro.params.control;
 const isHarness = control === 'billing-harness';
+
+/* WHICH STRIPE ACCOUNT THIS PAGE IS ACTUALLY POINTED AT
+ *
+ * This page used to state, as an absolute, that nothing on it could charge a
+ * card — and to put "Stripe sandbox — no real charge" ON the buttons. That was
+ * true only because the page had never been pointed anywhere but the dev Convex
+ * deployment. It is a property of the CONFIGURATION, not of the page, and the
+ * moment PUBLIC_CONVEX_URL names production the label becomes a lie printed on
+ * the control that spends the money. A wrong warning is worse than none: it
+ * actively tells the tester the opposite of what is about to happen.
+ *
+ * So the labels are derived, not asserted. Which Stripe account gets used is
+ * decided inside Convex by `environmentForSecret(STRIPE_SECRET_KEY)` — a live
+ * `rk_live_` key means live money — and that key is only ever readable by the
+ * deployment holding it. The deployment is therefore the honest proxy, and it
+ * is knowable here from the URL this page is built against.
+ *
+ * FAILS CLOSED. Only the one known sandbox deployment earns the "no real
+ * charge" label; anything else — production, a new preview deployment, an unset
+ * variable, a typo — is presented as live money. Renaming the dev deployment
+ * produces an over-warning, never an under-warning, which is the only direction
+ * this is allowed to be wrong in. */
+const SANDBOX_DEPLOYMENT = 'good-dotterel-906';
+const convexUrl = import.meta.env.PUBLIC_CONVEX_URL || '';
+const isSandboxTarget = convexUrl.includes(SANDBOX_DEPLOYMENT);
+/* Both labels are fingerprints asserted absent from dist/ by
+   scripts/verify-billing-dev-control.ts. Keep them in sync with FORBIDDEN. */
+const chargeLabel = isSandboxTarget
+  ? 'Stripe sandbox — no real charge'
+  : 'LIVE MONEY — charges a real card';
+const modeWord = isSandboxTarget ? 'Stripe test mode' : 'LIVE mode, real money';
 ---
 <DeclareLayout
   title="Declare — dev: sandbox billing"
@@ -112,24 +143,36 @@ const isHarness = control === 'billing-harness';
         the Customer are all resolved server side inside Convex.
       </p>
 
+      {isSandboxTarget ? (
       <div class="db-strip">
-        Sandbox account <code>acct_1TmENuLShxhb4mBz</code>, test mode. Nothing on
-        this page can charge a card.
+        Pointed at the sandbox Convex deployment
+        <code>{SANDBOX_DEPLOYMENT}</code>, which holds a test-mode Stripe key.
+        Nothing on this page can charge a card.
       </div>
+      ) : (
+      <div class="db-strip db-strip-live" role="alert">
+        <strong>LIVE MONEY.</strong> This page is pointed at
+        <code>{convexUrl || '(PUBLIC_CONVEX_URL is not set)'}</code>, which is
+        not the known sandbox deployment. If that deployment holds a
+        <code>rk_live_</code> key, every purchase button below charges a real
+        card and moves real money. Refunds return the amount but never the
+        Stripe processing fee.
+      </div>
+      )}
 
       <div id="dbAuth" class="db-auth">Checking your session&hellip;</div>
 
       <div id="dbControl" class="db-control" hidden>
         <!-- The disclaimer IS the label on each control, so no future layout
              edit can separate a purchase button from its warning. -->
-        <button id="dbGo" type="button" class="db-btn">Stripe sandbox — no real charge</button>
+        <button id="dbGo" type="button" class="db-btn">{chargeLabel}</button>
         <div class="db-fine">
-          Opens one $8.99/month Plus Checkout Session in Stripe test mode.
+          Opens one $8.99/month Plus Checkout Session in {modeWord}.
         </div>
 
-        <button id="dbGoAnnual" type="button" class="db-btn db-btn-2">Stripe sandbox — no real charge</button>
+        <button id="dbGoAnnual" type="button" class="db-btn db-btn-2">{chargeLabel}</button>
         <div class="db-fine">
-          Opens one $79.99/year Plus Checkout Session in Stripe test mode.
+          Opens one $79.99/year Plus Checkout Session in {modeWord}.
         </div>
 
         <!-- The one thing a tester must read before touching annual. -->
@@ -503,6 +546,13 @@ const isHarness = control === 'billing-harness';
     margin-top: 18px; padding: 12px 14px; border: 1px solid var(--gold);
     border-radius: 12px; font-size: 12.5px; line-height: 1.55; color: var(--text2);
   }
+  /* The live-money strip must not read as one more beige note among several.
+     Filled rather than outlined, so it is the first thing the eye lands on. */
+  .db-strip-live {
+    border-color: #E4736B; border-width: 2px; background: #FDF0EE; color: #7A2E27;
+  }
+  .db-strip-live strong { color: #C0392B; letter-spacing: 0.02em; }
+  .db-strip-live code { background: #fff; padding: 1px 5px; border-radius: 5px; }
   .db-auth { margin-top: 18px; font-size: 13.5px; line-height: 1.6; color: var(--text2); }
   .db-auth a { color: var(--goldd); font-weight: 600; }
   .db-control { margin-top: 18px; }

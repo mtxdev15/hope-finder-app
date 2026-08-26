@@ -4,36 +4,99 @@ A running list of work to continue on the site. **Newest first within each secti
 Open work is at the top; everything finished lives under **Done** at the bottom.
 Reordered 2026-08-25 after the live-billing activation pass.
 
-## ⏭️ Next up — after the production deploy
+## ⏭️ Next up — the remaining live-billing steps
 
-*Added 2026-08-25. Every Stripe, Convex and Cloudflare variable is now set and
-verified; what remains needs a terminal. Do these in order — each one's failure
-mode is easier to read if the one before it succeeded.*
+*Added 2026-08-25. Steps 1–4 were **executed 2026-08-26** and are struck through
+below; the deploy is done and the webhook now listens to all nine events. What
+is left is the real-money smoke test and the one open API-version risk.*
 
-- [ ] **1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
+**Ordering correction, 2026-08-26:** B1 (configure the live Customer Portal) was
+listed under Phase B, *after* step 5 — but step 5 is meant to exercise the
+portal, cancel-at-period-end and its reversal, none of which exist until B1 is
+done. B1 now runs **before** step 5, so the smoke test needs only one round of
+real charges instead of two.
+
+- [x] ~~**1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
       compared against `main` (`c44f8c0`). This is the one thing that could not be checked from
       the web session — `release-c1-monetization @ 332e611` is not in the cloud clone. The audit
       claims 51 functions and zero `testHarness` entries; `main` carries `testHarness.ts` and
       later billing fixes, so there is probably drift. **Do this before deploying anything.**
-- [ ] **2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
+      **DONE 2026-08-26.** Production ran **55** function-spec entries, not the 51 the audit claimed, including 4 `testHarness.js` entries the audit said were absent. `main`'s function surface matched production module-for-module; the deployed harness is inert (`checkGates` requires `stripeEnvironment === "sandbox"`, derived from the `rk_live_` key).~~
+- [x] ~~**2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
       found without adding billing behaviour — the harness fails closed, its two env vars were
       never set. Capture the Worker version id first (`npx wrangler deployments list`) so
       rollback has an explicit target rather than a guess.
-- [ ] **3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
+      **DONE 2026-08-26.** Dry-run showed empty `indexDiffs` on every component and `{}` for both `componentDiffs` and `definitionDiffs` — no schema, index or function change. A Node.js actions version bump only. Worker rollback target captured: `954cf794-da71-40e8-8c22-ba4bdff5c3d6`.~~
+- [x] ~~**3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
       Run `npm run check:types`, `npm run build && ls dist/dev` (must not exist) and every
       `scripts/verify-*.ts` first — 12 suites, 2,237 checks. Schema change is additive
       (`planKey` gains `plus_lifetime`, plus a `by_plan_environment` index) and needs **no
       backfill**: production holds zero billing rows. The Worker needs redeploying too — this
       branch changed `worker/src/index.js`.
-- [ ] **4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
+      **DONE 2026-08-26.** Merged as `8f8944d` (PR #51). Typecheck clean, **16** verify suites green (not 12 — four more have been added since that count was written). Convex deployed to `keen-hamster-650`; Worker redeployed, version `27843c86-d885-4daf-a61e-26be2a35715c`. `wrangler secret list` confirmed both `BILLING_WEBHOOK_SECRET` and `STRIPE_BILLING_WEBHOOK_SECRET` present, and no stale `STRIPE_SECRET_KEY` — rule C5 holds on the deployed Worker.~~
+- [x] ~~**4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
       The destination currently listens to 8. A refund is the **only** way a lifetime purchase
       can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
       $149 returns the money and leaves Plus granted forever.
-- [ ] **5. Stage 5 real-money smoke test.** The only true proof: Stripe permits no synthetic
-      events in live mode, and the endpoint has 0 deliveries ever. Run
-      `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` with `PUBLIC_CONVEX_SITE_URL` pointed at
-      production. Monthly, annual, lifetime, portal, cancel-at-period-end and its reversal.
-      **Decide before charging** whether to refund or keep as a canary — record it first, not after.
+      **DONE 2026-08-26.** Destination now listens to 9 events.~~
+- [ ] **A0. Temporarily let localhost sign in to production — and take it back off.**
+      *Needed only for step 5. This is the one deliberate widening of production
+      auth in the whole launch, so it gets its own item rather than a footnote.*
+
+      **Why it is needed.** Better Auth only accepts sign-ins from websites on an
+      approved list. Production's list holds exactly one entry, the live domain,
+      built from `SITE_URL`. The dev checkout control exists only under
+      `npm run dev`, so the tester's browser is on `http://localhost:4321` — not on
+      the list — and Better Auth's `formCsrfMiddleware` refuses it with
+      `FORBIDDEN / INVALID_ORIGIN`. That refusal is the guard working correctly;
+      it is not a bug and must not be "fixed" by weakening the check.
+
+      `convex/auth.ts` therefore appends **one** extra origin read from
+      `EXTRA_TRUSTED_ORIGIN`, absent by default — so setting it is a visible,
+      deliberate act rather than a hardcoded hole.
+
+      **To turn it on:**
+      ```bash
+      npx convex deploy                                    # ship the auth.ts change
+      npx convex env set EXTRA_TRUSTED_ORIGIN "http://localhost:4321" --prod
+      ```
+
+      **To take it back off — do this the same day:**
+      ```bash
+      npx convex env remove EXTRA_TRUSTED_ORIGIN --prod
+      npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN   # must print NOTHING
+      ```
+      No redeploy is needed. Convex reads environment variables at call time, so the
+      removal takes effect on the very next sign-in attempt.
+
+      **How to confirm it is really gone.** The grep above printing nothing is the
+      check. If it still prints a line, the variable is still set and production
+      still trusts localhost — run the remove again and re-grep. Do not rely on
+      memory, the dashboard rendering, or this checkbox: run the command.
+
+      **What it does NOT do.** It does not change which backend your local site
+      talks to — that is decided only by `.env.development.local` on your own Mac.
+      Delete that file and local development points at dev Convex again exactly as
+      before. Nothing about the normal develop-then-push loop changes.
+
+      **The actual risk.** Small while it is set: browsers set the `Origin` header
+      themselves, so a remote attacker's site cannot forge `http://localhost:4321` —
+      someone would have to run a hostile app on that exact port on their own
+      machine. The real risk is **forgetting to remove it** and leaving production's
+      auth list widened for months. That is why C2 below is blocked on it.
+
+- [ ] **5. Stage 5 real-money smoke test.** *(Do **B1** first — see the ordering
+      correction above. Requires **A0** directly above, and A0 must be undone afterwards.)*
+      The only true proof: Stripe permits no synthetic events in live mode, and the
+      endpoint has 0 deliveries ever. Run `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`
+      with `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` pointed at production.
+      **Decided 2026-08-26:** one **$8.99 monthly** purchase only, then refunded.
+      Not annual, not lifetime — one charge proves the whole live path (signature →
+      shared secret → classification → entitlement grant) and the refund exercises
+      `charge.refunded` on the way back out. Cost is the ~56¢ Stripe fee, which a
+      refund never returns.
+      Also **capture the real `invoice.paid` payload** while you are in there — it is
+      the only way to settle the API-version risk below.
 - [ ] **Open risk — webhook API version cannot be changed.** The destination is pinned to
       `2026-07-29.dahlia`; the code pins `2026-06-24.dahlia`. Exposure is narrow because the
       handler re-fetches the subscription through the pinned client, so `classifyPlusSubscription`,
@@ -50,19 +113,22 @@ mode is easier to read if the one before it succeeded.*
 ## 💳 Path to the first paying subscriber
 
 *Senior-dev audit, 2026-08-25. Ordered by what blocks revenue, then by what
-protects the people who pay. Phase A is the at-home commands above; nothing in
-Phase B can start until A5 passes.*
+protects the people who pay. Phase A is the at-home commands above.*
+
+*Amended 2026-08-26: **B1 runs before step 5**, not after — step 5 cannot test a
+portal that does not exist. B2–B5 still wait on step 5 passing.*
 
 ### Phase B — required before ANY real customer can subscribe
 
 These are not polish. Each one, missing, produces a specific harm to someone who
 has paid you money.
 
-- [ ] **B1. Configure the live Customer Portal.** Without it a subscriber cannot
+- [x] ~~**B1. Configure the live Customer Portal.** Without it a subscriber cannot
       cancel, cannot update a failing card, and cannot see what they were
       charged. Shape it like the sandbox: cancel at period end **on**; plan
       switching, quantity and pause **off**. *Harm if skipped: a paying customer
       with no way out. That is a consumer-protection problem, not a UX one.*
+      **DONE 2026-08-26.** Cancel subscriptions on, at end of billing period; cancellation reason collected; plan switching and quantity change off; payment-method updates and invoice history on. "Next generation portal experience" left **off** on purpose - it is a preview whose behaviour can change underneath us, and this path has carried zero real deliveries.~~
 - [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
       **off**, so this path has never run once. Portal recovery works — but
       nothing currently tells anyone their card failed. *Harm if skipped: silent
@@ -88,6 +154,17 @@ has paid you money.
 - [ ] **C2. Flip `PRICING_ENABLED` to `true`** in `src/app/declare/plan-display.js`,
       update the one guard assertion, deploy. **This is the moment money can
       move.** Everything above must be done first.
+
+      **BLOCKED until `EXTRA_TRUSTED_ORIGIN` is gone from production.** Run this
+      first, every time, and read the output rather than assuming:
+      ```bash
+      npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN
+      ```
+      **It must print nothing.** If it prints a line, stop — production auth still
+      trusts `localhost`, and opening purchasing on top of that is exactly the
+      combination nobody would choose deliberately. Remove it (see **A0**), re-run
+      the grep, and only then flip the flag. This gate exists because the failure
+      mode of A0 is forgetting, and forgetting is not something a checkbox catches.
 - [ ] **C3. Watch the first real subscriber end to end** — Checkout, webhook,
       entitlement, `/you`, `/billing`. Roll back on: webhook failures above a
       small threshold over 15 minutes; any entitlement granted without a matching

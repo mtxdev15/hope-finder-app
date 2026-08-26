@@ -186,3 +186,59 @@ that guarantee for a runtime flag. Nine assertions across four suites enforce
 the structural invariant and must each be rewritten — not relaxed — when it
 lands. That belongs at Stage 6, after the real-money smoke test, which runs
 through `/dev/billing-sandbox` and needs none of it.
+
+## 8. `EXTRA_TRUSTED_ORIGIN` — the fifth variable, and the only temporary one
+
+Not a secret. It holds no credential and grants no access to Stripe. It is
+listed here because it lives beside the four secrets in the same Convex
+environment list, and because it is the **only** variable in this system that is
+meant to be deleted rather than kept.
+
+**What it does.** `convex/auth.ts` builds Better Auth's `trustedOrigins` — the
+list of websites allowed to begin a sign-in — from `SITE_URL`, one entry. If
+`EXTRA_TRUSTED_ORIGIN` is set, exactly one more origin is appended. Unset, the
+list is unchanged, so the variable's absence is its safe state.
+
+**Why it exists.** The live billing smoke test needs a real Checkout started by
+our own code, as a real production user. The only caller of
+`createCheckoutSession` is the dev control, which `getStaticPaths` excludes from
+every production build and which therefore exists only under `npm run dev` — so
+the browser doing the test is on `http://localhost:4321`. Better Auth's
+`formCsrfMiddleware` sees a browser `fetch`'s `Sec-Fetch-*` headers, calls
+`validateOrigin(ctx, forceValidate: true)`, and refuses that origin with
+`FORBIDDEN / INVALID_ORIGIN`.
+
+That refusal is correct. It is not a bug and must never be "fixed" by disabling
+the origin check, widening the check to a pattern, or hardcoding `localhost`
+into `trustedOrigins`. Any of those would widen every deployment, permanently
+and invisibly. One env var, absent by default, keeps the widening deliberate and
+visible in the deployment's own environment list.
+
+**Set it:**
+
+```bash
+npx convex env set EXTRA_TRUSTED_ORIGIN "http://localhost:4321" --prod
+```
+
+**Remove it — the same day:**
+
+```bash
+npx convex env remove EXTRA_TRUSTED_ORIGIN --prod
+npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN   # must print NOTHING
+```
+
+No redeploy is needed either way; Convex reads environment variables at call
+time, so both take effect on the next sign-in attempt.
+
+**Exposure while set.** Narrower than it first sounds. Browsers set the `Origin`
+header themselves, so a remote attacker's page cannot forge
+`http://localhost:4321` — an attacker would need the victim to be running a
+hostile app on that exact port on their own machine. The real risk is
+**forgetting to remove it**, leaving production's auth list widened for months.
+`TODO.md` therefore blocks **C2** — the flag flip that lets money move — on the
+grep above printing nothing.
+
+**It does not affect where a local dev server points.** That is decided only by
+`.env.development.local` (dev-mode-only, gitignored) on the developer's own
+machine. Deleting that file returns local development to the dev Convex
+deployment. The normal develop-then-push loop is unchanged by any of this.

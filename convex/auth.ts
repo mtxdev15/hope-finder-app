@@ -10,13 +10,41 @@ import { sendResetPassword } from "./email";
 
 const siteUrl = process.env.SITE_URL!;
 
+/* ONE additional trusted origin, for pointing a LOCAL dev server at a DEPLOYED
+ * backend — the live billing smoke test, where a real Checkout has to be
+ * started by our own code as a real production user, and the dev control that
+ * starts it only exists under `npm run dev`.
+ *
+ * WHY THIS IS NEEDED AT ALL
+ * Better Auth's sign-in route runs formCsrfMiddleware. A browser `fetch` always
+ * carries Sec-Fetch-* headers, which sends that middleware into
+ * validateOrigin(ctx, forceValidate: true) — so the `useCookies` escape hatch
+ * never applies and the Origin header is checked unconditionally. From
+ * http://localhost:4321 against a deployment whose SITE_URL is the live domain,
+ * that is a hard FORBIDDEN / INVALID_ORIGIN. There is no client-side way around
+ * it, and there should not be.
+ *
+ * WHY AN ENV VAR RATHER THAN A HARDCODED localhost ENTRY
+ * Absent by default. A deployment trusts exactly ONE origin unless somebody
+ * deliberately sets this, and having set it is then visible in that
+ * deployment's environment-variable list — so the widening is discoverable by
+ * looking, not only by reading source. Hardcoding localhost would widen every
+ * deployment forever, silently, including production.
+ *
+ * REMOVE IT WHEN THE TEST IS DONE. While it is set, that origin can begin a
+ * sign-in against this deployment. */
+const extraTrustedOrigin = process.env.EXTRA_TRUSTED_ORIGIN;
+const trustedOrigins = extraTrustedOrigin
+  ? [siteUrl, extraTrustedOrigin]
+  : [siteUrl];
+
 // Component client: integration + helper methods.
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: process.env.CONVEX_SITE_URL, // auto-provided by Convex
-    trustedOrigins: [siteUrl],
+    trustedOrigins,
     database: authComponent.adapter(ctx),
     // Email + password. Simple sign-up: name, email, password, then straight
     // into the app. No email-verification step (it can be added later as a

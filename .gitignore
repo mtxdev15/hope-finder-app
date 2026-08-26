@@ -36,3 +36,8 @@ worker/.wrangler/
 
 # Local Playwright MCP browser artifacts
 .playwright-mcp/
+
+# Vite loads this ONLY in dev mode, unlike .env.local which loads in
+# production builds too. It is where the billing dev-control flag and any
+# local Convex overrides belong. Never commit one.
+.env.development.local
