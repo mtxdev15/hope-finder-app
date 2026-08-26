@@ -65,12 +65,44 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       <section class="bl-card m-rise" id="blPay" aria-labelledby="blPayH" hidden>
         <h2 class="bl-h" id="blPayH" data-i18n="billing.paymentH">Payment</h2>
         <p class="bl-note" data-i18n="billing.paymentNote">Payment details are managed securely through Stripe.</p>
+        {/* The one thing that genuinely cannot leave Stripe, said plainly rather
+            than hidden behind a generic "Manage billing".
+            Card entry is PCI territory: re-implementing it would put card data
+            in our page for no gain. So the hand-off is labelled with what it is
+            FOR, so nobody clicks it hoping to find their plan. Deliberately a
+            secondary action — most visits here are not about the card. */}
+        <div class="bl-acts" id="blPayActs"></div>
       </section>
 
-      {/* ── Invoices. Handed off rather than rebuilt. */}
+      {/* ── Annual switch, confirmed inline rather than in a modal.
+           A dialog would need focus trapping, scroll locking and an escape
+           route; an inline panel needs none of that and keeps the plan it is
+           talking about visible while you read it. Mobile-first: at 375px a
+           modal covers the very card that gives the numbers their context. */}
+      <section class="bl-card bl-up m-rise" id="blUpgrade" aria-labelledby="blUpH" hidden>
+        <h2 class="bl-h" id="blUpH" data-i18n="billing.upgradeH">Switch to annual</h2>
+        <p class="bl-note" id="blUpDue"></p>
+        <p class="bl-note" id="blUpThen"></p>
+        <div class="bl-acts" id="blUpActs"></div>
+      </section>
+
+      {/* ── Invoices. The HISTORY is rendered here; the PDFs stay in the portal.
+           That split is not a compromise, it is the honest line: what a person
+           reads ("did that charge go through, and when?") belongs on the page
+           they are already looking at, while a downloadable tax document is a
+           Stripe-hosted artefact we would gain nothing by re-serving.
+
+           Rows are a list, not a <table>. Two reasons: this is a phone-first
+           app and a three-column table at 375px is a horizontal scroll, and a
+           table on this page is banned outright by
+           scripts/verify-plans-billing-states.ts to stop Billing re-growing the
+           plan comparison grid it was deliberately split away from. */}
       <section class="bl-card m-rise" id="blInv" aria-labelledby="blInvH" hidden>
         <h2 class="bl-h" id="blInvH" data-i18n="billing.invoicesH">Invoices</h2>
-        <p class="bl-note" data-i18n="billing.invoicesNote">Your full invoice history is available in the billing portal.</p>
+        <ul class="bl-invs" id="blInvList" role="list"></ul>
+        <p class="bl-note" id="blInvEmpty" data-i18n="billing.invoicesEmpty" hidden>No charges yet.</p>
+        <p class="bl-note" id="blInvErr" data-i18n="billing.invoicesErr" hidden>We could not load your invoices just now.</p>
+        <p class="bl-note" data-i18n="billing.invoicesNote">Downloadable receipts and tax documents are in the billing portal.</p>
       </section>
 
       {/* ── Plans link. The one place Billing points at the other job, worded
@@ -84,10 +116,12 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   </main>
 
 <script>
-  import { myEntitlements, openBillingPortal } from '../app/declare/convex-data.js';
+  import { myEntitlements, openBillingPortal, resumeSubscription, listInvoices,
+           upgradeToAnnual, previewAnnualUpgrade } from '../app/declare/convex-data.js';
   import {
     planState, planNameKey, planStatusKey, cadenceKey, periodLabelKey,
     formatPeriodEnd, showsManageBilling, currentPlanId, plusCtaIntent,
+    PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS, annualSavingPercent,
     STATE_LABEL_KEYS,
   } from '../app/declare/plan-display.js';
   import { onAuthChange } from '../app/declare/auth-store.js';
@@ -109,6 +143,25 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     'plan.manage': 'Manage billing',
     'plan.updatePayment': 'Update payment',
     'plan.keepPlus': 'Keep Plus',
+    'plan.keepErr': 'We could not restore your plan just now. Please try again.',
+    'billing.updateCard': 'Update card on Stripe',
+    'billing.upgradeH': 'Switch to annual',
+    'billing.switchToAnnual': 'Switch to annual',
+    'billing.upgradeConfirm': 'Confirm switch',
+    'billing.upgradeCancel': 'Not now',
+    'billing.upgradeDueKnown': 'Due today: {amount}',
+    'billing.upgradeDueUnknown': 'You have already paid for part of this month. That unused time is credited, so today you pay less than the full year.',
+    'billing.upgradeThen': 'Then {amount} a year, starting {date}.',
+    'billing.upgradeThenNoDate': 'Then {amount} a year.',
+    'billing.upgradeSaving': 'Save {percent}% against paying monthly.',
+    'billing.upgradeErr': 'We could not switch your plan just now. Please try again.',
+    'billing.upgradeCancelling': 'Your plan is set to end. Choose Keep Plus first, then switch to annual.',
+    'billing.invoicesEmpty': 'No charges yet.',
+    'billing.invoicesErr': 'We could not load your invoices just now.',
+    'billing.invStatusPaid': 'Paid',
+    'billing.invStatusOpen': 'Due',
+    'billing.invStatusVoid': 'Void',
+    'billing.invStatusRefunded': 'Refunded',
     'plan.retry': 'Try again',
     'plan.monthly': 'Monthly plan',
     'plan.annual': 'Annual plan',
@@ -139,11 +192,67 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     return window.I18N ? window.I18N.t(k, en) : en;
   };
 
-  let portalBusy = false;
+  /* One in-flight guard PER ACTION, not one for the page.
+   *
+   * A single shared flag was fine while a state showed one button. With Resume
+   * and Manage billing side by side it becomes a bug with no error: clicking
+   * one latches the flag, and the other silently does nothing until the first
+   * resolves. Keyed by action name so two different billing actions can never
+   * block each other, while a double-click on the SAME action still cannot fire
+   * twice. */
+  const busy: Record<string, boolean> = {};
+  const isBusy = (k: string): boolean => busy[k] === true;
+  const setBusy = (k: string, v: boolean): void => { busy[k] = v; };
+
+  /* KEEP PLUS — undone here, not in Stripe's portal.
+   *
+   * Cancelling keeps its confirmation step; that friction protects people from
+   * cancelling by accident. Un-cancelling gets none: that person has already
+   * decided to stay. Routing them to the portal made them read three different
+   * names for one intention — our "Keep Plus", then "Don't cancel
+   * subscription", then "Renew subscription", the last of which sounds like a
+   * fresh charge to somebody who only wanted to undo a mistake.
+   *
+   * On success this re-reads entitlements rather than patching the view. Stripe
+   * is told, the webhook updates the row, and this page shows whatever the
+   * entitlement contract then reports - so there is exactly one description of
+   * what somebody holds, and it is never this handler's guess. */
+  async function keepPlus(btn: HTMLButtonElement): Promise<void> {
+    if (isBusy('resume')) return;
+    setBusy('resume', true);
+    btn.disabled = true;
+    try {
+      const res = await resumeSubscription();
+      if (res && res.ok) {
+        /* The webhook is what actually updates our row, and it is not
+           instantaneous. Re-read rather than declaring success: if the row has
+           not landed yet the page keeps saying ENDING, which is honest, instead
+           of claiming ACTIVE on the strength of a 200 from Stripe. */
+        await load();
+        setBusy('resume', false);
+        return;
+      }
+      /* A refusal that means the subscription is no longer in a state this can
+         act on is not an error to apologise for — it is information. Re-read so
+         the page shows the real state, and say what happened. */
+      if (res && (res.error === 'not-cancelling' || res.error === 'already-ended')) {
+        await load();
+        setBusy('resume', false);
+        return;
+      }
+      showMsg(res && res.error === 'no-subscription'
+        ? tx('plan.noSub', 'We could not find a subscription for this account.')
+        : tx('plan.keepErr', 'We could not restore your plan just now. Please try again.'));
+    } catch (e) {
+      showMsg(tx('plan.keepErr', 'We could not restore your plan just now. Please try again.'));
+    }
+    setBusy('resume', false);
+    btn.disabled = false;
+  }
 
   async function manageBilling(btn: HTMLButtonElement): Promise<void> {
-    if (portalBusy) return;
-    portalBusy = true;
+    if (isBusy('portal')) return;
+    setBusy('portal', true);
     btn.disabled = true;
     try {
       const res = await openBillingPortal();
@@ -154,7 +263,197 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     } catch (e) {
       showMsg(tx('plan.portalErr', 'We could not open billing just now. Please try again.'));
     }
-    portalBusy = false;
+    setBusy('portal', false);
+    btn.disabled = false;
+  }
+
+  /* ── INVOICE HISTORY ──────────────────────────────────────────────────────
+   *
+   * Money is formatted HERE, in the reader's locale, from minor units plus a
+   * currency code. The server deliberately does not pre-format: "$8.99" is a
+   * decision about who the reader is, and this app already ships in Spanish.
+   *
+   * A failed read and an empty history are rendered DIFFERENTLY on purpose. A
+   * subscriber who was charged and sees "No charges yet" has been told
+   * something false; "we could not load these" is the honest answer to a read
+   * that did not happen. */
+  /* I18N.lang is a FUNCTION, not a property. Read as a property it yields the
+     function object, which Intl.NumberFormat rejects outright and date
+     formatting mishandles silently — so it is resolved in exactly one place
+     rather than at each of the three call sites that now need it. */
+  function currentLang(): string {
+    if (window.I18N) return window.I18N.lang();
+    return document.documentElement.lang || 'en';
+  }
+
+  function moneyText(minor: number, currency: string): string {
+    const lang = currentLang();
+    try {
+      return new Intl.NumberFormat(lang, {
+        style: 'currency', currency: (currency || 'usd').toUpperCase(),
+      }).format(minor / 100);
+    } catch (e) {
+      /* An unknown currency code must not blank the row — show the number. */
+      return (minor / 100).toFixed(2) + ' ' + (currency || '').toUpperCase();
+    }
+  }
+
+  function invStatusText(status: string): string {
+    if (status === 'paid') return tx('billing.invStatusPaid', 'Paid');
+    if (status === 'open' || status === 'draft') return tx('billing.invStatusOpen', 'Due');
+    if (status === 'void' || status === 'uncollectible') return tx('billing.invStatusVoid', 'Void');
+    /* Anything Stripe reports that is not in our vocabulary is shown as-is
+       rather than guessed at — a wrong status word on a charge is worse than an
+       unfamiliar one. */
+    return status;
+  }
+
+  async function loadInvoices(): Promise<void> {
+    const list = el('blInvList');
+    const empty = el('blInvEmpty');
+    const err = el('blInvErr');
+    if (!list || !empty || !err) return;
+    list.innerHTML = '';
+    empty.hidden = true;
+    err.hidden = true;
+
+    let res = null;
+    try { res = await listInvoices(); } catch (e) { res = null; }
+
+    /* null means the client never ran; { error } means it ran and refused.
+       Both are "we do not know", which is not "there is nothing". */
+    if (!res || res.error || !Array.isArray(res.invoices)) { err.hidden = false; return; }
+    if (res.invoices.length === 0) { empty.hidden = false; return; }
+
+    for (const inv of res.invoices) {
+      const li = document.createElement('li');
+      li.className = 'bl-inv';
+
+      const when = document.createElement('span');
+      when.className = 'bl-inv-when';
+      when.textContent = formatPeriodEnd(inv.createdAt) || '';
+
+      const what = document.createElement('span');
+      what.className = 'bl-inv-what';
+      /* Stripe's line description is merchant-authored text. It is set as
+         textContent, never innerHTML, and falls back to our own plan name
+         rather than rendering an empty cell. */
+      what.textContent = inv.description || tx('plan.plusName', 'Declare Plus');
+
+      const amt = document.createElement('span');
+      amt.className = 'bl-inv-amt';
+      amt.textContent = moneyText(inv.amountPaid, inv.currency);
+
+      const st = document.createElement('span');
+      st.className = 'bl-inv-st';
+      st.dataset.st = inv.status;
+      st.textContent = invStatusText(inv.status);
+
+      li.append(when, what, amt, st);
+      list.appendChild(li);
+    }
+  }
+
+  /* ── SWITCH TO ANNUAL ─────────────────────────────────────────────────────
+   *
+   * Offered only to an ACTIVE MONTHLY subscriber. Not to annual (nothing to
+   * switch), not to lifetime (no recurring plan at all), not while cancelling
+   * (charging a year to somebody who has said they are leaving), and not while
+   * a payment needs attention (the card we would charge is the one failing).
+   *
+   * The panel opens BEFORE anything is charged, and its two lines are the two
+   * facts people actually need: what leaves the account today, and what happens
+   * at the next renewal. Everything else is decoration on a payment screen. */
+  function canSwitchToAnnual(state: string, ent: any): boolean {
+    if (state !== 'plus-active') return false;
+    if (!ent || typeof ent !== 'object') return false;
+    if (ent.planKey !== 'plus_monthly') return false;
+    if (ent.cancelAtPeriodEnd === true) return false;
+    if (ent.paymentNeedsAttention === true) return false;
+    return true;
+  }
+
+  function fill(template: string, vars: Record<string, string>): string {
+    return template.replace(/\{(\w+)\}/g, (_m, k) => (vars[k] !== undefined ? vars[k] : ''));
+  }
+
+  async function openUpgradePanel(ent: any): Promise<void> {
+    const panel = el('blUpgrade');
+    const due = el('blUpDue');
+    const then = el('blUpThen');
+    const acts = el('blUpActs');
+    if (!panel || !due || !then || !acts) return;
+
+    /* Shown immediately with the honest fallback, then upgraded to the exact
+       figure if Stripe answers. The reverse order — blank until the preview
+       returns — would leave a payment panel empty on a slow network. */
+    due.textContent = tx('billing.upgradeDueUnknown', '');
+
+    const annual = moneyText(PLUS_ANNUAL_CENTS, 'usd');
+    const when = formatPeriodEnd(ent && ent.periodEndAt, currentLang());
+    then.textContent = when
+      ? fill(tx('billing.upgradeThen', ''), { amount: annual, date: when })
+      : fill(tx('billing.upgradeThenNoDate', ''), { amount: annual });
+
+    const pct = annualSavingPercent(PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS);
+    if (pct) {
+      then.textContent += ' ' + fill(tx('billing.upgradeSaving', ''), { percent: String(pct) });
+    }
+
+    acts.innerHTML = '';
+    acts.appendChild(button(tx('billing.upgradeConfirm', 'Confirm switch'), (self) => {
+      confirmUpgrade(self);
+    }, 'bl-primary'));
+    acts.appendChild(button(tx('billing.upgradeCancel', 'Not now'), () => {
+      panel.hidden = true;
+    }, 'bl-ghost'));
+
+    panel.hidden = false;
+
+    /* The preview is UNVERIFIED at our pinned Stripe API version, so it may
+       never return a number. That is why the fallback text is already on screen
+       — this can only ever replace prose with a real figure, never the reverse,
+       and it can never print a guess. */
+    let p = null;
+    try { p = await previewAnnualUpgrade(); } catch (e) { p = null; }
+    if (p && typeof p.amountDue === 'number' && typeof p.currency === 'string') {
+      due.textContent = fill(tx('billing.upgradeDueKnown', ''), {
+        amount: moneyText(p.amountDue, p.currency),
+      });
+    }
+  }
+
+  async function confirmUpgrade(btn: HTMLButtonElement): Promise<void> {
+    if (isBusy('upgrade')) return;
+    setBusy('upgrade', true);
+    btn.disabled = true;
+    try {
+      track('switch_to_annual_confirmed', {
+        authenticated: true, displayed_tier: 'plus', source: 'billing',
+      });
+      const res = await upgradeToAnnual();
+      if (res && res.ok) {
+        const panel = el('blUpgrade');
+        if (panel) panel.hidden = true;
+        /* Re-read rather than declaring victory. The webhook writes the row, so
+           until it lands the page honestly still shows monthly. */
+        await load();
+        setBusy('upgrade', false);
+        return;
+      }
+      if (res && res.error === 'cancelling') {
+        showMsg(tx('billing.upgradeCancelling', ''));
+      } else if (res && res.error === 'already-annual') {
+        await load();
+        setBusy('upgrade', false);
+        return;
+      } else {
+        showMsg(tx('billing.upgradeErr', 'We could not switch your plan just now. Please try again.'));
+      }
+    } catch (e) {
+      showMsg(tx('billing.upgradeErr', 'We could not switch your plan just now. Please try again.'));
+    }
+    setBusy('upgrade', false);
     btn.disabled = false;
   }
 
@@ -164,10 +463,18 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     m.textContent = text; m.hidden = false;
   }
 
-  function button(label: string, onClick: () => void, cls: string): HTMLButtonElement {
+  /* The handler receives ITS OWN element.
+   *
+   * Callers used to re-find the button with `acts.querySelector('button')`,
+   * which returns the FIRST button in the row. That was correct only while
+   * every state rendered exactly one action. The moment a second appears —
+   * Resume beside Manage billing — the wrong element is disabled and the
+   * clicked one stays live. Passing the element removes the possibility rather
+   * than relying on the row staying single-button forever. */
+  function button(label: string, onClick: (self: HTMLButtonElement) => void, cls: string): HTMLButtonElement {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'bl-btn ' + cls; b.textContent = label;
-    b.addEventListener('click', () => onClick());
+    b.addEventListener('click', () => onClick(b));
     return b;
   }
   function link(label: string, href: string, cls: string, onClick?: () => void): HTMLAnchorElement {
@@ -181,7 +488,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     const card = el('blPlan');
     if (!card) return;
     const state = planState(ent, opts);
-    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+    const lang = currentLang();
     const current = currentPlanId(state);
 
     card.setAttribute('data-plan-state', state);
@@ -274,6 +581,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
       acts.innerHTML = '';
       const intent = plusCtaIntent(state);
       if (showsManageBilling(state)) {
+        /* The PRIMARY action, one per state — this part is unchanged. */
         const label = intent === 'update-payment'
           ? tx('plan.updatePayment', 'Update payment')
           : intent === 'keep-plus'
@@ -282,11 +590,46 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         const evt = intent === 'update-payment'
           ? 'payment_attention_cta_selected'
           : intent === 'keep-plus' ? 'keep_plus_selected' : 'manage_billing_selected';
-        acts.appendChild(button(label, () => {
+        acts.appendChild(button(label, (self) => {
           track(evt, { authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing' });
-          const b = acts.querySelector('button');
-          if (b instanceof HTMLButtonElement) manageBilling(b);
+          /* Keep Plus resolves in place; every other intent needs the portal,
+             which is the right tool for card changes and invoice PDFs. */
+          if (intent === 'keep-plus') keepPlus(self); else manageBilling(self);
         }, 'bl-primary'));
+
+        /* SECONDARY: billing management stays reachable while cancelling.
+         *
+         * This page used to REPLACE "Manage billing" with "Keep Plus" for a
+         * cancelling subscriber, which took away the only route to updating a
+         * card in the one state where somebody may be leaving BECAUSE of a
+         * payment problem. Resume is added beside it, never instead of it.
+         *
+         * Only for keep-plus: 'update-payment' already IS the portal under a
+         * different name, and 'manage-billing' is the primary here, so adding a
+         * second portal button to either would be the same button twice. */
+        if (intent === 'keep-plus') {
+          acts.appendChild(button(tx('plan.manage', 'Manage billing'), (self) => {
+            track('manage_billing_selected', {
+              authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing',
+            });
+            manageBilling(self);
+          }, 'bl-ghost'));
+        }
+
+        /* SWITCH TO ANNUAL — a named action, not a plan picker.
+         *
+         * Named because that is the decision people actually make; "Change
+         * plan" makes them open something to find out what is behind it. It
+         * opens a confirmation panel rather than charging on click: this moves
+         * real money, and the amount is not the number on the button. */
+        if (canSwitchToAnnual(state, ent)) {
+          acts.appendChild(button(tx('billing.switchToAnnual', 'Switch to annual'), () => {
+            track('switch_to_annual_selected', {
+              authenticated: true, displayed_tier: 'plus', source: 'billing',
+            });
+            openUpgradePanel(ent);
+          }, 'bl-ghost'));
+        }
       } else if (state === 'free' || state === 'guest') {
         acts.appendChild(link(tx('billing.viewPlans', 'View plans'), '/pricing', 'bl-ghost', () => {
           track('view_plans_selected', {
@@ -305,7 +648,28 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
        empty section would imply otherwise. */
     const hasBilling = showsManageBilling(state);
     const pay = el('blPay'); if (pay) pay.hidden = !hasBilling;
+    const payActs = el('blPayActs');
+    if (payActs) {
+      payActs.innerHTML = '';
+      if (hasBilling) {
+        payActs.appendChild(button(tx('billing.updateCard', 'Update card on Stripe'), (self) => {
+          track('manage_billing_selected', {
+            authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing',
+          });
+          manageBilling(self);
+        }, 'bl-ghost'));
+      }
+    }
     const inv = el('blInv'); if (inv) inv.hidden = !hasBilling;
+    /* Fetched only when the section is actually shown, and never awaited: the
+       plan card is the answer people came for and must not wait on a Stripe
+       round trip to render. A Free account triggers no call at all. */
+    if (hasBilling) { loadInvoices(); }
+
+    /* The upgrade panel describes ONE state. Any re-render means that state may
+       have moved — a webhook landed, a resume completed — so it is closed rather
+       than left quoting figures that were true a moment ago. */
+    const up = el('blUpgrade'); if (up) up.hidden = true;
   }
 
 
@@ -385,6 +749,39 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     .billing .bl-list li::before { content: ''; position: absolute; left: 4px; top: 6px; width: 9px; height: 5px; border-left: 1.8px solid var(--gold); border-bottom: 1.8px solid var(--gold); transform: rotate(-45deg); }
     .billing .bl-msg { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 14px 0 0; }
     .billing .bl-note { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 0; }
+
+    /* Invoice rows. A two-line grid on a phone, one line from 480px up — the
+       reason this is a list and not a <table>: a table cannot reflow like this
+       without a horizontal scroll at 375px. */
+    /* The annual-switch panel. Gold hairline rather than a filled card: it is an
+       offer, not a warning, and the page already spends red on real problems. */
+    .billing .bl-up { border-color: var(--gold, #C9A84C); }
+    .billing .bl-up .bl-note { margin-bottom: 8px; }
+    .billing .bl-up #blUpDue { color: var(--text); font-weight: 600; font-size: 14.5px; }
+    .billing .bl-up .bl-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+
+    .billing .bl-invs { list-style: none; margin: 0 0 14px; padding: 0; }
+    .billing .bl-inv {
+      display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
+      padding: 11px 0; border-bottom: 1px solid var(--line, rgba(232,224,208,.18));
+      font-size: 13.5px; align-items: baseline;
+    }
+    .billing .bl-inv:last-child { border-bottom: 0; }
+    .billing .bl-inv-when { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .billing .bl-inv-what { grid-column: 1; color: var(--text2); }
+    .billing .bl-inv-amt {
+      grid-column: 2; grid-row: 1; font-variant-numeric: tabular-nums; font-weight: 600;
+    }
+    .billing .bl-inv-st { grid-column: 2; grid-row: 2; font-size: 12px; color: var(--muted); text-align: right; }
+    /* Paid is the expected outcome and gets no emphasis. Anything unpaid does:
+       a subscriber scanning this needs the exception to surface, not the norm. */
+    .billing .bl-inv-st[data-st="open"], .billing .bl-inv-st[data-st="draft"] { color: var(--goldd, #C9A84C); }
+    .billing .bl-inv-st[data-st="uncollectible"], .billing .bl-inv-st[data-st="void"] { color: #E4736B; }
+    @media (min-width: 480px) {
+      .billing .bl-inv { grid-template-columns: auto 1fr auto auto; gap: 0 14px; }
+      .billing .bl-inv-when, .billing .bl-inv-what,
+      .billing .bl-inv-amt, .billing .bl-inv-st { grid-row: 1; grid-column: auto; }
+    }
     .billing .bl-acts { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
     .billing .bl-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1px solid var(--gold); text-decoration: none; }
     .billing .bl-primary { background: var(--gold); color: #13211A; }

@@ -24,7 +24,10 @@ import {
   planLabel,
   stateForEntitlement,
   pollExhausted,
+  pollDelayMs,
   POLL_INTERVAL_MS,
+  POLL_SLOW_INTERVAL_MS,
+  POLL_FAST_UNTIL_MS,
   POLL_TIMEOUT_MS,
   MAX_POLLS,
 } from "../src/app/declare/checkout-return.js";
@@ -133,15 +136,48 @@ check("nothing but the entitlement object decides — a session id cannot",
 /* ── 4. Polling is bounded and well-behaved ──────────────────────────────── */
 section("4. Polling is bounded, single-flight and stoppable");
 
+/* WHY "roughly thirty seconds" IS GONE
+   It used to assert POLL_TIMEOUT_MS <= 60000, which encoded the belief that a
+   webhook confirmation either lands within half a minute or needs a human. The
+   first real production purchase (2026-08-26) landed correctly but AFTER that
+   bound, and the buyer was shown "Still confirming" for a purchase that had
+   already succeeded. The assertion was not protecting anything real - it was
+   pinning a guess. What actually matters is stated below instead: the window is
+   long enough to outlast a cold start, the request count stays small, and the
+   fast phase is genuinely faster than the slow one. */
 check("a poll interval is defined", typeof POLL_INTERVAL_MS === "number" && POLL_INTERVAL_MS > 0);
-check("interval is roughly two seconds", POLL_INTERVAL_MS >= 1000 && POLL_INTERVAL_MS <= 3000);
+check("the fast interval is roughly two seconds", POLL_INTERVAL_MS >= 1000 && POLL_INTERVAL_MS <= 3000);
 check("a timeout is defined", typeof POLL_TIMEOUT_MS === "number" && POLL_TIMEOUT_MS > 0);
-check("timeout is roughly thirty seconds", POLL_TIMEOUT_MS >= 15000 && POLL_TIMEOUT_MS <= 60000);
+check("the window outlasts a cold Worker + Convex + Stripe re-fetch (>= 90s)",
+  POLL_TIMEOUT_MS >= 90_000);
+check("but is not an open-ended wait (<= 5 min)", POLL_TIMEOUT_MS <= 300_000);
 check("the bound is finite and small", MAX_POLLS > 0 && MAX_POLLS <= 60);
 check("polling is exhausted at the bound", pollExhausted(MAX_POLLS));
 check("polling is not exhausted before the bound", !pollExhausted(MAX_POLLS - 1));
+
+/* The backoff itself. Without these, `pollDelayMs` could return the fast
+   interval forever and the wider window would cost 60 requests instead of 30 -
+   the exact regression the backoff exists to avoid. */
+check("the first attempt waits the fast interval", pollDelayMs(0) === POLL_INTERVAL_MS);
+check("a later attempt waits longer than the first", pollDelayMs(MAX_POLLS - 1) > pollDelayMs(0));
+check("the slow phase is actually reached before the bound",
+  pollDelayMs(MAX_POLLS - 1) === POLL_SLOW_INTERVAL_MS);
+check("the fast phase ends where it says it does",
+  pollDelayMs(Math.floor(POLL_FAST_UNTIL_MS / POLL_INTERVAL_MS) - 1) === POLL_INTERVAL_MS &&
+  pollDelayMs(Math.floor(POLL_FAST_UNTIL_MS / POLL_INTERVAL_MS)) === POLL_SLOW_INTERVAL_MS);
+/* The whole point of the backoff is fewer requests than a flat fast poll would
+   cost over the same window. State that as arithmetic, not as a comment. */
+check("the backoff costs fewer requests than a flat fast poll over the same window",
+  MAX_POLLS < POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+
 check("the page uses the shared bound, not its own number",
   /pollExhausted\(/.test(SUCCESS_JS) && /MAX_POLLS/.test(SUCCESS_JS));
+/* A page that imports pollDelayMs but still schedules with POLL_INTERVAL_MS
+   would poll fast for the entire window - passing every check above while
+   defeating all of them. */
+check("the page schedules with the backoff, not the flat interval",
+  /setTimeout\(tick, pollDelayMs\(/.test(SUCCESS_JS) &&
+  !/setTimeout\(tick, POLL_INTERVAL_MS\)/.test(SUCCESS_JS));
 
 check("a single-flight guard prevents concurrent reads",
   /inFlight/.test(SUCCESS_JS) && /if \(stopped \|\| inFlight\) return;/.test(SUCCESS_JS));

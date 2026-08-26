@@ -110,6 +110,7 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
   import {
     POLL_INTERVAL_MS,
     MAX_POLLS,
+    pollDelayMs,
     stateForEntitlement,
     pollExhausted,
   } from '../../app/declare/checkout-return.js';
@@ -182,14 +183,16 @@ import DeclareLayout from '../../layouts/DeclareLayout.astro';
 
     attempts += 1;
     if (pollExhausted(attempts)) { show('stTimeout'); stop(); return; }
-    timer = setTimeout(tick, POLL_INTERVAL_MS);
+    /* Backoff, not a flat interval - see checkout-return.js. Passing
+       POLL_INTERVAL_MS here would keep the fast rate for the whole window. */
+    timer = setTimeout(tick, pollDelayMs(attempts));
   }
 
   /* Stop while the tab is hidden and resume when it comes back, so a page left
      open in a background tab is not quietly polling. */
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { clearTimeout(timer); }
-    else if (!stopped) { timer = setTimeout(tick, POLL_INTERVAL_MS); }
+    else if (!stopped) { timer = setTimeout(tick, pollDelayMs(attempts)); }
   });
   window.addEventListener('pagehide', stop);
 

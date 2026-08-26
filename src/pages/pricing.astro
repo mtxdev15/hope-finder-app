@@ -201,7 +201,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   import {
     planState, mayStartCheckout, currentPlanId, isCurrentPlan, planStatusKey,
     plusCtaIntent, freeCtaIntent, initialInterval, formatPeriodEnd,
-    PRICING_ENABLED,
+    PRICING_ENABLED, PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS,
   } from '../app/declare/plan-display.js';
   import { track } from '../app/declare/analytics.js';
 
@@ -248,8 +248,10 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
 
   /* Prices live here as content, in cents, so the comparison and the saving are
      computed from one pair of numbers rather than three hardcoded strings. */
-  const MONTHLY_CENTS = 899;
-  const ANNUAL_CENTS = 7999;
+  /* Imported, not restated — /billing renders these too, and one price with
+     two definitions is one price too many. */
+  const MONTHLY_CENTS = PLUS_MONTHLY_CENTS;
+  const ANNUAL_CENTS = PLUS_ANNUAL_CENTS;
   const money = (cents: number) => '$' + (cents / 100).toFixed(2);
 
   let interval: 'month' | 'year' = 'month';

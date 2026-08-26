@@ -313,8 +313,26 @@ check("a failed read renders the response, which is 'unavailable'",
 
 /* Manage billing: click-only, single-flight, empty payload. */
 check("manage billing is bound to a click, not page load",
-  /addEventListener\('click', \(\) => onClick\(\)\)/.test(BILLING_CODE));
-check("the portal call is single-flight", /if \(portalBusy\) return;/.test(BILLING_CODE));
+  /addEventListener\('click', \(\) => onClick\(/.test(BILLING_CODE));
+
+/* WHY THIS IS NO LONGER /if \(portalBusy\) return;/
+   That matched one shared module-level flag, which was the correct design only
+   while every state rendered exactly one action button. With Resume sitting
+   beside Manage billing, one flag becomes a bug with no error message: clicking
+   either latches it and the other silently does nothing. The guard is now keyed
+   per action. The PROPERTY — a second click cannot fire the same request twice —
+   is unchanged, so it is asserted directly instead of through the old shape. */
+check("each billing action is single-flight",
+  /if \(isBusy\('portal'\)\) return;/.test(BILLING_CODE) &&
+  /if \(isBusy\('resume'\)\) return;/.test(BILLING_CODE));
+check("the two actions do not share one in-flight flag",
+  /const busy: Record<string, boolean> = \{\}/.test(BILLING_CODE) &&
+  !/let portalBusy/.test(BILLING_CODE));
+/* The click handler must act on the button that was clicked. Re-finding it with
+   querySelector returns the FIRST button in the row, which disables the wrong
+   control the moment a state renders two. */
+check("a handler acts on its own button, not the first one in the row",
+  !/acts\.querySelector\('button'\)/.test(BILLING_CODE));
 check("the button disables before the request",
   /btn\.disabled = true;[\s\S]{0,160}await openBillingPortal\(\)/.test(BILLING_CODE));
 check("no Portal call happens at page load",
@@ -524,6 +542,50 @@ for (const f of portalFiles) {
     /createPortalSession\s*,\s*\{\s*\}/.test(t) || /createPortalSession[^)]{0,40}\{\}/.test(t));
   check(`${rel} sends no customer identifier`, !/cus_|stripeCustomerId/.test(t));
 }
+/* resumeSubscription ships for the same reason createPortalSession does — the
+ * billing page's "Keep Plus" resolves in place instead of handing the user to
+ * Stripe's portal — so it inherits the same obligation. It takes NO arguments at
+ * all: the subscription is resolved server-side from the stored mapping for the
+ * authenticated user. If a subscription id ever appeared in this payload, the
+ * browser could aim the call at somebody else's subscription, which is exactly
+ * the class of bug the retired customers-by-email portal lookup was.
+ *
+ * Asserted separately from the portal rather than folded into a shared loop:
+ * these are two different actions with two different reasons to be safe, and a
+ * shared loop would let deleting one silently stop proving anything. */
+const resumeFiles = files.filter((f) => readFileSync(f, "utf8").includes("resumeSubscription"));
+check("resumeSubscription reaches production (the billing page needs it)", resumeFiles.length > 0);
+for (const f of resumeFiles) {
+  const t = readFileSync(f, "utf8");
+  const rel = f.slice(DIST.length + 1);
+  check(`${rel} calls resume with an empty payload`,
+    /resumeSubscription\s*,\s*\{\s*\}/.test(t) || /resumeSubscription[^)]{0,40}\{\}/.test(t));
+  check(`${rel} sends no subscription identifier`, !/sub_|stripeSubscriptionId/.test(t));
+  check(`${rel} sends no customer identifier`, !/cus_|stripeCustomerId/.test(t));
+}
+
+/* The two actions behind "Switch to annual" ship for the same reason
+ * resumeSubscription does, and inherit the same obligation. Both take NO
+ * arguments: the subscription, the customer and the TARGET PRICE are all
+ * resolved server-side. That last one matters most — a browser that can name a
+ * Price can name any Price, which is the exact hole createCheckoutSession's
+ * env-var lookup exists to close. Asserted per action rather than in a shared
+ * loop, so deleting one cannot silently stop proving the other. */
+for (const action of ["upgradeToAnnual", "previewAnnualUpgrade"] as const) {
+  const hits = files.filter((f) => readFileSync(f, "utf8").includes(action));
+  check(`${action} reaches production (the billing page needs it)`, hits.length > 0);
+  for (const f of hits) {
+    const t = readFileSync(f, "utf8");
+    const rel = f.slice(DIST.length + 1);
+    check(`${rel} calls ${action} with an empty payload`,
+      new RegExp(action + "\\s*,\\s*\\{\\s*\\}").test(t) ||
+      new RegExp(action + "[^)]{0,40}\\{\\}").test(t));
+    check(`${rel} sends no subscription identifier to ${action}`, !/sub_|stripeSubscriptionId/.test(t));
+    check(`${rel} names no Stripe Price for ${action}`,
+      !/\bprice_[A-Za-z0-9]{6}/.test(t) && !/STRIPE_PLUS_ANNUAL_PRICE_ID/.test(t));
+  }
+}
+
 for (const f of files) {
   const t = readFileSync(f, "utf8");
   check(`${f.slice(DIST.length + 1)} leaks no Stripe object id`,

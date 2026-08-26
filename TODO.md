@@ -39,7 +39,7 @@ real charges instead of two.
       can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
       $149 returns the money and leaves Plus granted forever.
       **DONE 2026-08-26.** Destination now listens to 9 events.~~
-- [ ] **A0. Temporarily let localhost sign in to production — and take it back off.**
+- [x] **A0. Temporarily let localhost sign in to production — and take it back off.**
       *Needed only for step 5. This is the one deliberate widening of production
       auth in the whole launch, so it gets its own item rather than a footnote.*
 
@@ -85,7 +85,9 @@ real charges instead of two.
       machine. The real risk is **forgetting to remove it** and leaving production's
       auth list widened for months. That is why C2 below is blocked on it.
 
-- [ ] **5. Stage 5 real-money smoke test.** *(Do **B1** first — see the ordering
+      **DONE and UNDONE 2026-08-26.** Set at 09:2x, removed the same session. `npx convex env list --prod | grep EXTRA_TRUSTED_ORIGIN` printed nothing on re-check, so production trusts exactly one origin again. The C2 gate below stays in place regardless - it costs one command to run and it is the only thing standing between a forgotten variable and an open checkout.
+
+- [x] ~~**5. Stage 5 real-money smoke test.** *(Do **B1** first — see the ordering
       correction above. Requires **A0** directly above, and A0 must be undone afterwards.)*
       The only true proof: Stripe permits no synthetic events in live mode, and the
       endpoint has 0 deliveries ever. Run `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`
@@ -97,6 +99,23 @@ real charges instead of two.
       refund never returns.
       Also **capture the real `invoice.paid` payload** while you are in there — it is
       the only way to settle the API-version risk below.
+      **DONE 2026-08-26 — the live path works end to end.** One $8.99 monthly purchase, real card, real production user. Entitlement flipped to `tier: plus / plus_monthly / stripe`, the live `/billing` rendered it, cancel-at-period-end and its reversal both worked across three surfaces, then cancelled immediately with a full refund and `/billing` returned to Free.
+      Provenance confirmed on the live subscription: `source=convex.billing.createCheckoutSession`, `billing_schema_version=1`, `environment=production`, `plan=plus_monthly`, plus the userId - which is exactly what a hand-made Dashboard subscription can never carry.
+      **Four things had never carried a real request before this and now have:** the live Stripe signature at the Worker, the shared Worker-to-Convex secret, classification of a live Price with its provenance, and the entitlement write.~~
+- [ ] **STILL UNVERIFIED — `charge.refunded` has never fired our revocation path.**
+      *Recorded 2026-08-26 so the smoke test does not look like it covered this. It did not.*
+      `convex/http.ts:257` refuses anything whose PaymentIntent metadata is not
+      `plan === "plus_lifetime"`, deliberately: a subscription's entitlement is governed by its
+      subscription STATUS, not by refunds, so a refunded monthly charge is acknowledged and ignored.
+      The smoke test refunded a **monthly** charge, so it exercised none of that branch — Plus was
+      revoked by `customer.subscription.deleted`, not by the refund. The only way to verify it is a
+      real lifetime purchase followed by a real refund, and lifetime is not yet buyable. Until then,
+      the one path that can undo a $149 sale is untested in production.
+- [ ] **`/checkout/success` copy, after the poll fix.** The window is now 20s fast + 100s slow
+      (`checkout-return.js`), which covers a cold start. But if it still exhausts, "Still confirming"
+      is shown to somebody who has paid. The copy is careful — it says not to pay again — and the
+      account page is correct by then. Worth revisiting whether the exhausted state should offer to
+      email them instead of leaving them on a page that cannot resolve.
 - [ ] **Open risk — webhook API version cannot be changed.** The destination is pinned to
       `2026-07-29.dahlia`; the code pins `2026-06-24.dahlia`. Exposure is narrow because the
       handler re-fetches the subscription through the pinned client, so `classifyPlusSubscription`,

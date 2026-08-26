@@ -14,13 +14,44 @@
  */
 
 /* Polling bounds for the success page's "confirming" state. Bounded on purpose:
- * an unbounded poll on a page a user may leave open is a slow request leak, and
- * webhook confirmation either lands in seconds or needs a human to look. */
+ * an unbounded poll on a page a user may leave open is a slow request leak.
+ *
+ * WHY THIS IS A BACKOFF AND NOT ONE FLAT INTERVAL
+ * It used to be a flat 2s poll for 30s, on the belief that "webhook confirmation
+ * either lands in seconds or needs a human to look." The first real production
+ * purchase (2026-08-26) disproved that: the entitlement landed correctly, but
+ * after the 30s bound, so the buyer was shown "Still confirming" for a purchase
+ * that had already succeeded. The chain is Stripe → Worker → Convex → a Stripe
+ * re-fetch → write, and on a cold path every hop pays a start-up cost. Thirty
+ * seconds was not a property of the system, it was a guess.
+ *
+ * Simply raising the flat bound to 120s would quadruple the request count for
+ * the common case, which lands in the first few seconds. So the window widens
+ * where it is cheap instead: fast while a normal confirmation is expected, slow
+ * while waiting out a cold start.
+ *
+ *   0-20s    every 2s   10 polls   the overwhelming majority land here
+ *   20-120s  every 5s   20 polls   cold Worker, cold Convex, slow re-fetch
+ *
+ * 30 requests over 120s, against 15 over 30s before: four times the window for
+ * twice the requests. */
 import { planState } from './plan-display.js';
 
 export const POLL_INTERVAL_MS = 2000;
-export const POLL_TIMEOUT_MS = 30000;
-export const MAX_POLLS = Math.floor(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+export const POLL_FAST_UNTIL_MS = 20000;
+export const POLL_SLOW_INTERVAL_MS = 5000;
+export const POLL_TIMEOUT_MS = 120000;
+
+const FAST_POLLS = Math.floor(POLL_FAST_UNTIL_MS / POLL_INTERVAL_MS);
+const SLOW_POLLS = Math.floor((POLL_TIMEOUT_MS - POLL_FAST_UNTIL_MS) / POLL_SLOW_INTERVAL_MS);
+export const MAX_POLLS = FAST_POLLS + SLOW_POLLS;
+
+/* How long to wait before attempt number `attempts` (0-based: the delay AFTER
+ * that many attempts have already been made). Callers must use this rather than
+ * POLL_INTERVAL_MS directly, or the slow phase silently never happens. */
+export function pollDelayMs(attempts) {
+  return attempts < FAST_POLLS ? POLL_INTERVAL_MS : POLL_SLOW_INTERVAL_MS;
+}
 
 /* Plan aliases we will render copy for. An allowlist, not a passthrough: the
  * value arrives in the query string, so echoing it would put attacker-chosen

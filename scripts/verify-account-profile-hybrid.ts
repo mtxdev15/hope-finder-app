@@ -257,7 +257,13 @@ check("the plan card lives on the Billing page", /id="blPlan"/.test(BILLING));
 check("status still lives in the plan card, not the badge",
   /st\.textContent = tx\(shown/.test(BILLING_CODE));
 check("cancelling still never says Renews", /periodLabelKey\(state\)/.test(BILLING_CODE));
-check("manage billing is still single-flight", /if \(portalBusy\) return;/.test(BILLING_CODE));
+/* The shared `portalBusy` flag became a keyed guard when a second action —
+   Resume — was added beside Manage billing. One flag for two buttons is a bug
+   with no error message: the first click latches it and the other button
+   silently does nothing. The PROPERTY asserted here is unchanged; only the
+   mechanism it is read from moved. */
+check("manage billing is still single-flight",
+  /if \(isBusy\('portal'\)\) return;/.test(BILLING_CODE));
 check("manage billing still disables before the request",
   /btn\.disabled = true;[\s\S]{0,160}await openBillingPortal\(\)/.test(BILLING_CODE));
 check("no Portal call at page load",

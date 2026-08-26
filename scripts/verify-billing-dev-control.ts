@@ -243,8 +243,16 @@ check("the page sends no lang argument either",
 const PROSE = PAGE.replace(/\s+/g, " ");
 check("the annual control warns against reusing an active subscriber",
   /already has an active subscription/i.test(PROSE));
-check("the warning names the QA-account requirement",
-  /separate sandbox QA account/i.test(PROSE));
+/* Was /separate sandbox QA account/. The word "sandbox" was removed from the
+   warning on 2026-08-26 because it had stopped being true: this control is now
+   pointed at production for the live smoke test, and a warning that describes
+   the wrong environment is the same class of defect as the "no real charge"
+   button label fixed in the same commit. What the warning must still do is
+   require a DIFFERENT account, whichever environment it is aimed at. */
+check("the warning requires a separate account, in any environment",
+  /separate QA account/i.test(PROSE));
+check("the warning is not scoped to sandbox only",
+  !/separate sandbox QA account/i.test(PROSE));
 check("the warning is honest that neither guard refunds",
   /neither guard cancels or refunds anything/i.test(PROSE));
 

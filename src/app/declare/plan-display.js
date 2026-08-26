@@ -300,6 +300,23 @@ export function freeCtaIntent(state) {
   return 'none';
 }
 
+/* ── PLUS PRICING, IN CENTS ──────────────────────────────────────────────── */
+
+/* The two recurring prices, in minor units, in ONE place.
+ *
+ * These used to be local constants inside src/pages/pricing.astro. That was
+ * fine while exactly one page rendered a price. /billing now needs them too —
+ * to say what an annual switch costs and what it saves — and two pages each
+ * holding their own copy of a price is how a promotion gets applied on one
+ * screen and not the other.
+ *
+ * These are DISPLAY figures. They are not what anybody is charged: the charge
+ * comes from the Stripe Price resolved server-side from an env var, and Convex
+ * never reads these. If they ever disagree with Stripe, Stripe is right and
+ * these are a bug. */
+export const PLUS_MONTHLY_CENTS = 899;
+export const PLUS_ANNUAL_CENTS = 7999;
+
 /* ── ANNUAL VALUE ────────────────────────────────────────────────────────── */
 
 /* The per-month equivalent of an annual price, in cents, or null when it cannot

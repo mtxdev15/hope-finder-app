@@ -191,3 +191,55 @@ export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gift
 export async function openBillingPortal() {
   return (await ensure()) ? runAction(apiRef.billing.createPortalSession, {}) : null;
 }
+
+/* Undo a scheduled cancellation in place, with no trip to Stripe's portal.
+ *
+ * Sends nothing, for the same reason openBillingPortal sends nothing: the
+ * subscription is resolved server-side from our stored mapping for the
+ * authenticated user, so there is no id in the browser that could be pointed at
+ * somebody else's subscription.
+ *
+ * Returns { ok: true } on success, { error } for a handled refusal
+ * (`no-subscription`, `not-cancelling`, `not-applicable`, `already-ended`,
+ * `not-authenticated`, `billing-not-configured`, `stripe-error`), or null when
+ * the client is unavailable. Callers must treat null as "unknown", never as
+ * success — and must re-read entitlements rather than assuming what changed. */
+export async function resumeSubscription() {
+  return (await ensure()) ? runAction(apiRef.billing.resumeSubscription, {}) : null;
+}
+
+/* Billing history for the signed-in account. Sends nothing — the customer is
+ * resolved server-side, and the response deliberately carries no Stripe id.
+ *
+ * Amounts arrive in MINOR UNITS with a currency code, not pre-formatted: a
+ * server that returns "$8.99" has decided the reader's locale for them.
+ *
+ * Returns { invoices: [...] } (possibly empty), { error }, or null when the
+ * client is unavailable. An empty list and a failed read are different things
+ * and callers must not render them the same way. */
+export async function listInvoices() {
+  return (await ensure()) ? runAction(apiRef.billing.listInvoices, {}) : null;
+}
+
+/* Switch an active monthly subscription to annual, in place. Sends nothing —
+ * the subscription and the target Price are both resolved server-side, so the
+ * browser cannot name a plan, a price or a subscription.
+ *
+ * Returns { ok: true }, { error } for a handled refusal (`no-subscription`,
+ * `already-annual`, `not-upgradeable`, `cancelling`, `not-applicable`,
+ * `not-authenticated`, `billing-not-configured`, `stripe-error`), or null when
+ * the client is unavailable. Callers must re-read entitlements afterwards
+ * rather than assuming the switch is reflected yet — the webhook writes the row. */
+export async function upgradeToAnnual() {
+  return (await ensure()) ? runAction(apiRef.billing.upgradeToAnnual, {}) : null;
+}
+
+/* What the annual switch would cost today.
+ *
+ * `amountDue` is null whenever Stripe did not give us a number we trust — the
+ * preview endpoint is not yet verified at our pinned API version. Callers MUST
+ * treat null as "unknown" and say so in words; printing a guessed figure on a
+ * payment screen is the one failure mode this shape exists to prevent. */
+export async function previewAnnualUpgrade() {
+  return (await ensure()) ? runAction(apiRef.billing.previewAnnualUpgrade, {}) : null;
+}
