@@ -193,9 +193,52 @@ check("the log line carries no subscription id",
 const APPLY_CALLS =
   (HTTP.match(/runMutation\(\s*internal\.subscriptions\.applyWebhook/g) || []).length;
 check("http.ts routes every event through applyWebhook", APPLY_CALLS === 3);
-check("applyWebhook is the ONLY subscriptions mutation http.ts calls",
-  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.\w+/g) || [])
-    .every((m) => m.includes("applyWebhook")));
+/* WHY THIS IS NO LONGER "applyWebhook is the ONLY subscriptions mutation"
+ *
+ * A second mutation now exists — recordRefundInternal — and the distinction
+ * matters more than the count. The property the guard depends on is that
+ * everything which CHANGES subscription state goes through applyWebhook, so the
+ * duplicate check runs on all of it. A mutation that changes nothing cannot
+ * bypass a guard it never reaches.
+ *
+ * It exists because a refunded MONTHLY or ANNUAL charge used to be dropped
+ * without trace: for a subscription, access is governed by its status, so
+ * revoking on a refund would be wrong for a goodwill refund on a running
+ * subscription and redundant beside the deletion event of a real cancellation.
+ * Recording it makes the refund visible without touching anyone's access.
+ *
+ * So the allowlist is explicit — a THIRD mutation appearing here fails this,
+ * which is the point — and the no-write property of the new one is proven
+ * against its own source rather than assumed from its name. */
+const SUBS_MUTATIONS = [
+  ...new Set(
+    (HTTP.match(/runMutation\(\s*internal\.subscriptions\.(\w+)/g) || [])
+      .map((m) => m.replace(/[\s\S]*subscriptions\./, "")),
+  ),
+].sort();
+check("http.ts calls exactly the two known subscriptions mutations",
+  JSON.stringify(SUBS_MUTATIONS) === JSON.stringify(["applyWebhook", "recordRefundInternal"]));
+
+const RECORD_REFUND = SUBS.slice(SUBS.indexOf("export const recordRefundInternal"));
+check("recordRefundInternal can be located", RECORD_REFUND.length > 0);
+/* It may insert into billingEvents — that IS its job — but it must never touch
+   the subscriptions table, which is what would let it bypass the guard. */
+check("recordRefundInternal writes only billingEvents",
+  /ctx\.db\.insert\("billingEvents"/.test(RECORD_REFUND) &&
+  !/ctx\.db\.insert\("subscriptions"/.test(RECORD_REFUND) &&
+  !/ctx\.db\.patch/.test(RECORD_REFUND) &&
+  !/ctx\.db\.replace/.test(RECORD_REFUND));
+/* And it must dedupe on replay like every other event path, or a Stripe retry
+   would write a second row for one refund. */
+check("recordRefundInternal is replay-safe",
+  /by_provider_event/.test(RECORD_REFUND) && /deduped: true/.test(RECORD_REFUND));
+
+/* The lifetime path must still REVOKE. If a future edit routed lifetime through
+   the recording path too, refunding $149 would return the money and leave Plus
+   granted forever — the exact bug charge.refunded was added to prevent. */
+check("a lifetime refund still revokes rather than merely being recorded",
+  /md\.plan !== "plus_lifetime"[\s\S]{0,400}recordRefundInternal/.test(HTTP) &&
+  /charge\.refunded[\s\S]{0,4000}status: "refunded"/.test(HTTP));
 check("no path writes the subscriptions table directly",
   !/ctx\.db\.(insert|patch|replace)/.test(HTTP));
 check("the Worker remains a verify-and-relay boundary — no guard added there",

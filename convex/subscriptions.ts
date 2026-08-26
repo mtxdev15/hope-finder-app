@@ -442,3 +442,64 @@ export const applyWebhook = internalMutation({
     return { ok: true };
   },
 });
+
+/* Record a refund that we deliberately did NOT act on.
+ *
+ * WHY THIS IS NOT PART OF applyWebhook
+ * applyWebhook exists to change the canonical row. This changes nothing — that
+ * is the entire point. Folding a no-op path into the mutation whose job is to
+ * mutate would mean every future reader of applyWebhook has to hold "…except
+ * when it does not apply anything" in their head, which is how the escape
+ * hatches that break security checks get added.
+ *
+ * WHY A REFUND ON A SUBSCRIPTION IS RECORDED AND NOT APPLIED
+ * A lifetime purchase has no lifecycle: a refund is the only signal it will
+ * ever get, so `charge.refunded` revokes it through applyWebhook as usual. A
+ * subscription has a STATUS, and that status already governs access — so
+ * revoking on a refund would be actively wrong for a goodwill refund on a
+ * subscription that is still running, and redundant next to the
+ * customer.subscription.deleted that accompanies a real cancellation.
+ *
+ * Before this existed, such a refund was acknowledged and dropped, leaving no
+ * trace in Convex at all. Now it is visible to whoever goes looking, without
+ * touching anybody's access. */
+export const recordRefundInternal = internalMutation({
+  args: {
+    provider: providerValidator,
+    eventId: v.string(),
+    eventType: v.string(),
+    /* Which plan the refunded charge belonged to, for the operator reading
+       this row later. Not used to decide anything here. */
+    planKey: v.string(),
+    /* Only ever the metadata WE stamped at Checkout, after provenance was
+       verified upstream. Never a browser-supplied id. */
+    metadataUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    /* Same replay rule as applyWebhook, and for the same reason: Stripe retries,
+       and one event must produce one row however it resolved. */
+    const seen = await ctx.db
+      .query("billingEvents")
+      .withIndex("by_provider_event", (q) =>
+        q.eq("provider", args.provider).eq("eventId", args.eventId),
+      )
+      .first();
+    if (seen) return { ok: true, deduped: true };
+
+    await ctx.db.insert("billingEvents", {
+      provider: args.provider,
+      eventId: args.eventId,
+      type: args.eventType,
+      processedAt: Date.now(),
+      outcome: "refund-recorded" as const,
+      /* conflictReason is the existing free-text column for "why did this
+         resolve the way it did". Reused rather than adding a near-duplicate
+         field, and written in the same spirit: enough to understand the row
+         without reopening Stripe, and no identifier that could address a Stripe
+         object. */
+      conflictReason: "refund on " + args.planKey + " — entitlement unchanged; subscription status governs access",
+      ...(args.metadataUserId ? { userId: args.metadataUserId } : {}),
+    });
+    return { ok: true, deduped: false };
+  },
+});

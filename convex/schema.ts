@@ -301,6 +301,18 @@ export default defineSchema({
         v.literal("stale"),
         v.literal("unmatched"),
         v.literal("duplicate-subscription-conflict"),
+        /* A refund we recorded but deliberately did NOT act on.
+         *
+         * Only a LIFETIME refund revokes anything — it is the sole signal that
+         * plan has. For a subscription, access is governed by the subscription's
+         * STATUS, and revoking on a refund would be wrong in the common case
+         * (a goodwill refund on a subscription that is still running) and
+         * redundant in the other (a refund alongside a cancellation, where
+         * customer.subscription.deleted has already revoked).
+         *
+         * So the event is recorded rather than dropped: before this, a refunded
+         * monthly or annual charge left no trace in Convex at all. */
+        v.literal("refund-recorded"),
       ),
     ),
     /* Set only on a duplicate-subscription conflict. Enough to identify what

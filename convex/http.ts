@@ -9,6 +9,7 @@ import {
   approvedPricesFromEnv,
   environmentForSecret,
   stampedUserId,
+  isPlanKey,
   CHECKOUT_SOURCE,
 } from "./plusPlans";
 import { deriveCancelAtPeriodEnd } from "./stripeCancellation";
@@ -246,17 +247,67 @@ http.route({
      * that fails to prove itself ours is acknowledged and ignored: a refund on
      * some other charge in this account must not touch an entitlement. */
     if (eventType === "charge.refunded") {
+      /* WHERE THE PROVENANCE LIVES DEPENDS ON THE PLAN, so both are tried.
+       *
+       * createCheckoutSession stamps the five provenance keys on
+       * `payment_intent_data[metadata]` in payment mode and on
+       * `subscription_data[metadata]` in subscription mode (billing.ts). So a
+       * LIFETIME refund carries them on the PaymentIntent, while a monthly or
+       * annual refund carries them on the Subscription and its PaymentIntent
+       * metadata is EMPTY.
+       *
+       * That asymmetry is why simply widening the plan check below would have
+       * changed nothing: a subscription refund never got past the `source`
+       * check, one gate earlier. Reaching it means walking
+       * charge -> invoice -> subscription. */
       const piId = asId(obj.payment_intent);
       if (!piId) return ACK();
 
       const pi = await stripeGet("/payment_intents/" + piId, stripeSecret);
       if (!pi.ok) return new Response("Upstream error", { status: 502 });
 
-      const md = pi.data?.metadata || {};
+      let md: Record<string, any> = pi.data?.metadata || {};
+
+      /* Empty PaymentIntent metadata means this is very likely a subscription
+       * invoice. Resolve the subscription and read ITS metadata instead. */
+      if (md.source !== CHECKOUT_SOURCE) {
+        const invId = asId(obj.invoice);
+        if (!invId) return ACK();
+        const inv = await stripeGet("/invoices/" + invId, stripeSecret);
+        if (!inv.ok) return new Response("Upstream error", { status: 502 });
+        const subId = readInvoiceSubscriptionId(inv.data || {});
+        if (!subId) return ACK();
+        const sub = await fetchSubscription(subId, stripeSecret);
+        if (!sub.ok) return new Response("Upstream error", { status: 502 });
+        md = sub.data?.metadata || {};
+      }
+
+      /* From here the gates are identical whichever object carried them. */
       if (md.source !== CHECKOUT_SOURCE) return ACK();      // not ours
-      if (md.plan !== "plus_lifetime") return ACK();        // not the one-time plan
       if (md.environment !== environment) return ACK();     // not this runtime
       if (typeof md.userId !== "string" || !md.userId) return ACK();
+      if (!isPlanKey(md.plan)) return ACK();                // no canonical plan
+
+      /* ── The one place the plans genuinely differ ──────────────────────────
+       * A subscription's access is governed by its STATUS, which
+       * customer.subscription.* already maintains. Revoking here would be wrong
+       * for a goodwill refund on a subscription that is still running, and
+       * redundant next to the deletion event that accompanies a real
+       * cancellation. So it is RECORDED, not applied — which is still a change
+       * from before, when it was dropped without trace.
+       *
+       * A lifetime purchase has no status to consult. The refund is the only
+       * signal it will ever get, so it revokes, exactly as before. */
+      if (md.plan !== "plus_lifetime") {
+        await ctx.runMutation(internal.subscriptions.recordRefundInternal, {
+          provider: "stripe" as const,
+          eventId,
+          eventType,
+          planKey: md.plan,
+          metadataUserId: md.userId,
+        });
+        return ACK();
+      }
 
       await ctx.runMutation(internal.subscriptions.applyWebhook, {
         provider: "stripe" as const,
