@@ -31,11 +31,47 @@
  * plain `node`, with no deployment and no credential.
  */
 
-export type PlanKey = "plus_monthly" | "plus_annual";
+export type PlanKey = "plus_monthly" | "plus_annual" | "plus_lifetime";
 export type Provider = "stripe" | "app_store";
 export type Environment = "sandbox" | "production";
 
-export const PLAN_KEYS: readonly PlanKey[] = ["plus_monthly", "plus_annual"];
+export const PLAN_KEYS: readonly PlanKey[] = ["plus_monthly", "plus_annual", "plus_lifetime"];
+
+/* Lifetime is bought once and never renews, so it is the one plan whose Stripe
+ * Checkout runs in `mode: "payment"` rather than `mode: "subscription"`. That
+ * single fact is why it needs its own classifier below: a one-time payment
+ * produces no Subscription object at all, so every subscription-shaped check —
+ * items, price, period, status — has nothing to read.
+ *
+ * Kept as a PlanKey rather than a separate concept because everything AFTER
+ * the purchase is identical: it grants the same Plus tier, with the same
+ * limits, resolved by the same code. Only the buying differs. */
+export const ONE_TIME_PLAN_KEYS: readonly PlanKey[] = ["plus_lifetime"];
+
+export function isOneTimePlan(key: PlanKey): boolean {
+  return (ONE_TIME_PLAN_KEYS as readonly string[]).includes(key);
+}
+
+/* How many lifetime purchases may exist, per environment.
+ *
+ * WHY A CAP EXISTS AT ALL
+ * Plus is unlimited Gentle Guidance and unlimited Journeys, and every one of
+ * those is a live model call. Unlike a media app, this product has a real
+ * recurring cost per active user, so a lifetime purchase converts an ongoing
+ * cost into one-time revenue with no way to reprice later. The price alone
+ * cannot bound that; the COUNT can.
+ *
+ * DELIBERATELY A SOFT CAP, and the honesty matters more than the tidiness.
+ * It is checked when a Checkout is opened, not reserved — a seat is only
+ * consumed when the webhook records a paid purchase. Two people checking out
+ * at once can therefore both pass, and a Session stays payable for 24 hours,
+ * so the real total can exceed this by a small number. That is acceptable for
+ * a founding-member round and would NOT be acceptable for, say, event tickets.
+ * Making it exact would need a reservation record with expiry, which is real
+ * complexity to buy a precision this does not need.
+ *
+ * Counted per environment so sandbox testing can never consume a live seat. */
+export const LIFETIME_SEATS = 200;
 export const PROVIDERS: readonly Provider[] = ["stripe", "app_store"];
 
 /* Bumped only when the provenance contract itself changes. A subscription
@@ -51,7 +87,12 @@ export type PlanDefinition = {
   alias: string;
   /* Server-side env var holding the trusted Price id for this environment. */
   envVar: string;
-  interval: "month" | "year";
+  /* Which Stripe Checkout mode this plan is bought in. Recorded here rather
+   * than inferred from `interval` being null, so the distinction is a stated
+   * property of the plan and not a side effect of a missing field. */
+  kind: "subscription" | "one_time";
+  /* null for a one-time plan: it does not recur, so it has no cadence. */
+  interval: "month" | "year" | null;
   /* Versioned so a future price change creates _v2 rather than mutating a
    * Price that existing subscribers already hold. */
   lookupKey: string;
@@ -61,14 +102,23 @@ export const PLAN_CATALOG: Record<PlanKey, PlanDefinition> = {
   plus_monthly: {
     alias: "plus-monthly",
     envVar: "STRIPE_PLUS_MONTHLY_PRICE_ID",
+    kind: "subscription",
     interval: "month",
     lookupKey: "plus_monthly_usd_v1",
   },
   plus_annual: {
     alias: "plus-annual",
     envVar: "STRIPE_PLUS_ANNUAL_PRICE_ID",
+    kind: "subscription",
     interval: "year",
     lookupKey: "plus_annual_usd_v1",
+  },
+  plus_lifetime: {
+    alias: "plus-lifetime",
+    envVar: "STRIPE_PLUS_LIFETIME_PRICE_ID",
+    kind: "one_time",
+    interval: null,
+    lookupKey: "plus_lifetime_usd_v1",
   },
 };
 
@@ -76,8 +126,9 @@ export function isPlanKey(x: unknown): x is PlanKey {
   return typeof x === "string" && (PLAN_KEYS as readonly string[]).includes(x);
 }
 
-/* Browser-supplied alias -> canonical plan. Family and Church have no alias, so
- * they are unrepresentable rather than merely unhandled. */
+/* Browser-supplied alias -> canonical plan. Only a purchasable plan has an
+ * alias, so anything else a browser might name is unrepresentable rather than
+ * merely unhandled — there is no branch to reach. */
 export function planKeyForAlias(alias: string): PlanKey | null {
   for (const key of PLAN_KEYS) {
     if (PLAN_CATALOG[key].alias === alias) return key;
@@ -159,6 +210,12 @@ export function classifyPlusSubscription(input: {
     planFromPrice = planKeyForLookupKey(price.lookup_key);
   }
   if (!planFromPrice) return reject("price-not-approved");
+  /* A lifetime Price on a SUBSCRIPTION is not a lifetime purchase — it is
+   * something that should not exist. Our own Checkout sends the lifetime Price
+   * only in `mode: "payment"`, so a subscription carrying it was built some
+   * other way. Refuse rather than grant recurring billing for a plan that was
+   * sold as a single payment. */
+  if (isOneTimePlan(planFromPrice)) return reject("one-time-price-on-subscription");
 
   /* Subscription metadata wins over session metadata: the subscription is the
    * durable object and the one later events carry. */
@@ -183,6 +240,88 @@ export function classifyPlusSubscription(input: {
   }
 
   /* ── E4: environment ───────────────────────────────────────────────────── */
+  if (md.environment !== environment) return reject("environment-mismatch");
+
+  return { ok: true, planKey: md.plan };
+}
+
+/* The one-time counterpart to classifyPlusSubscription, for `mode: "payment"`.
+ *
+ * WHY IT IS A SEPARATE FUNCTION AND NOT A BRANCH
+ * The evidence is genuinely different. There is no Subscription object, so E1
+ * cannot read `subscription.items[0].price`; the approved Price is read from
+ * the session's own line items instead. There is no lifecycle, so nothing
+ * corresponds to a status check. Folding two different evidence sets into one
+ * function would mean every check growing an "unless one-time" escape, and an
+ * escape in a security check is how the recurring-gift bug happened.
+ *
+ * REQUIRED, all of them:
+ *   L1  the session actually completed and was actually paid
+ *   L2  exactly one line item, carrying an approved one-time Price
+ *   L3  metadata.plan equal to that Price's plan key
+ *   L4  provenance — stamped by our own authenticated Checkout action
+ *   L5  the environment matches this runtime
+ *
+ * `lineItems` is passed separately because Stripe does not expand line items on
+ * the webhook payload: the caller retrieves them and hands them in, so this
+ * stays dependency-free and directly testable. */
+export function classifyLifetimePurchase(input: {
+  session: any;
+  lineItems: any[] | null | undefined;
+  approvedPrices: ApprovedPrices;
+  environment: Environment | null;
+}): Classification {
+  const { session, lineItems, approvedPrices, environment } = input;
+
+  if (!environment) return reject("environment-unresolvable");
+  if (!session || typeof session !== "object") return reject("no-session");
+
+  /* ── L1: completed AND paid ────────────────────────────────────────────
+   * Both, not either. A session can complete without payment clearing, and a
+   * `payment_status` of `unpaid` on a completed session is exactly the case
+   * that must not grant anything. */
+  if (session.mode !== "payment") return reject("not-a-payment-session");
+  if (session.status !== "complete") return reject("session-not-complete");
+  if (session.payment_status !== "paid") return reject("session-not-paid");
+
+  /* ── L2: one approved one-time Price ───────────────────────────────────── */
+  const items = Array.isArray(lineItems) ? lineItems : null;
+  if (!items || items.length === 0) return reject("no-line-items");
+  if (items.length > 1) return reject("unexpected-multiple-items");
+
+  const price = items[0] && items[0].price;
+  if (!price || typeof price !== "object") return reject("no-price");
+
+  let planFromPrice: PlanKey | null = null;
+  if (typeof price.id === "string" && approvedPrices[price.id]) {
+    planFromPrice = approvedPrices[price.id];
+  } else if (typeof price.lookup_key === "string" && price.lookup_key) {
+    planFromPrice = planKeyForLookupKey(price.lookup_key);
+  }
+  if (!planFromPrice) return reject("price-not-approved");
+  /* The mirror of the subscription guard: a RECURRING Price bought as a
+   * one-time payment would grant permanent Plus for one month's money. */
+  if (!isOneTimePlan(planFromPrice)) return reject("recurring-price-on-payment");
+
+  /* ── L3/L4/L5: the same provenance contract, read from the session ─────
+   * A one-time session has no subscription to carry a second copy, so unlike
+   * the subscription path there is exactly one place to read this from — and
+   * exactly one event that ever carries it. */
+  const md: Record<string, any> =
+    (typeof session.metadata === "object" && session.metadata) || {};
+
+  if (!isPlanKey(md.plan)) return reject("plan-metadata-missing");
+  if (md.plan !== planFromPrice) return reject("plan-price-mismatch");
+
+  if (md.billing_schema_version !== BILLING_SCHEMA_VERSION) {
+    return reject("provenance-schema-version");
+  }
+  if (md.source !== CHECKOUT_SOURCE) return reject("provenance-source");
+  if (typeof md.userId !== "string" || !md.userId) return reject("provenance-user-missing");
+  if (session.client_reference_id !== md.userId) {
+    return reject("provenance-client-reference-mismatch");
+  }
+
   if (md.environment !== environment) return reject("environment-mismatch");
 
   return { ok: true, planKey: md.plan };

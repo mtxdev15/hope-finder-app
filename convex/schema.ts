@@ -133,7 +133,15 @@ export default defineSchema({
     provider: v.union(v.literal("stripe"), v.literal("app_store")),
     // Canonical plan. Provider-independent: an Apple product and a Stripe
     // Price both resolve to the same key.
-    planKey: v.union(v.literal("plus_monthly"), v.literal("plus_annual")),
+    planKey: v.union(
+      v.literal("plus_monthly"),
+      v.literal("plus_annual"),
+      /* Bought once, in `mode: "payment"`. Its row carries no interval, no
+         period and no cancellation — those fields stay absent rather than
+         being filled with plausible-looking values, because a lifetime
+         purchase genuinely has none of them. */
+      v.literal("plus_lifetime"),
+    ),
     // A sandbox purchase must never grant production Plus. Derived from the
     // credential in use, never from a request.
     environment: v.union(v.literal("sandbox"), v.literal("production")),
@@ -178,6 +186,10 @@ export default defineSchema({
     // One row per provider per user, so a web and an App Store subscription
     // coexist rather than overwriting each other.
     .index("by_user_provider", ["userId", "provider"])
+    /* Counting sold lifetime seats. Scoped by environment so a sandbox
+       purchase can never consume a production seat, and so the count reads a
+       bounded slice rather than scanning every subscription. */
+    .index("by_plan_environment", ["planKey", "environment"])
     .index("by_subscription", ["stripeSubscriptionId"])
     .index("by_customer", ["stripeCustomerId"])
     .index("by_apple_original_tx", ["appleOriginalTransactionId"]),

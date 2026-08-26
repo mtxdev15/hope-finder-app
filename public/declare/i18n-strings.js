@@ -345,9 +345,6 @@ window.__I18N_STRINGS = {
     'plans.a3': 'Mantienes tu acceso mientras lo resolvemos, y verás un aviso pidiéndote revisar tu método de pago.',
     'plans.q4': '¿Puedo cambiar entre mensual y anual?',
     'plans.a4': 'Sí. Puedes administrar tu plan y tu método de pago cuando quieras desde Facturación.',
-    'plans.orgH': 'Para iglesias y grupos',
-    'plans.orgD': 'Lleva Declare a tu comunidad.',
-    'plans.orgCta': 'Escríbenos',
     /* ---- /billing ---- */
     'billing.back': 'Atrás',
     'billing.eyebrow': 'Facturación',

@@ -1,6 +1,58 @@
 # Production Deployment Status
 
-**Last updated:** 2026-08-20, after Worker source parity (`a224ac7`).
+**Last updated: 2026-08-25.** Current state first; the 2026-08-20 parity record
+is kept below under *History*.
+
+---
+
+## Current state — 2026-08-25
+
+### Configuration: complete
+
+| Surface | State |
+|---|---|
+| Live Stripe catalog | 3 prices on `prod_V8OKKIMHiVw0KE` — $8.99/mo, $79.99/yr, **$149 one-off** — each with a versioned lookup key |
+| Live webhook | `Declare Production Billing` → Worker `/billing/webhook`, **Active**, 8 events, **0 deliveries ever** |
+| Convex prod `keen-hamster-650` | `STRIPE_SECRET_KEY` (`rk_live_`), all three price IDs, `BILLING_WEBHOOK_SECRET`, `SITE_URL` |
+| Worker `hope-finder-worker` | `BILLING_WEBHOOK_SECRET`, `STRIPE_BILLING_WEBHOOK_SECRET`, `CONVEX_SITE_URL` — stale Stripe secrets removed |
+| Public purchasing | **off** — `PRICING_ENABLED` is `false` and the `/pricing` CTA is unwired |
+
+### Code: `main` is AHEAD of production
+
+The 2026-08-20 record below closed the Convex deploy freeze and made `main`
+authoritative. That is still true, **but `main` has moved since** — twelve commits
+have touched `convex/`:
+
+| Commits | What | In production? |
+|---|---|---|
+| `cda4a84`, `e7501bd` | `cancel_at` period-end normalization | unknown |
+| `8a74786` … `5fa51bd` | gated test-clock harness + 9 fixes | **no** — the 2026-08-24 audit found zero deployed `testHarness` entries |
+
+The Worker is also behind: `f9cb327` trims both shared secrets at the route
+boundary and is not deployed.
+
+**Do not infer the deployed revision from this table.** Establish it with
+`npx convex function-spec --prod` before deploying. That command is the only
+ground truth; every document in this folder has been wrong about production at
+least once.
+
+### Not yet deployed at all
+
+Branch `claude/convex-stripe-billing-webhook-7tnwek` carries the `plus_lifetime`
+plan — one-time Checkout, refund revocation, founding-seat cap, schema widening.
+Additive, no backfill required (production holds zero billing rows).
+
+Branch `claude/billing-pricing-cta-stage6` carries the `/pricing` CTA wiring and
+is **deliberately unmerged** until after the real-money smoke test.
+
+Ordered steps: `TODO.md` → *Next up*.
+
+---
+
+## History
+
+*Everything below is the 2026-08-20 parity record, kept for the reasoning. It
+describes a freeze that is closed and a divergence that is fixed.*
 
 ---
 

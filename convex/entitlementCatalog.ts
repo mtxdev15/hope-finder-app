@@ -77,9 +77,11 @@ const PLUS: TierDefinition = {
   features: {},
 };
 
-/* Family and Church are NOT active entitlement tiers. They are deliberately
- * absent rather than defined-and-unused, so nothing can resolve to them by
- * accident before their seat model is designed. */
+/* Every tier a subscription can resolve to appears here, and nothing else
+ * does. A tier that is merely CONTEMPLATED is deliberately absent rather than
+ * defined-and-unused, so nothing can resolve to it by accident before its
+ * limits are designed — which is why the seat-based Family and Church ideas
+ * were removed from the product rather than parked here as empty rows. */
 const CATALOG: Record<Tier, TierDefinition> = {
   guest: GUEST,
   free: FREE,

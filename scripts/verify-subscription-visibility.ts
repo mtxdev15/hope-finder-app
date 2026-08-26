@@ -126,6 +126,24 @@ check("periodEndAt is null unless the winner grants Plus",
 check("billingInterval is an enum, never a Price id",
   !/billingInterval[\s\S]{0,120}price/i.test(ENTITLEMENTS));
 
+/* A lifetime row has no lifecycle, so it must be decided BEFORE the
+   subscription branches and never fall through to them. Falling through would
+   be actively wrong rather than merely untidy: past_due grace is meaningless on
+   a plan that never bills again, and an absent currentPeriodEnd would make the
+   cancelAtPeriodEnd comparison silently pass. Source-asserted because
+   entitlements.ts imports Convex and cannot be executed here. */
+check("lifetime is interpreted before any subscription status branch",
+  ENT_CODE.indexOf('planKey === "plus_lifetime"') > -1 &&
+  ENT_CODE.indexOf('planKey === "plus_lifetime"') <
+    ENT_CODE.indexOf('status === "past_due"'));
+check("lifetime grants Plus only on the paid status",
+  /planKey === "plus_lifetime"[\s\S]{0,400}status === "paid"/.test(ENT_CODE));
+check("an unrecognised lifetime status falls closed to free",
+  /planKey === "plus_lifetime"[\s\S]{0,400}tier: "free"/.test(ENT_CODE));
+check("lifetime claims no renewal date and no attention state",
+  /planKey === "plus_lifetime"[\s\S]{0,400}needsAttention: false[\s\S]{0,120}graceEndsAt: null/
+    .test(ENT_CODE));
+
 /* ── 2. The shared state machine, executed ───────────────────────────────── */
 section("2. The shared display state machine");
 
@@ -410,7 +428,10 @@ const NEW_KEYS = [
   "plans.currentPlan", "plan.stateEnding", "plan.updatePayment", "plan.keepPlus",
   "billing.h1", "billing.viewPlans", "billing.freeMsg", "billing.paymentNote",
   "plans.h1", "plans.sub", "plans.launchSoon", "plans.upgrade", "plans.monthly",
-  "plans.annual", "plans.orgH",
+  "plans.annual",
+  /* "plans.orgH" was the "For churches and groups" heading. That offer was
+     removed from the product, so the key is gone from both languages and there
+     is no longer a string to hold to parity. */
 ];
 for (const k of NEW_KEYS) {
   check(`"${k}" has Spanish`, new RegExp(`'${k.replace(".", "\\.")}':`).test(I18N));

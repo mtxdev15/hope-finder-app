@@ -9,6 +9,8 @@ import {
   CHECKOUT_SOURCE,
   planKeyForAlias,
   environmentForSecret,
+  isOneTimePlan,
+  LIFETIME_SEATS,
   type PlanKey,
 } from "./plusPlans";
 
@@ -106,6 +108,15 @@ export const createCheckoutSession = action({
       { userId, provider: "stripe" as const },
     );
     if (existing) {
+      /* A lifetime holder already owns everything any other plan sells, and
+       * their row's `paid` status is not in either set below — it belongs to a
+       * different vocabulary entirely. Without this branch they would fall
+       * through to the unrecognised-lifecycle refusal at the end, which is the
+       * right ANSWER for the wrong REASON, and would tell them "already
+       * subscribed" with a status string no surface knows how to render. */
+      if (existing.planKey === "plus_lifetime" && existing.status === "paid") {
+        return { error: "already-subscribed", status: "lifetime" };
+      }
       if (BLOCKS_NEW_CHECKOUT.has(existing.status)) {
         return { error: "already-subscribed", status: existing.status };
       }
@@ -138,6 +149,25 @@ export const createCheckoutSession = action({
     );
     if (appleRow && appleRow.tier === "plus") {
       return { error: "already-subscribed", status: "app-store" };
+    }
+
+    /* 3c. The founding-member cap, checked only for the one-time plan.
+     *
+     * Deliberately AFTER the duplicate checks above: someone who already
+     * subscribes should be told that, not told the round is full. And
+     * deliberately before the customer is created, so a refused purchase
+     * leaves no Stripe object behind.
+     *
+     * Soft by construction — see LIFETIME_SEATS. A seat is consumed when the
+     * webhook records a paid purchase, not when a Checkout opens, so
+     * simultaneous buyers can both pass here. Acceptable for a founding round;
+     * making it exact would need reservations with expiry. */
+    if (isOneTimePlan(planKey)) {
+      const sold: number = await ctx.runQuery(
+        internal.subscriptions.countLifetimeSoldInternal,
+        { environment },
+      );
+      if (sold >= LIFETIME_SEATS) return { error: "lifetime-sold-out" };
     }
 
     // 4. Resolve or create the Stripe customer. Reuse the stored mapping so a
@@ -197,8 +227,12 @@ export const createCheckoutSession = action({
       environment,
     };
 
+    /* A one-time plan is bought in `mode: "payment"`. That single difference
+     * is what makes lifetime a different purchase and the same product. */
+    const oneTime = isOneTimePlan(planKey);
+
     const form: Record<string, string> = {
-      mode: "subscription",
+      mode: oneTime ? "payment" : "subscription",
       customer: customerId,
       "line_items[0][price]": priceId,
       "line_items[0][quantity]": "1",
@@ -228,7 +262,21 @@ export const createCheckoutSession = action({
     };
     for (const [k, val] of Object.entries(provenance)) {
       form["metadata[" + k + "]"] = val;
-      form["subscription_data[metadata][" + k + "]"] = val;
+      /* The second copy has to go somewhere that OUTLIVES the session.
+       *
+       * For a subscription, that is subscription_data — every later lifecycle
+       * event carries the subscription, so classification has something to read
+       * on customer.subscription.updated and invoice.paid.
+       *
+       * For a one-time payment there IS no such later event, and no
+       * subscription_data field to write: sending it in payment mode is an API
+       * error, not a harmless extra. The durable object is the PaymentIntent,
+       * so the copy goes there — which is also where a refund event will carry
+       * it back to us. */
+      form[
+        (oneTime ? "payment_intent_data[metadata][" : "subscription_data[metadata][") +
+          k + "]"
+      ] = val;
     }
 
     // Bucketed so a double-click reuses one session, but a genuine retry

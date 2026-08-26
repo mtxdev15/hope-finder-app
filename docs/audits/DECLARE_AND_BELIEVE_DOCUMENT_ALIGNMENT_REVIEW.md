@@ -1,3 +1,10 @@
+> **Historical — predates the 2026-08-25 billing work.** Written before the live
+> Stripe catalog existed and before `plus_lifetime` was added. It still lists
+> **Family** and **Church**, which were removed from the product entirely on
+> 2026-08-25. Current sources: `TODO.md` → *Next up*,
+> `docs/operations/billing-secret-topology.md`,
+> `docs/architecture/cross-platform-subscriptions.md`.
+
 # Declare & Believe Document Alignment Review
 
 ## Executive conclusion

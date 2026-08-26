@@ -1,3 +1,9 @@
+> **Predates the billing work — read `README.md` and `TODO.md` first.**
+> Written before Declare had a paid tier. It does not mention Plus, pricing,
+> Stripe or the entitlement model, none of which existed when it was written.
+> Still accurate on identity, voice and audience, which is what it is for.
+> Reviewed 2026-08-25.
+
 # Declare and Believe — Project Brief
 *Living document. Update as the app evolves.*
 

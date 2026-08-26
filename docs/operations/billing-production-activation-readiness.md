@@ -1,3 +1,33 @@
+
+> # ⚠️ SUPERSEDED — 2026-08-25
+>
+> **Do not act on this document.** Four of its claims were checked directly in
+> the live dashboards on 2026-08-25 and were false. It is kept as a record of
+> the reasoning, not as a description of the world.
+>
+> | This document says | Actually, as of 2026-08-25 |
+> |---|---|
+> | Only a legacy webhook endpoint exists | `Declare Production Billing` exists, **Active**, → the production Worker's `/billing/webhook`, 8 events |
+> | The legacy donation endpoint is still enabled | **Gone** — already removed |
+> | Production Convex holds **no** billing variables | Holds all of them: `STRIPE_SECRET_KEY` (`rk_live_`), three price IDs, `BILLING_WEBHOOK_SECRET`, `SITE_URL` |
+> | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` are still on the Worker | **Both removed.** Rule C5 holds |
+>
+> Two further corrections:
+>
+> - **The event set is eight, not seven.** §3 omits `invoice.payment_action_required`.
+>   The authority is `convex/http.ts` — which this document itself says to check
+>   rather than trust.
+> - **`PUBLIC_BILLING_ENABLED` does not exist** anywhere in this repo. The gate is
+>   the `PRICING_ENABLED` constant in `src/app/declare/plan-display.js`, so opening
+>   purchasing is a commit, not a dashboard setting.
+>
+> **Current sources of truth:** `docs/operations/billing-secret-topology.md` for the
+> secrets, `TODO.md` → *Next up* for what is left to do.
+>
+> One thing here is still correct and still unresolved: the live Portal
+> configuration, failed-payment emails and Smart Retry final action have never
+> been confirmed. See §3 and §6.
+
 # Production billing activation — readiness and runbook
 
 **This document does not authorize production activation.** It is the read-only

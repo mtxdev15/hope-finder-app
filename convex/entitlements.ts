@@ -90,6 +90,22 @@ function interpret(
   if (!sub) return { tier: "free", status: "none", needsAttention: false, graceEndsAt: null };
 
   const status = String(sub.status || "");
+
+  /* A lifetime purchase has no lifecycle to interpret: no renewal to fail, no
+   * period to end, nothing to cancel. So none of the branches below apply, and
+   * reaching them would be actively wrong — `past_due` grace on a plan that
+   * never bills again is meaningless, and an absent currentPeriodEnd would
+   * make the cancelAtPeriodEnd comparison silently pass.
+   *
+   * `paid` is Stripe's own payment_status on the one-time Checkout Session,
+   * stored verbatim like every other status here. `refunded` is written only
+   * by a refund event. Anything else fails closed to free: an unrecognised
+   * status on a plan that cannot change status is a bug, not a lifecycle. */
+  if (sub.planKey === "plus_lifetime") {
+    return status === "paid"
+      ? { tier: "plus", status, needsAttention: false, graceEndsAt: null }
+      : { tier: "free", status: status || "none", needsAttention: false, graceEndsAt: null };
+  }
   const periodEndMs = sub.currentPeriodEnd ? sub.currentPeriodEnd * 1000 : null;
 
   if (status === "active" || status === "trialing") {

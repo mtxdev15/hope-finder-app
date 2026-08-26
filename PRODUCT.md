@@ -22,6 +22,32 @@ pain, 3–5 personalized declarations rooted in Scripture, and a prayer they can
 Success looks like: a person leaves the interaction knowing who they are in Christ. Not just
 informed. Transformed. Every word choice, animation, and color exists to serve that moment.
 
+## Plans (added 2026-08-25)
+
+Free is a real plan, not a trial. **Scripture, crisis support and the core Declare
+experience stay free on every plan** — a plan changes what the app allows, never
+what God gives. That sentence is on the pricing page and it is a product
+commitment, not marketing.
+
+| Plan | Price | What changes |
+|---|---|---|
+| Free | — | 3 Gentle Guidance responses a day, 2 active Journeys |
+| Plus | $8.99/mo · $79.99/yr · $149 lifetime | No customer-visible cap on either |
+
+`null` in the entitlement catalog means **no customer-visible quota** — not
+infinity. Invisible safety, abuse and stability protections still apply, and are
+deliberately kept out of that catalog so raising a product limit can never
+accidentally raise an abuse ceiling.
+
+Limits live in exactly one place: `convex/entitlementCatalog.ts`. Nothing in the
+Journey, the pricing page, the Worker or any UI may hardcode `3` or `2` — a limit
+written twice is a limit that will disagree with itself, and the version the
+customer sees will not be the version enforced.
+
+**Purchasing is not yet open to the public.** Family and Church plans were removed
+from the product on 2026-08-25; the church *finder* is a separate feature and
+remains.
+
 ## Brand Personality
 
 Pastoral · Grounded · Tender

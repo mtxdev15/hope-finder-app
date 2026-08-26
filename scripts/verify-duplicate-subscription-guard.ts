@@ -179,8 +179,25 @@ check("a conflict emits a structured log line",
 check("the log line carries no subscription id",
   !/duplicate-subscription-conflict[\s\S]{0,400}canonicalSubscriptionId \+/.test(SUBS));
 
-check("http.ts still calls applyWebhook exactly once, for every event type",
-  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.applyWebhook/g) || []).length === 1);
+/* THE PROPERTY IS "ONE MUTATION", NOT "ONE CALL SITE".
+ *
+ * This used to assert a single call site, which was the same thing while every
+ * event was subscription-shaped. Lifetime added two paths that cannot share
+ * that code — a one-time purchase has no Subscription to fetch, and a refund
+ * resolves through a PaymentIntent — so there are now three call sites.
+ *
+ * What must remain true is what the guard actually depends on: every path
+ * writes subscription state through applyWebhook and nothing else, so the
+ * duplicate check runs on all of them. A path that wrote the table directly
+ * would bypass the guard entirely, which is the regression to catch. */
+const APPLY_CALLS =
+  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.applyWebhook/g) || []).length;
+check("http.ts routes every event through applyWebhook", APPLY_CALLS === 3);
+check("applyWebhook is the ONLY subscriptions mutation http.ts calls",
+  (HTTP.match(/runMutation\(\s*internal\.subscriptions\.\w+/g) || [])
+    .every((m) => m.includes("applyWebhook")));
+check("no path writes the subscriptions table directly",
+  !/ctx\.db\.(insert|patch|replace)/.test(HTTP));
 check("the Worker remains a verify-and-relay boundary — no guard added there",
   !/duplicateSubscription|classifyIncomingSubscription/.test(WORKER));
 check("the Worker still holds no Stripe credential", !/env\.STRIPE_SECRET_KEY/.test(WORKER));
@@ -208,6 +225,56 @@ for (const leak of ["stripeSubscriptionId", "stripeCustomerId", "stripePriceId",
   const returned = ENT.slice(ENT.indexOf("  return {"), ENT.indexOf("/* ── client-facing reads"));
   check(`the entitlement response exposes no ${leak}`, !returned.includes(leak));
 }
+
+/* ── A lifetime row is the one row that legitimately has no id ──────────── */
+section("5. A lifetime purchase is never replaced by a subscription");
+
+/* WHY THIS SECTION EXISTS
+ *
+ * Section 1 asserts "existing row with no subscription id yet -> accepted".
+ * That allowance is correct for a subscription row we have not yet learned the
+ * id of — but a LIFETIME row has no id permanently, because it was bought in
+ * `mode: "payment"` and no Subscription object was ever created.
+ *
+ * Without the lifetime rule, that allowance would let any subscription event
+ * patch the lifetime row in place. The window is the same 24-hour stale-session
+ * window this whole file exists for: a Checkout Session minted before the
+ * lifetime purchase stays payable afterwards. The customer would keep Plus via
+ * the new subscription, and the $149 they paid would stop existing in our data. */
+const lifetimeRow = (over: Record<string, any> = {}) => ({
+  status: "paid",
+  planKey: "plus_lifetime",
+  ...over,
+});
+
+const lifeVsB = decide(lifetimeRow(), B);
+check("lifetime row + incoming subscription -> CONFLICT", lifeVsB.ok === false);
+check("the conflict is reported as lifetime-not-replaceable",
+  lifeVsB.ok === false && lifeVsB.reason === "lifetime-not-replaceable");
+check("it names the incoming subscription", 
+  lifeVsB.ok === false && lifeVsB.incomingSubscriptionId === B);
+check("it names no canonical subscription, because there is none",
+  lifeVsB.ok === false && lifeVsB.canonicalSubscriptionId === undefined);
+
+/* The rule is about the PLAN, not the status: a refunded lifetime row must not
+   become a silent upgrade path either. Whether a refunded buyer may subscribe
+   again is a checkout-time decision, not something a stale session settles. */
+check("a refunded lifetime row is still not replaceable",
+  decide(lifetimeRow({ status: "refunded" }), B).ok === false);
+
+/* It must not over-refuse. An event carrying no subscription id is not a
+   subscription trying to take the row — it is the lifetime path itself. */
+check("lifetime row + no incoming id -> accepted (its own webhook)",
+  decide(lifetimeRow(), null).ok === true);
+check("a non-Stripe provider is still never touched",
+  decide(lifetimeRow(), B, "app_store").ok === true);
+
+/* And it must not change any existing verdict for subscription rows. */
+check("a normal row with no id yet is still accepted",
+  decide(rowA({ stripeSubscriptionId: undefined, planKey: "plus_monthly" }), B).ok === true);
+check("a live subscription row still conflicts as duplicate-subscription",
+  (() => { const v = decide(rowA({ planKey: "plus_monthly" }), B);
+    return v.ok === false && v.reason === "duplicate-subscription"; })());
 
 console.log("\n" + "─".repeat(62));
 if (failures.length) {

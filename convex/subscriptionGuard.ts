@@ -37,6 +37,9 @@ export type SubscriptionRowLike = {
   stripeSubscriptionId?: string;
   status: string;
   cancelAtPeriodEnd?: boolean;
+  /* Read only to recognise a lifetime row, which is the one row that legitimately
+     carries no subscription id. See the lifetime rule in the classifier. */
+  planKey?: string;
 };
 
 /* Statuses after which a subscription can never grant entitlement again, so a
@@ -84,9 +87,10 @@ export type GuardVerdict =
   | { ok: true }
   | {
       ok: false;
-      reason: "duplicate-subscription";
-      /** The subscription id we already hold and are refusing to overwrite. */
-      canonicalSubscriptionId: string;
+      reason: "duplicate-subscription" | "lifetime-not-replaceable";
+      /** The subscription id we already hold and are refusing to overwrite.
+       *  Absent on a lifetime conflict: a lifetime row has no subscription. */
+      canonicalSubscriptionId?: string;
       /** The id the incoming event carried. `null` when it carried none. */
       incomingSubscriptionId: string | null;
       /** The status that made the existing row nonterminal. */
@@ -119,6 +123,34 @@ export function classifyIncomingSubscription(input: {
 
   if (provider !== "stripe") return { ok: true };
   if (!existing) return { ok: true };
+
+  /* ── The lifetime rule, BEFORE the no-canonical-id allowance below ───────
+   *
+   * A lifetime row legitimately carries no `stripeSubscriptionId` — it was
+   * bought in `mode: "payment"` and no Subscription object was ever created.
+   * That makes it the one row for which `!canonical` is normal rather than
+   * "we have not learned the id yet", and the allowance below would therefore
+   * let ANY subscription event patch it in place.
+   *
+   * The window is real, not theoretical, and it is the same one this file
+   * already documents: a Checkout Session minted before the lifetime purchase
+   * stays payable for 24 hours, so a monthly subscription can genuinely arrive
+   * afterwards. Applying it would overwrite a purchase that cannot be re-bought
+   * with a recurring row — the customer keeps Plus, but the $149 they paid
+   * stops existing in our data.
+   *
+   * Refused rather than merged: which one they should end up on is a money
+   * decision (refund the lifetime? cancel the subscription?) and belongs to a
+   * human running a remediation policy, exactly as the duplicate-charge case
+   * above does. */
+  if (existing.planKey === "plus_lifetime" && incoming) {
+    return {
+      ok: false,
+      reason: "lifetime-not-replaceable",
+      incomingSubscriptionId: incoming,
+      existingStatus: existing.status,
+    };
+  }
 
   const canonical = existing.stripeSubscriptionId;
   if (!canonical) return { ok: true };

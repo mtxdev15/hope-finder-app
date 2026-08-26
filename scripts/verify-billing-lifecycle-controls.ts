@@ -37,6 +37,7 @@ import {
   PLAN_KEYS,
   planKeyForAlias,
   approvedPricesFromEnv,
+  isOneTimePlan,
 } from "../convex/plusPlans.ts";
 import {
   projectEntitlement,
@@ -98,8 +99,33 @@ check("the two plans use DIFFERENT env vars",
 check("annual is a yearly interval", PLAN_CATALOG.plus_annual.interval === "year");
 check("annual carries its own versioned lookup key",
   PLAN_CATALOG.plus_annual.lookupKey === "plus_annual_usd_v1");
-check("the catalog holds exactly the two Plus plans",
-  PLAN_KEYS.slice().sort().join(",") === "plus_annual,plus_monthly");
+check("the catalog holds exactly the three Plus plans",
+  PLAN_KEYS.slice().sort().join(",") === "plus_annual,plus_lifetime,plus_monthly");
+
+/* Lifetime is the one plan bought in `mode: "payment"`. Every property that
+   makes it different from the two recurring plans is pinned here, because each
+   one is load-bearing: a shared env var would let one Price sell two plans, a
+   shared lookup key would let classification confuse them, and an interval on a
+   plan that never recurs would put a renewal date on a page that must not
+   claim one. */
+check("lifetime resolves from its own alias",
+  planKeyForAlias("plus-lifetime") === "plus_lifetime");
+check("lifetime is bound to STRIPE_PLUS_LIFETIME_PRICE_ID",
+  PLAN_CATALOG.plus_lifetime.envVar === "STRIPE_PLUS_LIFETIME_PRICE_ID");
+check("every plan uses a DIFFERENT env var",
+  new Set(PLAN_KEYS.map((k) => PLAN_CATALOG[k].envVar)).size === PLAN_KEYS.length);
+check("every plan carries its own versioned lookup key",
+  new Set(PLAN_KEYS.map((k) => PLAN_CATALOG[k].lookupKey)).size === PLAN_KEYS.length);
+check("lifetime carries its own versioned lookup key",
+  PLAN_CATALOG.plus_lifetime.lookupKey === "plus_lifetime_usd_v1");
+check("lifetime is one-time and the other two are not",
+  PLAN_CATALOG.plus_lifetime.kind === "one_time" &&
+  PLAN_CATALOG.plus_monthly.kind === "subscription" &&
+  PLAN_CATALOG.plus_annual.kind === "subscription");
+check("a plan that never recurs claims no interval",
+  PLAN_CATALOG.plus_lifetime.interval === null);
+check("isOneTimePlan agrees with the catalog for every plan",
+  PLAN_KEYS.every((k) => isOneTimePlan(k) === (PLAN_CATALOG[k].kind === "one_time")));
 
 /* The env var is read through the catalog, so naming a plan can never name an
  * arbitrary environment variable. */
@@ -171,9 +197,19 @@ check("no Stripe Price id literal appears in the inspector module",
 section("4. The duplicate guard is plan-independent, so annual inherits it");
 
 /* THE ARGUMENT, and why it is stronger than a per-plan assertion:
- * the guard queries by (userId, provider) and never reads planKey, so it cannot
- * distinguish monthly from annual. Annual is covered because the guard is
- * blind to the plan, not because someone remembered to list annual. */
+ * the guard queries by (userId, provider) and cannot distinguish monthly from
+ * annual. Annual is covered because the guard is BLIND TO CADENCE, not because
+ * someone remembered to list annual — and a fourth recurring plan would be
+ * covered for the same reason, without touching this code.
+ *
+ * Lifetime is the one plan it must recognise, and that is not an exception to
+ * the argument. Its status vocabulary is DISJOINT: a lifetime row reads `paid`,
+ * a word that appears in neither BLOCKS_NEW_CHECKOUT nor ALLOWS_NEW_CHECKOUT.
+ * Without the branch it would reach the unrecognised-lifecycle refusal at the
+ * end — the right answer for the wrong reason, returning a status string no
+ * surface knows how to render. So the property asserted below is not "never
+ * reads planKey" but the one that was always doing the work: it never names a
+ * recurring plan. */
 const GUARD = CHECKOUT.slice(
   CHECKOUT.indexOf("getByUserProviderInternal"),
   CHECKOUT.indexOf("3b. Cross-provider guard"),
@@ -181,7 +217,12 @@ const GUARD = CHECKOUT.slice(
 check("the duplicate guard block can be located", GUARD.length > 0);
 check("the guard queries by userId and provider only",
   /\{ userId, provider: "stripe" as const \}/.test(GUARD));
-check("the guard never reads planKey", !GUARD.includes("planKey"));
+check("the guard never names a recurring plan",
+  !GUARD.includes("plus_monthly") && !GUARD.includes("plus_annual"));
+check("the only plan it recognises is the one-time one",
+  (GUARD.match(/plus_\w+/g) || []).every((m) => m === "plus_lifetime"));
+check("and it recognises that plan by its disjoint status, not by cadence",
+  /planKey === "plus_lifetime" && existing\.status === "paid"/.test(GUARD));
 check("the guard never reads the plan alias", !GUARD.includes("args.plan"));
 check("the guard never reads a Price", !GUARD.includes("price"));
 check("an existing live subscription answers already-subscribed",

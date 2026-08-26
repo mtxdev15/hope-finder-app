@@ -1,16 +1,163 @@
 # Declare & Believe — Open Items
 
-A running list of work to continue on the site. Newest priorities at the top of each section.
-Done items move to the bottom or get deleted.
+A running list of work to continue on the site. **Newest first within each section.**
+Open work is at the top; everything finished lives under **Done** at the bottom.
+Reordered 2026-08-25 after the live-billing activation pass.
+
+## ⏭️ Next up — after the production deploy
+
+*Added 2026-08-25. Every Stripe, Convex and Cloudflare variable is now set and
+verified; what remains needs a terminal. Do these in order — each one's failure
+mode is easier to read if the one before it succeeded.*
+
+- [ ] **1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
+      compared against `main` (`c44f8c0`). This is the one thing that could not be checked from
+      the web session — `release-c1-monetization @ 332e611` is not in the cloud clone. The audit
+      claims 51 functions and zero `testHarness` entries; `main` carries `testHarness.ts` and
+      later billing fixes, so there is probably drift. **Do this before deploying anything.**
+- [ ] **2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
+      found without adding billing behaviour — the harness fails closed, its two env vars were
+      never set. Capture the Worker version id first (`npx wrangler deployments list`) so
+      rollback has an explicit target rather than a guess.
+- [ ] **3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
+      Run `npm run check:types`, `npm run build && ls dist/dev` (must not exist) and every
+      `scripts/verify-*.ts` first — 12 suites, 2,237 checks. Schema change is additive
+      (`planKey` gains `plus_lifetime`, plus a `by_plan_environment` index) and needs **no
+      backfill**: production holds zero billing rows. The Worker needs redeploying too — this
+      branch changed `worker/src/index.js`.
+- [ ] **4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
+      The destination currently listens to 8. A refund is the **only** way a lifetime purchase
+      can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
+      $149 returns the money and leaves Plus granted forever.
+- [ ] **5. Stage 5 real-money smoke test.** The only true proof: Stripe permits no synthetic
+      events in live mode, and the endpoint has 0 deliveries ever. Run
+      `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` with `PUBLIC_CONVEX_SITE_URL` pointed at
+      production. Monthly, annual, lifetime, portal, cancel-at-period-end and its reversal.
+      **Decide before charging** whether to refund or keep as a canary — record it first, not after.
+- [ ] **Open risk — webhook API version cannot be changed.** The destination is pinned to
+      `2026-07-29.dahlia`; the code pins `2026-06-24.dahlia`. Exposure is narrow because the
+      handler re-fetches the subscription through the pinned client, so `classifyPlusSubscription`,
+      `readPeriod` and `deriveCancelAtPeriodEnd` are insulated. The one reader touching the
+      delivered payload's nested shape is `readInvoiceSubscriptionId` (`convex/http.ts`), which
+      reads `obj.parent.subscription_details.subscription`. If that moved between versions,
+      `invoice.*` events resolve no subscription and are acknowledged-but-ignored. **Unverified** —
+      settle it by capturing a real `invoice.paid` payload during step 5.
+- [ ] **Then Stage 6 — merge the pricing CTA.** Held on `claude/billing-pricing-cta-stage6`,
+      deliberately unmerged. Production is currently *structurally* incapable of starting a
+      Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
+      suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
+
+## 💳 Path to the first paying subscriber
+
+*Senior-dev audit, 2026-08-25. Ordered by what blocks revenue, then by what
+protects the people who pay. Phase A is the at-home commands above; nothing in
+Phase B can start until A5 passes.*
+
+### Phase B — required before ANY real customer can subscribe
+
+These are not polish. Each one, missing, produces a specific harm to someone who
+has paid you money.
+
+- [ ] **B1. Configure the live Customer Portal.** Without it a subscriber cannot
+      cancel, cannot update a failing card, and cannot see what they were
+      charged. Shape it like the sandbox: cancel at period end **on**; plan
+      switching, quantity and pause **off**. *Harm if skipped: a paying customer
+      with no way out. That is a consumer-protection problem, not a UX one.*
+- [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
+      **off**, so this path has never run once. Portal recovery works — but
+      nothing currently tells anyone their card failed. *Harm if skipped: silent
+      involuntary churn. They think they still have Plus; they don't.*
+- [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
+      unpaid" are very different outcomes for a real subscriber, and the sandbox
+      default is cancel. *Harm if skipped: subscriptions ending without anyone
+      choosing that.*
+- [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
+      failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
+      cancellation). *An alert with no resolution check is how a silently
+      cancelled subscriber goes unnoticed.*
+- [ ] **B5. Confirm privacy and terms are reachable** from `/pricing` and from
+      Checkout. Required by Stripe, and by anyone deciding whether to trust you
+      with a card.
+
+### Phase C — open the doors
+
+- [ ] **C1. Merge `claude/billing-pricing-cta-stage6`.** Nine assertions across
+      four suites must be **rewritten, not relaxed** — they enforce that
+      production is *structurally* incapable of starting a Checkout, and merging
+      deliberately trades that for a runtime flag.
+- [ ] **C2. Flip `PRICING_ENABLED` to `true`** in `src/app/declare/plan-display.js`,
+      update the one guard assertion, deploy. **This is the moment money can
+      move.** Everything above must be done first.
+- [ ] **C3. Watch the first real subscriber end to end** — Checkout, webhook,
+      entitlement, `/you`, `/billing`. Roll back on: webhook failures above a
+      small threshold over 15 minutes; any entitlement granted without a matching
+      subscription row; any duplicate subscription for one account; any Checkout
+      success that does not produce Plus within a minute.
+
+### Phase D — right after launch, not before
+
+- [ ] **D1. Tax.** `automatic_tax` is explicitly `false` and that was a deliberate
+      deferral, not an oversight. Before volume: review Stripe Tax, home-state
+      obligations, economic-nexus thresholds and the product tax code **with an
+      accountant**.
+- [ ] **D2. Spanish for `/checkout/success`** — English-only today, on a page a
+      Spanish-speaking customer reaches immediately after paying.
+- [ ] **D3. Verify analytics fire** on the Checkout and Portal paths, so you can
+      tell whether any of this is working.
+- [ ] **D5. `/billing/webhook` returns 500 for a switched-off integration.**
+      Arguably wrong: 500 says "misconfigured" when the truth is "switched off".
+      Stripe treats **5xx as retryable and 4xx as delivered**, so the current
+      shape invites redelivery that a 4xx would stop. Less likely to fire now
+      that all three Worker variables are set, but the same reasoning applies to
+      the `Downstream error` 500. Decide the right code — 503, or a
+      retired-style 410. *Carried over from `chore/retired-webhook-secret-hygiene`,
+      merged 2026-08-25.*
+- [ ] **D4. Settle the webhook API-version question** by capturing a real
+      `invoice.paid` payload during A5. See *Next up*.
+
+### Phase E — hygiene, parallel, blocks nothing
+
+- [x] **E1. Merge `chore/retired-webhook-secret-hygiene`** — DONE 2026-08-25.
+      ~~Merge it and run it.~~ Merged; `scripts/audit-retired-secrets.ts` run, and
+      both retired secrets confirmed gone. Its three open items resolved as: the
+      secret-hygiene block is **cleared** (both removed, verified in the
+      dashboards), the stale agent worktree is **already pruned**, and the
+      500-vs-4xx question moved to D5. Original item below.
+- [ ] ~~**E1. Merge `chore/retired-webhook-secret-hygiene`**~~ (unmerged since
+      2026-08-20, 3 commits). It carries `scripts/audit-retired-secrets.ts` — a
+      character-level scanner that answers "does anything shipping still read
+      these retired secrets?" mechanically. We answered that **by hand** on
+      2026-08-25 while this tool sat on a branch. Merge it and run it.
+- [ ] **E2. Merge `docs/cross-platform-subscription-contract`** (1 commit,
+      2026-08-24) — records the verified live Stripe product and prices. Overlaps
+      the 2026-08-25 addendum in `cross-platform-subscriptions.md`; reconcile
+      rather than merging blind.
+- [ ] **E3. Delete the 37 fully-merged branches** — `./scripts/delete-merged-branches.sh --yes`.
+      Prepared but **not executed**: the cloud session cannot delete remote
+      branches (403 on `push --delete`; it may push its own branch only). The
+      script recomputes the merged set at run time rather than trusting a list,
+      so a branch that gained unmerged work since is skipped automatically. Tip
+      SHAs recorded in `docs/operations/branch-cleanup-2026-08-25.md` — restore any
+      with `git push origin <sha>:refs/heads/<branch>`.
+      **Three ways to run it, pick one:**
+      `bash scripts/delete-branches-oneliner.sh` (one push, 37 branches, fastest),
+      `./scripts/delete-merged-branches.sh --yes` (recomputes the set first —
+      safest if time has passed), or paste from
+      `docs/operations/branches-to-delete.txt` (plain list, one per line).
+      ~~Delete the ~30 fully-merged branches.~~ Everything with `ahead: 0`
+      against main — the `fix/harness-*`, `verify/stripe-*`, `docs/billing-*`
+      and `feature/*` sets. **Keep `release-c1-monetization`** until
+      `convex function-spec --prod` confirms production no longer needs it as a
+      reference.
+- [ ] **E4. Decide the fate of the pre-parity branches** — `feat/give-*`,
+      `v2.0-redesign`, `v3*-redesign`, `welcome-copy-pass`, `fix/billing-portal`,
+      `fix/nav-footer-links`. All 137 behind main, all from June/July, several
+      carrying the retired donation code and the billing-portal IDOR. Archive as
+      tags and delete, or delete outright.
+
+---
 
 ## 🔧 In progress / immediate
-- [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
-      on `main` still carries legacy checkout handlers, including the billing-portal IDOR
-      that searched Stripe customers by a browser-submitted email. Production runs the hardened
-      Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
-      not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
-      backwards into those vulnerabilities. See
-      `docs/operations/convex-production-parity-audit.md`.
 - [ ] **Improvements deferred out of the Convex parity port.** The parity branch ports production
       logic **verbatim** — nothing was tidied on the way through, on purpose, because a parity
       port whose behaviour differs is not a parity port. Candidates noticed while reading the
@@ -83,17 +230,6 @@ Done items move to the bottom or get deleted.
       normal production CTA," but it currently renders unconditionally with no gating. Fix: hide it
       from production (dev-console-only, or a `?debug=1`-style flag) and keep `previewTomorrow()`
       reachable for QA.
-- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
-      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
-      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
-      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
-      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
-      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
-      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
-      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
-      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
-      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
-      interpret it.
 - [ ] **Lead magnet: free declarations download (PAUSED — needs Jeff's 4 answers).** Replace the
       weak "early access" band at the bottom of `/welcome` (and 15 other pages, the `fsignup`/`nlForm`
       block) with a free PDF download offer. Today the form redirects to a broken `Signin.html` and
@@ -115,448 +251,6 @@ Done items move to the bottom or get deleted.
       Logo upload + Google verification deferred (logo triggers a review). Until verified, the consent
       screen may still show the convex.site domain instead of "Sign in to Declare." Cosmetic, not a blocker.
 
-## Deferred — Stripe sandbox checkout and subscription validation
-
-**Paused at a verified checkpoint, 2026-08-21.** Everything below is sandbox-only.
-Nothing in live mode has been created or touched. Full record in
-`docs/operations/stage-2-sandbox-billing.md`; PR #20 is the active review surface.
-
-### Completed
-
-- [x] Stripe sandbox account confirmed: **Declare checkout dev** (`acct_1TmENuLShxhb4mBz`)
-- [x] Sandbox Product created: `prod_V6voPpxBKesWPc`
-- [x] Monthly Price created: `price_1U6hytLShxhb4mBzduppVOya` — 899 usd/month
-- [x] Annual Price created: `price_1U6i0TLShxhb4mBzAldYiOcA` — 7999 usd/year
-- [x] Sandbox webhook endpoint created: `we_1U6iKwLShxhb4mBzE0uOMDR2`
-      - targets the **isolated dev Worker**:
-        `https://hope-finder-worker-dev.thinktoro.workers.dev/billing/webhook`
-      - API version pinned to **`2026-06-24.dahlia`**
-      - forwards to Convex dev deployment **`good-dotterel-906`**
-- [x] Dev Worker version verified: **`95ca744d-71c4-4fe7-b505-e5ddcefe0d96`**
-- [x] `checkout.session.expired` verified end to end: **HTTP 200 `ok`**
-- [x] Provider-neutral Stripe / App Store entitlement architecture documented
-      (`docs/architecture/cross-platform-subscriptions.md`)
-- [x] Recurring-checkout contamination bug fixed (C2). Any recurring checkout is
-      also `mode: subscription`, so mode alone could have granted Plus to someone
-      who never bought Plus
-- [x] Stripe API access moved entirely into Convex (C5). One credential, one
-      runtime, one pinned API version
-- [x] Worker reduced to signature verification and event forwarding. It holds no
-      Stripe credential
-- [x] Webhook signature diagnostics added and deployed
-- [x] PR #20 remains the active Stage 2 review surface
-- [x] **Resume step 1 — development-only authenticated monthly checkout control**
-      (`src/pages/dev/[control].astro`, dev URL `/dev/billing-sandbox`).
-      `billing.createCheckoutSession` now has exactly one caller. Two gates keep
-      it out of production: a dynamic route that generates zero pages, and an
-      inline-literal `import.meta.env.DEV` check that Vite folds away. Proven by
-      `scripts/verify-billing-dev-control.ts` (98 checks) against a **hostile**
-      build made with `PUBLIC_BILLING_DEV_CONTROL=1`. Nothing has been clicked.
-
-### Intentionally not completed
-
-None of these are oversights. Each is a deliberate stop.
-
-- [ ] No checkout control exists in production. The dev-only one has never been
-      clicked, so it has created nothing
-- [ ] No Stripe Customer has been created
-- [ ] No real Checkout Session has been created through the app
-- [ ] No Subscription or invoice has been created
-- [ ] No test payment has been completed
-- [x] Sandbox Billing Portal **configuration** is complete and verified
-      (2026-08-22, §6.12.1) — active default, sandbox-only
-- [x] Portal **sessions** have been created and opened (2026-08-24) — three of
-      them, from the authenticated app on a disposable Test Clock fixture. Every
-      criterion this item named is now exercised: return to `/you`, cancellation
-      (scheduled at period end **and** reversed), payment-method update, and
-      invoice history. Recovery of a genuinely failed renewal payment was
-      performed **through the hosted Portal**, not the API. Record:
-      `docs/operations/billing-portal-release-gate-2026-08-23.md`
-- [ ] No annual Checkout Session has been created. The annual dev control now
-      exists (resume step 6d); the annual Price has never been exercised
-- [x] Payment failure and recovery **have** been exercised (2026-08-23) on a
-      disposable QA account via a Stripe Test Clock, leaving both existing
-      subscribers untouched. Subscription cancellation was exercised on that
-      same throwaway fixture only
-- [ ] No cancellation has been performed on a **real** QA subscriber through the
-      Portal. The monthly subscriber's end-of-period cancellation (§6.17) was
-      set through the API. *Narrowed 2026-08-24:* the hosted Portal cancellation
-      flow itself **has** now been walked — scheduled at period end and then
-      reversed — but on the disposable Test Clock fixture, not on a real
-      subscriber. Stripe recorded the schedule as `cancel_at` with
-      `cancel_at_period_end: false`, and the app normalized it to
-      `cancelAtPeriodEnd: true` correctly. What remains is the real monthly
-      subscriber reaching its already-set end date
-- [ ] No production billing CTA is enabled — the pricing page CTA is still a
-      disabled "Opening soon" button
-- [ ] No live Stripe Product, Price, webhook or secret has been created
-- [ ] No StoreKit or App Store Connect product has been created
-- [ ] **Stale live Stripe secrets on the production Worker (found 2026-08-24).**
-      `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are still set on
-      `hope-finder-worker` and are referenced **nowhere** in its source. They are
-      leftovers from a legacy checkout integration and they contradict rule C5,
-      which says the Worker holds no Stripe credential. Two unused live-mode
-      secrets on an internet-facing service is avoidable exposure. Rotate or
-      remove them as a deliberate step, separate from billing activation
-
-### Resume point
-
-When Stage 2 resumes, in this order:
-
-1. ~~**Build a development-only authenticated monthly checkout control.**~~
-   **DONE.** `src/pages/dev/[control].astro`. Enable with
-   `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev`, then open
-   `http://localhost:4321/dev/billing-sandbox`. The browser sends only
-   `{ plan: 'plus-monthly' }`; the user, the Price and the Customer all resolve
-   server-side in Convex. See `docs/operations/stage-2-sandbox-billing.md` §6.
-2. **Create one sandbox monthly Checkout Session through the actual app**, not
-   through the API directly. The point is to exercise the real path.
-3. **Complete a test subscription payment.**
-4. **Capture real payloads** for the pinned API version.
-5. **Verify against those payloads:**
-   - Checkout Session ownership
-   - Customer mapping
-   - subscription period fields
-   - invoice-to-subscription relationship
-   - metadata provenance
-   - cancellation state
-   - entitlement activation
-6. ~~**Narrow the provisional webhook field readers.**~~ **DONE.** Narrowed
-   against the real payloads captured at step 3, not from memory:
-   `readPeriod` now reads only `subscription.items.data[0]`, and
-   `readInvoiceSubscriptionId` only
-   `invoice.parent.subscription_details.subscription`. The Checkout Session
-   reader and all cancellation fields were unchanged, because the captured
-   payloads showed neither moved. `verify-plus-classification.ts` grew 44 -> 96
-   checks and the new assertions were mutation-tested. See
-   `docs/operations/stage-2-sandbox-billing.md` §6.9.
-6b. ~~**Add the duplicate-subscription webhook guard.**~~ **DONE.** A webhook
-   for a DIFFERENT Stripe subscription id can no longer replace a nonterminal
-   one for the same user. The checkout-time guard in `billing.ts` could not
-   cover this: a Session minted before the first subscription existed stays
-   payable for 24 hours, and completing it later produces a second real
-   subscription that guard never saw — after which `applyWebhook` would have
-   repointed the canonical row in place, leaving one tidy Convex row reading
-   Plus while Stripe billed twice. The guard lives in `applyWebhook`, the one
-   mutation that writes the `subscriptions` table, with the decision in the
-   dependency-free `convex/subscriptionGuard.ts`. Conflicts leave the canonical
-   row untouched, record `outcome: "duplicate-subscription-conflict"` on the
-   event, log for alerting, and return 200 so Stripe stops retrying.
-   `verify-duplicate-subscription-guard.ts`, 71 checks, mutation-tested both
-   ways. **It protects Convex state; it does NOT cancel or refund a duplicate
-   Stripe charge** — that remediation is manual and documented in
-   `docs/operations/stage-2-sandbox-billing.md` §6.10.
-
-   *Further Checkout Session testing is now unblocked by this guard, but the
-   remaining items below are still outstanding.*
-6c. ~~**Build the checkout return pages.**~~ **DONE.** `/checkout/success` and
-   `/checkout/cancelled` exist; a completed payment no longer lands on a 404.
-   The success page treats `session_id` as UNTRUSTED — it observes only that
-   the parameter exists, strips it from the visible URL with
-   `history.replaceState`, and never renders, stores, logs or sends it.
-   Confirmation comes only from `getMyEntitlements`, polled on a bound (~2s
-   interval, ~30s cap, single-flight, stops when hidden or confirmed).
-   `paymentNeedsAttention` never renders as success, and the timeout state
-   explicitly says not to pay again. The cancelled page is inert: no Convex or
-   Stripe call, never auto-retries, and allowlists `?plan=`. Neither page
-   activates public billing. `verify-checkout-return-pages.ts`, 118 checks,
-   mutation-tested. See `docs/operations/stage-2-sandbox-billing.md` §6.11.
-6d. ~~**Prepare the annual, Portal and lifecycle controls.**~~ **DONE — built
-   and tested, never exercised.** Three controls on `/dev/billing-sandbox`:
-   annual Checkout (`{ plan: 'plus-annual' }` and nothing else), Billing Portal
-   (an **empty** payload — Convex resolves the Customer from our own mapping),
-   and a read-only lifecycle inspector that renders an allowlist projection so
-   no Stripe identifier can reach the screen. Annual did not fork the Checkout
-   path: one implementation, the plan typed as a closed two-member union, the
-   alias a hardcoded literal at each call site. `createPortalSession` already
-   existed and already met every requirement, so no Convex change was needed —
-   only a caller and the tests that pin it.
-   `verify-billing-lifecycle-controls.ts` (149 checks) plus
-   `verify-billing-dev-control.ts` (98 -> 136), four mutations applied and each
-   caught. See `docs/operations/stage-2-sandbox-billing.md` §6.12.
-
-   **Nothing here has been run against Stripe.** No annual Session, no Portal
-   session, no cancellation, no payment failure, no deployment.
-
-   **Do not exercise annual on the account holding the active monthly
-   subscription.** Convex refuses a second purchase and the webhook guard
-   refuses to repoint the row, but **neither cancels or refunds** — Stripe would
-   still bill twice. Use a separate sandbox QA account, or wait until the
-   monthly subscription is genuinely terminal.
-
-   *Known gap:* `getMyEntitlements` does not surface `cancelAtPeriodEnd`, so a
-   scheduled cancellation still reads as `active` in the inspector. Confirm
-   cancellation in the Stripe Dashboard. Surfacing that field is an
-   entitlement-contract change, deliberately out of scope.
-7. ~~**Configure and read back the Stripe sandbox Billing Portal settings.**~~
-   **DONE 2026-08-22.** The active default configuration exists in **Declare
-   checkout dev** and was verified through read-only Stripe API responses:
-   `active=true`, `is_default=true`, `livemode=false`, one configuration
-   returned. Plan switching and quantity updates disabled, cancellation enabled
-   at `at_period_end`, cancellation reasons enabled, payment-method updates
-   enabled, invoice history enabled. Retention coupons are
-   **NOT EXPOSED BY READ API** — they are a Dashboard deflection feature and do
-   not appear on the configuration object, so absence was not read as proof.
-   `proration_behavior` is `none`, correct for end-of-period cancellation.
-   Full result in `docs/operations/stage-2-sandbox-billing.md` §6.12.1.
-
-   `is_default` matters because `createPortalSession` sends no `configuration`
-   parameter, so Stripe uses the account default.
-
-   **Configuration is not validation.** Everything below is still outstanding.
-
-8. **Validate the Portal and the rest of the lifecycle.** **Portal smoke
-   testing is COMPLETE (2026-08-22, §6.12.2); Portal lifecycle validation is
-   NOT.** One session was created through the app, the hosted page rendered the
-   configured controls, and the return to `/you` worked. Nothing was cancelled,
-   changed or paid. The remaining items:
-
-   - [x] deploy the PR #23 code to Convex development after merge
-         (2026-08-22, `good-dotterel-906`)
-   - [x] create and open one sandbox Portal session (2026-08-22, §6.12.2)
-   - [x] verify Portal return to `/you` — exact path, no Stripe id appended,
-         session survived
-   - [x] verify the Portal resolves the authenticated user's server-side
-         Customer mapping — browser sent `{}`; the deployed action accepts
-         `lang` only
-   - [x] verify invoice-history visibility (present, not opened)
-   - [x] verify payment-method management control visibility (present, not used)
-   - [x] verify cancellation control visibility (present, not used)
-   - [x] **schedule cancellation at period end** — done 2026-08-22 through the
-         Portal; the subscription is scheduled to end September 21, 2026 (§6.12.2,
-         §6.16)
-   - [x] **verify a post-fix `customer.subscription.updated`** — one genuinely new
-         event (new provider event id, `outcome: applied`) generated by a
-         same-state `cancel_at` reassertion. The two earlier events were NOT
-         replayed: they are idempotency keys and would have been deduplicated
-   - [x] **verify `cancelAtPeriodEnd=true` in Convex** — the deployed normalizer
-         resolved `cancel_at === currentPeriodEnd` to `true` (§6.16)
-   - [x] **verify active Plus access remains through period end** — status stays
-         `active`, tier stays Plus, period end unchanged
-   - [x] **verify `/you` renders the cancellation-scheduled state** — "Cancels
-         September 21, 2026", chip reads ENDING, "Renews" absent
-   - [x] **verify `/you` removes renewal language** — confirmed absent
-   - [x] **verify pricing keeps Plus as current plan and blocks duplicate
-         Checkout** — "Your current plan", CTA hidden and disabled, zero enabled
-         purchase controls
-   - [ ] verify the subscription remains active for the entire remaining period
-   - [ ] verify terminal `customer.subscription.deleted` at the real period end
-   - [ ] verify access changes at terminal cancellation
-   - [x] **commit the regenerated `convex/_generated/api.d.ts`** — done
-         2026-08-22. Regenerated from merged main with `npx convex codegen`, so
-         `stripeCancellation` is now represented in the generated module map.
-         Two lines: one `import type` and one entry in `fullApi`. It adds **no
-         remotely callable Convex function** — the module exports only ordinary
-         TypeScript helpers and declares no query, mutation, action or HTTP
-         action, and the deployment still attributes zero functions to it. No
-         deployment was required: `convex codegen` writes local files only.
-   - [x] **actually update a payment method** — DONE 2026-08-22 (§6.18), on the
-         **annual QA account**; the monthly subscriber was untouched and is
-         byte-identical. One Portal session, one replacement, sandbox Visa →
-         sandbox Mastercard, no real card. The subscription-level
-         `default_payment_method` override was **cleared** and the customer
-         default now points at the new method, so the next annual invoice
-         resolves to it (Acceptable result B). No charge, no new invoice, no
-         refund or credit, renewal date unchanged.
-         *Note:* clearing the override fired a real `customer.subscription.updated`
-         webhook (`billingEvents` 9 → 10, `outcome: applied`), which changed only
-         `lastProviderEventAt` / `updatedAt` on the canonical row. Expected and
-         benign — that type is subscribed because cancellation needs it.
-   - [x] **open or download an invoice** — DONE 2026-08-23 UTC (§6.19), on the
-         **annual QA account**; the monthly subscriber was untouched and its
-         invoice history was never opened. One Portal session (browser payload
-         `args:[{}]`, zero provider identifiers), the one existing paid annual
-         invoice opened once, and exactly one invoice PDF downloaded. The
-         **receipt was deliberately not downloaded**. The PDF was validated
-         outside the repository and then deleted along with every extracted
-         byte; nothing was retained.
-         Stripe is field-identical before and after — Customers 2, Subscriptions
-         2, Invoices 1, PaymentIntents 1, Checkout Sessions 1, credit-note
-         amounts 0, `next_invoice_sequence` still 2. Convex is byte-identical in
-         all seven tables and **`billingEvents` stayed at 10**: reading an
-         invoice fires no subscribed webhook at all.
-         *Limit:* PDF **text** could not be validated from the command line — no
-         `pdftotext`/`pdfinfo`/`mutool`/`qpdf`/`pypdf` here, and the browser
-         blocks `file:`. Amount, paid state, cadence and period are recorded
-         from the hosted invoice page and the Stripe API instead. See [[§6.19]].
-   - [x] **verify payment-failure / payment-attention behaviour** — DONE
-         2026-08-23 UTC. Record:
-         `docs/operations/billing-test-harness-execution-record-2026-08-23.md`.
-         A Test Clock fixture on a third disposable QA account ran the full
-         lifecycle: healthy -> failure armed -> `past_due` -> recovered ->
-         cancelled -> clock deleted. `/you` showed "NEEDS ATTENTION", the
-         non-gold badge and **no renewal date** while `past_due`, then returned
-         to a normal renewal line after recovery, with zero identifier leaks.
-         Both existing subscribers were **not written at all** during the test
-         window (their `updatedAt` values both precede it); `billingEvents` grew
-         by exactly the 8 expected lifecycle events; 0 Test Clocks remain.
-         Six safe stops were fixed and merged first (PRs #39-#45), four of them
-         the same bug: a webhook-driven convergence checked with a single
-         immediate read. PR #45 fixed the class — one bounded poller everywhere,
-         plus skip-if-already-done guards. Harness re-disabled afterwards (both
-         flags removed); functions stay deployed to development and inert.
-         *Not observed:* Stripe's automatic Smart Retry cadence (recovery was
-         driven manually), failed-payment emails (disabled), and Portal dunning.
-         *Portal dunning closed 2026-08-24* on a second disposable fixture —
-         hosted recovery, cancellation scheduling and cancellation reversal, plus
-         the authenticated disabled-gate refusal observed live. A seventh safe
-         stop was found and fixed first (PR #47): recovery required the
-         subscription-level default payment method to still equal the value
-         captured at provisioning, and the hosted Portal legitimately sets that
-         field, so a fixture the Portal had already recovered was refused before
-         its invoice was ever inspected. Snapshot equality replaced with a
-         semantic check of the *effective* method under Stripe's own precedence;
-         a Portal-set default is preserved, and an already-paid invoice is
-         observed rather than paid again. Suite 538 -> 592, 31/31 mutations
-         caught. Record:
-         `docs/operations/billing-portal-release-gate-2026-08-23.md`.
-         Smart Retry cadence and failed-payment notification remain unobserved
-         and are production activation prerequisites — see
-         `docs/operations/billing-production-activation-readiness.md`.
-         **Design locked 2026-08-23** — see
-         `docs/implementation/billing-test-harness-brief.md`. Route is a Test
-         Clock fixture on a third disposable QA account, driven by a
-         development-only Convex harness. The ownership contract needs no
-         change: a directly-created Customer + Subscription carrying the five
-         provenance fields binds through the same trusted path Checkout uses,
-         and `applyWebhook` creates both the mapping and the canonical row
-         itself. The harness exists only because the MCP exposes no Test Clock,
-         PaymentMethod, or Invoice write operations.
-         *Sandbox recovery policy, read 2026-08-23:* Smart Retries, up to 8
-         retries in 2 weeks, first retry dynamic, **final action cancel**,
-         failure emails disabled, no active automations. Because the final
-         action is cancel, an over-advanced clock destroys the fixture — hence
-         the standing rule: advance only to the first renewal attempt, require
-         `attempt_count=1`, read `next_payment_attempt`, and recover before
-         advancing again.
-         **Execution-readiness audit complete 2026-08-23** — runbook at
-         `docs/operations/billing-test-harness-execution-readiness.md`. The
-         harness remains disabled, undeployed (0 of 47 deployed functions are
-         `testHarness`), and unexecuted. Separate authorization is required to
-         set either flag, deploy to development, or create the disposable
-         account.
-         *Denominator corrected 2026-08-24:* production actually holds **51**
-         function-spec entries, not 47 (and not the 46 recorded earlier in
-         `docs/operations/convex-production-parity-audit.md`). Both older totals
-         came from counting lines of pretty-printed JSON rather than parsing it.
-         The number that mattered was never the denominator: **zero** deployed
-         production `testHarness` entries was correct then and is correct now,
-         re-verified by parsing `convex function-spec` as JSON.
-         **Two provisioning stops 2026-08-23; lifecycle NOT yet run.** Neither
-         reached `arm_failure`; no clock advanced, no payment attempted, both
-         existing subscribers unchanged. The second run proved the ownership
-         contract — webhook-created mapping and canonical row, no manual write.
-         Three fixes added: bounded convergence polling, incremental provider
-         persistence, and read-only adoption via the same `provision` command.
-         See `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`.
-         **Third stop 2026-08-23:** adoption succeeded read-only with zero Stripe
-         mutations, but the fixture still reported a stale `not-converged`
-         because `undefined` is dropped from serialized Convex arguments. Fixed
-         with an explicit clear signal plus a read-only healthy-normalization
-         path. Lifecycle stopped before `arm_failure`.
-         **Harness implemented behind gates 2026-08-23; execution NOT started.**
-         See `docs/implementation/billing-test-harness-brief.md` §13. Both flags
-         are unset, nothing was deployed, and no Stripe object exists from it.
-         266 verification checks, mutation-tested against 12 regressions.
-         **BLOCKED as originally planned** — audited 2026-08-23 UTC (§6.20), no
-         Stripe write made. A one-off $1.00 invoice cannot exercise this path,
-         for two independent reasons in the shipped code:
-         (1) `readInvoiceSubscriptionId` reads only
-         `invoice.parent.subscription_details.subscription` and never invoice
-         lines, so a one-off invoice resolves to `null` and `http.ts` ACKs before
-         `applyWebhook` — no `billingEvents` row, no state change;
-         (2) `paymentNeedsAttention` is a pure function of the stored
-         subscription **status** (`past_due`/`unpaid`), and the webhook writes
-         status from the live *subscription*, never the invoice — a failed
-         one-off invoice leaves the annual subscription `active`.
-         Neither is a defect; both are deliberate fail-closed design. The path is
-         reachable only by genuinely moving a subscription to `past_due`. Next
-         attempt should use a **Stripe test clock on its own throwaway QA
-         subscription**, which leaves both existing subscribers untouched.
-   - [x] **surface entitlement state and add a billing entry point** — DONE
-         2026-08-22 (§6.13). `getMyEntitlements` now returns `periodEndAt`,
-         `cancelAtPeriodEnd` and `billingInterval`; `/checkout/success` welcomes
-         confirmed subscribers; `/you` has a persistent Plan & Billing card at
-         `#plan-billing` with a click-only, single-flight Manage billing button;
-         `/pricing` reflects the authenticated current plan and stays
-         non-transactional. One shared interpreter
-         (`src/app/declare/plan-display.js`) so the three surfaces cannot drift.
-         `verify-subscription-visibility.ts`, 374 checks, four mutations caught.
-         **No Stripe lifecycle test was performed.**
-   - [x] **test annual Checkout with a separate sandbox QA account** — DONE
-         2026-08-22 (§6.17), on commit `203a800` against `good-dotterel-906`.
-         No Convex redeploy was needed. Subchecks:
-         - [x] successful annual sandbox payment ($79.99/year, test card, one
-               Checkout Session, one submit that actually charged)
-         - [x] webhook ingestion — `checkout.session.completed`,
-               `customer.subscription.created` and `invoice.paid`, each with a
-               new provider event id and `outcome: applied`, no conflicts
-         - [x] annual entitlement — `planKey: plus_annual`, `tier: plus`,
-               `status: active`, `billingInterval: year`,
-               `cancelAtPeriodEnd: false`, period end present
-         - [x] account display — `/you` shows "Annual plan · Renews August 22,
-               2027", non-gold PLUS badge, benefits, Manage billing
-         - [x] pricing behaviour — Plus marked current, duplicate Checkout
-               blocked, zero enabled purchase controls
-         - [x] Portal visibility — annual subscription, $79.99/year, matching
-               renewal date, paid invoice, no plan switching or quantity
-         **The monthly subscriber was not used and is byte-identical.**
-         Public billing remains intentionally inactive: `/pricing` has no annual
-         control, so the existing development-only control was used.
-   - [ ] production Portal activation
-
-   **Do not use the current active monthly subscriber for annual Checkout.**
-   Convex refuses a second purchase and the webhook guard refuses to repoint the
-   row, but **neither cancels or refunds** — Stripe would still bill twice. Use a
-   separate sandbox QA account, or wait until that monthly subscription is
-   genuinely terminal. Note that end-of-period cancellation leaves it `active`
-   until the period actually ends, so cancelling does not free that account
-   quickly.
-
-### Account experience
-
-- [x] **Plus identity badge is no longer gold** (2026-08-22, §6.14). Root cause
-      was a `.ybadge` class collision with the church-finder "Home" marker, not
-      the colour written; the badge now has its own `.yplus` class. Verified by
-      COMPUTED browser values in both themes, not CSS source.
-- [x] **`/you` redesigned to the hybrid hierarchy** — identity, Plan & billing,
-      Your Formation, Account, Experience, Privacy & support, Mobile app, Sign
-      out. One centred column, grouped rows, every existing capability kept.
-- [x] **Your Formation added** — built only from existing data
-      (`db_active_journey`, vault `listItems()`, `db_journeys_done`) and linking
-      only to existing routes. No streaks, scores, XP or achievements.
-- [x] **Local visual verification passed** across 390 / 1024 / 1440 in light and
-      dark, plus checkout success and pricing (§6.14).
-- [x] **Final visual verification from merged main** (2026-08-22, commit
-      `2408b5d`, §6.15). Badge computed non-gold in both themes, hierarchy
-      verified by measured position, Plan & Billing / Your Formation / grouped
-      settings all pass, 1440 / 1024 / 390 in light and dark, checkout-success
-      and pricing regressions green. **No Convex redeploy was needed — PR #26
-      contained no Convex code.**
-- [ ] Spanish `/you` and `/pricing` verified in-browser — still skipped, because
-      switching locale writes Convex data via `userdata:set`
-- [ ] Signed-out success and pricing verified in an isolated browser context
-
-### Guardrails
-
-- Do not reuse archived legacy Products, Prices, sessions or metadata. Seven
-  archived sessions and two archived Products remain in the sandbox from an
-  earlier integration and are permanent negative test fixtures, not building
-  material.
-- Do not point sandbox webhooks at the production Worker.
-- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
-  asserted by `scripts/verify-plus-classification.ts`.
-- Do not enable production checkout without a separate live-promotion approval.
-- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
-- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
-  source of truth.
-
-
-## ✅ Verify on the live site (manual)
-- [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
-      password-reset email (Resend).
-- [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
-      skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
 
 ## 🚀 Next features
 - [ ] **Navigation IA Migration — Bible · Journeys · Declare · Saved · You.**
@@ -824,7 +518,278 @@ When Stage 2 resumes, in this order:
       have just paid. Pre-existing, not introduced by the Plans/Billing redesign, and unrelated to
       it — Plans and Billing both have full parity. Worth closing before production activation.
 
-## ✔️ Recently shipped
+## ✅ Verify on the live site (manual)
+- [ ] **Auth round-trip** on declareandbelieve.com: email sign-up, email sign-in, Google sign-in,
+      password-reset email (Resend).
+- [ ] **Entry flow** on a phone: new visitor sees Begin → tap Begin → `/today`; revisit `/` same day
+      skips to `/today`; signed-in always skips; menu → "How it works" → `/welcome`.
+
+## 🔒 Billing guardrails (standing)
+
+- Do not reuse archived legacy Products, Prices, sessions or metadata. Seven
+  archived sessions and two archived Products remain in the sandbox from an
+  earlier integration and are permanent negative test fixtures, not building
+  material.
+- Do not point sandbox webhooks at the production Worker.
+- Do not put `STRIPE_SECRET_KEY` in Cloudflare. Its absence from the Worker is
+  asserted by `scripts/verify-plus-classification.ts`.
+- Do not enable production checkout without a separate live-promotion approval.
+- Preserve cross-platform entitlement support for future iOS StoreKit purchases.
+- Keep Stripe and Apple as billing **providers**. Convex remains the entitlement
+  source of truth.
+
+
+## ✔️ Done
+
+*Everything below is finished. Newest first. Kept rather than deleted because
+several of these are permanent negative fixtures, or explain why something is
+deliberately absent.*
+
+### Live billing activation (2026-08-25)
+
+- [x] **Live Stripe catalog complete.** Product `Declare Plus` (`prod_V8OKKIMHiVw0KE`) with
+      three prices, all carrying versioned lookup keys: $8.99/mo `plus_monthly_usd_v1`,
+      $79.99/yr `plus_annual_usd_v1`, $149.00 **one-off** `plus_lifetime_usd_v1`.
+- [x] **Live webhook destination exists and is correct.** `Declare Production Billing` → the
+      production Worker's `/billing/webhook`, Active, 8 events. The legacy donation endpoint is
+      **gone** — it had been pointing at `/give/webhook`, which answers `410 Gone`.
+- [x] **Convex production fully configured.** `STRIPE_SECRET_KEY` (`rk_live_`, from the scoped
+      restricted key `declare-production-billing-convex`), all three price IDs,
+      `BILLING_WEBHOOK_SECRET`, `SITE_URL`. `GIFT_WEBHOOK_SECRET` removed.
+- [x] **Worker secrets set from known-good sources**, so the two `BILLING_WEBHOOK_SECRET` values
+      match by construction rather than by inspection — Cloudflare secrets cannot be read back,
+      so inspection was never available.
+- [x] **The suspected bug did not exist.** `BILLING_WEBHOOK_SECRET` on Convex was correct all
+      along — random text, never a `whsec_`. Nothing was broken; the setup had simply never been
+      exercised. 0 deliveries, 0 failures.
+- [x] **`docs/operations/billing-production-activation-readiness.md` is unreliable.** Four
+      separate claims in it were false by the time they were checked. Treat it as history.
+      `docs/operations/billing-secret-topology.md` replaces it for the secrets.
+- [x] **Lifetime plan built** — catalog, one-time classifier, entitlement resolution, schema
+      widening, `mode: payment` Checkout, `charge.refunded` revocation, and a soft
+      founding-member seat cap (`LIFETIME_SEATS = 200`).
+- [x] **Family and Church offers removed** from `/pricing`. The church *finder* is untouched.
+- [x] **Shared-secret trim asymmetry fixed.** The Worker trimmed `STRIPE_BILLING_WEBHOOK_SECRET`
+      but not `BILLING_WEBHOOK_SECRET`, which is the harder one to diagnose — one invisible
+      trailing space is a 401 on every delivery with nothing to indicate why. Both sides trim now.
+
+### Worker source parity — resolved
+
+- [x] **Worker source parity.** ~~`main` still carries legacy checkout handlers, including the
+      billing-portal IDOR that searched Stripe customers by a browser-submitted email.~~
+      **Verified false 2026-08-25.** `main`'s `worker/src/index.js` answers all four `/give/*`
+      routes with `410 Gone` and reads `env.STRIPE_SECRET_KEY` nowhere. Deploying the Worker from
+      `main` does not roll production backwards. Original note kept verbatim below.
+
+  > - [ ] **Worker source parity (same hazard class as the Convex divergence).** `worker/src/index.js`
+  >       on `main` still carries legacy checkout handlers, including the billing-portal IDOR
+  >       that searched Stripe customers by a browser-submitted email. Production runs the hardened
+  >       Worker deployed from `release-c1-monetization`. The Convex parity branch deliberately does
+  >       not touch this. Until it is reconciled, `wrangler deploy` from `main` would roll production
+  >       backwards into those vulnerabilities. See
+  >       `docs/operations/convex-production-parity-audit.md`.
+
+- [x] **Journey Step 6 reflections are never actually saved (found during Release B / B2.2,
+      2026-07-29; implemented as B3.3, 2026-07-30).** ~~The "Reflect" textarea in the seven-step day
+      flow always rendered blank with just a placeholder — nothing read or wrote it to storage.~~
+      B3.3 built the approved (corrected) model: a debounced local draft autosave while typing
+      (restores after refresh/close/resume, never sent to Vault or Convex), an explicit "Save
+      Reflection" action that durably saves to the Vault (new `journeyReflection` item type,
+      mirrored to Convex for signed-in users like every other Vault item), draft-vs-saved conflict
+      recovery, and read-only display in completed-day review. Step 6 is now gated on a successful
+      save, same as steps 3/4/5. An optional AI "Gentle Guidance" response (with its own consent
+      flow) remains explicitly deferred to B3.4 — B3.3 only persists the reflection, it doesn't
+      interpret it.
+
+### Stripe sandbox checkout and subscription validation
+
+**Paused at a verified checkpoint, 2026-08-21.** Everything below is sandbox-only.
+Nothing in live mode has been created or touched. Full record in
+`docs/operations/stage-2-sandbox-billing.md`; PR #20 is the active review surface.
+
+#### Completed
+
+- [x] Stripe sandbox account confirmed: **Declare checkout dev** (`acct_1TmENuLShxhb4mBz`)
+- [x] Sandbox Product created: `prod_V6voPpxBKesWPc`
+- [x] Monthly Price created: `price_1U6hytLShxhb4mBzduppVOya` — 899 usd/month
+- [x] Annual Price created: `price_1U6i0TLShxhb4mBzAldYiOcA` — 7999 usd/year
+- [x] Sandbox webhook endpoint created: `we_1U6iKwLShxhb4mBzE0uOMDR2`
+      - targets the **isolated dev Worker**:
+        `https://hope-finder-worker-dev.thinktoro.workers.dev/billing/webhook`
+      - API version pinned to **`2026-06-24.dahlia`**
+      - forwards to Convex dev deployment **`good-dotterel-906`**
+- [x] Dev Worker version verified: **`95ca744d-71c4-4fe7-b505-e5ddcefe0d96`**
+- [x] `checkout.session.expired` verified end to end: **HTTP 200 `ok`**
+- [x] Provider-neutral Stripe / App Store entitlement architecture documented
+      (`docs/architecture/cross-platform-subscriptions.md`)
+- [x] Recurring-checkout contamination bug fixed (C2). Any recurring checkout is
+      also `mode: subscription`, so mode alone could have granted Plus to someone
+      who never bought Plus
+- [x] Stripe API access moved entirely into Convex (C5). One credential, one
+      runtime, one pinned API version
+- [x] Worker reduced to signature verification and event forwarding. It holds no
+      Stripe credential
+- [x] Webhook signature diagnostics added and deployed
+- [x] PR #20 remains the active Stage 2 review surface
+- [x] **Resume step 1 — development-only authenticated monthly checkout control**
+      (`src/pages/dev/[control].astro`, dev URL `/dev/billing-sandbox`).
+      `billing.createCheckoutSession` now has exactly one caller. Two gates keep
+      it out of production: a dynamic route that generates zero pages, and an
+      inline-literal `import.meta.env.DEV` check that Vite folds away. Proven by
+      `scripts/verify-billing-dev-control.ts` (98 checks) against a **hostile**
+      build made with `PUBLIC_BILLING_DEV_CONTROL=1`. Nothing has been clicked.
+
+#### Intentionally not completed
+
+None of these are oversights. Each is a deliberate stop.
+
+- [ ] No checkout control exists in production. The dev-only one has never been
+      clicked, so it has created nothing
+- [ ] No Stripe Customer has been created
+- [ ] No real Checkout Session has been created through the app
+- [ ] No Subscription or invoice has been created
+- [ ] No test payment has been completed
+- [x] Sandbox Billing Portal **configuration** is complete and verified
+      (2026-08-22, §6.12.1) — active default, sandbox-only
+- [x] Portal **sessions** have been created and opened (2026-08-24) — three of
+      them, from the authenticated app on a disposable Test Clock fixture. Every
+      criterion this item named is now exercised: return to `/you`, cancellation
+      (scheduled at period end **and** reversed), payment-method update, and
+      invoice history. Recovery of a genuinely failed renewal payment was
+      performed **through the hosted Portal**, not the API. Record:
+      `docs/operations/billing-portal-release-gate-2026-08-23.md`
+- [ ] No annual Checkout Session has been created. The annual dev control now
+      exists (resume step 6d); the annual Price has never been exercised
+- [x] Payment failure and recovery **have** been exercised (2026-08-23) on a
+      disposable QA account via a Stripe Test Clock, leaving both existing
+      subscribers untouched. Subscription cancellation was exercised on that
+      same throwaway fixture only
+- [ ] No cancellation has been performed on a **real** QA subscriber through the
+      Portal. The monthly subscriber's end-of-period cancellation (§6.17) was
+      set through the API. *Narrowed 2026-08-24:* the hosted Portal cancellation
+      flow itself **has** now been walked — scheduled at period end and then
+      reversed — but on the disposable Test Clock fixture, not on a real
+      subscriber. Stripe recorded the schedule as `cancel_at` with
+      `cancel_at_period_end: false`, and the app normalized it to
+      `cancelAtPeriodEnd: true` correctly. What remains is the real monthly
+      subscriber reaching its already-set end date
+- [ ] No production billing CTA is enabled — the pricing page CTA is still a
+      disabled "Plus launches soon" button. **Still true and deliberate
+      (2026-08-25):** the wiring exists on `claude/billing-pricing-cta-stage6`
+      and is held unmerged until Stage 6. See *Next up*, last item
+- [x] ~~No live Stripe Product, Price, webhook or secret has been created~~
+      **Superseded 2026-08-25** — all of it now exists. See *Live billing
+      activation* at the top of Done
+- [ ] No StoreKit or App Store Connect product has been created
+- [x] **Stale live Stripe secrets on the production Worker (found 2026-08-24,
+      removed by 2026-08-25).** ~~`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+      are still set on `hope-finder-worker`~~ — both are gone. Verified: the
+      Worker's variable list holds only `ANTHROPIC_API_KEY`, `BIBLE_API_KEY`,
+      `BILLING_WEBHOOK_SECRET`, `CONVEX_SITE_URL`, `JOURNEY_TRANSLATE_SECRET`,
+      `STRIPE_BILLING_WEBHOOK_SECRET` and `UNSPLASH_ACCESS_KEY`. Rule C5 holds:
+      the Worker carries no Stripe credential
+
+#### Stage 2 sandbox validation — outcome
+
+*Condensed 2026-08-25. This ran from 2026-08-21 to 2026-08-24 and is finished
+except for the four items at the bottom. The full step-by-step narrative is in
+git history and, in more detail than was ever here, in
+`docs/operations/stage-2-sandbox-billing.md` §6.1–§6.20.*
+
+**Proven end to end in the sandbox** (`Declare checkout dev`): monthly and annual
+Checkout through the real app path; webhook ingestion with correct provenance and
+no conflicts; Customer mapping resolved server-side; entitlement activation;
+Billing Portal sessions, invoice viewing and payment-method replacement; failed
+renewal and recovery via Test Clock; cancellation scheduled at period end and
+reversed; `cancel_at` → `cancelAtPeriodEnd` normalization against a real Portal
+action.
+
+**Built during it, and still load-bearing:**
+
+- `src/pages/dev/[control].astro` — the dev-only checkout, annual and Portal
+  controls, plus a read-only lifecycle inspector that renders an allowlist
+  projection so no Stripe identifier reaches the screen (§6, §6.12)
+- `convex/subscriptionGuard.ts` — the duplicate-subscription guard, in
+  `applyWebhook` because the checkout-time guard cannot see a Session minted
+  before the first subscription existed and completed within its 24-hour window
+  (§6.10)
+- `/checkout/success` and `/checkout/cancelled` — success treats `session_id` as
+  untrusted and confirms only from `getMyEntitlements` (§6.11)
+- `src/app/declare/plan-display.js` — one shared interpreter so `/you`,
+  `/pricing` and `/billing` cannot drift (§6.13)
+- The webhook field readers, **narrowed against captured payloads rather than
+  memory**: `readPeriod` reads only `subscription.items.data[0]`,
+  `readInvoiceSubscriptionId` only
+  `invoice.parent.subscription_details.subscription` (§6.9)
+- The Test Clock harness, behind two unset flags and deployed nowhere
+  (`docs/implementation/billing-test-harness-brief.md` §13,
+  `docs/operations/billing-test-harness-execution-readiness.md`). Getting it to
+  run took three provisioning stops and seven safe-stop fixes (PRs #39–#47),
+  four of them the same bug — a webhook-driven convergence checked with a single
+  immediate read, fixed as a class with one bounded poller everywhere. Records:
+  `docs/operations/billing-test-harness-provisioning-convergence-stop-2026-08-23.md`,
+  `docs/operations/billing-test-harness-stale-error-stop-2026-08-23.md`
+
+Suites that pin all of it: `verify-plus-classification.ts`,
+`verify-duplicate-subscription-guard.ts`, `verify-checkout-return-pages.ts`,
+`verify-billing-lifecycle-controls.ts`, `verify-billing-dev-control.ts`,
+`verify-subscription-visibility.ts`, `verify-billing-test-harness.ts`.
+
+**Never observed anywhere, and production prerequisites:** Stripe's automatic
+Smart Retry cadence actually firing (recovery was always driven manually), and
+failed-payment notification delivery (sandbox emails were disabled). Records:
+`docs/operations/billing-test-harness-execution-record-2026-08-23.md`,
+`docs/operations/billing-portal-release-gate-2026-08-23.md`.
+
+**Why a one-off invoice cannot exercise payment-attention** (§6.20) — worth
+keeping because it looks like a shortcut and is not. Two independent reasons,
+both deliberate fail-closed design, neither a defect:
+`readInvoiceSubscriptionId` never reads invoice *lines*, so a one-off invoice
+resolves to `null` and `http.ts` ACKs before `applyWebhook`; and
+`paymentNeedsAttention` is a pure function of the stored **subscription**
+status, which a failed one-off invoice never changes. The path is reachable
+only by genuinely moving a subscription to `past_due`.
+
+**Standing rule — do not run a second Checkout on an account that already holds
+a live subscription.** Convex refuses the purchase and the webhook guard refuses
+to repoint the canonical row, but **neither cancels nor refunds** — Stripe would
+still bill twice. Use a separate QA account. Note that end-of-period
+cancellation leaves a subscription `active` until the period actually ends, so
+cancelling does not free an account quickly.
+
+**Still open from Stage 2:**
+
+- [ ] verify the sandbox subscription remains active for its entire remaining period
+- [ ] verify terminal `customer.subscription.deleted` at the real period end
+- [ ] verify access changes at terminal cancellation
+- [ ] production Portal activation — configure the live Portal to the sandbox's
+      shape (cancel at period end **on**; plan switching, quantity and pause
+      **off**). See the live-activation steps under *Next up*
+#### Account experience
+
+- [x] **Plus identity badge is no longer gold** (2026-08-22, §6.14). Root cause
+      was a `.ybadge` class collision with the church-finder "Home" marker, not
+      the colour written; the badge now has its own `.yplus` class. Verified by
+      COMPUTED browser values in both themes, not CSS source.
+- [x] **`/you` redesigned to the hybrid hierarchy** — identity, Plan & billing,
+      Your Formation, Account, Experience, Privacy & support, Mobile app, Sign
+      out. One centred column, grouped rows, every existing capability kept.
+- [x] **Your Formation added** — built only from existing data
+      (`db_active_journey`, vault `listItems()`, `db_journeys_done`) and linking
+      only to existing routes. No streaks, scores, XP or achievements.
+- [x] **Local visual verification passed** across 390 / 1024 / 1440 in light and
+      dark, plus checkout success and pricing (§6.14).
+- [x] **Final visual verification from merged main** (2026-08-22, commit
+      `2408b5d`, §6.15). Badge computed non-gold in both themes, hierarchy
+      verified by measured position, Plan & Billing / Your Formation / grouped
+      settings all pass, 1440 / 1024 / 390 in light and dark, checkout-success
+      and pricing regressions green. **No Convex redeploy was needed — PR #26
+      contained no Convex code.**
+- [ ] Spanish `/you` and `/pricing` verified in-browser — still skipped, because
+      switching locale writes Convex data via `userdata:set`
+- [ ] Signed-out success and pricing verified in an isolated browser context
+
+### Recently shipped
 *App is on **v3.20.2**. Newest first.*
 - **Plans and Billing separated into two surfaces (2026-08-24, branch
   `feat/plans-billing-experience`).** `/pricing` became **Plans** — one job, "which plan is right
