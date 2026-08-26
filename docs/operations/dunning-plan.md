@@ -283,15 +283,50 @@ Convex production. Until then deliveries fail closed — events are simply not
 recorded, which is the state this replaced and is strictly better than accepting
 forged ones.
 
-### Grace expiry is unobserved
+### ~~Grace expiry is unobserved~~ — CLOSED, and it was hiding a real bug
 
-`entitlements.ts` computes grace expiry as a read-time comparison against
-`Date.now()` — no webhook, no write, no log, no `billingEvents` row. The `paused`
-email is scheduled ahead of time, so it still arrives; but nothing in the system
-records the moment somebody actually lost access. Any monitoring built purely on
-Stripe events will miss it entirely. This is the substance of **TODO B4**.
+**Shipped 2026-08-26.** `subscriptions.recordGraceExpiry` is scheduled alongside
+the four emails, timed to `graceEndsAt` rather than "grace milliseconds from
+now" — the window runs from the end of the period they last *paid* for, and
+Stripe may take a while to tell us.
 
----
+It **observes and does not decide.** `entitlements.ts` remains the only
+authority on who has Plus, and this job would be redundant to access if it never
+ran. An observer that can also revoke is one that can revoke wrongly. Every
+stage re-checks: a recovered card, a cancelled subscription or a window that has
+not actually closed all record nothing.
+
+What it writes is a `billingEvents` row with outcome `grace-expired`, a
+namespaced deterministic event id so a retry cannot double-write, and a log line
+saying plainly that no provider event exists for this.
+
+**The bug it uncovered.** `subscriptions.tier` is a coarse mirror written at
+webhook time, and `tierForStatus` writes `"plus"` for a `past_due` row —
+correct while grace holds, wrong the moment it does not. Nothing rewrote it. And
+`journeySlots.limitFor` read that column **directly**, bypassing the resolver.
+
+So a lapsed subscriber kept **unlimited Journeys for ever**. Not a reporting
+gap: a paid benefit, and a live model call every time.
+
+Fixed twice on purpose. The job corrects the mirror when the window closes, and
+`limitFor` now calls `entitlements.interpret` instead of trusting the column —
+because the first fix is a scheduled job and a scheduled job can fail to run.
+The second needs nothing to have happened.
+
+### The Journey cap now says what it did, and to whom
+
+Same session, same principle. An allowed start left a `journeySlots` row
+recording everything; a **refusal** left nothing at all, so the one event worth
+knowing about was the only one with no trace.
+
+`journeyLimitBlocks` records who, which tier, what the cap was, how many they
+had, and when. No journey id and no content: it answers "is the cap biting, and
+on whom" and nothing else. Slots also now carry `tierAtStart` and `limitAtStart`,
+so "what were they allowed when they started this?" is answerable a week later —
+which matters most when their tier has changed since.
+
+That last case is no longer hypothetical. Grace expiry silently drops somebody
+from no cap to two, and this is how you find out it happened to them.
 
 ## Two decisions still open, both yours
 

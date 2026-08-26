@@ -131,6 +131,60 @@ export const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
  * zones to manufacture a fresh account day. Belt and braces: the day key is
  * also monotonic (see accountDay.ts), so even an allowed change cannot move the
  * day backwards. A legitimate traveller changes zones far less often than this. */
+/* ── The grace arithmetic, in one place ───────────────────────────────────
+ *
+ * WHY THIS IS HERE AND NOT WHERE IT IS USED
+ * Three places need to know exactly when Plus stops for a failing subscription:
+ * the resolver that decides whether somebody has it, the email that prints the
+ * date, and the scheduled job that records the moment it ended. Written out
+ * three times, those would drift, and the failure would be a subscriber told
+ * one date and cut off on another.
+ *
+ * So the arithmetic lives beside the number it depends on, and this module
+ * imports nothing, so a suite can execute it directly.
+ *
+ * FAILING statuses are exactly the ones that get grace. Anything else has no
+ * grace window because it is not failing. */
+const FAILING: ReadonlySet<string> = new Set(["past_due", "unpaid"]);
+
+export function isFailingStatus(status: unknown): boolean {
+  return typeof status === "string" && FAILING.has(status);
+}
+
+/* When Plus actually stops.
+ *
+ * Measured from the end of the period they last PAID for, not from when the
+ * failure was noticed: a renewal that fails on the day the period ends should
+ * give sixteen days from that day, not sixteen days from whenever Stripe got
+ * round to telling us.
+ *
+ * `currentPeriodEnd` is in SECONDS, because that is what Stripe sends and what
+ * the row stores. Everything else here is milliseconds. Getting that wrong
+ * would put the date fifty thousand years out, which is the kind of mistake
+ * that is obvious in a test and invisible in a comment. */
+export function graceEndsAtMs(
+  currentPeriodEndSeconds: number | null | undefined,
+  updatedAtMs: number | null | undefined,
+  now: number,
+): number {
+  const base =
+    typeof currentPeriodEndSeconds === "number" && currentPeriodEndSeconds > 0
+      ? currentPeriodEndSeconds * 1000
+      : /* No period end. Fall back to when we last heard about them, so a
+           missing field cannot grant an unbounded free ride. */
+        (typeof updatedAtMs === "number" && updatedAtMs > 0 ? updatedAtMs : now);
+  return base + PAST_DUE_GRACE_MS;
+}
+
+/** Is this failing subscription still inside its grace window? */
+export function isWithinGrace(
+  currentPeriodEndSeconds: number | null | undefined,
+  updatedAtMs: number | null | undefined,
+  now: number,
+): boolean {
+  return now <= graceEndsAtMs(currentPeriodEndSeconds, updatedAtMs, now);
+}
+
 export const TIMEZONE_CHANGE_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /* How long an in-flight usage reservation is held before it may be reclaimed.

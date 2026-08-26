@@ -136,7 +136,7 @@ check("billingInterval is an enum, never a Price id",
 check("lifetime is interpreted before any subscription status branch",
   ENT_CODE.indexOf('planKey === "plus_lifetime"') > -1 &&
   ENT_CODE.indexOf('planKey === "plus_lifetime"') <
-    ENT_CODE.indexOf('status === "past_due"'));
+    ENT_CODE.indexOf("isFailingStatus(status)"));
 check("lifetime grants Plus only on the paid status",
   /planKey === "plus_lifetime"[\s\S]{0,400}status === "paid"/.test(ENT_CODE));
 check("an unrecognised lifetime status falls closed to free",

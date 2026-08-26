@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
-import { definitionFor } from "./entitlementCatalog";
+import { definitionFor, type Tier } from "./entitlementCatalog";
+import { interpret } from "./entitlements";
 
 /* Server-authoritative record of which Journeys are ACTIVE.
  *
@@ -63,17 +64,27 @@ async function doStart(ctx: MutationCtx, userId: string, args: { journeyId: stri
       // Re-opening a completed or archived Journey reclaims its slot, and is
       // therefore subject to the limit again.
       const activeNow = await countActive(ctx, userId);
-      const lim = await limitFor(ctx, userId);
+      const { tier, limit: lim } = await limitFor(ctx, userId);
       if (lim !== null && activeNow >= lim) {
+        await recordBlock(ctx, userId, tier, lim, activeNow);
         return { ok: false, reason: "active-journey-limit", active: activeNow, limit: lim };
       }
-      await ctx.db.patch(existing._id, { status: "active", endedAt: undefined });
+      /* Re-opening is a fresh claim, so the cap in force NOW is the one that
+         applies and the one worth recording. The original tierAtStart would be
+         stale and misleading. */
+      await ctx.db.patch(existing._id, {
+        status: "active",
+        endedAt: undefined,
+        tierAtStart: tier,
+        ...(lim !== null ? { limitAtStart: lim } : {}),
+      });
       return { ok: true, active: activeNow + 1, limit: lim };
     }
 
     const active = await countActive(ctx, userId);
-    const limit = await limitFor(ctx, userId);
+    const { tier, limit } = await limitFor(ctx, userId);
     if (limit !== null && active >= limit) {
+      await recordBlock(ctx, userId, tier, limit, active);
       return { ok: false, reason: "active-journey-limit", active, limit };
     }
 
@@ -82,6 +93,11 @@ async function doStart(ctx: MutationCtx, userId: string, args: { journeyId: stri
       journeyId: args.journeyId,
       status: "active",
       startedAt: now,
+      /* What they were allowed at the moment they started. Absent limitAtStart
+         means the tier had no customer-visible cap, which is not zero and not
+         unknown. */
+      tierAtStart: tier,
+      ...(limit !== null ? { limitAtStart: limit } : {}),
     });
     return { ok: true, active: active + 1, limit };
   }
@@ -174,13 +190,51 @@ async function countActive(ctx: MutationCtx, userId: string): Promise<number> {
   return rows.length;
 }
 
-async function limitFor(ctx: MutationCtx, userId: string): Promise<number | null> {
+async function limitFor(
+  ctx: MutationCtx,
+  userId: string,
+): Promise<{ tier: Tier; limit: number | null }> {
   const sub = await ctx.db
     .query("subscriptions")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .first();
-  const tier = sub?.tier === "plus" ? "plus" : "free";
-  return definitionFor(tier).limits.activeJourneys;
+  /* INTERPRETED, NOT READ OFF THE ROW.
+   *
+   * `subscriptions.tier` is a coarse mirror written at webhook time, and for a
+   * failing subscription `tierForStatus` writes "plus" — correctly, because
+   * grace keeps Plus on. But grace ENDS by the clock rather than by an event,
+   * so nothing rewrites that column when it does. Reading it directly therefore
+   * handed a lapsed subscriber unlimited Journeys for ever, which is a paid
+   * benefit and a live model call every time.
+   *
+   * entitlements.interpret is the one thing allowed to decide this. It reads
+   * the same row and applies the grace window, so a lapsed account drops to the
+   * Free cap the moment it actually lapses, with nothing needing to have run.
+   *
+   * subscriptions.recordGraceExpiry also corrects the mirror when the window
+   * closes, but that is a scheduled job and a scheduled job can fail to run.
+   * This is the check that does not depend on anything having happened. */
+  const tier = sub ? interpret(sub, Date.now()).tier : "free";
+  return { tier, limit: definitionFor(tier).limits.activeJourneys };
+}
+
+/* The cap said no. Written down, because this is the one outcome that otherwise
+ * leaves no trace: an allowed start creates a journeySlots row, a refusal
+ * creates nothing and the moment is gone. */
+async function recordBlock(
+  ctx: MutationCtx,
+  userId: string,
+  tier: string,
+  limit: number,
+  active: number,
+): Promise<void> {
+  await ctx.db.insert("journeyLimitBlocks", { userId, tier, limit, active, at: Date.now() });
+  /* Structured and greppable. No journeyId and no content: this line says the
+     cap bit, not what they were writing about. */
+  console.log(
+    "[journey] active-journey-limit tier=" + tier +
+      " limit=" + limit + " active=" + active,
+  );
 }
 
 /* GRANDFATHERING

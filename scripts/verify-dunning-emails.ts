@@ -29,6 +29,9 @@ import {
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
 import { normalizeLang, stampedLang, EMAIL_LANGS } from "../convex/plusPlans.ts";
+/* entitlementCatalog imports nothing either, so the grace arithmetic the whole
+   system shares can be RUN here rather than pattern-matched. */
+import { graceEndsAtMs, isFailingStatus } from "../convex/entitlementCatalog.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -171,9 +174,19 @@ check("lifetime is excluded — it has no renewal to fail",
   /!wasFailing && fields\.planKey !== "plus_lifetime"/.test(SUBS));
 /* If these two sets ever diverged we would either email somebody whose access
    was never at risk, or stay silent while it ran out. */
-check("the failing statuses match the ones entitlements grants grace to",
-  /FAILING_STATUSES[\s\S]{0,200}"past_due", "unpaid"/.test(SUBS) &&
-  /status === "past_due" \|\| status === "unpaid"/.test(ENTITLEMENTS));
+/* They cannot diverge, because there is only one of them now. This used to
+   compare two hand-written sets and pass as long as both said the same words;
+   it now proves neither module has a set of its own to disagree with. */
+check("the failing statuses are executed, not restated",
+  isFailingStatus("past_due") && isFailingStatus("unpaid"));
+check("and nothing else is treated as failing",
+  !isFailingStatus("active") && !isFailingStatus("canceled") &&
+  !isFailingStatus("incomplete") && !isFailingStatus("paid") &&
+  !isFailingStatus("") && !isFailingStatus(undefined));
+check("both callers import the decision rather than keeping a copy",
+  /isFailingStatus/.test(SUBS) && /isFailingStatus/.test(ENTITLEMENTS) &&
+  !/"past_due", "unpaid"/.test(SUBS) &&
+  !/status === "past_due" \|\| status === "unpaid"/.test(ENTITLEMENTS));
 check("sends are scheduled, not attempted inside the mutation",
   /ctx\.scheduler\.runAfter\(delay, internal\.dunning\.sendDunningEmail/.test(SUBS) &&
   !/resend/i.test(SUBS));
@@ -192,9 +205,24 @@ check("a missing address sends nothing rather than throwing",
   /no-address/.test(DUNNING));
 /* The date in the email must be the date the product enforces, computed the
    same way rather than approximated. */
-check("the pause date uses the same arithmetic as entitlements",
-  /PAST_DUE_GRACE_MS/.test(DUNNING) &&
-  /currentPeriodEnd \? sub\.currentPeriodEnd \* 1000 : sub\.updatedAt/.test(DUNNING));
+check("the pause date comes from the shared function, not a second copy",
+  /graceEndsAtMs\(sub\.currentPeriodEnd, sub\.updatedAt/.test(DUNNING) &&
+  !/sub\.currentPeriodEnd \* 1000/.test(DUNNING));
+/* Run, not read. The seconds-to-milliseconds conversion is the one mistake here
+   that is invisible in review and puts the date fifty thousand years out. */
+const PERIOD_END_S = Math.floor(Date.UTC(2026, 7, 26) / 1000);
+check("grace runs from the end of the period they last paid for",
+  graceEndsAtMs(PERIOD_END_S, 0, Date.UTC(2026, 7, 27)) ===
+    Date.UTC(2026, 7, 26) + PAST_DUE_GRACE_MS);
+check("a missing period end falls back to when we last heard from them",
+  graceEndsAtMs(null, Date.UTC(2026, 7, 20), Date.UTC(2026, 7, 27)) ===
+    Date.UTC(2026, 7, 20) + PAST_DUE_GRACE_MS);
+/* Neither absent field may produce an unbounded free ride. */
+check("with neither, grace is measured from now and still ends",
+  graceEndsAtMs(null, null, 1_800_000_000_000) === 1_800_000_000_000 + PAST_DUE_GRACE_MS);
+check("a zero period end is treated as absent, not as 1970",
+  graceEndsAtMs(0, Date.UTC(2026, 7, 20), Date.UTC(2026, 7, 27)) ===
+    Date.UTC(2026, 7, 20) + PAST_DUE_GRACE_MS);
 
 /* ── 4. Anti-phishing ────────────────────────────────────────────────────── */
 section("4. It survives a reader trained to distrust this exact message");
@@ -568,6 +596,92 @@ check("an undeliverable send is logged loudly enough to find",
   /\[dunning\] undeliverable/.test(DUNNING));
 check("the log names no address and no message content",
   /emailId=/.test(DUNNING) && !/" to=" \+ to/.test(DUNNING));
+
+/* ── 8. The moment access actually ends ──────────────────────────────────── */
+section("8. Grace expiry leaves a trace (B4)");
+
+const SCHEMA_B4 = read("convex/schema.ts");
+const JOURNEY = read("convex/journeySlots.ts");
+const REFUND_END = SUBS.indexOf("export const recordGraceExpiryInternal");
+const GRACE_JOB = REFUND_END < 0 ? "" : SUBS.slice(REFUND_END);
+
+check("the expiry job exists", GRACE_JOB.length > 0);
+check("it is scheduled when a subscription first turns failing",
+  /internal\.subscriptions\.recordGraceExpiryInternal/.test(SUBS));
+/* Scheduled from graceEndsAt, NOT from "grace milliseconds from now". The
+   window runs from the end of the period they last paid for, and Stripe may
+   take a while to tell us; those are the same instant only if the webhook
+   was instant. */
+check("it fires when grace actually ends, not a window from the webhook",
+  /Math\.max\(0, graceEnds - now\)/.test(SUBS) &&
+  /graceEndsAtMs\(\s*fields\.currentPeriodEnd/.test(SUBS));
+
+/* IT OBSERVES, IT DOES NOT DECIDE. entitlements.ts remains the only thing that
+   says who has Plus, and this job would be redundant to ACCESS if it never ran.
+   An observer that can also revoke is one that can revoke wrongly. */
+check("it re-checks rather than trusting its own timer",
+  /still-in-grace/.test(GRACE_JOB) && /recovered-or-ended/.test(GRACE_JOB));
+check("a recovered subscription records nothing",
+  /if \(!isFailingStatus\(sub\.status\)\)/.test(GRACE_JOB));
+check("it writes a durable, queryable outcome",
+  /outcome: "grace-expired"/.test(GRACE_JOB) &&
+  /v\.literal\("grace-expired"\)/.test(SCHEMA_B4));
+check("one expiry cannot produce two rows",
+  /already-recorded/.test(GRACE_JOB) && /by_provider_event/.test(GRACE_JOB));
+/* The synthetic id must never be mistakable for a Stripe event id. */
+check("the synthetic event id is namespaced and deterministic",
+  /"grace:" \+ args\.userId \+ ":" \+ String\(graceEnds\)/.test(GRACE_JOB));
+check("it says plainly that no provider event exists for this",
+  /no provider event exists/.test(GRACE_JOB));
+check("it is alertable from logs as well as the table",
+  /\[billing\] grace-expired/.test(GRACE_JOB));
+
+/* THE BUG THIS UNCOVERED. `subscriptions.tier` is a mirror written at webhook
+   time, and tierForStatus writes "plus" for past_due — correct while grace
+   holds, wrong the moment it does not. Nothing rewrote it, so journeySlots,
+   which read the column directly, handed a lapsed subscriber unlimited
+   Journeys for ever. Two independent fixes, because one of them is a scheduled
+   job and a scheduled job can fail to run. */
+check("the stale mirror is corrected when the window closes",
+  /tier: "free" as const/.test(GRACE_JOB));
+check("the Journey cap interprets the row instead of trusting the mirror",
+  /interpret\(sub, Date\.now\(\)\)\.tier/.test(JOURNEY) &&
+  !/sub\?\.tier === "plus"/.test(JOURNEY));
+check("so a lapsed account is capped even if the job never ran",
+  /entitlements/.test(JOURNEY));
+
+/* ── 9. What the Journey cap did, and to whom ────────────────────────────── */
+section("9. The Journey limit is recorded, not just enforced");
+
+/* An allowed start leaves a journeySlots row. A REFUSAL used to leave nothing
+   at all, so the one event worth knowing about was the only one with no trace. */
+check("a refusal is written down", /journeyLimitBlocks/.test(JOURNEY) &&
+  /journeyLimitBlocks: defineTable/.test(SCHEMA_B4));
+check("both refusal paths record it, the fresh start and the re-open",
+  (JOURNEY.match(/await recordBlock\(/g) || []).length === 2);
+check("the row says which tier and which cap, not just that it happened",
+  /tier, limit, active, at: Date\.now\(\)/.test(JOURNEY));
+check("the cap in force is stored on the slot that was allowed",
+  /tierAtStart/.test(JOURNEY) && /tierAtStart: v\.optional/.test(SCHEMA_B4));
+/* Absent is not zero and not unknown: it means the tier had no visible cap. */
+check("an uncapped tier stores no number rather than a misleading one",
+  /\.\.\.\(limit !== null \? \{ limitAtStart: limit \} : \{\}\)/.test(JOURNEY));
+/* Re-opening is a fresh claim under today's cap, so the stored one is refreshed
+   rather than left describing a tier they may no longer be on. */
+check("re-opening records the cap in force now, not the original one",
+  /\.\.\.\(lim !== null \? \{ limitAtStart: lim \} : \{\}\)/.test(JOURNEY));
+
+/* NO JOURNEY CONTENT, EVER. This table exists to answer "is the cap biting and
+   on whom", and nothing else. */
+const BLOCKS = SCHEMA_B4.slice(
+  SCHEMA_B4.indexOf("journeyLimitBlocks: defineTable"),
+  SCHEMA_B4.indexOf("by_user", SCHEMA_B4.indexOf("journeyLimitBlocks: defineTable")),
+);
+check("the refusal row carries no journey id and no content",
+  !/journeyId/.test(BLOCKS) && !/struggle/i.test(BLOCKS) && !/text/i.test(BLOCKS));
+check("and the log line carries none either",
+  /\[journey\] active-journey-limit/.test(JOURNEY) &&
+  !/journeyId=/.test(JOURNEY));
 
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

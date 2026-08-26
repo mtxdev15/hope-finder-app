@@ -219,7 +219,32 @@ const SUBS_MUTATIONS = [
 check("http.ts calls exactly the two known subscriptions mutations",
   JSON.stringify(SUBS_MUTATIONS) === JSON.stringify(["applyWebhook", "recordRefundInternal"]));
 
-const RECORD_REFUND = SUBS.slice(SUBS.indexOf("export const recordRefundInternal"));
+/* BOUNDED AT THE NEXT EXPORT, and the reason is a bug this very assertion
+   caught. The slice used to run to the end of the file, so it grew every time
+   anything was appended to subscriptions.ts. When recordGraceExpiry was added
+   below it — a function that legitimately DOES patch the subscriptions table —
+   these checks failed, correctly reporting that "recordRefundInternal" writes a
+   tier. It does not. The slice did.
+   An unbounded slice quietly turns "this function is safe" into "everything
+   after this function is safe", which is a much weaker claim wearing the same
+   words. */
+const stripComments = (src: string): string =>
+  src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+
+const sliceExport = (src: string, name: string): string => {
+  const start = src.indexOf("export const " + name);
+  if (start < 0) return "";
+  const next = src.indexOf("\nexport const ", start + 1);
+  /* COMMENTS STRIPPED, because the slice necessarily runs up to the next
+     export and therefore swallows that function's doc comment. The claim being
+     made is about CODE: "this function cannot write a tier". A neighbouring
+     comment that merely says the word is not a write, and letting prose fail a
+     behavioural assertion trains people to loosen the assertion. */
+  return stripComments(next < 0 ? src.slice(start) : src.slice(start, next));
+};
+const RECORD_REFUND = sliceExport(SUBS, "recordRefundInternal");
+check("the refund slice stops before the next export",
+  RECORD_REFUND.length > 0 && !RECORD_REFUND.includes("recordGraceExpiryInternal"));
 check("recordRefundInternal can be located", RECORD_REFUND.length > 0);
 /* It may insert into billingEvents — that IS its job — but it must never touch
    the subscriptions table, which is what would let it bypass the guard. */

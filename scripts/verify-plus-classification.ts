@@ -561,10 +561,23 @@ check("and resolves to plus_monthly",
 /* The entitlement interpreter, extracted verbatim from convex/entitlements.ts.
  * The row below is the one Convex actually wrote. */
 const ENT_SRC = readFileSync(new URL("../convex/entitlements.ts", import.meta.url), "utf8");
+/* The interpreter's dependencies are IMPORTED, not restated.
+ *
+ * This block used to declare `const PAST_DUE_GRACE_MS = ...` and hand the
+ * extracted function a copy of the number. That worked until the grace
+ * arithmetic moved into entitlementCatalog, at which point the extraction
+ * broke loudly — which was the right outcome and worth keeping in mind: a test
+ * that re-declares its subject's dependencies is testing a replica.
+ *
+ * Importing the real module by URL means these assertions now exercise the
+ * SAME isFailingStatus and graceEndsAtMs that production runs, not a stand-in.
+ * entitlementCatalog imports nothing, which is what makes that possible. */
+const CATALOG_URL = new URL("../convex/entitlementCatalog.ts", import.meta.url).href;
 const ent: any = await import(
   "data:text/javascript," +
     encodeURIComponent(
-      "const PAST_DUE_GRACE_MS = " + PAST_DUE_GRACE_MS + ";\n" +
+      "import { graceEndsAtMs, isFailingStatus } from " +
+        JSON.stringify(CATALOG_URL) + ";\n" +
         deType(
           extractFn(ENT_SRC, "function interpret"),
           "function interpret(\n  sub: any,\n  now: number,\n): { tier: Tier; status: string; needsAttention: boolean; graceEndsAt: number | null } {",

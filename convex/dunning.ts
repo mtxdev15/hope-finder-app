@@ -59,7 +59,7 @@ import { Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { components } from "./_generated/api";
 import { authComponent } from "./auth";
 import { fetchSubscription, stripeGet } from "./stripeApi";
-import { PAST_DUE_GRACE_MS } from "./entitlementCatalog";
+import { graceEndsAtMs } from "./entitlementCatalog";
 import {
   type DunningStage,
   billingUrl,
@@ -142,15 +142,18 @@ export const sendDunningEmail = internalAction({
     const to = user && typeof user.email === "string" ? user.email : null;
     if (!to) return { sent: false, reason: "no-address" };
 
-    /* When Plus actually stops. Same arithmetic entitlements.ts uses, so the
-       date in the email is the date the product will enforce. */
+    /* When Plus actually stops. The SAME function entitlements.ts uses, not
+       the same arithmetic written out again, so the date in the email cannot
+       drift from the date the product enforces. */
     /* The language they bought in, stamped through Stripe metadata at Checkout
        and persisted on this row. Absent — an unstamped row, or one sold before
        the column existed — means English. */
     const lang = emailLang(sub.locale);
 
-    const base = sub.currentPeriodEnd ? sub.currentPeriodEnd * 1000 : sub.updatedAt;
-    const pausesOn = longDate(base + PAST_DUE_GRACE_MS, lang);
+    const pausesOn = longDate(
+      graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, Date.now()),
+      lang,
+    );
 
     /* The card and the amount are the anti-phishing signal, so they are worth a
        Stripe call — but not worth losing the email over. Every failure here

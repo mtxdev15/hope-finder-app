@@ -4,7 +4,8 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import {
   definitionFor,
-  PAST_DUE_GRACE_MS,
+  graceEndsAtMs,
+  isFailingStatus,
   TIMEZONE_CHANGE_MIN_INTERVAL_MS,
   type Tier,
 } from "./entitlementCatalog";
@@ -83,7 +84,7 @@ export type Resolved = {
  *
  * Content is NEVER deleted by any of these transitions. Losing Plus caps what
  * you can do next; it never removes what you already have. */
-function interpret(
+export function interpret(
   sub: any,
   now: number,
 ): { tier: Tier; status: string; needsAttention: boolean; graceEndsAt: number | null } {
@@ -116,12 +117,13 @@ function interpret(
     return { tier: "plus", status, needsAttention: false, graceEndsAt: null };
   }
 
-  if (status === "past_due" || status === "unpaid") {
-    // Grace runs from the end of the period they last paid for. When Stripe
-    // gives us no period end, fall back to when we last heard about them, so a
-    // missing field cannot grant an unbounded free ride.
-    const base = periodEndMs ?? (sub.updatedAt || now);
-    const graceEndsAt = base + PAST_DUE_GRACE_MS;
+  if (isFailingStatus(status)) {
+    /* The arithmetic lives in entitlementCatalog beside the number it depends
+       on, because the email that prints this date and the job that records the
+       moment it passes must both get the same answer. Written here as well, the
+       three would drift and a subscriber would be told one date and cut off on
+       another. */
+    const graceEndsAt = graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, now);
     if (now <= graceEndsAt) {
       return { tier: "plus", status, needsAttention: true, graceEndsAt };
     }

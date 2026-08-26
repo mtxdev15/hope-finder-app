@@ -260,27 +260,26 @@ has paid you money.
       rather than buying again from scratch — which is exactly what the `lapsed` state on
       `/billing` exists to serve. On `cancel` that state would have rendered a button leading
       nowhere.~~
-- [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
-      failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
-      cancellation). *An alert with no resolution check is how a silently
-      cancelled subscriber goes unnoticed.*
-- [x] ~~**B5. Privacy and terms reachable — DONE 2026-08-26.**
-      **Stripe side already done:** Settings → Business → Public details carries the privacy
-      policy URL and terms of service URL, so Checkout shows them. (Customer support URL is
-      still blank — optional; `/help` exists if it is ever wanted.)
-      **App side was the real gap.** Both documents existed in both languages, but were linked
-      only from `/` and `/you` — **`/pricing` had nothing**, which is the page where money is
-      decided and the only one Stripe cares about.
-      Added `src/components/LegalFooter.astro`, used on all four money pages: `/pricing`,
-      `/billing`, `/checkout/success`, `/checkout/cancelled`. One component rather than four
-      copies, because the copy that drifts is always the one nobody looks at again.
-      It also **names the seller** — an unrecognised card descriptor is one of the most common
-      causes of a chargeback, and a dispute over $8.99 costs more than the $8.99.
-      Links carry `data-i18n-href` to `/es/privacidad` and `/es/terminos`: dropping a Spanish
-      reader into English legal text is the one place in the app where the wrong language is
-      more than awkward.
-      Asserted in `verify-plans-billing-states.ts` against the **built** `dist/` html, not the
-      source — a component that fails to render leaves the source identical.
+- [x] ~~**B4. Grace expiry is observed — DONE 2026-08-26, and it was hiding a real bug.**
+      `subscriptions.recordGraceExpiry` is scheduled alongside the four dunning emails, timed
+      to `graceEndsAt` rather than a window from the webhook. It writes a `billingEvents` row
+      with outcome `grace-expired`, a namespaced deterministic id so a retry cannot double-write,
+      and an alertable log line. It **observes and does not decide** — `entitlements.ts` stays
+      the only authority, and this job is redundant to access if it never runs.
+      **The bug:** `subscriptions.tier` is a webhook-time mirror, `tierForStatus` writes `plus`
+      for `past_due`, and nothing rewrote it when grace closed. `journeySlots.limitFor` read
+      that column **directly**, so a lapsed subscriber kept **unlimited Journeys for ever** — a
+      paid benefit and a live model call each time. Fixed twice: the job corrects the mirror,
+      and `limitFor` now calls `entitlements.interpret`, because a scheduled job can fail to run
+      and the second fix needs nothing to have happened.
+      Also consolidated the grace arithmetic into `entitlementCatalog.graceEndsAtMs` — the
+      resolver, the emails and this job had three copies, and three copies of a date a
+      subscriber is told is three chances to tell them the wrong one.
+- [x] ~~**Journey limit tracking — DONE 2026-08-26.** An allowed start left a `journeySlots`
+      row; a refusal left nothing, so the cap biting a real person was the one event with no
+      trace. New `journeyLimitBlocks` records who, which tier, what the cap was, how many they
+      had and when — no journey id, no content. Slots now carry `tierAtStart`/`limitAtStart`,
+      so "what were they allowed when they started this?" survives a tier change.~~
 - [ ] **C1. Merge `claude/billing-pricing-cta-stage6`.** Nine assertions across
       four suites must be **rewritten, not relaxed** — they enforce that
       production is *structurally* incapable of starting a Checkout, and merging

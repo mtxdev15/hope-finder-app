@@ -6,13 +6,20 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import { internal } from "./_generated/api";
 import { dunningSchedule, dunningDelayMs } from "./dunningSchedule";
-import { PAST_DUE_GRACE_MS } from "./entitlementCatalog";
+import {
+  graceEndsAtMs,
+  isFailingStatus,
+  PAST_DUE_GRACE_MS,
+} from "./entitlementCatalog";
 
 /* The statuses that mean Stripe is still trying and access is on borrowed time.
  * Deliberately the same pair entitlements.ts grants grace to — if these two ever
  * disagreed, we would either email somebody whose access was never at risk or
  * stay silent while it ran out. */
-const FAILING_STATUSES: ReadonlySet<string> = new Set(["past_due", "unpaid"]);
+/* Imported rather than restated. entitlementCatalog owns which statuses are
+   failing, because the resolver, the emails and the grace-expiry job must all
+   agree on it or a subscriber gets one answer from the product and another from
+   their inbox. */
 
 /* Plus subscription state — the server-authoritative mirror of whichever
  * provider billed the money.
@@ -468,8 +475,8 @@ export const applyWebhook = internalMutation({
      * The sends are scheduled, not sent here. This is a mutation and email is
      * an action; more importantly each stage re-checks the subscription before
      * sending, so a card fixed on day one silently cancels the rest. */
-    const wasFailing = existing ? FAILING_STATUSES.has(existing.status) : false;
-    const isFailing = FAILING_STATUSES.has(fields.status);
+    const wasFailing = existing ? isFailingStatus(existing.status) : false;
+    const isFailing = isFailingStatus(fields.status);
     if (existing && isFailing && !wasFailing && fields.planKey !== "plus_lifetime") {
       for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
         const delay = dunningDelayMs(stage, PAST_DUE_GRACE_MS);
@@ -479,6 +486,29 @@ export const applyWebhook = internalMutation({
           stage,
         });
       }
+
+      /* AND ONE OBSERVATION, at the moment access actually ends.
+       *
+       * Grace expires by the CLOCK, not by an event: entitlements.ts simply
+       * starts reading the row as free once the window passes. Nothing in
+       * Stripe fires, nothing is written, and if the person never opens the app
+       * again the single most consequential moment in the billing lifecycle
+       * happens in complete silence.
+       *
+       * Scheduled from graceEndsAt rather than "grace milliseconds from now",
+       * because the window runs from the end of the period they last PAID for,
+       * and Stripe may take a while to tell us. Those are the same instant only
+       * if the webhook was instant. */
+      const graceEnds = graceEndsAtMs(
+        fields.currentPeriodEnd,
+        fields.updatedAt,
+        now,
+      );
+      await ctx.scheduler.runAfter(
+        Math.max(0, graceEnds - now),
+        internal.subscriptions.recordGraceExpiryInternal,
+        { userId: fields.userId },
+      );
     }
 
     // Recorded last: if anything above throws, the provider retries and we
@@ -546,5 +576,99 @@ export const recordRefundInternal = internalMutation({
       ...(args.metadataUserId ? { userId: args.metadataUserId } : {}),
     });
     return { ok: true, deduped: false };
+  },
+});
+
+/* ── The moment somebody actually lost Plus ───────────────────────────────── */
+
+/* Scheduled by applyWebhook when a subscription first turns failing, to fire at
+ * the instant its grace window closes.
+ *
+ * WHY THIS EXISTS AT ALL, AND WHY IT CHANGES NOTHING
+ * Grace expiry is the one transition in the whole billing lifecycle with no
+ * event behind it. A card fails and Stripe tells us. A subscription cancels and
+ * Stripe tells us. But grace ENDING is a comparison against the clock inside
+ * entitlements.ts: the row is read as Plus one second and free the next, with
+ * no webhook, no write and no log. Monitoring built purely on Stripe events
+ * misses it completely, and if the person never opens the app again, nobody
+ * ever knows it happened.
+ *
+ * So this records it. It does NOT decide it. entitlements.ts remains the sole
+ * authority on who has Plus, and this job would be redundant to access if it
+ * never ran at all. That separation is deliberate: an observer that can also
+ * revoke is an observer that can revoke wrongly.
+ *
+ * The one thing it does write is the `tier` mirror, and that is a correction
+ * rather than a decision. `tierForStatus` writes "plus" for a past_due row,
+ * which is right while grace holds and wrong the moment it does not. Left
+ * alone, the column claims Plus for ever. */
+export const recordGraceExpiryInternal = internalMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", "stripe" as const),
+      )
+      .first();
+
+    /* Gone. Nothing to record and nothing to correct. */
+    if (!sub) return { recorded: false, reason: "no-subscription" };
+
+    /* RECOVERED OR ENDED, which is the common case and the happy one. Most
+       failing cards are fixed inside the window, and a cancellation writes its
+       own event. Either way this row is no longer mid-grace and there is no
+       expiry to record. */
+    if (!isFailingStatus(sub.status)) {
+      return { recorded: false, reason: "recovered-or-ended" };
+    }
+
+    /* Fired early. Only really possible if the period end moved forward since
+       this was scheduled, which means a payment succeeded, which means the
+       branch above should have caught it. Checked anyway rather than trusting
+       the timer, because recording an expiry that has not happened would be
+       worse than recording none. */
+    const now = Date.now();
+    const graceEnds = graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, now);
+    if (now < graceEnds) return { recorded: false, reason: "still-in-grace" };
+
+    /* Deterministic, so a re-schedule or a retry cannot write two rows for one
+       expiry. Not a Stripe id and never confusable with one: no provider event
+       exists for this. */
+    const eventId = "grace:" + args.userId + ":" + String(graceEnds);
+    const seen = await ctx.db
+      .query("billingEvents")
+      .withIndex("by_provider_event", (q) =>
+        q.eq("provider", "stripe" as const).eq("eventId", eventId),
+      )
+      .first();
+    if (seen) return { recorded: false, reason: "already-recorded" };
+
+    await ctx.db.insert("billingEvents", {
+      provider: "stripe" as const,
+      eventId,
+      type: "convex.grace.expired",
+      processedAt: now,
+      outcome: "grace-expired" as const,
+      conflictReason:
+        "grace window closed on a " + sub.status + " " + sub.planKey +
+        "; access ended by the clock, not by a provider event",
+      userId: args.userId,
+    });
+
+    /* The mirror, corrected. Not the entitlement: entitlements.ts already reads
+       this row as free and did so from the instant the window closed, whether
+       or not this job ran. */
+    if (sub.tier === "plus") {
+      await ctx.db.patch(sub._id, { tier: "free" as const, updatedAt: now });
+    }
+
+    /* Alertable, and the only line anywhere that marks this transition. */
+    console.log(
+      "[billing] grace-expired status=" + sub.status +
+        " plan=" + sub.planKey +
+        " — Plus ended; no provider event exists for this",
+    );
+    return { recorded: true };
   },
 });

@@ -291,6 +291,35 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  /* Somebody tried to start a Journey and the cap said no.
+   *
+   * WHY A REFUSAL NEEDS A ROW WHEN AN ALLOW DOES NOT
+   * An allowed start leaves a journeySlots row that records everything. A
+   * REFUSAL leaves nothing at all: doStart returns a reason to the caller and
+   * the moment evaporates. So the one event worth knowing about — the cap
+   * actually biting a real person — was the only one with no trace.
+   *
+   * It is the signal behind several different questions. Is the Free cap set
+   * anywhere near right? Is anybody bumping into it often enough to be annoyed
+   * rather than nudged? And, since grace expiry silently drops a lapsed
+   * subscriber from no cap to two, did somebody just walk into a wall they had
+   * no idea existed?
+   *
+   * NO JOURNEY CONTENT, EVER. Not the journeyId, not a struggle, not a word of
+   * what they wrote. Who, which tier, what the cap was, how many they had, and
+   * when. That is enough to answer every question above and nothing else. */
+  journeyLimitBlocks: defineTable({
+    userId: v.string(),
+    // The tier as INTERPRETED at that moment, not the mirror column.
+    tier: v.string(),
+    limit: v.number(),
+    // How many were already active. Normally equal to `limit`; larger means a
+    // grandfathered account, which is a different situation and should not read
+    // as the same one.
+    active: v.number(),
+    at: v.number(),
+  }).index("by_user", ["userId"]),
+
   /* Did the failed-payment email actually arrive?
    *
    * WHY THIS EXISTS
@@ -365,6 +394,17 @@ export default defineSchema({
          * So the event is recorded rather than dropped: before this, a refunded
          * monthly or annual charge left no trace in Convex at all. */
         v.literal("refund-recorded"),
+        /* The moment somebody actually lost Plus, written by the scheduled job
+         * in subscriptions.recordGraceExpiry.
+         *
+         * Every other outcome on this table is a reaction to something a
+         * provider TOLD us. This one has no provider event behind it at all,
+         * because grace ends by the clock: entitlements.ts simply starts
+         * reading a row as free once the window passes. Before this, the single
+         * most consequential moment in the whole billing lifecycle — the one
+         * where a paying subscriber stops being one — left no trace anywhere,
+         * and any monitoring built on Stripe events missed it entirely. */
+        v.literal("grace-expired"),
       ),
     ),
     /* Set only on a duplicate-subscription conflict. Enough to identify what
@@ -478,6 +518,21 @@ export default defineSchema({
     // it existed. They keep every Journey; they simply cannot start another
     // until they are back at or under the cap.
     grandfathered: v.optional(v.boolean()),
+
+    /* WHAT THE CAP WAS WHEN THIS SLOT WAS CLAIMED.
+       Optional because rows written before this existed are not migrated.
+
+       The limit is computed fresh on every start, so without recording it there
+       is no way to answer "what were they allowed when they started this?" a
+       week later. That question matters most exactly when somebody's tier has
+       changed since — a lapsed subscriber who started five Journeys on Plus and
+       now sits under the Free cap of two has not done anything wrong, and the
+       row should say so rather than leaving it to be reconstructed.
+
+       `limitAtStart` is absent when the tier had no customer-visible cap. That
+       is not the same as zero, and it is not the same as unknown. */
+    tierAtStart: v.optional(v.string()),
+    limitAtStart: v.optional(v.number()),
   })
     .index("by_user_status", ["userId", "status"])
     .index("by_user_journey", ["userId", "journeyId"]),
