@@ -164,8 +164,33 @@ check("the customer email comes from the authenticated profile",
   /user\.email \? \{ email: user\.email \}/.test(CHECKOUT));
 check("no request field is ever read as an email",
   !/args\.email/.test(BILLING));
-check("no request field is ever read as a userId",
-  !/args\.userId/.test(BILLING));
+/* NARROWED 2026-08-26, and narrowed toward the real property rather than away
+   from it.
+   
+   The old rule banned `args.userId` anywhere in billing.ts. That was a proxy
+   for "a browser cannot name whose billing this is", and it held only while
+   every function in the file was a PUBLIC action reachable from a browser.
+   `settleSupersededSubscription` is an internalAction: it is scheduled by
+   subscriptions.applyWebhook from inside the transaction that granted a
+   lifetime purchase, its userId comes from a row we resolved ourselves, and no
+   browser can call it at all. Convex enforces that, not this grep.
+   
+   So the property is asserted where it actually applies: in the PUBLIC actions,
+   and in all of them, found by parsing rather than by naming them one by one so
+   a future public action is covered the day it is written. */
+const PUBLIC_ACTIONS = BILLING.split(/\bexport const /)
+  .slice(1)
+  .filter((chunk) => /^\w+\s*=\s*action\(/.test(chunk));
+check("billing.ts still has public actions to check", PUBLIC_ACTIONS.length >= 3);
+for (const chunk of PUBLIC_ACTIONS) {
+  const name = chunk.slice(0, chunk.indexOf(" "));
+  check(`${name} reads no userId from its arguments`, !/args\.userId/.test(chunk));
+  check(`${name} reads no email from its arguments`, !/args\.email/.test(chunk));
+}
+/* And the one function that DOES take a userId must be unreachable from a
+   browser. If it ever becomes a public `action`, the loop above catches it. */
+check("settleSupersededSubscription is internal, not public",
+  /export const settleSupersededSubscription = internalAction\(/.test(BILLING));
 /* The retired donation portal looked a customer up by a browser-submitted
  * email, which meant submitting anyone's address opened their billing portal.
  * That fallback must never reappear in either action. */

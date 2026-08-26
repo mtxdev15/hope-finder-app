@@ -1,8 +1,10 @@
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
-import { fetchSubscription, stripeGet, stripePost } from "./stripeApi";
+import { fetchSubscription, stripeGet, stripePost, stripeDelete } from "./stripeApi";
+import { readPeriod } from "./stripeCancellation";
+import { settlementPlan } from "./lifetimeUpgrade";
 import { TRIAL_DAYS } from "./entitlementCatalog";
 import {
   PLAN_CATALOG,
@@ -770,5 +772,213 @@ export const previewAnnualUpgrade = action({
       return { amountDue: null, currency: null };
     }
     return { amountDue: due, currency: cur };
+  },
+});
+
+/* ── SETTLING A SUBSCRIPTION THAT LIFETIME REPLACED ────────────────────────
+ *
+ * Scheduled by subscriptions.applyWebhook, from inside the same transaction
+ * that grants the lifetime purchase, so it can only run if that grant
+ * committed. Nobody is ever cancelled for a purchase we failed to record.
+ *
+ * THE ORDER IS THE DESIGN, and each step is independent of the next:
+ *   1. the grant already landed          (done before this job exists)
+ *   2. cancel, so nobody is billed again (this job, first)
+ *   3. refund the unused window          (this job, second, best effort)
+ *
+ * Step 3 failing must never undo step 2. Someone who paid $149 to stop being
+ * charged has to actually stop being charged, whether or not we can also give
+ * back the eleven days they had left. A refund we could not send is recorded
+ * with its exact amount and alerted, which is a support ticket; a cancellation
+ * we rolled back is a recurring charge nobody expects.
+ *
+ * IDEMPOTENT AT EVERY STEP. Stripe answers a repeat cancellation of an already
+ * cancelled subscription without complaint, and the refund carries an
+ * idempotency key derived from the webhook event id, so a retry of this whole
+ * job cannot send the money twice.
+ */
+const UPGRADE_MAX_ATTEMPTS = 4;
+
+export const settleSupersededSubscription = internalAction({
+  args: {
+    userId: v.string(),
+    environment: v.union(v.literal("sandbox"), v.literal("production")),
+    subscriptionId: v.string(),
+    /* The webhook event that caused the upgrade. Carried purely so the refund
+       can be keyed to it: a retry must be the same request to Stripe, not a
+       second one. */
+    eventId: v.string(),
+    attempt: v.number(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (!secret) {
+      /* Billing is not configured in this deployment. Nothing to retry toward,
+         and retrying would just repeat this. Recorded so the upgrade does not
+         look settled. */
+      await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+        userId: args.userId,
+        eventId: args.eventId,
+        subscriptionId: args.subscriptionId,
+        outcome: "lifetime-upgrade-needs-human" as const,
+        refundCents: 0,
+        reason: "billing-not-configured",
+      });
+      return;
+    }
+
+    const retry = async (why: string): Promise<void> => {
+      if (args.attempt >= UPGRADE_MAX_ATTEMPTS) {
+        /* Out of attempts. The subscription may still be live, which is the
+           thing a human most needs to know, so it is recorded as needing one
+           rather than left to a log line nobody queries. */
+        await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+          userId: args.userId,
+          eventId: args.eventId,
+          subscriptionId: args.subscriptionId,
+          outcome: "lifetime-upgrade-needs-human" as const,
+          refundCents: 0,
+          reason: "gave-up-after-" + args.attempt + "-attempts:" + why,
+        });
+        return;
+      }
+      /* 1, 5, 25 minutes. Long enough for a Stripe incident to pass, short
+         enough that nobody is billed a second time while we wait: a monthly
+         renewal is 30 days away, not 30 minutes. */
+      const delayMs = Math.pow(5, args.attempt - 1) * 60_000;
+      await ctx.scheduler.runAfter(delayMs, internal.billing.settleSupersededSubscription, {
+        ...args,
+        attempt: args.attempt + 1,
+      });
+    };
+
+    /* ── Read the subscription before touching it ───────────────────────── */
+    const sub = await fetchSubscription(args.subscriptionId, secret);
+    if (!sub.ok) {
+      /* A 404 means it is gone, which is the state we wanted. Anything else is
+         a Stripe problem worth retrying. */
+      if (sub.status === 404) {
+        await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+          userId: args.userId,
+          eventId: args.eventId,
+          subscriptionId: args.subscriptionId,
+          outcome: "lifetime-upgrade-settled" as const,
+          refundCents: 0,
+          reason: "subscription-already-gone",
+        });
+        return;
+      }
+      return retry("fetch-" + sub.status);
+    }
+
+    /* The invoice is read BEFORE cancelling. Cancelling can change what
+       `latest_invoice` points at, and the window we are settling is the one
+       they paid for, not whatever Stripe generates on the way out. */
+    const invoiceId =
+      typeof sub.data?.latest_invoice === "string"
+        ? sub.data.latest_invoice
+        : (sub.data?.latest_invoice?.id ?? null);
+    let invoice: any = null;
+    if (typeof invoiceId === "string" && invoiceId) {
+      const inv = await stripeGet("/invoices/" + invoiceId, secret);
+      if (!inv.ok) return retry("invoice-" + inv.status);
+      invoice = inv.data;
+    }
+
+    const period = readPeriod(sub.data || {});
+    const plan = settlementPlan({
+      invoice,
+      periodStart: period.start,
+      periodEnd: period.end,
+      nowSeconds: Math.floor(Date.now() / 1000),
+    });
+
+    /* ── Step 2: stop the billing ───────────────────────────────────────── */
+    const cancelled = await stripeDelete(
+      "/subscriptions/" + args.subscriptionId,
+      secret,
+      /* Same key on every retry of the same upgrade, so a retry is the same
+         request rather than a second one. */
+      "lifetime-cancel:" + args.eventId,
+    );
+    /* Already cancelled is success, not failure: this job is idempotent and a
+       retry after a partial run must not stall here. */
+    const goneAlready =
+      cancelled.status === 404 ||
+      cancelled.data?.status === "canceled" ||
+      cancelled.data?.error?.code === "resource_missing";
+    if (!cancelled.ok && !goneAlready) return retry("cancel-" + cancelled.status);
+
+    /* ── Step 3: give back the window they will not use ─────────────────── */
+    if (plan.refundCents <= 0) {
+      await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+        userId: args.userId,
+        eventId: args.eventId,
+        subscriptionId: args.subscriptionId,
+        outcome: "lifetime-upgrade-settled" as const,
+        refundCents: 0,
+        reason: plan.reason,
+      });
+      return;
+    }
+    if (!plan.ref) {
+      /* Money IS owed and we cannot name where it came from, which is exactly
+         the case lifetimeUpgrade.readInvoicePaymentRef refuses to guess at.
+         Cancelled regardless, amount recorded to the cent, human alerted. */
+      console.log(
+        "[billing] lifetime-upgrade-needs-human user=" + args.userId +
+          " event=" + args.eventId +
+          " refundCents=" + plan.refundCents +
+          " — subscription cancelled; could not read a payment to refund against",
+      );
+      await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+        userId: args.userId,
+        eventId: args.eventId,
+        subscriptionId: args.subscriptionId,
+        outcome: "lifetime-upgrade-needs-human" as const,
+        refundCents: plan.refundCents,
+        reason: plan.reason,
+      });
+      return;
+    }
+
+    const refund = await stripePost(
+      "/refunds",
+      secret,
+      {
+        [plan.ref.kind]: plan.ref.id,
+        amount: String(plan.refundCents),
+        /* Stripe's own vocabulary. Not `fraudulent`, which would count against
+           the account, and not `requested_by_customer`, which is not what
+           happened: we initiated this. */
+        reason: "requested_by_customer",
+        "metadata[source]": "convex.billing.settleSupersededSubscription",
+        "metadata[userId]": args.userId,
+        "metadata[environment]": args.environment,
+      },
+      "lifetime-refund:" + args.eventId,
+    );
+    if (!refund.ok) {
+      /* THE CANCELLATION STANDS. Retrying only re-attempts the refund, under
+         the same idempotency key, and the cancel above is a no-op by then. */
+      if (args.attempt >= UPGRADE_MAX_ATTEMPTS) {
+        console.log(
+          "[billing] lifetime-upgrade-needs-human user=" + args.userId +
+            " event=" + args.eventId +
+            " refundCents=" + plan.refundCents +
+            " — subscription cancelled; refund failed after " + args.attempt + " attempts",
+        );
+      }
+      return retry("refund-" + refund.status);
+    }
+
+    await ctx.runMutation(internal.subscriptions.recordUpgradeSettlementInternal, {
+      userId: args.userId,
+      eventId: args.eventId,
+      subscriptionId: args.subscriptionId,
+      outcome: "lifetime-upgrade-settled" as const,
+      refundCents: plan.refundCents,
+      reason: plan.reason,
+    });
   },
 });

@@ -101,3 +101,30 @@ export function isOffCycleCancellation(input: CancellationInput): boolean {
   if (!isUsableTimestamp(input.currentPeriodEnd)) return false;
   return input.cancelAt !== input.currentPeriodEnd;
 }
+
+/* ── Where the billing period lives ─────────────────────────────────────────
+ *
+ * MOVED HERE FROM http.ts on 2026-08-26, unchanged, because billing.ts needs
+ * the same answer when it settles a superseded subscription. Two copies of a
+ * reader this codebase has ALREADY been bitten by twice is how the copies
+ * drift, and this file exists for exactly this class of quirk.
+ *
+ * Dahlia carries the period on the subscription ITEM, never on the
+ * subscription root. Our Checkout sends exactly one line item, and
+ * classification rejects `unexpected-multiple-items`, so item[0] is the only
+ * item there can be.
+ *
+ * NARROWED DELIBERATELY. `subscription.current_period_start` / `.end` do not
+ * exist under the pinned version, and accepting them would let a payload from
+ * a different version flow into the entitlement tables looking healthy. Tied
+ * to stripeApi.STRIPE_API_VERSION: if that pin moves, re-capture real payloads
+ * and re-narrow, never widen speculatively. */
+export function readPeriod(sub: any): { start?: number; end?: number } {
+  const item = sub?.items?.data?.[0];
+  const start = item?.current_period_start;
+  const end = item?.current_period_end;
+  return {
+    start: typeof start === "number" ? start : undefined,
+    end: typeof end === "number" ? end : undefined,
+  };
+}

@@ -198,6 +198,19 @@ export default defineSchema({
        a compromised browser cannot even name another customer's billing. */
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
+    /* The subscription a lifetime purchase on this row replaced.
+       
+       WRITTEN AT THE SAME MOMENT stripeSubscriptionId is CLEARED, and the pair
+       is the point. A lifetime row must carry no live subscription id, or the
+       by_subscription index would route that dead subscription's own
+       cancellation events straight back onto the lifetime row and overwrite the
+       $149 purchase with `planKey: plus_monthly, status: canceled`.
+
+       Kept rather than dropped because those events still arrive, and the guard
+       has to tell "the subscription we ourselves cancelled" (expected, quiet)
+       apart from "a different subscription showed up" (a real conflict, alert).
+       Absent on every row that never upgraded. */
+    supersededSubscriptionId: v.optional(v.string()),
     stripePriceId: v.optional(v.string()),
     latestInvoiceId: v.optional(v.string()),
     appleOriginalTransactionId: v.optional(v.string()),
@@ -433,6 +446,16 @@ export default defineSchema({
          * where a paying subscriber stops being one — left no trace anywhere,
          * and any monitoring built on Stripe events missed it entirely. */
         v.literal("grace-expired"),
+        /* A lifetime purchase taking over a row that still held a live
+           subscription. Written once per upgrade, at the moment the grant
+           lands and before the subscription has been cancelled, so an upgrade
+           that fails halfway is visible rather than inferred. */
+        v.literal("lifetime-superseded-subscription"),
+        /* What actually happened to that subscription and its unused money.
+           Separate from the row above because it is written by a scheduled
+           job that can retry: the grant is final, the settlement is not. */
+        v.literal("lifetime-upgrade-settled"),
+        v.literal("lifetime-upgrade-needs-human"),
       ),
     ),
     /* Set only on a duplicate-subscription conflict. Enough to identify what
@@ -444,6 +467,14 @@ export default defineSchema({
     canonicalSubscriptionId: v.optional(v.string()),
     incomingSubscriptionId: v.optional(v.string()),
     userId: v.optional(v.string()),
+    /* Set only on the lifetime-upgrade outcomes. The amount is in minor units
+       and is what we computed as unused, whether or not we managed to send it:
+       on `needs-human` it is the number to refund by hand, which is the whole
+       reason it is stored rather than logged. No card, no charge id, no email;
+       nothing here is readable through getMyEntitlements, which never queries
+       this table. */
+    upgradeRefundCents: v.optional(v.number()),
+    upgradeReason: v.optional(v.string()),
   }).index("by_provider_event", ["provider", "eventId"]),
 
   /* ===== Entitlements & usage (Release C1 Phase 4) ============================

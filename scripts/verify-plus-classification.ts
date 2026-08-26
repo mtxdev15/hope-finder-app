@@ -328,24 +328,29 @@ function deType(fnSrc: string, from: string, to: string): string {
   return fnSrc.replace(from, to);
 }
 
+/* readPeriod MOVED to convex/stripeCancellation.ts on 2026-08-26, because
+   billing.ts needs the same answer when it settles a subscription a lifetime
+   purchase replaced, and two copies of a reader this codebase has already been
+   bitten by twice is how the copies drift.
+   
+   It is now IMPORTED rather than extracted and de-typed, which is strictly
+   better: this suite runs the exact function applyWebhook's caller runs, with
+   no transformation step that could quietly change it. readInvoiceSubscriptionId
+   is still private to http.ts, so it is still extracted. */
 const readers: any = await import(
   "data:text/javascript," +
     encodeURIComponent(
       deType(
-        extractFn(HTTP, "function readPeriod"),
-        "function readPeriod(sub: any): { start?: number; end?: number } {",
-        "function readPeriod(sub) {",
-      ) +
-        "\n" +
-        deType(
           extractFn(HTTP, "function readInvoiceSubscriptionId"),
           "function readInvoiceSubscriptionId(obj: any): string | null {",
           "function readInvoiceSubscriptionId(obj) {",
         ) +
-        "\nexport { readPeriod, readInvoiceSubscriptionId };",
+        "\nexport { readInvoiceSubscriptionId };",
     )
 );
-const { readPeriod, readInvoiceSubscriptionId } = readers;
+const { readInvoiceSubscriptionId } = readers;
+/* The real one, not a de-typed copy. */
+const { readPeriod } = await import("../convex/stripeCancellation.ts");
 
 /* The real values from sub_1U6yXVLShxhb4mBzedFqJMQ0. */
 const PERIOD_START = 1787342144;
@@ -484,7 +489,8 @@ check("no subscription id -> acknowledge without applying",
 
 /* ── 8d. The old fallbacks are gone from the source ──────────────────────── */
 const READER_SRC =
-  extractFn(HTTP, "function readPeriod") + extractFn(HTTP, "function readInvoiceSubscriptionId");
+  readFileSync(new URL("../convex/stripeCancellation.ts", import.meta.url), "utf8") +
+  extractFn(HTTP, "function readInvoiceSubscriptionId");
 check("readPeriod no longer reads the subscription root",
   !/sub\?\.current_period_start|sub\?\.current_period_end/.test(READER_SRC));
 check("readInvoiceSubscriptionId no longer reads obj.subscription",

@@ -192,6 +192,51 @@ export const lifetimeAvailability = query({
   },
 });
 
+/* What became of the subscription a lifetime purchase replaced.
+ *
+ * Written by the scheduled settlement job, which is why it is a separate row
+ * from the `lifetime-superseded-subscription` one applyWebhook writes with the
+ * grant. The grant is final when its transaction commits; the settlement is a
+ * Stripe call that can fail, retry, or need a person. Two rows say which of
+ * those happened; one row would have to be rewritten and would lose the fact
+ * that the grant landed first.
+ *
+ * NO EVENT ID COLLISION. `by_provider_event` is what dedupes replays, and it
+ * is read in applyWebhook with `.first()`, so extra rows sharing an event id
+ * cannot cause an event to apply twice. The id is stored here so an operator
+ * can find every row belonging to one upgrade.
+ *
+ * THE AMOUNT IS RECORDED WHETHER OR NOT WE SENT IT. On the needs-human path it
+ * is the figure to refund by hand, to the cent, which is the entire reason it
+ * lives in the database rather than in a log line. */
+export const recordUpgradeSettlementInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    eventId: v.string(),
+    subscriptionId: v.string(),
+    outcome: v.union(
+      v.literal("lifetime-upgrade-settled"),
+      v.literal("lifetime-upgrade-needs-human"),
+    ),
+    refundCents: v.number(),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("billingEvents", {
+      provider: "stripe" as const,
+      eventId: args.eventId,
+      type: "lifetime.upgrade.settlement",
+      processedAt: Date.now(),
+      outcome: args.outcome,
+      canonicalSubscriptionId: args.subscriptionId,
+      userId: args.userId,
+      upgradeRefundCents: args.refundCents,
+      upgradeReason: args.reason,
+    });
+    return { ok: true };
+  },
+});
+
 /* INTERNAL: the account -> Stripe customer mapping. Stripe-specific by design;
  * Apple has no equivalent object. */
 export const getCustomerInternal = internalQuery({
@@ -307,7 +352,12 @@ export const applyWebhook = internalMutation({
       .first();
     if (seen) return { ok: true, deduped: true };
 
-    type EventOutcome = "applied" | "stale" | "unmatched" | "duplicate-subscription-conflict";
+    type EventOutcome =
+      | "applied"
+      | "stale"
+      | "unmatched"
+      | "duplicate-subscription-conflict"
+      | "lifetime-superseded-subscription";
     type ConflictDetail = {
       conflictReason: string;
       /* Absent on a lifetime conflict: that row has no subscription to name. */
@@ -315,11 +365,16 @@ export const applyWebhook = internalMutation({
       incomingSubscriptionId?: string;
       userId: string;
     };
+    type EventDetail = ConflictDetail | {
+      conflictReason: string;
+      canonicalSubscriptionId: string;
+      userId: string;
+    };
     /* Still exactly one row per (provider, eventId) — the replay check above is
        unchanged and remains authoritative. This only records HOW the event
        resolved, so a conflict is visible rather than indistinguishable from an
        ordinary apply. */
-    const recordEvent = async (outcome: EventOutcome, detail?: ConflictDetail) => {
+    const recordEvent = async (outcome: EventOutcome, detail?: EventDetail) => {
       await ctx.db.insert("billingEvents", {
         provider: args.provider,
         eventId: args.eventId,
@@ -396,7 +451,29 @@ export const applyWebhook = internalMutation({
       provider: args.provider,
       existing: existing ?? null,
       incomingSubscriptionId: args.stripeSubscriptionId ?? null,
+      /* Both are needed for the lifetime-upgrade rule, and neither can be
+         inferred from the other: the plan says which kind of purchase this is,
+         the status says whether it is one we should act on. A REFUNDED
+         lifetime must never cancel a working subscription. */
+      incomingPlanKey: args.planKey,
+      incomingStatus: args.status,
     });
+    if (!verdict.ok && verdict.reason === "lifetime-superseded") {
+      /* THE TAIL OF AN UPGRADE WE PERFORMED, not a conflict.
+       *
+       * We cancelled this subscription ourselves a moment ago; Stripe is now
+       * telling us about it. Refused for the same reason as any other event
+       * against a lifetime row, but recorded quietly and NOT logged: one alert
+       * per successful upgrade is how a real alert stops being read. */
+      await recordEvent("duplicate-subscription-conflict", {
+        conflictReason: verdict.reason,
+        ...(verdict.incomingSubscriptionId
+          ? { incomingSubscriptionId: verdict.incomingSubscriptionId }
+          : {}),
+        userId,
+      });
+      return { ok: true, supersededEvent: true };
+    }
     if (!verdict.ok) {
       /* Structured and alertable, and deliberately WITHOUT the subscription
        * ids: http.ts already established that provider ids have no business in
@@ -512,8 +589,35 @@ export const applyWebhook = internalMutation({
       ...(args.locale ? { locale: args.locale } : {}),
     };
 
+    /* ── THE LIFETIME TAKEOVER ────────────────────────────────────────────
+     *
+     * Only reached when the guard returned `supersedes`, which it does only
+     * for a PAID lifetime purchase landing on a row that still holds a live
+     * subscription.
+     *
+     * CLEARING stripeSubscriptionId IS THE LOAD-BEARING HALF, and it is not
+     * tidiness. Every field above is spread-omitted when absent so a patch
+     * cannot erase what a previous event stored — which is right everywhere
+     * else and exactly wrong here. Leaving the old id on a lifetime row means
+     * the `by_subscription` index still points at it, so when the very
+     * cancellation we are about to perform comes back as
+     * customer.subscription.deleted, applyWebhook would resolve THIS row and
+     * overwrite the $149 purchase with `planKey: plus_monthly, status:
+     * canceled`. The customer would keep nothing.
+     *
+     * `undefined` in a Convex patch removes the field, which is why this is
+     * written outside the spread rather than inside it.
+     *
+     * The id is not lost: it moves to supersededSubscriptionId, where the
+     * guard reads it to tell that expected tail apart from a genuine
+     * conflict, and where the settlement job reads it to know what to cancel. */
+    const supersedes = verdict.ok ? verdict.supersedes : undefined;
+    const upgrade = supersedes
+      ? { stripeSubscriptionId: undefined, supersededSubscriptionId: supersedes }
+      : {};
+
     if (existing) {
-      await ctx.db.patch(existing._id, fields);
+      await ctx.db.patch(existing._id, { ...fields, ...upgrade });
     } else {
       /* hasEverPaid IS WRITTEN EXPLICITLY HERE, INCLUDING FALSE, and that is
        * load-bearing rather than tidy.
@@ -533,6 +637,57 @@ export const applyWebhook = internalMutation({
         hasEverPaid: everPaid,
         createdAt: now,
       });
+    }
+
+    /* ── The upgrade, recorded before it is settled ───────────────────────
+     *
+     * Written HERE, in the same transaction as the grant, and deliberately
+     * before the subscription has actually been cancelled. The cancellation is
+     * a Stripe call in a scheduled job that can fail and retry; the grant is
+     * final the moment this mutation commits. Recording the intent with the
+     * grant is what makes a half-finished upgrade visible in our own data
+     * rather than something to be inferred from Stripe later.
+     *
+     * A second billingEvents row for the same event id is fine: the replay
+     * check at the top of this mutation reads `by_provider_event` and returns
+     * on the FIRST match, so an extra row cannot let an event apply twice. */
+    if (supersedes) {
+      await ctx.db.insert("billingEvents", {
+        provider: args.provider,
+        eventId: args.eventId,
+        type: args.eventType,
+        processedAt: now,
+        outcome: "lifetime-superseded-subscription" as const,
+        conflictReason: "lifetime purchase replaced a live subscription; cancellation scheduled",
+        canonicalSubscriptionId: supersedes,
+        userId,
+      });
+      console.log(
+        "[billing] lifetime-supersedes provider=" + args.provider +
+          " event=" + args.eventId +
+          " — lifetime granted; scheduling cancellation and settlement of the replaced subscription",
+      );
+      /* SCHEDULED FROM THE MUTATION, not returned to http.ts to act on.
+       *
+       * Convex only runs a job scheduled inside a mutation if that mutation
+       * COMMITS, so the cancellation cannot fire for a grant that rolled back.
+       * Doing it in the caller would break that tie: the webhook could cancel
+       * somebody's subscription and then fail to record the lifetime purchase
+       * that justified it, leaving them with neither.
+       *
+       * Zero delay, but still asynchronous, which is what keeps a Stripe
+       * outage from turning a successful grant into a 502 and a retry. */
+      await ctx.scheduler.runAfter(
+        0,
+        internal.billing.settleSupersededSubscription,
+        {
+          userId,
+          environment: args.environment,
+          subscriptionId: supersedes,
+          eventId: args.eventId,
+          attempt: 1,
+        },
+      );
     }
 
     /* ── Tell them their card failed ──────────────────────────────────────

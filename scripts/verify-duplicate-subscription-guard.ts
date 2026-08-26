@@ -310,8 +310,29 @@ section("6. Deduplication and the client contract are unchanged");
 check("replay is still refused before any work",
   APPLY.indexOf("if (seen) return { ok: true, deduped: true }") < APPLY.indexOf("classifyIncomingSubscription({"));
 check("dedup is still keyed on (provider, eventId)", /by_provider_event/.test(SUBS));
-check("a conflict records exactly one event row",
-  (SUBS.match(/recordEvent\("duplicate-subscription-conflict"/g) || []).length === 1);
+/* TWO call sites now, and the second is the point rather than a regression.
+   
+   A lifetime upgrade cancels the subscription it replaced, and Stripe then
+   sends that subscription's own `updated` and `deleted`. Both are refused
+   against the lifetime row for the same reason any event is, but they are the
+   EXPECTED tail of an upgrade we performed, not a conflict. Routing them
+   through the loud path would fire an alert per successful upgrade, which is
+   how a real alert stops being read.
+   
+   So the outcome is shared and the LOGGING is what differs, and that is the
+   property worth asserting: one of the two call sites logs, the other does
+   not. */
+const CONFLICT_SITES = (SUBS.match(/recordEvent\("duplicate-subscription-conflict"/g) || []).length;
+check("a conflict records exactly one event row per call site", CONFLICT_SITES === 2);
+check("the superseded tail is recorded without an alert",
+  /verdict\.reason === "lifetime-superseded"[\s\S]{0,900}?recordEvent\("duplicate-subscription-conflict"/.test(SUBS));
+/* The loud path still logs. Asserted by slicing to the genuine-conflict branch
+   and requiring the log line inside it. */
+const LOUD = SUBS.slice(SUBS.indexOf("if (!verdict.ok) {\n      /* Structured and alertable"));
+check("a genuine conflict still logs an alert",
+  /\[billing\] duplicate-subscription-conflict/.test(LOUD.slice(0, 1800)));
+check("and the quiet path does not reuse that log line",
+  (SUBS.match(/\[billing\] duplicate-subscription-conflict/g) || []).length === 1);
 
 /* The new columns must be optional, or the three existing sandbox rows become
  * invalid the moment this schema ships. */

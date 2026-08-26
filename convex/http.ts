@@ -3,6 +3,10 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent, createAuth } from "./auth";
 import { fetchSubscription, stripeGet } from "./stripeApi";
+/* readPeriod lives beside deriveCancelAtPeriodEnd because both exist for the
+   same reason: a Stripe subscription field that MOVED rather than vanished.
+   One definition, imported by every reader, is the point. */
+import { readPeriod } from "./stripeCancellation";
 import {
   classifyPlusSubscription,
   classifyLifetimePurchase,
@@ -111,20 +115,6 @@ const MAX_EVENT_BYTES = 1_048_576; // 1 MiB
 
    These are tied to stripeApi.STRIPE_API_VERSION. If that pin ever moves,
    re-capture real payloads and re-narrow; do not widen speculatively. */
-function readPeriod(sub: any): { start?: number; end?: number } {
-  /* Dahlia carries the period on the subscription ITEM, never on the
-   * subscription root. Our Checkout sends exactly one line item, and
-   * classification rejects `unexpected-multiple-items`, so item[0] is the
-   * only item there can be. */
-  const item = sub?.items?.data?.[0];
-  const start = item?.current_period_start;
-  const end = item?.current_period_end;
-  return {
-    start: typeof start === "number" ? start : undefined,
-    end: typeof end === "number" ? end : undefined,
-  };
-}
-
 function readInvoiceSubscriptionId(obj: any): string | null {
   /* Dahlia nests the invoice-to-subscription link under `parent`. There is no
    * top-level `invoice.subscription`. Both the plain id and the expanded

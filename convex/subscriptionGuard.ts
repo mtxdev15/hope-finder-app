@@ -40,6 +40,10 @@ export type SubscriptionRowLike = {
   /* Read only to recognise a lifetime row, which is the one row that legitimately
      carries no subscription id. See the lifetime rule in the classifier. */
   planKey?: string;
+  /* The subscription this row's lifetime purchase replaced, if any. Its later
+     events are EXPECTED and must be refused quietly rather than alerted on;
+     see the superseded rule in the classifier. */
+  supersededSubscriptionId?: string;
 };
 
 /* Statuses after which a subscription can never grant entitlement again, so a
@@ -84,10 +88,21 @@ export function isReplaceable(row: SubscriptionRowLike): boolean {
 }
 
 export type GuardVerdict =
-  | { ok: true }
+  | {
+      ok: true;
+      /* Set ONLY when a lifetime purchase is taking over a row that still
+         holds a live subscription. applyWebhook must then clear
+         stripeSubscriptionId, remember this id as supersededSubscriptionId,
+         and have the caller cancel it in Stripe. Absent on every other allow,
+         so a caller that ignores it cannot accidentally cancel anything. */
+      supersedes?: string;
+    }
   | {
       ok: false;
-      reason: "duplicate-subscription" | "lifetime-not-replaceable";
+      reason:
+        | "duplicate-subscription"
+        | "lifetime-not-replaceable"
+        | "lifetime-superseded";
       /** The subscription id we already hold and are refusing to overwrite.
        *  Absent on a lifetime conflict: a lifetime row has no subscription. */
       canonicalSubscriptionId?: string;
@@ -117,12 +132,52 @@ export function classifyIncomingSubscription(input: {
   provider: string;
   existing: SubscriptionRowLike | null | undefined;
   incomingSubscriptionId?: string | null;
+  /* The plan the incoming event is FOR. Absent on every caller that predates
+     the lifetime upgrade path, and absent behaves exactly as before. */
+  incomingPlanKey?: string | null;
+  /* The status the incoming event carries. Read only to require that a
+     superseding lifetime purchase is actually PAID: a refunded one must never
+     cancel a working subscription. */
+  incomingStatus?: string | null;
 }): GuardVerdict {
   const { provider, existing } = input;
   const incoming = input.incomingSubscriptionId ?? null;
+  const incomingPlan = input.incomingPlanKey ?? null;
 
   if (provider !== "stripe") return { ok: true };
   if (!existing) return { ok: true };
+
+  /* ── BUYING LIFETIME WHILE SUBSCRIBED, which used to be refused ──────────
+   *
+   * THE BUG THIS FIXES. A lifetime purchase creates no Subscription object, so
+   * `incoming` is null. Against a live monthly row that is neither the
+   * canonical id nor a replaceable status, so the duplicate rule below refused
+   * it. createCheckoutSession ALLOWS that purchase (`buyingLifetimeOnTop`
+   * bypasses all three stacking guards), which means $149 was charged, the
+   * event was acknowledged, a conflict was recorded, and nothing was granted.
+   *
+   * Verified by running this classifier against that exact input rather than
+   * by reading it.
+   *
+   * WHY SUPERSEDE RATHER THAN MERGE. There is one row per user per provider,
+   * so the two cannot coexist. Lifetime is the one that cannot be re-bought
+   * and the one that never lapses, so it takes the row; the subscription is
+   * the one that can be cancelled, so it is what gets cancelled.
+   *
+   * ONLY A PAID PURCHASE SUPERSEDES. A refunded lifetime must not silently
+   * cancel somebody's working subscription, so the status is checked here and
+   * not assumed from the plan.
+   *
+   * The id is RETURNED rather than acted on: this file protects our state and
+   * still touches no Stripe object, exactly as its header promises. */
+  if (
+    incomingPlan === "plus_lifetime" &&
+    input.incomingStatus === "paid" &&
+    existing.planKey !== "plus_lifetime"
+  ) {
+    const live = existing.stripeSubscriptionId;
+    return live && !isReplaceable(existing) ? { ok: true, supersedes: live } : { ok: true };
+  }
 
   /* ── The lifetime rule, BEFORE the no-canonical-id allowance below ───────
    *
@@ -144,6 +199,21 @@ export function classifyIncomingSubscription(input: {
    * human running a remediation policy, exactly as the duplicate-charge case
    * above does. */
   if (existing.planKey === "plus_lifetime" && incoming) {
+    /* THE SUBSCRIPTION WE OURSELVES CANCELLED, coming back as its own
+     * `customer.subscription.updated` and `.deleted`.
+     *
+     * Refused for the same reason and by the same rule, but it is not a
+     * conflict: it is the expected tail of an upgrade we performed. Recording
+     * it as `duplicate-subscription-conflict` would fire an alert, and one
+     * alert per successful upgrade is how a real alert stops being read. */
+    if (incoming === existing.supersededSubscriptionId) {
+      return {
+        ok: false,
+        reason: "lifetime-superseded",
+        incomingSubscriptionId: incoming,
+        existingStatus: existing.status,
+      };
+    }
     return {
       ok: false,
       reason: "lifetime-not-replaceable",
