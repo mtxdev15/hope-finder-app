@@ -377,7 +377,12 @@ const FORBIDDEN = [
   'plan:"plus-monthly"',
   "plan:'plus-monthly'",
   "billing-sandbox",
+  /* Both purchase-button labels. The page picks between them from the Convex
+     deployment it is built against, so asserting only the sandbox one would
+     stop proving anything the moment the page is pointed at production —
+     exactly the configuration where a leak into dist/ would matter most. */
   "Stripe sandbox — no real charge",
+  "LIVE MONEY — charges a real card",
   "PUBLIC_BILLING_DEV_CONTROL",
 ];
 for (const needle of FORBIDDEN) {
