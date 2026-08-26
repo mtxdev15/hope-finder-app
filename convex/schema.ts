@@ -161,9 +161,27 @@ export default defineSchema({
     currentPeriodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     canceledAt: v.optional(v.number()),
-    // Present only if legacy/manual state ever produces a trial. No trial is
-    // configured or advertised on either provider.
+    /* When the free trial converts to a charge. Stripe's own trial_end, in
+       seconds. Read by the trial reminder so the date in that email is the date
+       Stripe will actually bill, rather than three days from whenever the
+       webhook happened to arrive. */
     trialEnd: v.optional(v.number()),
+
+    /* Did a payment for this subscription EVER succeed?
+       A stored fact, written the first time one does, never inferred from dates.
+
+       It exists because a trial that never converted and a subscriber whose
+       card just died arrive at Stripe status `past_due` looking identical, and
+       they deserve opposite treatment. Grace protects somebody from losing what
+       they paid for; there is nothing to protect for somebody who never paid.
+
+       WRITTEN EXPLICITLY ON INSERT, including false. That is what lets absence
+       mean exactly one thing: a row created before this column existed, which
+       predates trials and so belongs to somebody who actually paid. Those rows
+       keep their grace. Spread-omitting false instead left an unconverted trial
+       indistinguishable from a legacy subscriber and made the whole rule
+       inert. */
+    hasEverPaid: v.optional(v.boolean()),
 
     /* ── Provider-specific identifiers ────────────────────────────────────
        Stored, but NEVER returned to a client response. Withholding them means

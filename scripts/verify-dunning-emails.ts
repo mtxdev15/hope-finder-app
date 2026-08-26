@@ -24,14 +24,16 @@ import { fileURLToPath } from "node:url";
    are. A grep proves the file mentions a rule; running it proves the rule. */
 import {
   dunningDelayMs, dunningSchedule, copyFor, render, money, longDate,
-  billingUrl, homeUrl, emailLang,
+  billingUrl, homeUrl, emailLang, trialEndingCopy,
 } from "../convex/dunningSchedule.ts";
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
 import { normalizeLang, stampedLang, EMAIL_LANGS } from "../convex/plusPlans.ts";
 /* entitlementCatalog imports nothing either, so the grace arithmetic the whole
    system shares can be RUN here rather than pattern-matched. */
-import { graceEndsAtMs, isFailingStatus } from "../convex/entitlementCatalog.ts";
+import {
+  graceEndsAtMs, isFailingStatus, graceDaysFor, TRIAL_DAYS,
+} from "../convex/entitlementCatalog.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -169,9 +171,16 @@ section("2. Scheduled on the transition, never on the event");
 check("scheduling is guarded by a not-previously-failing check",
   /!wasFailing/.test(SUBS));
 check("a brand-new row is not treated as a lapse",
-  /existing && isFailing && !wasFailing/.test(SUBS));
+  /existing &&\s*isFailing &&\s*!wasFailing/.test(SUBS));
 check("lifetime is excluded — it has no renewal to fail",
-  /!wasFailing && fields\.planKey !== "plus_lifetime"/.test(SUBS));
+  /fields\.planKey !== "plus_lifetime"/.test(SUBS));
+/* AND NOBODY WHO NEVER PAID. A trial that never converts reaches `past_due`
+   looking exactly like a lapsed subscriber, and every line of the sequence is
+   false for them: they made no payment that failed, and the pause date has
+   already passed because they get no grace. */
+check("a trial that never converted gets no failed-payment sequence",
+  /everPaid &&/.test(SUBS) &&
+  /const everPaid = args\.paymentSucceeded === true \|\| existing\?\.hasEverPaid === true/.test(SUBS));
 /* If these two sets ever diverged we would either email somebody whose access
    was never at risk, or stay silent while it ran out. */
 /* They cannot diverge, because there is only one of them now. This used to
@@ -205,9 +214,23 @@ check("a missing address sends nothing rather than throwing",
   /no-address/.test(DUNNING));
 /* The date in the email must be the date the product enforces, computed the
    same way rather than approximated. */
+/* SCOPED TO THE FAILED-PAYMENT SEND, and the scoping is the point.
+   The trial reminder in the same file computes a CHARGE date from trialEnd or
+   currentPeriodEnd, which is a different quantity and legitimately does its own
+   arithmetic. An unscoped ban caught it and read as "the grace arithmetic was
+   duplicated", which was false. The claim is about the pause date. */
+const SEND_DUNNING = DUNNING.slice(
+  DUNNING.indexOf("export const sendDunningEmail"),
+  DUNNING.indexOf("export const recordEmailEvent"),
+);
+check("the failed-payment send can be located", SEND_DUNNING.length > 0);
 check("the pause date comes from the shared function, not a second copy",
-  /graceEndsAtMs\(sub\.currentPeriodEnd, sub\.updatedAt/.test(DUNNING) &&
-  !/sub\.currentPeriodEnd \* 1000/.test(DUNNING));
+  /graceEndsAtMs\(sub\.currentPeriodEnd, sub\.updatedAt/.test(SEND_DUNNING) &&
+  !/sub\.currentPeriodEnd \* 1000/.test(SEND_DUNNING));
+/* And it must know whether they ever paid, or it prints a date the entitlement
+   layer disagrees with. */
+check("the pause date respects the no-grace-without-payment rule",
+  /sub\.hasEverPaid/.test(SEND_DUNNING));
 /* Run, not read. The seconds-to-milliseconds conversion is the one mistake here
    that is invisible in review and puts the date fifty thousand years out. */
 const PERIOD_END_S = Math.floor(Date.UTC(2026, 7, 26) / 1000);
@@ -682,6 +705,129 @@ check("the refusal row carries no journey id and no content",
 check("and the log line carries none either",
   /\[journey\] active-journey-limit/.test(JOURNEY) &&
   !/journeyId=/.test(JOURNEY));
+
+/* ── 10. The trial, and who it does not protect ──────────────────────────── */
+section("10. Seven-day trial: the promise, and the line under it");
+
+const BILLING_T = read("convex/billing.ts");
+const HTTP_T = read("convex/http.ts");
+const SCHEMA_T = read("convex/schema.ts");
+const ENT_T = read("convex/entitlements.ts");
+
+check("the approved trial length is seven days", TRIAL_DAYS === 7);
+check("the length is set from the shared constant, never typed at Stripe",
+  /trial_period_days\]"\] = String\(TRIAL_DAYS\)/.test(BILLING_T));
+
+/* THE RULE. Grace protects somebody from losing what they PAID for. A trial
+   that never converted reaches the same Stripe status and deserves the
+   opposite answer. Executed, because this is the branch that decides whether
+   somebody gets weeks of free access they never bought. */
+check("somebody who paid still gets the full grace window",
+  graceDaysFor(true) === PAST_DUE_GRACE_DAYS);
+check("somebody who never paid gets none at all", graceDaysFor(false) === 0);
+
+/* THE CHECK THAT WOULD HAVE CAUGHT THIS, and did not exist the first time.
+ *
+ * The original assertions here tested graceDaysFor(false) and passed, while the
+ * code path that actually runs passed `undefined` — applyWebhook spread-omitted
+ * the field when false, so an unconverted trial row simply did not carry it.
+ * The rule was inert in production and green in the suite for the same reason
+ * the lapsed-state assertions were earlier: a test that supplies its own input
+ * proves nothing about the input the system supplies.
+ *
+ * Two things now hold it shut. The two functions must agree, and the row must
+ * always carry an explicit value so absence has exactly one meaning. */
+check("the two grace functions cannot disagree about an absent value",
+  graceEndsAtMs(0, 1_000, 1_000, undefined) - 1_000 ===
+    graceDaysFor(undefined) * 24 * 60 * 60 * 1000);
+check("absence means a legacy row, so it keeps its grace rather than losing it",
+  graceDaysFor(undefined) === PAST_DUE_GRACE_DAYS);
+/* And the reason that is safe: absence can no longer be produced by a trial. */
+check("every new row records the fact explicitly, including false",
+  /hasEverPaid: everPaid,\s*\n\s*createdAt: now,/.test(SUBS));
+check("an update can still never clear a stored true",
+  /\.\.\.\(everPaid \? \{ hasEverPaid: true \} : \{\}\)/.test(SUBS) &&
+  !/hasEverPaid: false/.test(SUBS.slice(0, SUBS.indexOf("await ctx.db.insert(\"subscriptions\""))));
+
+const PERIOD_S = Math.floor(Date.UTC(2026, 7, 26) / 1000);
+check("a never-paid trial loses access the day the trial ends",
+  graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27), false) === Date.UTC(2026, 7, 26));
+/* Stated as the outcome rather than the arithmetic, because the arithmetic was
+   right the first time and the outcome still was not. */
+check("and is therefore not Plus the day after the trial ends",
+  !(Date.UTC(2026, 7, 27) <= graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27), false)));
+check("while a real subscriber IS still Plus the day after their card fails",
+  Date.UTC(2026, 7, 27) <= graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27), true));
+check("a real subscriber still gets the full window",
+  graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27), true) ===
+    Date.UTC(2026, 7, 26) + PAST_DUE_GRACE_MS);
+check("a caller that omits the argument gets the same answer as one passing undefined",
+  graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27)) ===
+    graceEndsAtMs(PERIOD_S, 0, Date.UTC(2026, 7, 27), undefined));
+
+check("the entitlement resolver asks whether they ever paid",
+  /graceEndsAtMs\([\s\S]{0,120}sub\.hasEverPaid/.test(ENT_T));
+check("the row has somewhere to remember it",
+  /hasEverPaid: v\.optional\(v\.boolean\(\)\)/.test(SCHEMA_T));
+
+/* THE SIGNAL, and the trap it avoids. Stripe issues a ZERO-AMOUNT invoice when
+   a trial begins, and that invoice is paid. Keying off invoice.paid would mark
+   every trialist as having paid on day one, which is exactly the case this
+   flag exists to distinguish. Only `active` is reached after money moves. */
+check("proof of payment is Stripe's status, not the event's name",
+  /paymentSucceeded: sub\.status === "active"/.test(HTTP_T));
+check("invoice.paid is never used as proof of payment",
+  !/paymentSucceeded:.*invoice/.test(HTTP_T));
+/* One-way. A later failure changes the status, not the history. */
+check("the flag is never written back to false",
+  /args\.paymentSucceeded === true \|\| existing\?\.hasEverPaid === true/.test(SUBS) &&
+  !/hasEverPaid: false/.test(SUBS));
+
+/* THE PROMISE THE TRIAL SCREEN MAKES. Three unrelated apps put a timeline in
+   front of the trial saying a reminder will arrive. That promise is worth
+   nothing unless the email exists. */
+check("the tenth event is subscribed",
+  /"customer\.subscription\.trial_will_end"/.test(HTTP_T));
+check("it triggers the reminder", /sendTrialEndingEmail/.test(HTTP_T));
+/* It carries no news, so applying it would rewrite the row with state it
+   already holds and bump the ordering guard for nothing. */
+check("it changes no state and returns early",
+  /if \(eventType === "customer\.subscription\.trial_will_end"\)/.test(HTTP_T) &&
+  HTTP_T.indexOf('sendTrialEndingEmail') <
+    HTTP_T.indexOf("const result = await ctx.runMutation(internal.subscriptions.applyWebhook"));
+
+const TRIAL_SEND = DUNNING.slice(DUNNING.indexOf("export const sendTrialEndingEmail"));
+check("the reminder is not sent to somebody who already converted or cancelled",
+  /sub\.status !== "trialing"/.test(TRIAL_SEND));
+check("it honours the same bounce and complaint suppression",
+  /undeliverableInternal/.test(TRIAL_SEND));
+/* The date is the whole value of the message. Vague is what this replaced. */
+check("no date means no email rather than a vague one",
+  /no-charge-date/.test(TRIAL_SEND));
+check("the date comes from Stripe's trial end, not three days from now",
+  /sub\.trialEnd\s*\n?\s*\?\s*sub\.trialEnd \* 1000/.test(TRIAL_SEND));
+
+/* The copy, rendered for real, in both languages. */
+for (const lang of EMAIL_LANGS) {
+  const c = trialEndingCopy(
+    { amount: money(799, "usd", lang), chargesOn: longDate(Date.UTC(2026, 8, 2), lang), card: "Visa ···· 4242" },
+    lang,
+  );
+  const text = c.subject + "\n" + c.heading + "\n" + c.body.join("\n") + "\n" + (c.cta ?? "");
+  check(`[${lang}] the reminder names the date`, text.includes(longDate(Date.UTC(2026, 8, 2), lang)));
+  check(`[${lang}] and the amount`, text.includes(money(799, "usd", lang) as string));
+  check(`[${lang}] it says doing nothing means it continues`,
+    lang === "es" ? /no tienes que hacer nada/.test(text) : /there is nothing to do/.test(text));
+  check(`[${lang}] it offers the way out plainly`,
+    lang === "es" ? /cancela/.test(text) : /cancel/i.test(text));
+  /* NO LAST-MINUTE PITCH. Somebody deciding whether to keep paying for a
+     prayer app should not be handled. */
+  check(`[${lang}] it does not argue, discount or guilt`,
+    !/\b(discount|descuento|are you sure|estás seguro|don't miss|no te pierdas|last chance|última)\b/i.test(text));
+  check(`[${lang}] no em dash`, !text.includes("—"));
+  check(`[${lang}] it reassures rather than threatens`,
+    lang === "es" ? /sigue siendo tuyo/.test(text) : /stays yours/.test(text));
+}
 
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));

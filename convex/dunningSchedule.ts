@@ -301,6 +301,60 @@ export function copyFor(
   };
 }
 
+/* ── The trial reminder ───────────────────────────────────────────────────
+ *
+ * THE EMAIL THAT MAKES A CARD-REQUIRED TRIAL FAIR.
+ *
+ * Three unrelated apps put the same screen in front of a trial: a timeline
+ * promising "Day 5: we will remind you". It converts because it removes the one
+ * real fear, which is a charge nobody saw coming. That promise is worthless
+ * unless this email actually arrives, so it is written to the same standard as
+ * the failed-payment sequence and asserted by the same suite.
+ *
+ * IT SAYS THE AMOUNT AND THE DATE IN THE FIRST TWO LINES. Anything that buries
+ * either is the kind of reminder that technically exists.
+ *
+ * AND IT DOES NOT ARGUE. There is no last-minute pitch, no discount, no "are
+ * you sure". Somebody deciding whether to keep paying for a prayer app should
+ * not be handled. The button is how to stop; staying is what happens if they do
+ * nothing, and that is stated plainly rather than implied. */
+export function trialEndingCopy(
+  facts: { amount: string | null; chargesOn: string; card: string | null },
+  lang: EmailLang = "en",
+): Copy {
+  const card = facts.card ? ` (${facts.card})` : "";
+  if (lang === "es") {
+    return {
+      subject: "Tu prueba de Plus termina en 3 días",
+      heading: "Tu prueba termina en 3 días",
+      body: [
+        `Te avisamos como prometimos. El <strong>${facts.chargesOn}</strong> tu prueba gratis de Declare Plus ` +
+          `termina y se hace el cobro${facts.amount ? ` de ${facts.amount}` : ""}${card}.`,
+        `Si quieres seguir, no tienes que hacer nada. Plus continúa sin interrupción.`,
+        `Si prefieres no seguir, cancela con el botón de abajo y no se te cobra nada. ` +
+          `También puedes entrar a Declare e ir a Facturación. Toma menos de un minuto.`,
+        `De cualquier forma, lo que has guardado sigue siendo tuyo.`,
+      ],
+      cta: "Ver o cancelar mi plan",
+      footer: FOOTER.es,
+    };
+  }
+  return {
+    subject: "Your Plus trial ends in 3 days",
+    heading: "Your trial ends in 3 days",
+    body: [
+      `This is the reminder we promised. On <strong>${facts.chargesOn}</strong> your free trial of Declare Plus ` +
+        `ends and the card is charged${facts.amount ? ` ${facts.amount}` : ""}${card}.`,
+      `If you want to carry on, there is nothing to do. Plus continues without a break.`,
+      `If you would rather not, cancel with the button below and nothing is charged. ` +
+        `You can also open Declare and go to Billing. It takes under a minute.`,
+      `Either way, everything you have saved stays yours.`,
+    ],
+    cta: "See or cancel my plan",
+    footer: FOOTER.en,
+  };
+}
+
 /* Where the one button points.
  *
  * ALWAYS OUR OWN DOMAIN, never a Stripe-hosted URL — that is one of the three

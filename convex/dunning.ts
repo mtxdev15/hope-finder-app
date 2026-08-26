@@ -69,6 +69,7 @@ import {
   longDate,
   money,
   render,
+  trialEndingCopy,
 } from "./dunningSchedule";
 
 const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
@@ -151,7 +152,7 @@ export const sendDunningEmail = internalAction({
     const lang = emailLang(sub.locale);
 
     const pausesOn = longDate(
-      graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, Date.now()),
+      graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, Date.now(), sub.hasEverPaid),
       lang,
     );
 
@@ -279,5 +280,110 @@ export const undeliverableInternal = internalQuery({
       if (r.lastEvent && UNDELIVERABLE.has(r.lastEvent)) return r.lastEvent;
     }
     return null;
+  },
+});
+
+/* ── The trial reminder ───────────────────────────────────────────────────── */
+
+/* Sent when Stripe fires customer.subscription.trial_will_end, three days
+ * before an unconverted trial is charged.
+ *
+ * WHY THIS IS NOT A DUNNING STAGE
+ * Nothing has gone wrong. The sequence in sendDunningEmail exists because a
+ * payment failed and gets progressively more urgent; this is a promise being
+ * kept on a subscription that is working exactly as intended. Folding it in
+ * would mean every re-check, suppression rule and stage name in that action had
+ * to hold two unrelated meanings.
+ *
+ * IT SHARES THE SUPPRESSION LIST ANYWAY. Somebody who marked our billing email
+ * as spam has told us to stop, and that applies here too.
+ *
+ * IT IS NOT RETRIED AND NOT DEDUPED BEYOND STRIPE'S OWN BEHAVIOUR. Stripe fires
+ * trial_will_end once per trial; the webhook layer already drops replays by
+ * event id before this is reached. */
+export const sendTrialEndingEmail = internalAction({
+  args: { userId: v.string() },
+  handler: async (ctx, args): Promise<{ sent: boolean; reason?: string }> => {
+    const sub = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+      userId: args.userId,
+      provider: "stripe" as const,
+    });
+
+    if (!sub) return { sent: false, reason: "no-subscription" };
+    /* Already converted, already cancelled, or otherwise no longer a trial. Any
+       of those makes "your trial ends in 3 days" false. */
+    if (sub.status !== "trialing") return { sent: false, reason: "not-trialing" };
+    if (sub.planKey === "plus_lifetime") return { sent: false, reason: "not-applicable" };
+
+    const undeliverable = await ctx.runQuery(internal.dunning.undeliverableInternal, {
+      userId: args.userId,
+    });
+    if (undeliverable) return { sent: false, reason: "undeliverable" };
+
+    const user = await authComponent.getAnyUserById(ctx, args.userId);
+    const to = user && typeof user.email === "string" ? user.email : null;
+    if (!to) return { sent: false, reason: "no-address" };
+
+    const lang = emailLang(sub.locale);
+
+    /* The date Stripe will actually charge, which is the trial end it told us,
+       not three days from now. Those differ whenever the event is delayed, and
+       the whole value of this email is that the date in it is right. */
+    const chargeAtMs = sub.trialEnd
+      ? sub.trialEnd * 1000
+      : sub.currentPeriodEnd
+        ? sub.currentPeriodEnd * 1000
+        : null;
+    /* No date means no email. "Your trial ends soon" without the day is the
+       vague warning this was written to replace. */
+    if (chargeAtMs === null) return { sent: false, reason: "no-charge-date" };
+    const chargesOn = longDate(chargeAtMs, lang);
+
+    /* The amount is the point of the message, so it is worth a Stripe call —
+       but a failure degrades the sentence rather than losing the reminder. */
+    let amount: string | null = null;
+    let card: string | null = null;
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (secret && sub.stripeSubscriptionId) {
+      try {
+        const live = await fetchSubscription(sub.stripeSubscriptionId, secret);
+        if (live.ok) {
+          const price = live.data?.items?.data?.[0]?.price;
+          amount = money(price?.unit_amount ?? null, price?.currency ?? null, lang);
+          const pmId =
+            typeof live.data?.default_payment_method === "string"
+              ? live.data.default_payment_method
+              : live.data?.default_payment_method?.id;
+          if (typeof pmId === "string" && pmId) {
+            const pm = await stripeGet("/payment_methods/" + pmId, secret);
+            const brand = pm.data?.card?.brand;
+            const last4 = pm.data?.card?.last4;
+            if (typeof brand === "string" && typeof last4 === "string") {
+              card = brand.charAt(0).toUpperCase() + brand.slice(1) + " ···· " + last4;
+            }
+          }
+        }
+      } catch {
+        /* Deliberately swallowed, same as the failed-payment path. */
+      }
+    }
+
+    const site = (process.env.SITE_URL || "https://declareandbelieve.com").replace(/\/+$/, "");
+    const copy = trialEndingCopy({ amount, chargesOn, card }, lang);
+
+    const emailId = await resendClient.sendEmail(ctx, {
+      from: FROM_EMAIL,
+      to,
+      subject: copy.subject,
+      html: render(copy, billingUrl(site, lang), homeUrl(site, lang)),
+    });
+
+    await ctx.runMutation(internal.dunning.recordSendInternal, {
+      emailId,
+      userId: args.userId,
+      stage: "trial-ending",
+    });
+
+    return { sent: true };
   },
 });

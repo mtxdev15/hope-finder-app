@@ -53,7 +53,7 @@ unbounded free ride.
 | Provider status | Resolves to | Notes |
 |---|---|---|
 | `active` | **plus** | |
-| `trialing` | **plus** | No trial is advertised or configured. Honoured only so legacy or manually-created state is not silently downgraded |
+| `trialing` | **plus** | The 7-day trial (`TRIAL_DAYS`, added 2026-08-26) unlocks everything, so a trialist is a Plus user in every respect. Also covers manually-created state |
 | `active` + `cancel_at_period_end` | **plus** through `currentPeriodEnd` | They paid for the period. Taking it early would be theft |
 | `past_due` / `unpaid` | **plus** for 3 days, then **free** | `paymentNeedsAttention: true` throughout |
 | `canceled`, anything else | **free** | |

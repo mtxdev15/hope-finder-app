@@ -250,6 +250,10 @@ export const applyWebhook = internalMutation({
     cancelAtPeriodEnd: v.optional(v.boolean()),
     canceledAt: v.optional(v.number()),
     trialEnd: v.optional(v.number()),
+    /* True only when this event is proof a payment SUCCEEDED. Never sent
+       speculatively: http.ts decides, and it decides from Stripe's own status
+       rather than from the event's name. */
+    paymentSucceeded: v.optional(v.boolean()),
     latestInvoiceId: v.optional(v.string()),
     appleOriginalTransactionId: v.optional(v.string()),
     appleAppAccountToken: v.optional(v.string()),
@@ -413,6 +417,12 @@ export const applyWebhook = internalMutation({
       }
     }
 
+    /* Has a payment for this subscription EVER succeeded, counting history?
+       Read once here because three separate decisions below depend on it: what
+       the row stores, whether the failed-payment sequence is scheduled, and how
+       long grace runs. Computing it three times is how they drift apart. */
+    const everPaid = args.paymentSucceeded === true || existing?.hasEverPaid === true;
+
     const fields = {
       userId,
       provider: args.provider,
@@ -440,6 +450,16 @@ export const applyWebhook = internalMutation({
         : {}),
       ...(args.canceledAt != null ? { canceledAt: args.canceledAt } : {}),
       ...(args.trialEnd != null ? { trialEnd: args.trialEnd } : {}),
+      /* ONE-WAY ON UPDATE. Once a payment has succeeded it has succeeded, so an
+         existing row's `true` is never written back to false: a later failure
+         changes the status, not the history. That distinction is the whole
+         point — "paid, then the card died" and "never paid at all" arrive at
+         the same Stripe status and deserve opposite treatment.
+
+         Spread-omitted when false so a patch cannot clear a stored true. The
+         INSERT below writes it explicitly instead, which matters more than it
+         looks: see the note there. */
+      ...(everPaid ? { hasEverPaid: true } : {}),
       ...(args.latestInvoiceId ? { latestInvoiceId: args.latestInvoiceId } : {}),
       ...(args.appleOriginalTransactionId
         ? { appleOriginalTransactionId: args.appleOriginalTransactionId }
@@ -456,7 +476,24 @@ export const applyWebhook = internalMutation({
     if (existing) {
       await ctx.db.patch(existing._id, fields);
     } else {
-      await ctx.db.insert("subscriptions", { ...fields, createdAt: now });
+      /* hasEverPaid IS WRITTEN EXPLICITLY HERE, INCLUDING FALSE, and that is
+       * load-bearing rather than tidy.
+       *
+       * The first version of this spread-omitted it when false, exactly like
+       * the patch above. That left an unconverted trial with the column ABSENT
+       * rather than false — and absent is indistinguishable from "a row written
+       * before this column existed", which is a real paying subscriber who must
+       * keep their grace window. The resolver therefore handed every trialist
+       * the full sixteen days, which is precisely the bug the flag was added to
+       * prevent. The suite passed, because it tested graceDaysFor(false) while
+       * the code produced undefined.
+       *
+       * Writing it on insert is what makes absence mean only one thing. */
+      await ctx.db.insert("subscriptions", {
+        ...fields,
+        hasEverPaid: everPaid,
+        createdAt: now,
+      });
     }
 
     /* ── Tell them their card failed ──────────────────────────────────────
@@ -477,7 +514,26 @@ export const applyWebhook = internalMutation({
      * sending, so a card fixed on day one silently cancels the rest. */
     const wasFailing = existing ? isFailingStatus(existing.status) : false;
     const isFailing = isFailingStatus(fields.status);
-    if (existing && isFailing && !wasFailing && fields.planKey !== "plus_lifetime") {
+    /* AND NOT SOMEBODY WHO NEVER PAID.
+     *
+     * A trial that never converts lands on `past_due` looking exactly like a
+     * subscriber whose card died, but every word of the failed-payment sequence
+     * is false for them. "Your payment for Declare Plus didn't go through"
+     * describes a payment they never made, and "your Plus stays on until…"
+     * names a date that has already passed, because a never-paid subscription
+     * gets no grace at all.
+     *
+     * They are not left in silence: the trial reminder reaches them three days
+     * before the charge, which is the moment that can still change something.
+     * Four emails afterwards about a lapse that never happened would be noise
+     * at best and misleading at worst. */
+    if (
+      existing &&
+      isFailing &&
+      !wasFailing &&
+      everPaid &&
+      fields.planKey !== "plus_lifetime"
+    ) {
       for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
         const delay = dunningDelayMs(stage, PAST_DUE_GRACE_MS);
         if (delay === null) continue;
@@ -503,6 +559,7 @@ export const applyWebhook = internalMutation({
         fields.currentPeriodEnd,
         fields.updatedAt,
         now,
+        everPaid,
       );
       await ctx.scheduler.runAfter(
         Math.max(0, graceEnds - now),
@@ -629,7 +686,12 @@ export const recordGraceExpiryInternal = internalMutation({
        the timer, because recording an expiry that has not happened would be
        worse than recording none. */
     const now = Date.now();
-    const graceEnds = graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, now);
+    const graceEnds = graceEndsAtMs(
+      sub.currentPeriodEnd,
+      sub.updatedAt,
+      now,
+      sub.hasEverPaid,
+    );
     if (now < graceEnds) return { recorded: false, reason: "still-in-grace" };
 
     /* Deterministic, so a re-schedule or a retry cannot write two rows for one

@@ -1457,7 +1457,11 @@ for (const field of ["userId", "plan", "source", "billing_schema_version", "envi
 check("the provenance uses the SAME constants production stamps",
   /CHECKOUT_SOURCE/.test(prov) && /BILLING_SCHEMA_VERSION/.test(prov));
 check("flexible billing mode matches production shape", /"billing_mode\[type\]": "flexible"/.test(prov));
-check("no trial is configured", !/trial/.test(prov));
+/* The QA harness deliberately provisions WITHOUT a trial, and that is not a
+   statement about the product. Production sells a 7-day trial; a fixture that
+   started one would make every harness assertion depend on trial timing and
+   would sit at `trialing` rather than the `active` the tests exercise. */
+check("the QA fixture starts active, not on a trial", !/trial/.test(prov));
 check("provisioning refuses an account that already has billing",
   /error: "already-has-billing"/.test(prov));
 check("healthy is reached only after the CANONICAL row exists",

@@ -28,7 +28,7 @@ import {
   PLAN_CATALOG,
 } from "../convex/plusPlans.ts";
 import { STRIPE_API_VERSION } from "../convex/stripeApi.ts";
-import { PAST_DUE_GRACE_MS } from "../convex/entitlementCatalog.ts";
+import { PAST_DUE_GRACE_MS, TRIAL_DAYS } from "../convex/entitlementCatalog.ts";
 
 let passed = 0;
 const failures: string[] = [];
@@ -260,7 +260,21 @@ check("checkout stamps the canonical plan key, not the browser alias",
   /plan:\s*planKey/.test(BILLING));
 check("automatic tax is explicitly disabled for this phase",
   /"automatic_tax\[enabled\]":\s*"false"/.test(BILLING));
-check("no trial is configured", !/trial_period_days|trial_end/.test(BILLING));
+/* THE TRIAL, which this assertion used to forbid.
+ *
+ * It read `check("no trial is configured", ...)` and passed for months because
+ * none was. That is a test encoding a business decision as a permanent law,
+ * and when the decision changed the test failed for being right about the old
+ * world. Replaced with assertions about the trial being configured CORRECTLY,
+ * which is a property worth holding forever. */
+check("the trial length is imported, not typed here",
+  /form\["subscription_data\[trial_period_days\]"\] = String\(TRIAL_DAYS\)/.test(BILLING) &&
+  /import \{ TRIAL_DAYS \} from "\.\/entitlementCatalog"/.test(BILLING));
+/* A one-time purchase has no subscription to carry a trial, and sending the
+   field in payment mode is an API error rather than a harmless extra. */
+check("a lifetime purchase is never given a trial",
+  /if \(!oneTime\) \{[\s\S]{0,120}trial_period_days/.test(BILLING));
+check("the approved length is seven days", TRIAL_DAYS === 7);
 check("Convex webhook classifies before applying",
   HTTP.indexOf("classifyPlusSubscription") < HTTP.indexOf("internal.subscriptions.applyWebhook"));
 check("Convex webhook does not decide Plus from mode",

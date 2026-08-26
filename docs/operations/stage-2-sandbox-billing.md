@@ -11,6 +11,14 @@ nothing in live mode has been touched.**
 > **Open item:** two earlier Checkout Sessions are still `open` and still
 > payable. See the finding at the end of §6.8.
 
+> **Superseded in one respect, 2026-08-26.** Every "no trial" observation below
+> is an accurate record of what was purchased and inspected at the time, and is
+> deliberately left as written: a log that gets edited to match today stops
+> being evidence of anything. A **7-day free trial** has since been added, set
+> per Checkout Session via `subscription_data[trial_period_days]` from
+> `TRIAL_DAYS` in `convex/entitlementCatalog.ts`. The Prices themselves still
+> carry no trial, so the observations about the Price objects remain true today.
+
 Recorded 2026-08-21.
 
 ---

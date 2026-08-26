@@ -76,6 +76,15 @@ const BILLING_EVENTS = new Set([
    * `charge.refunded` here, refunding a lifetime purchase would return the money
    * and leave the entitlement granted forever. */
   "charge.refunded",
+  /* The trial's one event. Stripe fires this three days before an unconverted
+   * trial is charged, and it is the only advance warning that exists.
+   *
+   * It is not a lifecycle change and it moves no entitlement: it exists purely
+   * so we can keep the promise the trial screen makes, that a reminder arrives
+   * before any money moves. Without it the trial still works and people are
+   * charged with no warning from us, which is the single behaviour that turns a
+   * card-required trial into the kind people resent. */
+  "customer.subscription.trial_will_end",
 ]);
 
 /* Refuse absurd bodies before parsing. The Worker bounds this too; doing it in
@@ -233,6 +242,8 @@ http.route({
          * on this table. Not "active": that word belongs to the subscription
          * vocabulary and this row has no subscription. */
         status: "paid",
+        // A one-time purchase that reached us paid IS a successful payment.
+        paymentSucceeded: true,
         ...(customerId ? { stripeCustomerId: customerId } : {}),
         ...(typeof priceId === "string" ? { stripePriceId: priceId } : {}),
         ...(buyerId ? { metadataUserId: buyerId } : {}),
@@ -384,6 +395,26 @@ http.route({
       return ACK();
     }
 
+    /* ── The trial reminder ───────────────────────────────────────────
+     * Handled here, AFTER classification has proved this subscription is ours
+     * and before anything is written, because it changes nothing. No status
+     * moves, no row is patched, no entitlement shifts. The subscription is
+     * still `trialing` and will be until Stripe charges it.
+     *
+     * Returning early rather than falling through to applyWebhook is
+     * deliberate: applying this event would rewrite the row with state
+     * identical to what it already holds, and would bump lastProviderEventAt
+     * for an event that carries no news. */
+    if (eventType === "customer.subscription.trial_will_end") {
+      const trialUser = stampedUserId(sub, session);
+      if (trialUser) {
+        await ctx.runAction(internal.dunning.sendTrialEndingEmail, {
+          userId: trialUser,
+        });
+      }
+      return ACK();
+    }
+
     const customerId = asId(sub.customer);
     if (!customerId) return ACK();
 
@@ -400,6 +431,19 @@ http.route({
       eventType,
       eventCreated,
       status: String(sub.status || ""),
+      /* THE ONLY SIGNAL WE TREAT AS PROOF A PAYMENT SUCCEEDED, and it is
+       * Stripe's own status rather than the event's name.
+       *
+       * `active` is reached only after money actually moved. A trial sits at
+       * `trialing`; a first charge that fails leaves `incomplete`; a trial that
+       * never converts goes `trialing` to `past_due` without ever passing
+       * through `active`. So this cannot be true for somebody who never paid.
+       *
+       * DELIBERATELY NOT `invoice.paid`. Stripe issues a ZERO-AMOUNT invoice
+       * when a trial begins, and it is paid. Keying off that would mark every
+       * trialist as having paid on day one, which is precisely the case this
+       * flag exists to distinguish. */
+      paymentSucceeded: sub.status === "active",
       stripeCustomerId: customerId,
       stripeSubscriptionId: String(sub.id),
       ...(typeof price?.id === "string" ? { stripePriceId: price.id } : {}),

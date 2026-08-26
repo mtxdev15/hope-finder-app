@@ -1,5 +1,3 @@
-import { Resend } from "@convex-dev/resend";
-import { components } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 
 // ── Single source of truth for the sender ───────────────────────────────────
@@ -8,9 +6,19 @@ import type { ActionCtx } from "./_generated/server";
 // if the sending address or domain ever changes.
 const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
 
-// testMode:false so the component will enqueue to real addresses (default is true,
-// which only permits *@resend.dev). Reads RESEND_API_KEY from the deployment env.
-const resend: Resend = new Resend(components.resend, { testMode: false });
+/* ONE CLIENT FOR THE WHOLE APP, imported rather than constructed here.
+ *
+ * This file used to build a SECOND Resend client over the same component. Both
+ * sent mail, but only the one in dunning.ts registered `onEmailEvent`, so
+ * whether a bounce on a password-reset email was ever reported depended on
+ * which instance the component happened to consult. That is not a question
+ * worth having an answer to: a bounce is a bounce, and the suppression list
+ * that stops us mailing somebody who complained should not depend on which
+ * module sent the message.
+ *
+ * dunning.ts owns the instance because that is where the event handler and the
+ * suppression logic live. */
+import { resendClient as resend } from "./dunning";
 
 export const sendResetPassword = async (
   ctx: ActionCtx,

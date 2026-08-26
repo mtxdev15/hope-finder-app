@@ -123,7 +123,12 @@ export function interpret(
        moment it passes must both get the same answer. Written here as well, the
        three would drift and a subscriber would be told one date and cut off on
        another. */
-    const graceEndsAt = graceEndsAtMs(sub.currentPeriodEnd, sub.updatedAt, now);
+    const graceEndsAt = graceEndsAtMs(
+      sub.currentPeriodEnd,
+      sub.updatedAt,
+      now,
+      sub.hasEverPaid,
+    );
     if (now <= graceEndsAt) {
       return { tier: "plus", status, needsAttention: true, graceEndsAt };
     }

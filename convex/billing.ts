@@ -3,6 +3,7 @@ import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
 import { fetchSubscription, stripeGet, stripePost } from "./stripeApi";
+import { TRIAL_DAYS } from "./entitlementCatalog";
 import {
   PLAN_CATALOG,
   BILLING_SCHEMA_VERSION,
@@ -39,7 +40,7 @@ import {
  * Decided server-side from OUR mirrored state, never from the frontend. */
 const BLOCKS_NEW_CHECKOUT = new Set([
   "active", // already paying
-  "trialing", // not advertised, but honour it if legacy state exists
+  "trialing", // already on the 7-day trial: a second checkout would double-bill
   "past_due", // card failing: fix billing, do not stack a second subscription
   "unpaid", // same
 ]);
@@ -258,8 +259,30 @@ export const createCheckoutSession = action({
         "/checkout/cancelled?plan=" +
         encodeURIComponent(String(args.plan)) +
         langQ,
-      // No trial has been approved; none is configured here.
     };
+
+    /* THE FREE TRIAL. Seven days, everything unlocked, card taken up front.
+     *
+     * A trial only exists on a subscription. A one-time lifetime purchase has
+     * nothing to trial: there is no renewal to defer and no subscription object
+     * to carry the trial, and sending trial_period_days in `mode: "payment"` is
+     * an API error rather than a harmless extra.
+     *
+     * THE LENGTH LIVES IN entitlementCatalog, beside the grace window, because
+     * the reminder email and the copy on /pricing must both agree with what
+     * Stripe was actually told. Typed here as well, the three would drift and
+     * somebody would be promised one date and charged on another.
+     *
+     * The card is collected because Stripe Checkout in subscription mode
+     * collects it, and that is the intended design rather than an accident: an
+     * opt-out trial converts several times better than one where the reader has
+     * to come back and choose to pay. What makes that fair rather than sharp is
+     * the reminder three days out, which is a promise made on the page before
+     * they start and kept by convex/dunning.ts. One without the other is the
+     * version people rightly resent. */
+    if (!oneTime) {
+      form["subscription_data[trial_period_days]"] = String(TRIAL_DAYS);
+    }
     for (const [k, val] of Object.entries(provenance)) {
       form["metadata[" + k + "]"] = val;
       /* The second copy has to go somewhere that OUTLIVES the session.
