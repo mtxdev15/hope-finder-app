@@ -279,6 +279,30 @@ export const createCheckoutSession = action({
       ] = val;
     }
 
+    /* THE READER'S LANGUAGE, carried the same way and trusted differently.
+     *
+     * Deliberately stamped AFTER the provenance loop and not inside it. The
+     * five keys above are checked by classifyPlusSubscription; this one is not,
+     * and must never be — a sixth checked key would reject every subscription
+     * sold before this line existed. Extra metadata keys are inert to
+     * classification, which is what makes this additive and safe.
+     *
+     * It goes to the same two places for the same reason: the Checkout Session
+     * is gone within a day, and the failed-payment emails that need this are
+     * written weeks later against whatever survived. For a subscription that is
+     * subscription_data; for a one-off it is the PaymentIntent.
+     *
+     * English is the absence of the key rather than a stamped "en", so a row
+     * that predates this reads identically to one stamped by an English
+     * checkout. Nothing has to be backfilled. */
+    const stampLang = args.lang === "es" ? "es" : null;
+    if (stampLang) {
+      form["metadata[lang]"] = stampLang;
+      form[
+        (oneTime ? "payment_intent_data[metadata][lang]" : "subscription_data[metadata][lang]")
+      ] = stampLang;
+    }
+
     // Bucketed so a double-click reuses one session, but a genuine retry
     // minutes later is allowed to make a new one.
     const bucket = Math.floor(Date.now() / (5 * 60 * 1000));

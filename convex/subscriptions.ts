@@ -4,6 +4,15 @@ import { LIFETIME_SEATS } from "./plusPlans";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
+import { internal } from "./_generated/api";
+import { dunningSchedule, dunningDelayMs } from "./dunningSchedule";
+import { PAST_DUE_GRACE_MS } from "./entitlementCatalog";
+
+/* The statuses that mean Stripe is still trying and access is on borrowed time.
+ * Deliberately the same pair entitlements.ts grants grace to — if these two ever
+ * disagreed, we would either email somebody whose access was never at risk or
+ * stay silent while it ran out. */
+const FAILING_STATUSES: ReadonlySet<string> = new Set(["past_due", "unpaid"]);
 
 /* Plus subscription state — the server-authoritative mirror of whichever
  * provider billed the money.
@@ -240,6 +249,9 @@ export const applyWebhook = internalMutation({
     // Only ever the metadata WE set at Checkout, after classification verified
     // its provenance. Never a browser-supplied id.
     metadataUserId: v.optional(v.string()),
+    /* The reader's language, already normalised by plusPlans.normalizeLang to
+       one we actually ship. Absent means English — see the schema comment. */
+    locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // 1. Replay: already processed?
@@ -428,6 +440,10 @@ export const applyWebhook = internalMutation({
       ...(args.appleAppAccountToken
         ? { appleAppAccountToken: args.appleAppAccountToken }
         : {}),
+      /* Spread-omitted when absent, never written as undefined. An event whose
+         metadata we could not read must leave a previously-stamped language
+         alone rather than quietly resetting somebody to English. */
+      ...(args.locale ? { locale: args.locale } : {}),
     };
 
     if (existing) {
@@ -436,9 +452,99 @@ export const applyWebhook = internalMutation({
       await ctx.db.insert("subscriptions", { ...fields, createdAt: now });
     }
 
+    /* ── Tell them their card failed ──────────────────────────────────────
+     *
+     * ON THE TRANSITION, not on the event. Stripe sends several events per
+     * failure — invoice.payment_failed plus the customer.subscription.updated
+     * that actually carries the status — and Smart Retries produce more with
+     * every attempt. Scheduling on "the status became failing, having not been
+     * before" fires the sequence exactly once per episode, where scheduling on
+     * the event would send a fresh set of three emails after every retry.
+     *
+     * A brand-new row is deliberately NOT a transition: a subscription whose
+     * very first event already reads past_due did not lapse, it never started,
+     * and the copy ("your Plus pauses on…") would be wrong for it.
+     *
+     * The sends are scheduled, not sent here. This is a mutation and email is
+     * an action; more importantly each stage re-checks the subscription before
+     * sending, so a card fixed on day one silently cancels the rest. */
+    const wasFailing = existing ? FAILING_STATUSES.has(existing.status) : false;
+    const isFailing = FAILING_STATUSES.has(fields.status);
+    if (existing && isFailing && !wasFailing && fields.planKey !== "plus_lifetime") {
+      for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
+        const delay = dunningDelayMs(stage, PAST_DUE_GRACE_MS);
+        if (delay === null) continue;
+        await ctx.scheduler.runAfter(delay, internal.dunning.sendDunningEmail, {
+          userId: fields.userId,
+          stage,
+        });
+      }
+    }
+
     // Recorded last: if anything above throws, the provider retries and we
     // reprocess rather than marking an event done that never applied.
     await recordEvent("applied");
     return { ok: true };
+  },
+});
+
+/* Record a refund that we deliberately did NOT act on.
+ *
+ * WHY THIS IS NOT PART OF applyWebhook
+ * applyWebhook exists to change the canonical row. This changes nothing — that
+ * is the entire point. Folding a no-op path into the mutation whose job is to
+ * mutate would mean every future reader of applyWebhook has to hold "…except
+ * when it does not apply anything" in their head, which is how the escape
+ * hatches that break security checks get added.
+ *
+ * WHY A REFUND ON A SUBSCRIPTION IS RECORDED AND NOT APPLIED
+ * A lifetime purchase has no lifecycle: a refund is the only signal it will
+ * ever get, so `charge.refunded` revokes it through applyWebhook as usual. A
+ * subscription has a STATUS, and that status already governs access — so
+ * revoking on a refund would be actively wrong for a goodwill refund on a
+ * subscription that is still running, and redundant next to the
+ * customer.subscription.deleted that accompanies a real cancellation.
+ *
+ * Before this existed, such a refund was acknowledged and dropped, leaving no
+ * trace in Convex at all. Now it is visible to whoever goes looking, without
+ * touching anybody's access. */
+export const recordRefundInternal = internalMutation({
+  args: {
+    provider: providerValidator,
+    eventId: v.string(),
+    eventType: v.string(),
+    /* Which plan the refunded charge belonged to, for the operator reading
+       this row later. Not used to decide anything here. */
+    planKey: v.string(),
+    /* Only ever the metadata WE stamped at Checkout, after provenance was
+       verified upstream. Never a browser-supplied id. */
+    metadataUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    /* Same replay rule as applyWebhook, and for the same reason: Stripe retries,
+       and one event must produce one row however it resolved. */
+    const seen = await ctx.db
+      .query("billingEvents")
+      .withIndex("by_provider_event", (q) =>
+        q.eq("provider", args.provider).eq("eventId", args.eventId),
+      )
+      .first();
+    if (seen) return { ok: true, deduped: true };
+
+    await ctx.db.insert("billingEvents", {
+      provider: args.provider,
+      eventId: args.eventId,
+      type: args.eventType,
+      processedAt: Date.now(),
+      outcome: "refund-recorded" as const,
+      /* conflictReason is the existing free-text column for "why did this
+         resolve the way it did". Reused rather than adding a near-duplicate
+         field, and written in the same spirit: enough to understand the row
+         without reopening Stripe, and no identifier that could address a Stripe
+         object. */
+      conflictReason: "refund on " + args.planKey + " — entitlement unchanged; subscription status governs access",
+      ...(args.metadataUserId ? { userId: args.metadataUserId } : {}),
+    });
+    return { ok: true, deduped: false };
   },
 });

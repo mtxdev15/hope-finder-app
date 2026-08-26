@@ -336,3 +336,42 @@ export function stampedUserId(subscription: any, session?: any | null): string |
   const id = subMeta.userId || sessionMeta.userId;
   return typeof id === "string" && id ? id : null;
 }
+
+/* ── The reader's language ────────────────────────────────────────────────
+ *
+ * WHY THIS SITS BESIDE PROVENANCE AND IS NOT PART OF IT
+ * `lang` is stamped by the same Checkout call that stamps the five provenance
+ * keys, and it travels the same way — but it is NOT evidence of anything.
+ * classifyPlusSubscription must never read it, and adding a sixth checked key
+ * would break every subscription sold before this shipped. It is metadata we
+ * carry, not metadata we trust.
+ *
+ * NORMALISED HERE, so the only values that can ever be written are ones this
+ * function returns. Anything unrecognised — a value Stripe echoed back oddly,
+ * a language we no longer ship, a hand-edited Dashboard field — becomes null,
+ * and null means English. Silence in the wrong language would be worse than a
+ * missing translation, so an unknown value degrades rather than throwing:
+ * this is read inside a webhook mutation, where a throw means Stripe retries
+ * forever. */
+export type EmailLang = "en" | "es";
+
+export const EMAIL_LANGS: readonly EmailLang[] = ["en", "es"];
+
+export function normalizeLang(x: unknown): EmailLang | null {
+  if (typeof x !== "string") return null;
+  /* Accepts "es-MX" and "ES" as readily as "es". Browsers and Stripe both
+     hand back regional tags, and a Mexican Spanish speaker should not get
+     English because of a suffix. */
+  const base = x.trim().toLowerCase().split(/[-_]/)[0];
+  return (EMAIL_LANGS as readonly string[]).includes(base) ? (base as EmailLang) : null;
+}
+
+/* The language our own Checkout stamped, from wherever it survived: the
+ * subscription for a recurring plan, the session for a one-off. Same shape as
+ * stampedUserId above and read at the same moment, but with no security
+ * meaning — an unstamped subscription simply gets English. */
+export function stampedLang(subscription: any, session?: any | null): EmailLang | null {
+  const subMeta = (subscription && subscription.metadata) || {};
+  const sessionMeta = (session && session.metadata) || {};
+  return normalizeLang(subMeta.lang) ?? normalizeLang(sessionMeta.lang);
+}

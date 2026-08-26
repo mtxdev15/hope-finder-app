@@ -77,6 +77,7 @@ const PRICING = read("src/pages/pricing.astro");
 const BILLING = read("src/pages/billing.astro");
 const CONVEX_DATA = read("src/app/declare/convex-data.js");
 const I18N = read("public/declare/i18n-strings.js");
+const PLAN_DISPLAY = read("src/app/declare/plan-display.js");
 
 /* Realistic fixtures, shaped like what getMyEntitlements actually returns. */
 const ACTIVE_MONTHLY = {
@@ -153,6 +154,90 @@ check("cancel-at-period-end -> plus-cancelling", planState(CANCELLING) === "plus
 check("payment attention -> plus-attention", planState(ATTENTION) === "plus-attention");
 check("two providers -> plus-ambiguous", planState(AMBIGUOUS) === "plus-ambiguous");
 check("free -> free", planState(FREE) === "free");
+
+/* ── THE LAPSE: a failed payment whose grace window has expired ────────────
+ *
+ * THIS SUITE PASSED WHILE THIS WAS BROKEN, which is why the block is here.
+ *
+ * entitlements.ts:128 returns `{ tier: "free", needsAttention: true }` for a
+ * past_due or unpaid subscription past its grace end. planState tested `tier`
+ * FIRST and returned "free" before `paymentNeedsAttention` was ever read, so
+ * the failure vanished: /billing said "You're using the essential Declare
+ * experience", the Portal button disappeared with the rest of the billing
+ * sections, and BLOCKS_NEW_CHECKOUT refused a fresh Checkout on exactly those
+ * statuses. A subscriber whose card expired was silently downgraded and left
+ * with no route back — not even a way to look at the unpaid invoice.
+ *
+ * Every check below is executed against the real module, and each one fails on
+ * the old ordering. */
+const LAPSED = {
+  ...ACTIVE_MONTHLY,
+  tier: "free",
+  subscriptionStatus: "past_due",
+  paymentNeedsAttention: true,
+  remaining: { gentleGuidanceToday: 3, activeJourneySlots: 1 },
+};
+
+check("a free tier flagged for attention is a LAPSE, never plain free",
+  planState(LAPSED) === "lapsed");
+check("the lapse is its own state, not a re-use of attention",
+  planState(LAPSED) !== "plus-attention" && PLAN_STATES.includes("lapsed"));
+
+/* EVERY check below derives the state from the ENTITLEMENT rather than passing
+   the literal "lapsed".
+   Written the other way first, and it was nearly useless: removing the fix left
+   18 of them still green, because they were asking what the machine does with a
+   state it could no longer produce. Reading through planState makes each one
+   fail the moment the lapse stops being detected — which is the only failure
+   that matters. */
+const LAPSED_STATE = planState(LAPSED);
+
+/* THE FIX ITSELF. Without it the subscriber cannot reach the only place that
+   can repair them, because a fresh Checkout is refused on past_due/unpaid. */
+check("a lapsed subscriber can still reach billing management",
+  showsManageBilling(LAPSED_STATE) === true);
+check("and is offered the action that actually repairs it",
+  plusCtaIntent(LAPSED_STATE) === "update-payment");
+
+/* …while not being told they still have something they do not. */
+check("a lapsed subscriber is not shown the Plus badge", showsPlusBadge(LAPSED_STATE) === false);
+check("their current plan reads Free, truthfully", currentPlanId(LAPSED_STATE) === "free");
+check("exactly one plan is current, as for every signed-in state",
+  currentPlanCount(LAPSED_STATE) === 1);
+check("the Plus card carries no badge for them", planStatusKey("plus", LAPSED_STATE) === null);
+check("the Free card carries the lapse badge",
+  planStatusKey("free", LAPSED_STATE) === "plan.stateLapsed");
+check("no renewal or ending date is claimed", periodLabelKey(LAPSED_STATE) === null);
+check("the plan name is Free, not Plus", planNameKey(LAPSED_STATE) === "plan.freeName");
+
+/* A second Checkout is NOT the repair path: billing.ts refuses past_due and
+   unpaid outright, so offering one would produce a dead button. */
+check("a lapsed subscriber is never offered a purchase",
+  mayStartCheckout(LAPSED_STATE) === false);
+check("…including when purchasing is switched on",
+  plusCtaIntent(LAPSED_STATE, true) !== "upgrade");
+
+/* And the fix must not have widened into ordinary Free. A plain free account
+   has never paid and has nothing to repair; showing it billing management
+   would invent a subscription. */
+check("a plain free account is still plain free", planState(FREE) === "free");
+check("a plain free account is still offered no billing management",
+  showsManageBilling("free") === false);
+check("a plain free account may still start a checkout", mayStartCheckout("free") === true);
+
+/* The ordering is the property. Asserted against source as well as behaviour,
+   because a future edit could reintroduce the early return and still satisfy
+   everything above by special-casing elsewhere. */
+check("planState reads the attention flag BEFORE the tier shortcut",
+  PLAN_DISPLAY.indexOf("=== 'lapsed'") > -1 &&
+  PLAN_DISPLAY.indexOf("paymentNeedsAttention === true) return 'lapsed'") <
+    PLAN_DISPLAY.indexOf("if (tier !== 'plus')"));
+
+/* Still Plus while the grace window is open — the lapse must not swallow it. */
+check("in-grace attention is unchanged and still grants Plus",
+  planState({ ...LAPSED, tier: "plus" }) === "plus-attention");
+check("in-grace still shows the Plus badge",
+  showsPlusBadge(planState({ ...LAPSED, tier: "plus" })) === true);
 check("guest -> guest", planState({ tier: "guest" }) === "guest");
 check("loading is explicit", planState(ACTIVE_MONTHLY, { loading: true }) === "loading");
 

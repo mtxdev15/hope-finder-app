@@ -93,15 +93,38 @@ export function definitionFor(tier: Tier): TierDefinition {
 }
 
 /* ── Billing grace ────────────────────────────────────────────────────────────
- * How long a `past_due` or `unpaid` subscription keeps Plus while Stripe
- * retries the card.
+ * How long a `past_due` or `unpaid` subscription keeps Plus, in full, while
+ * Stripe retries the card.
  *
- * THIS IS A PRODUCT SETTING AWAITING APPROVAL, not a silently chosen default.
- * 3 days is the recommendation: a failed retry is usually a bank hiccup or an
- * expired card, and dropping someone out of Plus the moment a retry fails is
- * the wrong default for an app people reach for at 3am. Documented in
- * docs/implementation/release-c1-phase4-entitlements.md for sign-off. */
-export const PAST_DUE_GRACE_DAYS = 3;
+ * APPROVED 2026-08-26 AT 16 DAYS. It was 3, carrying a note that it was "a
+ * product setting awaiting approval, not a silently chosen default" — this is
+ * that approval, and the number moved.
+ *
+ * WHY 16 AND NOT 3
+ * Three days was shorter than the retries it was meant to cover. Stripe's Smart
+ * Retries run for TWO WEEKS by default, so a subscriber lost Plus on day 4 and
+ * could have it handed back on day 10 when an attempt succeeded — access
+ * flapping off and on while we were still trying to charge them, with no
+ * explanation for either transition.
+ *
+ * WHY 16 SPECIFICALLY
+ * It is Apple's own default for monthly-and-longer subscriptions (their billing
+ * grace period offers 3, 16 or 28 days, and keeps full access throughout —
+ * Google Play works the same way, granting grace before any hold). And it
+ * EXCEEDS Stripe's 14-day retry window by two days, which is the property that
+ * matters: access now ends exactly once, after the retries have genuinely
+ * finished, with margin rather than a race.
+ *
+ * WHAT IT COSTS
+ * Up to 16 days of Plus for a card that may never recover. Set against $8.99
+ * and an involuntary-churn rate near 40% — most failures are an expired card,
+ * not a decision to leave — that is a good trade, and a cheap one.
+ *
+ * CHANGING IT IS ONE NUMBER. The dunning email schedule is DERIVED from this
+ * (convex/dunningSchedule.ts) so the emails can never promise a date this
+ * disagrees with, and scripts/verify-dunning-emails.ts proves the schedule
+ * stays correct at 2, 3, 7, 14, 16 and 28 days. */
+export const PAST_DUE_GRACE_DAYS = 16;
 export const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
 /* Minimum interval between account timezone changes. Prevents hopping between

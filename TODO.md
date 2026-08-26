@@ -102,15 +102,32 @@ real charges instead of two.
       **DONE 2026-08-26 — the live path works end to end.** One $8.99 monthly purchase, real card, real production user. Entitlement flipped to `tier: plus / plus_monthly / stripe`, the live `/billing` rendered it, cancel-at-period-end and its reversal both worked across three surfaces, then cancelled immediately with a full refund and `/billing` returned to Free.
       Provenance confirmed on the live subscription: `source=convex.billing.createCheckoutSession`, `billing_schema_version=1`, `environment=production`, `plan=plus_monthly`, plus the userId - which is exactly what a hand-made Dashboard subscription can never carry.
       **Four things had never carried a real request before this and now have:** the live Stripe signature at the Worker, the shared Worker-to-Convex secret, classification of a live Price with its provenance, and the entitlement write.~~
-- [ ] **STILL UNVERIFIED — `charge.refunded` has never fired our revocation path.**
-      *Recorded 2026-08-26 so the smoke test does not look like it covered this. It did not.*
-      `convex/http.ts:257` refuses anything whose PaymentIntent metadata is not
-      `plan === "plus_lifetime"`, deliberately: a subscription's entitlement is governed by its
-      subscription STATUS, not by refunds, so a refunded monthly charge is acknowledged and ignored.
-      The smoke test refunded a **monthly** charge, so it exercised none of that branch — Plus was
-      revoked by `customer.subscription.deleted`, not by the refund. The only way to verify it is a
-      real lifetime purchase followed by a real refund, and lifetime is not yet buyable. Until then,
-      the one path that can undo a $149 sale is untested in production.
+- [x] ~~**`charge.refunded` now covers all three plans.** *Shipped 2026-08-26.*
+      The handler only ever reached LIFETIME purchases, and not because of the plan
+      check — because of where provenance lives. `createCheckoutSession` stamps the
+      five keys on `payment_intent_data[metadata]` in payment mode but on
+      `subscription_data[metadata]` in subscription mode, so a monthly or annual
+      refund arrived with EMPTY PaymentIntent metadata and was rejected one gate
+      earlier, at `source`. Widening the plan check alone would have changed nothing.
+      It now walks charge → invoice → subscription to read the metadata that exists.~~
+- [x] ~~**DECIDED 2026-08-26 — a refund never revokes a monthly or annual subscription.**
+      Owner's decision, and deliberate. A refund and a cancellation are different
+      acts: refunding a month as goodwill to somebody still subscribed, and having
+      that cut off their access, punishes the person it was meant to look after.
+      When a refund does accompany a real ending, `customer.subscription.deleted`
+      has already revoked — so acting here is harmful or redundant, never needed.
+      **Lifetime still revokes**, because it has no subscription status to consult
+      and the refund is the only signal it will ever get.
+      Both halves are asserted in `scripts/verify-duplicate-subscription-guard.ts`
+      so neither can be flipped by someone reading the other as a bug.~~
+- [ ] **STILL UNVERIFIED IN PRODUCTION — the lifetime revocation path.**
+      The logic is covered by suites, but no real lifetime purchase has ever been
+      refunded, because lifetime is not yet buyable. The one path that can undo a
+      $149 sale has never run against live Stripe. Settle it with the first real
+      lifetime purchase after C2, not before.
+      *(Superseded the older note that read "`charge.refunded` has never fired our
+      revocation path" — that was true of all three plans; it is now true only of
+      lifetime, and only in production.)*
 - [ ] **`/checkout/success` copy, after the poll fix.** The window is now 20s fast + 100s slow
       (`checkout-return.js`), which covers a cold start. But if it still exhausts, "Still confirming"
       is shown to somebody who has paid. The copy is careful — it says not to pay again — and the
@@ -128,6 +145,36 @@ real charges instead of two.
       deliberately unmerged. Production is currently *structurally* incapable of starting a
       Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
       suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
+
+- [ ] **The dashboard steps for the billing-page + dunning work.** All the code is
+      merged and deployed by then; these four cannot be done from a terminal, and the
+      sequence below is deliberate — each one is safe only once the one above it has landed.
+
+      1. **`npx convex deploy`** — ships the emails, the `locale` and `dunningSends`
+         schema additions, and the `lapsed` billing state. Both schema changes are
+         additive and need no backfill.
+      2. **Stripe → Settings → Billing → *Subscriptions and emails*: turn OFF
+         "Send emails when card payments fail"** and "Send emails when bank debit
+         payments fail". **Only after step 1.** Off with nothing deployed is not
+         "fewer emails", it is none. Confirmed **ON** in a screenshot on 2026-08-26 —
+         `dunning-plan.md` had assumed otherwise and has been corrected.
+      3. **Stripe → same page → *Manage failed payments* → Subscription status:
+         change "cancel the subscription" to "leave the subscription past-due"** (B3).
+         Confirmed as `cancel` in the same screenshot. This is what lets a returning
+         subscriber repair a card in the Portal instead of buying again, and it is what
+         the `lapsed` state on `/billing` exists to serve.
+      4. **Resend → Webhooks → add `https://<convex-site>/resend/email-event`**, then
+         set its signing secret as `RESEND_WEBHOOK_SECRET` in Convex production. Until
+         this exists, delivery events fail closed and are simply not recorded — the
+         suppression-on-bounce logic has nothing to read.
+
+      Also confirm **`RESEND_API_KEY`** is set in Convex production. Without it every
+      send throws and the whole sequence is silent.
+
+      Deliberately **not** changed: *"if a recurring payment is incomplete for 15 days,
+      cancel"* governs `incomplete` — a first payment where 3D Secure was never
+      confirmed — which is a different state from `past_due` and is right as it is.
+      *"Send finalized invoices and credit notes"* stays **on**; those are receipts.
 
 ## 💳 Path to the first paying subscriber
 
@@ -148,14 +195,64 @@ has paid you money.
       switching, quantity and pause **off**. *Harm if skipped: a paying customer
       with no way out. That is a consumer-protection problem, not a UX one.*
       **DONE 2026-08-26.** Cancel subscriptions on, at end of billing period; cancellation reason collected; plan switching and quantity change off; payment-method updates and invoice history on. "Next generation portal experience" left **off** on purpose - it is a preview whose behaviour can change underneath us, and this path has carried zero real deliveries.~~
-- [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
-      **off**, so this path has never run once. Portal recovery works — but
-      nothing currently tells anyone their card failed. *Harm if skipped: silent
-      involuntary churn. They think they still have Plus; they don't.*
-- [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
-      unpaid" are very different outcomes for a real subscriber, and the sandbox
-      default is cancel. *Harm if skipped: subscriptions ending without anyone
-      choosing that.*
+- [x] ~~**B2. Failed-payment emails — BUILT OURS, Stripe's toggle stays off.**
+      *Shipped 2026-08-26. Full reasoning in `docs/operations/dunning-plan.md`.*
+      The decisive fact: Stripe's toggle sends **one email per retry attempt** — eight at the
+      default — and the copy cannot be changed. Eight escalating payment demands to somebody who
+      reaches this app at 3am is a collections experience. Recurly's own guidance is three to four
+      messages; Paddle sends four.
+      Ours is three, then silence: immediately, 24h before access stops, and when it stops. The
+      cadence is DERIVED from `PAST_DUE_GRACE_DAYS` so it can never promise a date the entitlement
+      layer will not honour — which mattered at once, since grace is 3 days while Stripe retries
+      for 14. Scheduled on the status TRANSITION, so retries cannot re-trigger it, and every stage
+      re-checks before sending so a card fixed on day one cancels the rest.
+      Carries the four fields the good ones do (amount, card brand + last four, plan, the date
+      access ends) behind one button, plus an explicit alternative to clicking the link — because
+      "your payment failed, update your details" is among the most common phishing templates that
+      exists. Hardship help is offered in the FIRST email, not the last.
+      92 checks in `scripts/verify-dunning-emails.ts`, executing the real copy.~~
+- [x] ~~**B2a. Email language — DONE 2026-08-26. English and Spanish.**
+      `createCheckoutSession`'s `lang` is now stamped into `subscription_data[metadata][lang]`
+      (or `payment_intent_data[metadata][lang]` for lifetime — the same asymmetry provenance
+      uses), read back by `plusPlans.stampedLang`, persisted on the subscriptions row as
+      `locale`, and read by `dunning.ts` weeks later.
+      **Carried metadata, never provenance.** `classifyPlusSubscription` does not read it and
+      must not start — a sixth checked key would reject every subscription sold before the stamp
+      existed. `verify-plus-classification.ts` asserts both directions.
+      **Absence means English**, so nothing needed backfilling. `normalizeLang` accepts regional
+      tags (`es-MX`, `es_419`) and returns `null` for anything else — null rather than a throw,
+      because this runs in a webhook mutation and Stripe answers a throw with infinite retries.
+      The Spanish is `tú` (matching the app), its ban list is written for Spanish rather than
+      translated from English, and money and dates format as `es-US`. The link carries `?lang=es`
+      so the page opens in the email's language; `i18n.js` honours it and strips it.~~
+- [x] ~~**B2b. Email delivery tracking — DONE 2026-08-26.** `onEmailEvent` is registered and
+      `/resend/email-event` routed; the component verifies the svix signature itself, so this
+      route does not go through the Worker (rule C5 is about the *Stripe* credential — adding a
+      hop and a second copy of a secret here would buy nothing).
+      Each send writes a `dunningSends` row joining the message id to the user and stage.
+      **Delivery tracking, not analytics:** no opens, no clicks, no pixel, no duplicated address.
+      **The part that matters:** a bounce, hard failure or spam complaint suppresses the
+      remaining stages, checked at send time before the address is even resolved.
+      *Needs one dashboard step — see Next up.*~~
+- [x] ~~**B2c. DECIDED 2026-08-26 — the grace window is 16 days, Apple's model.**
+      Was 3, carrying its own note that it was "awaiting approval, not a silently chosen default".
+      Three days was shorter than the retries it covered: Stripe retries for **two weeks**, so
+      somebody lost Plus on day 4 and could get it back on day 10 — access flapping while we were
+      still trying to charge them.
+      **16 is Apple's own default** for monthly-and-longer subscriptions (3/16/28, full access
+      throughout), and it **exceeds Stripe's 14-day retry window by two days**, so access now ends
+      exactly once, after the retries have finished, with margin rather than a race.
+      Consequence, and it was not obvious: the three-email cadence read correctly at 3 days
+      (0, 2, 3) but became 0, 15, 16 at sixteen — one email, two weeks of silence, then two inside
+      a day. A midpoint `reminder` stage was added, so the sequence is now 0, 8, 15, 16. Four
+      emails, against Stripe's eight.
+- [ ] **B3. Smart Retry's final action — CONFIRMED as `cancel`, still to change.**
+      No longer an assumption: a screenshot of the live Dashboard on 2026-08-26 shows
+      *"If all retries for a payment fail, cancel the subscription"*. Recommendation is
+      **leave the subscription past-due**, so a returning subscriber repairs a card through the
+      Portal rather than buying again from scratch — which is what the `lapsed` state on
+      `/billing` exists to keep open. Dashboard-only; a restricted key is refused for it.
+      *Harm if skipped: subscriptions ending without anyone choosing that.*
 - [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
       failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
       cancellation). *An alert with no resolution check is how a silently

@@ -11,6 +11,8 @@
 import type * as accountDay from "../accountDay.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
+import type * as dunning from "../dunning.js";
+import type * as dunningSchedule from "../dunningSchedule.js";
 import type * as email from "../email.js";
 import type * as entitlementCatalog from "../entitlementCatalog.js";
 import type * as entitlements from "../entitlements.js";
@@ -40,6 +42,8 @@ declare const fullApi: ApiFromModules<{
   accountDay: typeof accountDay;
   auth: typeof auth;
   billing: typeof billing;
+  dunning: typeof dunning;
+  dunningSchedule: typeof dunningSchedule;
   email: typeof email;
   entitlementCatalog: typeof entitlementCatalog;
   entitlements: typeof entitlements;

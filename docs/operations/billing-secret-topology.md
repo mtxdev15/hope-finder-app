@@ -1,4 +1,4 @@
-# The four billing secrets, and the live activation steps
+# The billing secrets, and the live activation steps
 
 **No secret value appears in this document. Variables are named, never read.**
 No live Stripe object was created or modified while writing it, no production
@@ -13,7 +13,10 @@ secret and which is not** — and that gap is what actually blocked activation.
 
 ## 1. Why this document exists
 
-Four secrets are in play. Three of them contain the words `WEBHOOK_SECRET`.
+Four billing secrets are in play. Three of them contain the words
+`WEBHOOK_SECRET`. (Two email secrets were added later — section 9 — and one of
+those looks like a third `whsec_` while belonging to a different provider
+entirely.)
 Exactly one of those three is a Stripe signing secret.
 
 The failure this prevents: pasting a `whsec_...` into `BILLING_WEBHOOK_SECRET`.
@@ -242,3 +245,37 @@ grep above printing nothing.
 `.env.development.local` (dev-mode-only, gitignored) on the developer's own
 machine. Deleting that file returns local development to the dev Convex
 deployment. The normal develop-then-push loop is unchanged by any of this.
+
+---
+
+## 9. The two email secrets — a different chain entirely
+
+Added 2026-08-26 with the failed-payment emails. **Neither is a billing secret,
+and the distinction is the point of putting them here rather than leaving them
+uncatalogued.**
+
+| Variable | Lives in | Looks like | Read by |
+|---|---|---|---|
+| `RESEND_API_KEY` | Convex only | `re_…` | the Resend component, when sending |
+| `RESEND_WEBHOOK_SECRET` | Convex only | `whsec_…` (svix) | the Resend component, verifying an inbound event |
+
+**`RESEND_WEBHOOK_SECRET` starts with `whsec_` and has nothing to do with
+Stripe.** That prefix is svix's convention, which Stripe also uses; three of the
+four billing secrets already look alike, and this makes a fifth lookalike. It is
+issued by **Resend**, pasted into **Convex**, and pairing it with the Stripe
+endpoint — or vice versa — produces signature failures on both.
+
+**The Worker holds neither, and this is not an exception to rule C5.** C5 exists
+because the Worker is the public edge in front of a money path and must never
+hold a Stripe credential. Resend's events are not a money path: the component
+verifies svix's signature itself, so routing them through the Worker would add a
+hop and a second copy of a secret to buy nothing. `/resend/email-event` is
+therefore a direct Convex route, and the only route in this system that is.
+
+**Both fail closed.** No `RESEND_API_KEY` and every send throws — the sequence is
+silent, which is the worst outcome here and the reason it is worth checking
+explicitly rather than assuming. No `RESEND_WEBHOOK_SECRET` and inbound events
+are rejected before any handler runs: delivery goes unrecorded, and the
+bounce-suppression logic has nothing to read. Neither failure is loud on its own,
+so both are listed as launch steps in `TODO.md` → *Next up* rather than trusted
+to be already set.
