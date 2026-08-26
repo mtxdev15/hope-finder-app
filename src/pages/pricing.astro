@@ -47,7 +47,7 @@ import LegalFooter from '../components/LegalFooter.astro';
 
       <header class="pl-hero rise d1">
         <h1 data-i18n="plans.h1">Choose the support that fits your journey.</h1>
-        <p class="pl-sub" data-i18n="plans.sub">Start with the essentials, or unlock unlimited guidance and journeys with Plus.</p>
+        <p class="pl-sub" data-i18n="plans.sub">Start free and stay free. When three answers a day stops being enough, Plus takes the ceiling off.</p>
       </header>
 
       {/* Cadence. A radiogroup rather than two buttons, so the selected state is
@@ -56,7 +56,11 @@ import LegalFooter from '../components/LegalFooter.astro';
           which plan is current. */}
       <div class="pl-cadence rise d2">
         <div class="seg" role="radiogroup" aria-labelledby="plCadenceLbl" id="plCadence">
-          <span class="sr-only" id="plCadenceLbl" data-i18n="plans.cadenceLabel">Billing period</span>
+          <span class="sr-only" id="plCadenceLbl" data-i18n="plans.cadenceLabel">How Plus is billed</span>
+          {/* Follows the selected option. Positioned from script rather than by
+              a percentage, because the two options are not the same width: the
+              annual one carries the saving. */}
+          <span class="seg-thumb" id="segThumb" aria-hidden="true"></span>
           <button type="button" class="seg-o" id="segMonth" role="radio" aria-checked="true" data-interval="month">
             <span data-i18n="plans.monthly">Monthly</span>
           </button>
@@ -78,7 +82,7 @@ import LegalFooter from '../components/LegalFooter.astro';
           <ul class="pl-list">
             <li data-i18n="plans.freeF1">The full Bible and the whole Declare experience</li>
             <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day</li>
-            <li data-i18n="plans.freeF3">2 Journeys active at once</li>
+            <li data-i18n="plans.freeF3">2 Journeys at a time, 5 days each</li>
             <li data-i18n="plans.freeF4">Your declarations, reflections and Vault, kept</li>
           </ul>
           <div class="pl-cta" id="plFreeCta">
@@ -87,10 +91,10 @@ import LegalFooter from '../components/LegalFooter.astro';
         </article>
 
         {/* ── Plus ─────────────────────────────────────────────────────── */}
-        <article class="pl-card pl-plus rise d3" id="plPlus" aria-labelledby="plPlusNm">
+        <article class="pl-card pl-plus rise d4" id="plPlus" aria-labelledby="plPlusNm">
           <div class="pl-badge" id="plPlusBadge" hidden></div>
           <h2 class="pl-nm" id="plPlusNm" data-i18n="plans.plusName">Plus</h2>
-          <p class="pl-desc" data-i18n="plans.plusDesc">More room for guided reflection, unlimited journeys, and continued growth.</p>
+          <p class="pl-desc" data-i18n="plans.plusDesc">For the night when three answers are not enough.</p>
           <div class="pl-price">
             <span class="pl-amt" id="plPlusAmt">$8.99</span>
             <span class="pl-cur" id="plPlusPer" data-i18n="plans.perMonth">/ month</span>
@@ -98,9 +102,9 @@ import LegalFooter from '../components/LegalFooter.astro';
           <div class="pl-per" id="plPlusNote" data-i18n="plans.billedMonthly">Billed monthly</div>
           <ul class="pl-list">
             <li data-i18n="plans.plusF1">Everything in Free</li>
-            <li data-i18n="plans.plusF2">Unlimited Gentle Guidance</li>
-            <li data-i18n="plans.plusF3">Unlimited Journeys, active at once</li>
-            <li data-i18n="plans.plusF4">Room to keep going without a daily ceiling</li>
+            <li data-i18n="plans.plusF2">Gentle Guidance with no daily limit</li>
+            <li data-i18n="plans.plusF3">As many Journeys as you need, at the same time</li>
+            <li data-i18n="plans.plusF4">Keep going at 3am without counting what is left</li>
           </ul>
           <div class="pl-cta" id="plPlusCta">
             {/* Served disabled. Only an explicit activation may change that, and
@@ -150,6 +154,53 @@ import LegalFooter from '../components/LegalFooter.astro';
             </div>
           </div>
         </article>
+
+        {/* ── Lifetime ─────────────────────────────────────────────────────
+            NOT a third point on the monthly-or-annual axis, and the design says
+            so: it is the one card the cadence control above does not price. A
+            one-time purchase sitting in an identical column invites the reader
+            to divide it by twelve and compare, which is the wrong comparison.
+
+            NO TRIAL, and the card says so rather than leaving it to be noticed
+            at checkout. Stripe runs this in `mode: "payment"`, and a trial is a
+            delay before a first charge on a subscription that does not exist
+            here. The note is the honest version of an absence.
+
+            THE SEAT NUMBER IS SERVER-SIDE. It is written in by script from
+            convex/plusPlans.ts, never typed here, so the page cannot promise a
+            round size that differs from the cap that gates the purchase. */}
+        {/* `pl-once`, not `pl-life`: .pl-life is already the Plus card's
+            lifecycle sentence a few lines above, and a card sharing that class
+            inherits its type and margin. */}
+        <article class="pl-card pl-once rise d5" id="plLife" aria-labelledby="plLifeNm">
+          <div class="pl-badge" id="plLifeBadge" hidden></div>
+          <h2 class="pl-nm" id="plLifeNm" data-i18n="plans.lifeName">Lifetime</h2>
+          <p class="pl-desc" data-i18n="plans.lifeDesc">Pay once. Plus stays yours for as long as Declare is here.</p>
+          <div class="pl-price">
+            <span class="pl-amt" id="plLifeAmt">$149</span>
+            <span class="pl-cur" data-i18n="plans.lifeOnce">once</span>
+          </div>
+          <div class="pl-per" data-i18n="plans.lifeNote">Less than two years of annual</div>
+          <ul class="pl-list">
+            <li data-i18n="plans.lifeF1">Everything in Plus, kept for good</li>
+            <li data-i18n="plans.lifeF2">No renewal and no card left on file</li>
+            <li data-i18n="plans.lifeF3">Every future Plus feature included</li>
+            {/* Filled in from the server cap. Ships with no number at all rather
+                than with a guess, so a failed read shows one fewer bullet
+                instead of a seat count we invented. */}
+            <li id="plLifeSeats" hidden></li>
+          </ul>
+          {/* ABOVE the button, not below it. Three cards whose buttons sit on
+              three different baselines is the first thing the eye catches, and
+              anything after the CTA on one card lifts that card's CTA by its own
+              height. It also belongs here on the reading order: this is the last
+              thing somebody should know BEFORE they press, not after. */}
+          <p class="pl-fine" data-i18n="plans.lifeNoTrial">A one-time purchase, so the 7 free days apply to monthly and annual.</p>
+          <p class="pl-trial-err" id="plLifeErr" role="alert" hidden></p>
+          <div class="pl-cta" id="plLifeCta">
+            <button type="button" class="btn btn-primary" id="plLifeBtn" disabled data-i18n="plans.launchSoon">Plus launches soon</button>
+          </div>
+        </article>
       </div>
 
       {/* ── Comparison ─────────────────────────────────────────────────── */}
@@ -192,6 +243,10 @@ import LegalFooter from '../components/LegalFooter.astro';
             </tr>
           </tbody>
         </table>
+        {/* Said once, here, rather than given a third column that would repeat
+            the Plus column exactly. Lifetime differs in how it is bought, never
+            in what it grants. */}
+        <p class="pl-cmp-note" data-i18n="plans.compareLife">Lifetime grants this same Plus. It is bought once instead of monthly.</p>
       </section>
 
       {/* ── Reassurance ────────────────────────────────────────────────── */}
@@ -256,11 +311,12 @@ import LegalFooter from '../components/LegalFooter.astro';
    *
    * FAILS CLOSED: while entitlement state is loading, unknown or ambiguous,
    * neither card is marked current and nothing becomes purchasable. */
-  import { myEntitlements } from '../app/declare/convex-data.js';
+  import { myEntitlements, lifetimeAvailability } from '../app/declare/convex-data.js';
   import {
     planState, mayStartCheckout, currentPlanId, isCurrentPlan, planStatusKey,
     plusCtaIntent, freeCtaIntent, initialInterval, formatPeriodEnd,
-    PRICING_ENABLED, PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS, TRIAL_DAYS,
+    PRICING_ENABLED, PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS, PLUS_LIFETIME_CENTS,
+    TRIAL_DAYS, isLifetime,
   } from '../app/declare/plan-display.js';
   import { track } from '../app/declare/analytics.js';
 
@@ -309,6 +365,10 @@ import LegalFooter from '../components/LegalFooter.astro';
     'plans.perYear': '/ year',
     'plans.billedMonthly': 'Billed monthly',
     'plans.billedAnnual': 'Billed annually, about $6.67 a month',
+    'plans.lifeCta': 'Become a founding member',
+    'plans.lifeSoldOut': 'The founding round is full',
+    'plans.lifeSeats': '{seats} founding seats in this round',
+    'plans.errSeatsGone': 'The last founding seat went while you were reading. Monthly and annual are still open.',
   };
 
   /* The fallback is looked up per key. A caller may still pass one explicitly,
@@ -325,6 +385,11 @@ import LegalFooter from '../components/LegalFooter.astro';
   const MONTHLY_CENTS = PLUS_MONTHLY_CENTS;
   const ANNUAL_CENTS = PLUS_ANNUAL_CENTS;
   const money = (cents: number) => '$' + (cents / 100).toFixed(2);
+  /* Whole dollars printed without the cents. $8.99 keeps them because they are
+     real; $149.00 spends two characters saying nothing, and on a one-time price
+     sitting beside two recurring ones the shorter figure is the clearer one. */
+  const moneyRound = (cents: number) =>
+    cents % 100 === 0 ? '$' + String(cents / 100) : money(cents);
 
 
   let interval: 'month' | 'year' = 'month';
@@ -340,18 +405,55 @@ import LegalFooter from '../components/LegalFooter.astro';
       /* Roving tabindex: the group is one stop, arrows move within it. */
       b.setAttribute('tabindex', on ? '0' : '-1');
     }
+    moveThumb();
+
     const amt = el('plPlusAmt');
     const per = el('plPlusPer');
     const note = el('plPlusNote');
+    const nextAmt = money(interval === 'year' ? ANNUAL_CENTS : MONTHLY_CENTS);
+    /* Only when the figure actually changes. Replaying the animation on every
+       repaint would make the price twitch while somebody reads it. */
+    if (amt && amt.textContent !== nextAmt) swap(amt);
+    if (amt) amt.textContent = nextAmt;
     if (interval === 'year') {
-      if (amt) amt.textContent = money(ANNUAL_CENTS);
       if (per) per.textContent = tx('plans.perYear', '/ year');
       if (note) note.textContent = tx('plans.billedAnnual', 'Billed annually, about $6.67 a month');
     } else {
-      if (amt) amt.textContent = money(MONTHLY_CENTS);
       if (per) per.textContent = tx('plans.perMonth', '/ month');
       if (note) note.textContent = tx('plans.billedMonthly', 'Billed monthly');
     }
+  }
+
+  /* Slide the selected pill under whichever option is on. Measured rather than
+     computed as a percentage, because Annual is wider than Monthly: it carries
+     the saving inside it. Falls back to nothing if the elements are missing,
+     which leaves the plain .is-on background doing the work. */
+  function moveThumb(): void {
+    const thumb = el('segThumb');
+    const on = el(interval === 'year' ? 'segYear' : 'segMonth');
+    /* `rail`, not `track`: this module already imports a track() for analytics,
+       and a local of that name inside this function would shadow it. */
+    const rail = el('plCadence');
+    if (!thumb || !on || !rail) return;
+    const a = on.getBoundingClientRect();
+    const b = rail.getBoundingClientRect();
+    if (!a.width) return;
+    thumb.style.width = a.width + 'px';
+    thumb.style.transform = 'translateX(' + (a.left - b.left - 4) + 'px)';
+    thumb.style.opacity = '1';
+    /* Only now does the selected option stop painting its own background. Set
+       here rather than in markup so a measurement that never succeeds leaves
+       the no-script appearance intact. */
+    rail.classList.add('has-thumb');
+  }
+
+  /* One short lift-and-settle on a figure that just changed. Restarted by
+     removing and re-adding the class inside a reflow read, because re-adding
+     alone does not replay a running animation. */
+  function swap(node: HTMLElement): void {
+    node.classList.remove('is-swap');
+    void node.offsetWidth;
+    node.classList.add('is-swap');
   }
 
   function setInterval2(next: 'month' | 'year', announce: boolean): void {
@@ -414,6 +516,24 @@ import LegalFooter from '../components/LegalFooter.astro';
       }
     }
 
+    /* ── Which of the two Plus cards is "yours" ──────────────────────────
+       planStatusKey answers per TIER, and Lifetime and Plus are the same tier,
+       so left alone it marks the monthly card as the current plan of somebody
+       who paid once. The badge moves to the card they actually bought, and the
+       other one drops it: two cards both claiming to be the current plan is
+       worse than neither. */
+    const onLifetime = isLifetime(ent);
+    if (onLifetime) {
+      const pb = el('plPlusBadge');
+      const lb = el('plLifeBadge');
+      const pc = el('plPlus');
+      const lc = el('plLife');
+      if (pb) pb.hidden = true;
+      if (pc) { pc.classList.remove('is-current'); pc.setAttribute('data-current', 'false'); }
+      if (lb) { lb.textContent = tx('plans.currentPlan', 'Current plan'); lb.hidden = false; }
+      if (lc) { lc.classList.add('is-current'); lc.setAttribute('data-current', 'true'); }
+    }
+
     /* ── The trial timeline ─────────────────────────────────────────────
        Dates are computed here because the subscription does not exist yet:
        there is nothing to read them from until Stripe creates it. That makes
@@ -446,7 +566,14 @@ import LegalFooter from '../components/LegalFooter.astro';
         sub.textContent = tx('plans.trialSub', '7 days free, then {price}. Cancel anytime.')
           .replace('{price}', price);
       }
+      /* SHIPS `hidden`, and that is asserted, so the reveal cannot simply be a
+         class: a hidden element does not transition. Drop the attribute, let
+         the browser lay it out once, then open it on the next frame. */
+      const wasClosed = panel.hidden;
       panel.hidden = false;
+      if (wasClosed) {
+        requestAnimationFrame(() => panel.classList.add('is-open'));
+      }
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       const go = el('plTrialGo') as HTMLButtonElement | null;
       if (go) {
@@ -456,7 +583,11 @@ import LegalFooter from '../components/LegalFooter.astro';
            Checkout Sessions from one click. */
         if (go.dataset.bound !== '1') {
           go.dataset.bound = '1';
-          go.addEventListener('click', () => beginCheckout(go));
+          /* The alias is read on click, not captured at bind. Binding it
+             would freeze whichever cadence was selected the first time the
+             panel opened, and charge annual to somebody looking at monthly. */
+          go.addEventListener('click', () => beginCheckout(
+            go, interval === 'year' ? 'plus-annual' : 'plus-monthly', 'plTrialErr'));
         }
       }
     }
@@ -471,13 +602,15 @@ import LegalFooter from '../components/LegalFooter.astro';
      * again" on `already-subscribed` would tell somebody who is already paying
      * that something went wrong, and send them to buy a second subscription. */
     let checkingOut = false;
-    async function beginCheckout(btn: HTMLButtonElement): Promise<void> {
+    async function beginCheckout(btn: HTMLButtonElement, alias: string, errId: string): Promise<void> {
       if (checkingOut) return;
       checkingOut = true;
       const original = btn.textContent || '';
       btn.disabled = true;
       btn.textContent = tx('plans.opening', 'Opening secure checkout…');
-      const note = el('plTrialErr');
+      /* Reported on the card that was clicked. One shared error line would put
+         "the founding round is full" under the monthly button. */
+      const note = el(errId);
       if (note) note.hidden = true;
 
       const fail = (key: string, fallback: string): void => {
@@ -488,18 +621,6 @@ import LegalFooter from '../components/LegalFooter.astro';
       };
 
       try {
-        /* IMPORTED ONLY IF PURCHASING IS ON, and the shape is deliberate.
-         *
-         * PRICING_ENABLED is a module-level const, so this branch folds away at
-         * build time and the dynamic import goes with it. That is what keeps
-         * the original guarantee intact: while the flag is false the shipped
-         * JavaScript cannot even NAME createCheckoutSession, which is a far
-         * stronger property than a disabled button and is checkable by grepping
-         * dist/ rather than by reasoning about reachability.
-         *
-         * Flipping the flag changes the BUILD, not just a runtime branch. The
-         * suites assert the absence today and must be rewritten to assert the
-         * presence on the day it flips. */
         /* WIRED, and the guarantee this replaced is worth stating.
          *
          * CLAUDE.md used to promise production was *structurally* incapable of
@@ -528,7 +649,6 @@ import LegalFooter from '../components/LegalFooter.astro';
          * the thing that is no longer true. */
         if (!PRICING_ENABLED) return fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
         const { startCheckout } = await import('../app/declare/checkout-start.js');
-        const alias = interval === 'year' ? 'plus-annual' : 'plus-monthly';
         const res = await startCheckout(alias, lang === 'es' ? 'es' : undefined);
 
         /* NULL IS UNKNOWN, NEVER SUCCESS. Treating it as success sends somebody
@@ -540,7 +660,13 @@ import LegalFooter from '../components/LegalFooter.astro';
             return fail('plans.errAlready', 'You already have Plus on this account. Open Billing to manage it.');
           }
           if (res.error === 'lifetime-sold-out') {
-            return fail('plans.errSoldOut', 'The founding-member round is full.');
+            /* The round filled while this page was open. Record it and repaint
+               so the button stops inviting a purchase that will refuse again,
+               and say plainly that monthly and annual are still there. */
+            seatsSoldOut = true;
+            fail('plans.errSeatsGone', 'The last founding seat went while you were reading. Monthly and annual are still open.');
+            paintLifetime(state, false);
+            return;
           }
           if (res.error === 'not-authenticated') {
             /* Not an error to explain, a step to take. */
@@ -554,7 +680,8 @@ import LegalFooter from '../components/LegalFooter.astro';
 
         track('checkout_opened', {
           authenticated: true,
-          selected_interval: interval,
+          selected_interval: alias === 'plus-lifetime' ? 'lifetime' : interval,
+          plan_alias: alias,
           displayed_tier: currentPlanId(state) || 'none',
         });
         /* assign, not replace: leaving /pricing in history means backing out of
@@ -646,11 +773,125 @@ import LegalFooter from '../components/LegalFooter.astro';
       else { life.hidden = true; }
     }
 
+    startLifetimeCheckout = (b) => beginCheckout(b, 'plus-lifetime', 'plLifeErr');
+    paintLifetime(state, onLifetime);
+
     /* Belt and braces: a subscriber must never reach a purchase control. */
     if (!mayStartCheckout(state)) {
       const b = el('plPlusBtn');
       if (b instanceof HTMLButtonElement) { b.disabled = true; }
+      /* paintLifetime already renders nothing for a state that may not buy.
+         This is the second lock: if one is ever loosened the other still holds. */
+      const l = el('plLifeBtn');
+      if (l instanceof HTMLButtonElement) { l.disabled = true; }
     }
+  }
+
+  /* ── THE FOUNDING ROUND ───────────────────────────────────────────────────
+   *
+   * Three things decide this button, and all three must say yes: purchasing is
+   * on, this reader may start a checkout at all, and the round still has room.
+   *
+   * SOLD OUT IS A SEPARATE SENTENCE from "launches soon". Both leave the button
+   * disabled, and a reader who cannot tell which one applies to them will read
+   * the wrong one as the reason they cannot buy.
+   *
+   * A LIFETIME HOLDER IS NOT SHOWN A SOLD-OUT ROUND. They are in it. The card
+   * carries their badge instead, and the button is suppressed by
+   * mayStartCheckout like every other purchase control on this page. */
+  /* paintPlans owns the checkout, because it is the only scope that knows the
+     resolved state and language. The Lifetime card is painted from outside that
+     scope, so the two meet here rather than by hoisting a function that would
+     then need both passed back in. Null until the first paint, which is the
+     correct answer: before state resolves, nothing on this page may buy. */
+  let startLifetimeCheckout: ((btn: HTMLButtonElement) => void) | null = null;
+  let seatsSoldOut = false;
+  function paintLifetime(state: string, onLifetime: boolean): void {
+    /* The price is painted from the shared constant even though the markup
+       already carries it, exactly as the Plus card does. The markup figure is
+       the pre-script default; plan-display.js is the definition. Without this
+       the constant would be imported and unused, the bundler would drop it,
+       and $149 would quietly have only one home again: this file. */
+    const lifeAmt = el('plLifeAmt');
+    if (lifeAmt) lifeAmt.textContent = moneyRound(PLUS_LIFETIME_CENTS);
+
+    const cta = el('plLifeCta');
+    if (!cta) return;
+
+    /* THE SAME INTENT THE PLUS CARD USES, deliberately.
+     *
+     * The two cards sell the same tier, so they must agree about whether this
+     * reader may be sold anything at all. Asking plusCtaIntent rather than
+     * re-deriving it here is what makes that structural instead of a habit.
+     *
+     * It also fixes something the static markup got wrong. Free and Plus build
+     * their controls from script, so an unresolved read leaves them with no
+     * button. Lifetime's button was in the markup, so it survived, and the
+     * page fell back to a state where the ONLY visible control sat on the
+     * $149 card. Rendered from the same intent, it now disappears with them. */
+    const intent = plusCtaIntent(state, PRICING_ENABLED);
+    cta.innerHTML = '';
+
+    /* Already a founding member. Stated, not sold, and in the same quiet
+       treatment the Free card uses for the plan somebody is already on. */
+    if (onLifetime) {
+      const chip = document.createElement('span');
+      chip.className = 'btn btn-quiet'; chip.setAttribute('aria-disabled', 'true');
+      chip.textContent = tx('plans.currentPlan', 'Current plan');
+      cta.appendChild(chip);
+      return;
+    }
+    /* A subscriber is not offered Lifetime on top. The server would allow it,
+       and today that would leave them paying monthly AND holding lifetime,
+       because cancelling the subscription on a lifetime purchase is not built
+       yet. Until it is, the honest control is no control. */
+    if (intent !== 'launches-soon' && intent !== 'upgrade') return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn btn-primary'; btn.id = 'plLifeBtn';
+
+    if (intent === 'launches-soon') {
+      btn.disabled = true;
+      btn.textContent = tx('plans.launchSoon', 'Plus launches soon');
+    } else if (seatsSoldOut) {
+      /* A DIFFERENT SENTENCE from "launches soon", and that is the point. Both
+         leave the button dead, and a reader shown the wrong one is told the
+         wrong reason they cannot buy. */
+      btn.disabled = true;
+      btn.textContent = tx('plans.lifeSoldOut', 'The founding round is full');
+    } else {
+      btn.textContent = tx('plans.lifeCta', 'Become a founding member');
+      btn.addEventListener('click', () => {
+        track('upgrade_cta_selected', {
+          authenticated: planStateNow !== 'guest',
+          displayed_tier: currentPlanId(planStateNow) || 'none',
+          selected_interval: 'lifetime',
+          pricing_enabled: PRICING_ENABLED,
+        });
+        if (startLifetimeCheckout) startLifetimeCheckout(btn);
+      });
+    }
+    cta.appendChild(btn);
+  }
+
+  /* The seat total, and whether the round is open, from the server.
+   *
+   * NEVER TYPED INTO THIS PAGE. convex/plusPlans.ts holds the cap that actually
+   * refuses a purchase; a second copy here is a promise that can drift from the
+   * rule. A failed read leaves the bullet hidden and the round open, because
+   * the server refuses a sold-out purchase regardless of what this says. */
+  async function loadSeats(state: string, onLifetime: boolean): Promise<void> {
+    let info: any = null;
+    try { info = await lifetimeAvailability(); } catch (e) { info = null; }
+    if (!info || typeof info.seats !== 'number') return;
+    seatsSoldOut = info.soldOut === true;
+    const li = el('plLifeSeats');
+    if (li) {
+      li.textContent = tx('plans.lifeSeats', '{seats} founding seats in this round')
+        .replace('{seats}', String(info.seats));
+      li.hidden = false;
+    }
+    paintLifetime(state, onLifetime);
   }
 
 
@@ -688,6 +929,14 @@ import LegalFooter from '../components/LegalFooter.astro';
     return F[want];
   }
 
+  /* The thumb is measured, so it has to be re-measured whenever the thing it
+     measures can change: after the web fonts land and on any resize. Cheap, and
+     the alternative is a pill that sits beside its option rather than under it. */
+  addEventListener('resize', moveThumb);
+  if ((document as any).fonts && (document as any).fonts.ready) {
+    (document as any).fonts.ready.then(moveThumb).catch(() => {});
+  }
+
   (async () => {
     paintCadence();
     let ent: any = previewEntitlement();
@@ -697,6 +946,10 @@ import LegalFooter from '../components/LegalFooter.astro';
     setInterval2(initialInterval(ent, state), false);
     paintCadence();
     paintPlans(state, ent);
+    /* Not awaited. The three cards are already correct without it; the seat
+       bullet and a sold-out round are the only things it can change, and
+       neither is worth holding the page for. */
+    void loadSeats(state, isLifetime(ent));
     track('plans_viewed', {
       authenticated: state !== 'guest' && state !== 'loading',
       displayed_tier: currentPlanId(state) || 'none',
@@ -722,17 +975,86 @@ import LegalFooter from '../components/LegalFooter.astro';
 
     /* Cadence — a calm segmented control, never a neon toggle. */
     .plans .pl-cadence { display: flex; justify-content: center; margin-bottom: 22px; }
-    .plans .seg { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
-    .plans .seg-o { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .18s ease, color .18s ease; }
-    .plans .seg-o.is-on { background: color-mix(in srgb, var(--gold) 14%, transparent); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 38%, transparent); }
+    .plans .seg { position: relative; display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+    /* The moving pill. Sits behind the labels, is positioned by script, and
+       starts invisible so it cannot flash at 0,0 before it is measured. */
+    .plans .seg-thumb { position: absolute; left: 4px; top: 4px; bottom: 4px; width: 0; opacity: 0;
+      border-radius: 999px; pointer-events: none; z-index: 0;
+      background: color-mix(in srgb, var(--gold) 14%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 38%, transparent);
+      transition: transform .34s cubic-bezier(.2,.72,.2,1), width .34s cubic-bezier(.2,.72,.2,1), opacity .2s ease; }
+    .plans .seg-o { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; transition: color .18s ease; }
+    /* The selected option paints its own background by default, so the control
+       is still legible with no script at all. The thumb takes that job over
+       only once it has actually been measured, which is what .has-thumb says. */
+    .plans .seg-o.is-on { color: var(--text); background: color-mix(in srgb, var(--gold) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 38%, transparent); }
+    .plans .seg.has-thumb .seg-o.is-on { background: transparent; box-shadow: none; }
     .plans .seg-o:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
     .plans .seg-save { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--goldd); }
 
     .plans .pl-grid { display: grid; gap: 16px; }
-    .plans .pl-card { position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 26px 22px; }
+    .plans .pl-card { position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 26px 22px;
+      transition: transform .3s cubic-bezier(.2,.72,.2,1), border-color .3s ease, box-shadow .3s ease; }
+    /* Pointer only. On a touch screen :hover sticks after a tap, so a card the
+       reader scrolled past stays lifted. */
+    @media (hover: hover) and (pointer: fine) {
+      .plans .pl-card:hover { transform: translateY(-3px); }
+      .plans .pl-card:hover:not(.pl-once) { border-color: color-mix(in srgb, var(--gold) 34%, var(--line)); }
+    }
     /* Plus carries slightly more weight, but restrained: a warmer border and a
        whisper of gold, never a gradient. */
     .plans .pl-plus { border-color: color-mix(in srgb, var(--gold) 46%, var(--line)); }
+
+    /* ── Lifetime ────────────────────────────────────────────────────────
+       Deliberately a different surface, not a third variation of the same one.
+       Lifetime is bought once and the cadence control above does not price it,
+       so making it look like a third column would invite exactly the wrong
+       comparison.
+
+       Built from the SAME tokens as everything else, which is what makes it
+       work in both themes without a second set of colours: the ink is the
+       theme's own deep ground, and the type on it is the theme's own light
+       text. In light mode that is a dark card on cream. In dark mode it is a
+       deeper card on an already dark page, and the gold hairline is what keeps
+       its edge readable. */
+    .plans .pl-once {
+      background:
+        radial-gradient(120% 100% at 50% -20%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 62%),
+        linear-gradient(168deg, #2B4739 0%, #1B2E26 100%);
+      /* Quieter than the Plus card's border on purpose. The fill is already
+         doing the separating, and two cards wearing the same gold edge is two
+         cards claiming to be the recommended one. */
+      border-color: color-mix(in srgb, var(--gold) 22%, #1B2E26);
+      color: #F3EFE6;
+    }
+    .plans .pl-once .pl-nm { color: #F7F3E8; }
+    .plans .pl-once .pl-desc,
+    .plans .pl-once .pl-cur,
+    .plans .pl-once .pl-per { color: #B9C9BD; }
+    .plans .pl-once .pl-amt { color: #F7F3E8; }
+    .plans .pl-once .pl-list li { color: #DCE5DD; }
+    .plans .pl-once .pl-list li::before { border-color: #D8B85F; }
+    .plans .pl-once .pl-fine { color: #9FB2A4; }
+    .plans .pl-once .pl-badge { color: #2A2208; background: #D8B85F; border-color: #D8B85F; }
+    .plans .pl-once .pl-trial-err { color: #F3EFE6; border-left-color: rgba(216,184,95,.55); }
+    /* Gold, because on this ground the forest primary would disappear into the
+       card. The only button on the page that is not var(--gold) adjacent. */
+    .plans .pl-once .btn-primary { background: #D8B85F; color: #26200A; border: 1px solid #D8B85F; }
+    /* A dead control has to look dead. Solid gold at 55% opacity still reads as
+       the page's primary action, and here it would be the loudest thing on the
+       screen sitting on the most expensive card. Disabled drops to an outline. */
+    .plans .pl-once .btn-primary[disabled] { background: transparent; color: #9FB2A4;
+      border-color: rgba(216,184,95,.32); opacity: 1; }
+    .plans .pl-once .btn-primary:not([disabled]):hover { background: #E2C572; }
+    .plans .pl-once .btn-primary:focus-visible { outline: 2px solid #F3EFE6; outline-offset: 2px; }
+    @media (hover: hover) and (pointer: fine) {
+      .plans .pl-once:hover { border-color: color-mix(in srgb, var(--gold) 46%, #1B2E26); }
+    }
+
+    /* The absence of a trial, said on the card rather than discovered at
+       checkout. Quiet: it is a clarification, not a warning. */
+    .plans .pl-fine { font-size: 11.5px; line-height: 1.5; margin: 18px 0 0;
+      color: var(--muted); text-align: center; }
     /* The current plan is stated calmly. Colour is never the only signal —
        the badge carries the word. */
     .plans .pl-card.is-current { border-color: var(--gold); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent); }
@@ -740,7 +1062,16 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-nm { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--text); margin: 0; }
     .plans .pl-desc { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 6px 0 0; min-height: 2.6em; }
     .plans .pl-price { display: flex; align-items: baseline; gap: 5px; margin-top: 16px; }
-    .plans .pl-amt { font-family: 'Cormorant Garamond', serif; font-size: 44px; line-height: 1; color: var(--text); }
+    .plans .pl-amt { font-family: 'Cormorant Garamond', serif; font-size: 44px; line-height: 1; color: var(--text);
+      font-variant-numeric: tabular-nums; }
+    /* A figure that just changed says so once. Short and small on purpose: a
+       price that bounces reads as a sales trick, and this page is asking to be
+       believed. */
+    .plans .pl-amt.is-swap { animation: plSwap .34s cubic-bezier(.2,.72,.2,1); }
+    @keyframes plSwap {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
     .plans .pl-cur { font-size: 13.5px; color: var(--muted); }
     .plans .pl-per { font-size: 12.5px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
     .plans .pl-list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 11px; flex: 1; }
@@ -750,6 +1081,11 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-cta .btn { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
     .plans .pl-cta .btn[disabled], .plans .pl-cta .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
     .plans .btn-quiet { border: 1px solid var(--line); border-radius: 14px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; }
+    /* The Plus card's lifecycle sentence. NOT the Lifetime card: that is
+       .pl-once. The two were both called .pl-life for a few minutes, and this
+       rule silently applied its type and its 12px top margin to the whole
+       Lifetime card, which is why that card came out 12px shorter than the
+       other two in a grid that was explicitly told to stretch. */
     .plans .pl-life { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 12px 0 0; }
 
     /* Comparison — a real table on desktop, stacked rows on mobile. */
@@ -762,6 +1098,9 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-table td { color: var(--text2); }
     .plans .pl-table thead th:nth-child(3), .plans .pl-table td:nth-child(3) { color: var(--text); }
 
+    .plans .pl-cmp-note { font-size: 12.5px; line-height: 1.6; color: var(--muted);
+      margin: 14px 0 0; text-align: center; }
+
     .plans .pl-trust { list-style: none; margin: 30px auto 0; padding: 0; display: grid; gap: 8px; max-width: 46ch; text-align: center; }
     .plans .pl-trust li { font-size: 12.5px; line-height: 1.6; color: var(--muted); }
 
@@ -772,7 +1111,10 @@ import LegalFooter from '../components/LegalFooter.astro';
        will happen to the reader, not a sales panel. The numbers carry the
        hierarchy, so nothing else needs to shout. */
     .plans .pl-trial { margin: 16px 0 0; padding: 18px 18px 16px;
-      border: 1px solid var(--line2); border-radius: 12px; text-align: left; }
+      border: 1px solid var(--line2); border-radius: 12px; text-align: left;
+      opacity: 0; transform: translateY(-6px);
+      transition: opacity .32s ease, transform .32s cubic-bezier(.2,.72,.2,1); }
+    .plans .pl-trial.is-open { opacity: 1; transform: none; }
     .plans .pl-trial-h { font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 18px; font-weight: 600; margin: 0 0 14px; color: var(--text); }
     .plans .pl-trial-steps { list-style: none; margin: 0; padding: 0;
@@ -805,9 +1147,15 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-q p { font-size: 13.5px; line-height: 1.7; color: var(--muted); margin: 0 0 16px; max-width: 60ch; }
 
 
+    /* Two up before three. At 760px a third column would give each card about
+       230px, which is narrower than its own price. */
     @media (min-width: 760px) {
       .plans .pl-grid { grid-template-columns: 1fr 1fr; align-items: stretch; gap: 20px; }
       .plans .pl-hero h1 { font-size: 40px; }
+    }
+    @media (min-width: 1000px) {
+      .plans .in { max-width: 1060px; }
+      .plans .pl-grid { grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 18px; }
     }
     @media (max-width: 620px) {
       .plans .pl-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -817,8 +1165,17 @@ import LegalFooter from '../components/LegalFooter.astro';
       .plans .pl-table td { font-size: 13px; color: var(--muted); padding-left: 0; }
       .plans .pl-table td::before { content: attr(data-lbl) ' '; color: var(--muted); }
     }
+    /* Every animation added for this page is listed here, not just the ones
+       that felt lively. A reader who asked the system for less motion asked for
+       all of it, including the ones that are only a few pixels. */
     @media (prefers-reduced-motion: reduce) {
-      .plans .seg-o { transition: none; }
+      .plans .seg-o,
+      .plans .seg-thumb,
+      .plans .pl-card,
+      .plans .pl-trial { transition: none; }
+      .plans .pl-amt.is-swap { animation: none; }
+      .plans .pl-card:hover { transform: none; }
+      .plans .pl-trial { opacity: 1; transform: none; }
     }
   </style>
 </DeclareLayout>

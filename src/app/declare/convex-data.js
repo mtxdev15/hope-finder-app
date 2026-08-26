@@ -173,6 +173,30 @@ export async function myEntitlements() {
   return (await ensure()) ? runQuery(apiRef.entitlements.getMyEntitlements, {}) : null;
 }
 
+/* ── the founding round ─────────────────────────────────────────────────────
+   Is Lifetime still buyable, and how many seats does the round hold.
+
+   UNAUTHENTICATED, and it is the only helper in this file that is. Everything
+   else here answers a question about the reader's own account, so it goes
+   through authed() and returns null for a guest. This one answers a question
+   about the product, and a guest looking at /pricing has to be able to ask it
+   before deciding to create an account.
+
+   That is why it calls the client directly instead of runQuery: runQuery
+   refuses to send anything without a session, which is correct for every other
+   caller and wrong for this one.
+
+   The seat total comes from here rather than being typed into the page, so
+   LIFETIME_SEATS has exactly one definition and the card cannot drift from the
+   cap that actually gates a purchase. Returns null when unavailable; the page
+   treats null as "unknown" and shows the round open, because the server refuses
+   a sold-out purchase anyway. */
+export async function lifetimeAvailability() {
+  if (!(await ensure())) return null;
+  try { return await http.query(apiRef.subscriptions.lifetimeAvailability, {}); }
+  catch (e) { return null; }
+}
+
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
 

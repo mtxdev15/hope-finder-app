@@ -39,7 +39,10 @@ export type Resolved = {
    * billing UI needs it to route to the Stripe Portal or Apple's subscription
    * management, and it cannot be used to address another account. */
   provider: "stripe" | "app_store" | null;
-  planKey: "plus_monthly" | "plus_annual" | null;
+  /* Includes plus_lifetime. It used to be omitted while line 206 cast the raw
+     row value into this type, so a lifetime account carried "plus_lifetime"
+     at runtime through a field the compiler swore could not hold it. */
+  planKey: "plus_monthly" | "plus_annual" | "plus_lifetime" | null;
   /* More than one provider is independently billing this account. Someone is
    * paying twice. Computed here, never trusted from a client. */
   duplicateProviders: boolean;

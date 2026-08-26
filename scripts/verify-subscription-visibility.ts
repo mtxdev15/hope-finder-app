@@ -576,7 +576,14 @@ check("no gradient decoration was added to the card", !/\.bl-card \{[^}]*gradien
 check("no second navigation landmark was added", !/<nav\b/.test(BILLING));
 /* The Plans page carries its own accessibility contract. */
 check("the plans page has exactly one h1", (PRICING.match(/<h1\b/g) || []).length === 1);
-check("plan cards are labelled groups", (PRICING.match(/<article class="pl-card[^"]*"[^>]*aria-labelledby=/g) || []).length === 2);
+/* THREE now, not two: Lifetime joined Free and Plus on 2026-08-26. Asserted as
+   a count AND by name, because a count alone passes if a card is duplicated and
+   one is dropped. */
+check("plan cards are labelled groups", (PRICING.match(/<article class="pl-card[^"]*"[^>]*aria-labelledby=/g) || []).length === 3);
+for (const [id, label] of [["plFree", "plFreeNm"], ["plPlus", "plPlusNm"], ["plLife", "plLifeNm"]] as const) {
+  check(`the ${id} card is labelled by its own name`,
+    new RegExp(`<article class="pl-card[^"]*"[^>]*id="${id}"[^>]*aria-labelledby="${label}"`).test(PRICING));
+}
 check("the cadence control is a radiogroup", /role="radiogroup"/.test(PRICING));
 check("the cadence options announce their state", (PRICING.match(/aria-checked=/g) || []).length >= 2);
 check("cadence options meet the 44px target", /\.plans \.seg-o \{[^}]*min-height: 44px/.test(PRICING));
@@ -595,6 +602,81 @@ for (const [name, src] of [["you.astro", YOU_CODE], ["success.astro", SUCCESS_CO
   check(`${name} names no Stripe identifier field`,
     !/stripeCustomerId|stripeSubscriptionId|stripePriceId|latestInvoiceId/.test(src));
 }
+
+/* ── 10b. The founding round says only what the server said ──────────────
+   Added 2026-08-26 with the Lifetime card.
+
+   THE PROPERTY: this page cannot state a seat number of its own. The cap lives
+   in convex/plusPlans.ts, which is also what refuses a purchase when it is
+   reached, so a number written into the page could promise a round size the
+   rule does not enforce. It is written in from the server or not at all.
+
+   Each assertion below was confirmed by breaking what it guards. */
+section("10b. The founding round");
+
+const LIFE_CARD = (PRICING.match(/<article class="pl-card pl-once[\s\S]*?<\/article>/) || [""])[0];
+check("the Lifetime card exists", LIFE_CARD.length > 0);
+/* THE COLLISION THAT COST 12 PIXELS. .pl-life is the Plus card's lifecycle
+   sentence, and while the Lifetime card also carried that class it inherited
+   the sentence's type and its 12px top margin, so it rendered shorter than the
+   other two inside a grid explicitly set to stretch. Caught by measuring the
+   rendered cards, not by reading the CSS. */
+check("the Lifetime card does not reuse the lifecycle class",
+  !/<article class="[^"]*\bpl-life\b/.test(PRICING));
+check("and .pl-life still styles the Plus lifecycle sentence",
+  /<p class="pl-life" id="plPlusLife"/.test(PRICING) &&
+  /\.plans \.pl-life \{ font-size/.test(PRICING));
+check("the seat bullet ships empty", /<li id="plLifeSeats" hidden><\/li>/.test(LIFE_CARD));
+/* The cap, spelled any way a page might spell it. 149 is the price and is
+   allowed; 200 as a bare number is the cap and is not. */
+check("the card states no seat count of its own", !/\b200\b/.test(LIFE_CARD));
+check("the seat sentence is a template, not a number",
+  /'plans\.lifeSeats': '\{seats\} /.test(PRICING));
+check("the seat number is filled in from the server read",
+  /lifetimeAvailability\(\)/.test(PRICING_CODE) &&
+  /\.replace\('\{seats\}', String\(info\.seats\)\)/.test(PRICING_CODE));
+/* Fails toward silence. A read that comes back wrong must leave the bullet
+   hidden rather than render a partial sentence. */
+check("a failed seat read renders nothing",
+  /if \(!info \|\| typeof info\.seats !== 'number'\) return;/.test(PRICING_CODE));
+
+/* ONE HOME FOR $149. The markup carries it as the pre-script default, exactly
+   as the Plus card carries $8.99, and plan-display.js is the definition. If the
+   card ever stopped painting from the constant the bundler would drop it, and
+   the price would silently have only one home again: this page. */
+check("the Lifetime price is painted from the shared constant",
+  /lifeAmt\.textContent = moneyRound\(PLUS_LIFETIME_CENTS\)/.test(PRICING_CODE));
+check("and that constant is the one /billing reads too",
+  /export const PLUS_LIFETIME_CENTS = 14900;/.test(PLAN_DISPLAY));
+
+/* THE ABSENCE OF A TRIAL, stated on the card. Lifetime runs in Stripe's
+   `mode: "payment"`, so there is no first charge to delay. Somebody comparing
+   three cards under a button that says "Start my 7 days free" will assume the
+   seven days apply to all three unless told otherwise. */
+check("the card says the free days do not apply to it",
+  /data-i18n="plans\.lifeNoTrial"/.test(LIFE_CARD));
+check("and that sentence exists in Spanish", /'plans\.lifeNoTrial':/.test(I18N));
+
+/* The browser names an ALIAS. Not a Price, not $149, not a seat index. */
+check("the Lifetime purchase names a plan alias only",
+  /beginCheckout\(b, 'plus-lifetime', 'plLifeErr'\)/.test(PRICING_CODE));
+
+/* A sold-out round and an unlaunched product are different sentences. Both
+   leave the button disabled, and a reader who is shown the wrong one is told
+   the wrong reason they cannot buy. */
+check("sold out and launches-soon are separate strings",
+  /'plans\.lifeSoldOut'/.test(PRICING) && /'plans\.launchSoon'/.test(PRICING) &&
+  !/lifeSoldOut[^\n]*launches soon/i.test(PRICING));
+
+/* Which card is "yours" is read from planKey. billingInterval is null for a
+   guest, for a free account and for every lapsed row, so using it would put a
+   current-plan badge on the Lifetime card of somebody who has never paid. */
+check("lifetime ownership is read from planKey",
+  /ent\.planKey === 'plus_lifetime'/.test(PLAN_DISPLAY) &&
+  !/isLifetime[\s\S]{0,200}billingInterval/.test(PLAN_DISPLAY));
+/* And only one of the two Plus cards may claim it. */
+check("the Plus badge is dropped when Lifetime holds it",
+  /if \(pb\) pb\.hidden = true;/.test(PRICING_CODE));
 
 /* ── 11. Production build ────────────────────────────────────────────────── */
 section("11. Production build");

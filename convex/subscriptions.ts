@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { classifyIncomingSubscription } from "./subscriptionGuard";
-import { LIFETIME_SEATS } from "./plusPlans";
+import { LIFETIME_SEATS, environmentForSecret } from "./plusPlans";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -156,6 +156,39 @@ export const countLifetimeSoldInternal = internalQuery({
       )
       .take(LIFETIME_SEATS + 1);
     return rows.filter((r) => LIFETIME_PLUS_STATUSES.has(r.status)).length;
+  },
+});
+
+/* PUBLIC: whether the founding round is still open, and how big it is.
+ *
+ * DELIBERATELY NOT A COUNTER. It returns the cap and a boolean, never the
+ * number sold. Two reasons, and the second is the one that matters:
+ *
+ *  1. A running tally on a public page is a number we would have to keep
+ *     honest forever, and an early "3 of 200" reads as nobody wants this.
+ *  2. The page must never render a seat number we invented. Returning only
+ *     what is true and stable removes the opportunity.
+ *
+ * UNAUTHENTICATED ON PURPOSE. /pricing is public, and a guest deciding
+ * whether to create an account needs to know the round is open before they
+ * have an account to ask with.
+ *
+ * FAILS CLOSED. If the environment cannot be derived from the Stripe
+ * credential, this reports the round full rather than inviting a purchase
+ * that createCheckoutSession would refuse a moment later. */
+export const lifetimeAvailability = query({
+  args: {},
+  handler: async (ctx): Promise<{ seats: number; soldOut: boolean }> => {
+    const environment = environmentForSecret(process.env.STRIPE_SECRET_KEY);
+    if (!environment) return { seats: LIFETIME_SEATS, soldOut: true };
+    const rows = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_plan_environment", (q) =>
+        q.eq("planKey", "plus_lifetime" as const).eq("environment", environment),
+      )
+      .take(LIFETIME_SEATS + 1);
+    const sold = rows.filter((r) => LIFETIME_PLUS_STATUSES.has(r.status)).length;
+    return { seats: LIFETIME_SEATS, soldOut: sold >= LIFETIME_SEATS };
   },
 });
 

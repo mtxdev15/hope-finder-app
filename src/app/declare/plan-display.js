@@ -371,6 +371,23 @@ export function freeCtaIntent(state) {
   return 'none';
 }
 
+/* ── LIFETIME ────────────────────────────────────────────────────────────── */
+
+/* Does this account hold Plus because it bought Lifetime.
+ *
+ * Read from `planKey`, not from an absent billingInterval. Those look
+ * interchangeable and are not: billingInterval is also null for a guest, for a
+ * free account, and for any lapsed row, so testing it would mark the Lifetime
+ * card as somebody's current plan on three screens where it is not.
+ *
+ * planState() deliberately does NOT gain a 'plus-lifetime' state. A lifetime
+ * holder is plus-active in every way that matters to the lifecycle: nothing
+ * renews, nothing fails, nothing cancels. This answers the one question the
+ * lifecycle cannot, which is which of the two Plus cards to mark. */
+export function isLifetime(ent) {
+  return !!ent && ent.tier === 'plus' && ent.planKey === 'plus_lifetime';
+}
+
 /* ── THE FREE TRIAL ──────────────────────────────────────────────────────── */
 
 /* How many days the trial runs, for anything the BROWSER renders.
@@ -401,6 +418,16 @@ export const TRIAL_DAYS = 7;
  * these are a bug. */
 export const PLUS_MONTHLY_CENTS = 899;
 export const PLUS_ANNUAL_CENTS = 7999;
+
+/* The one-time price. Sits alongside the recurring two rather than in its own
+ * module, because a reader compares all three on one screen and a price that
+ * lives somewhere else is a price that gets updated somewhere else.
+ *
+ * It is NOT on the monthly-or-annual axis, and nothing here should tempt a
+ * caller to divide it by twelve. Lifetime is bought once, in Stripe's
+ * `mode: "payment"`, and carries no trial for the same reason: there is no
+ * renewal to cancel before. */
+export const PLUS_LIFETIME_CENTS = 14900;
 
 /* ── ANNUAL VALUE ────────────────────────────────────────────────────────── */
 

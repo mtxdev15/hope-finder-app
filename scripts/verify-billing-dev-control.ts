@@ -348,6 +348,12 @@ const ALLOWED_CHECKOUT_WORDS = new Set([
   "checkingOut",        // its single-flight latch
   "startCheckout",      // the helper it imports
   "checkout",           // the module path, and Stripe's own word in copy
+  /* The seam between the Lifetime card and beginCheckout. The card is painted
+     from module scope; the checkout lives in paintPlans' closure because only
+     that scope knows the resolved state. This holds the reference and is null
+     until the first paint, which is the correct answer before state resolves:
+     nothing on this page may buy yet. It creates nothing itself. */
+  "startLifetimeCheckout",
 ]);
 check("every 'checkout' in pricing.astro is the guard, the handler or the helper",
   checkoutHits.length > 0 && checkoutHits.every((h) => ALLOWED_CHECKOUT_WORDS.has(h)));
