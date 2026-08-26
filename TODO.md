@@ -165,10 +165,40 @@ has paid you money.
       switching, quantity and pause **off**. *Harm if skipped: a paying customer
       with no way out. That is a consumer-protection problem, not a UX one.*
       **DONE 2026-08-26.** Cancel subscriptions on, at end of billing period; cancellation reason collected; plan switching and quantity change off; payment-method updates and invoice history on. "Next generation portal experience" left **off** on purpose - it is a preview whose behaviour can change underneath us, and this path has carried zero real deliveries.~~
-- [ ] **B2. Turn on Stripe failed-payment customer emails.** Sandbox had them
-      **off**, so this path has never run once. Portal recovery works — but
-      nothing currently tells anyone their card failed. *Harm if skipped: silent
-      involuntary churn. They think they still have Plus; they don't.*
+- [x] ~~**B2. Failed-payment emails — BUILT OURS, Stripe's toggle stays off.**
+      *Shipped 2026-08-26. Full reasoning in `docs/operations/dunning-plan.md`.*
+      The decisive fact: Stripe's toggle sends **one email per retry attempt** — eight at the
+      default — and the copy cannot be changed. Eight escalating payment demands to somebody who
+      reaches this app at 3am is a collections experience. Recurly's own guidance is three to four
+      messages; Paddle sends four.
+      Ours is three, then silence: immediately, 24h before access stops, and when it stops. The
+      cadence is DERIVED from `PAST_DUE_GRACE_DAYS` so it can never promise a date the entitlement
+      layer will not honour — which mattered at once, since grace is 3 days while Stripe retries
+      for 14. Scheduled on the status TRANSITION, so retries cannot re-trigger it, and every stage
+      re-checks before sending so a card fixed on day one cancels the rest.
+      Carries the four fields the good ones do (amount, card brand + last four, plan, the date
+      access ends) behind one button, plus an explicit alternative to clicking the link — because
+      "your payment failed, update your details" is among the most common phishing templates that
+      exists. Hardship help is offered in the FIRST email, not the last.
+      92 checks in `scripts/verify-dunning-emails.ts`, executing the real copy.~~
+- [ ] **B2a. Email language — English only, and visibly so.** Nothing records a user's locale:
+      `accountSettings` has a timezone and no language, and the webhook has no request to read one
+      from. The fix is small and additive — stamp `createCheckoutSession`'s `lang` into
+      `subscription_data[metadata][lang]`, persist it in `applyWebhook`, read it in `dunning.ts`.
+      Extra metadata keys do not affect classification. A real gap for a bilingual app.
+- [ ] **B2b. No email delivery tracking.** The Resend component is instantiated without
+      `onEmailEvent` and no Resend webhook route is registered, so a bounced or rejected dunning
+      email is indistinguishable from a delivered one. That is the difference between "we told
+      them" and "we tried to tell them". Close before volume grows.
+- [ ] **B2c. DECIDE — the grace window, 3 days, never approved.**
+      `entitlementCatalog.ts` says so itself: *"a product setting awaiting approval, not a silently
+      chosen default."* **Stripe retries for 14 days but we cut access at 3**, so a subscriber can
+      lose Plus on day 4 and get it back on day 10 when a retry succeeds — access flapping while we
+      are still trying to charge them. Apple's grace is selectable at 3/16/28 days with full access
+      throughout; Google grants grace before any hold; Stripe's own guidance is 7–14 days of
+      `past_due` before cancelling.
+      **Recommended: 14 days**, so access ends once, when Stripe actually gives up. One number; the
+      schedule and its suite already handle 2/3/7/14/28.
 - [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
       unpaid" are very different outcomes for a real subscriber, and the sandbox
       default is cancel. *Harm if skipped: subscriptions ending without anyone

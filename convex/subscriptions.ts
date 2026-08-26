@@ -4,6 +4,15 @@ import { LIFETIME_SEATS } from "./plusPlans";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
+import { internal } from "./_generated/api";
+import { dunningSchedule, dunningDelayMs } from "./dunningSchedule";
+import { PAST_DUE_GRACE_MS } from "./entitlementCatalog";
+
+/* The statuses that mean Stripe is still trying and access is on borrowed time.
+ * Deliberately the same pair entitlements.ts grants grace to — if these two ever
+ * disagreed, we would either email somebody whose access was never at risk or
+ * stay silent while it ran out. */
+const FAILING_STATUSES: ReadonlySet<string> = new Set(["past_due", "unpaid"]);
 
 /* Plus subscription state — the server-authoritative mirror of whichever
  * provider billed the money.
@@ -434,6 +443,35 @@ export const applyWebhook = internalMutation({
       await ctx.db.patch(existing._id, fields);
     } else {
       await ctx.db.insert("subscriptions", { ...fields, createdAt: now });
+    }
+
+    /* ── Tell them their card failed ──────────────────────────────────────
+     *
+     * ON THE TRANSITION, not on the event. Stripe sends several events per
+     * failure — invoice.payment_failed plus the customer.subscription.updated
+     * that actually carries the status — and Smart Retries produce more with
+     * every attempt. Scheduling on "the status became failing, having not been
+     * before" fires the sequence exactly once per episode, where scheduling on
+     * the event would send a fresh set of three emails after every retry.
+     *
+     * A brand-new row is deliberately NOT a transition: a subscription whose
+     * very first event already reads past_due did not lapse, it never started,
+     * and the copy ("your Plus pauses on…") would be wrong for it.
+     *
+     * The sends are scheduled, not sent here. This is a mutation and email is
+     * an action; more importantly each stage re-checks the subscription before
+     * sending, so a card fixed on day one silently cancels the rest. */
+    const wasFailing = existing ? FAILING_STATUSES.has(existing.status) : false;
+    const isFailing = FAILING_STATUSES.has(fields.status);
+    if (existing && isFailing && !wasFailing && fields.planKey !== "plus_lifetime") {
+      for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
+        const delay = dunningDelayMs(stage, PAST_DUE_GRACE_MS);
+        if (delay === null) continue;
+        await ctx.scheduler.runAfter(delay, internal.dunning.sendDunningEmail, {
+          userId: fields.userId,
+          stage,
+        });
+      }
     }
 
     // Recorded last: if anything above throws, the provider retries and we
