@@ -460,6 +460,12 @@ export const applyWebhook = internalMutation({
          INSERT below writes it explicitly instead, which matters more than it
          looks: see the note there. */
       ...(everPaid ? { hasEverPaid: true } : {}),
+      /* First time we see this account in a trial, and never again. One-way
+         like hasEverPaid, and for the same reason: cancelling a trial does not
+         give the trial back. */
+      ...(args.status === "trialing" && !existing?.trialStartedAt
+        ? { trialStartedAt: now }
+        : {}),
       ...(args.latestInvoiceId ? { latestInvoiceId: args.latestInvoiceId } : {}),
       ...(args.appleOriginalTransactionId
         ? { appleOriginalTransactionId: args.appleOriginalTransactionId }

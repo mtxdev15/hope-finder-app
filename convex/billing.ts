@@ -108,6 +108,19 @@ export const createCheckoutSession = action({
       internal.subscriptions.getByUserProviderInternal,
       { userId, provider: "stripe" as const },
     );
+    /* HAVE THEY ALREADY HAD THEIR TRIAL?
+     *
+     * Read here, from the row we already hold, because the answer has to
+     * survive a cancellation. Nothing else in the system remembers it: the
+     * subscription row persists through cancel and resubscribe (applyWebhook
+     * patches one row per account and provider), so it is the only durable
+     * place this fact can live.
+     *
+     * Without this, cancel-then-buy-again grants a fresh seven days on the same
+     * Stripe customer, and it can be repeated for ever. That is a straight
+     * revenue hole rather than a rough edge. */
+    const trialAlreadyUsed = existing?.trialStartedAt != null;
+
     if (existing) {
       /* A lifetime holder already owns everything any other plan sells, and
        * their row's `paid` status is not in either set below — it belongs to a
@@ -118,18 +131,37 @@ export const createCheckoutSession = action({
       if (existing.planKey === "plus_lifetime" && existing.status === "paid") {
         return { error: "already-subscribed", status: "lifetime" };
       }
-      if (BLOCKS_NEW_CHECKOUT.has(existing.status)) {
+      /* BLOCKS_NEW_CHECKOUT stops somebody stacking a SECOND SUBSCRIPTION on
+       * top of one they already have. Lifetime is not that: it is a one-time
+       * payment in `mode: "payment"`, and buying it is how somebody stops
+       * subscribing rather than a way to subscribe twice.
+       *
+       * Without this exception, a subscriber on day two of the trial who wants
+       * the founding seat is told "already-subscribed" and cannot give us $149.
+       * That is a revenue path closed by a guard aimed at something else.
+       *
+       * Their existing subscription is not cancelled here. The lifetime webhook
+       * grants Plus outright, and cancelling the subscription is a separate,
+       * visible act rather than a side effect of a purchase. It is named in
+       * TODO.md so the follow-through is not silently forgotten. */
+      const buyingLifetimeOnTop = isOneTimePlan(planKey);
+      if (BLOCKS_NEW_CHECKOUT.has(existing.status) && !buyingLifetimeOnTop) {
         return { error: "already-subscribed", status: existing.status };
       }
       // Cancelling but still inside the paid period: they already have Plus
       // through currentPeriodEnd. Buying again would double-bill for a window
       // they have already paid for — send them to the portal to resume.
-      if (existing.cancelAtPeriodEnd && existing.status !== "canceled") {
+      if (
+        existing.cancelAtPeriodEnd &&
+        existing.status !== "canceled" &&
+        !buyingLifetimeOnTop
+      ) {
         return { error: "already-subscribed", status: "cancel-at-period-end" };
       }
       if (
         !ALLOWS_NEW_CHECKOUT.has(existing.status) &&
-        existing.status !== "incomplete"
+        existing.status !== "incomplete" &&
+        !buyingLifetimeOnTop
       ) {
         // Unrecognised lifecycle: refuse rather than guess. Better a support
         // email than an accidental second charge.
@@ -280,7 +312,7 @@ export const createCheckoutSession = action({
      * the reminder three days out, which is a promise made on the page before
      * they start and kept by convex/dunning.ts. One without the other is the
      * version people rightly resent. */
-    if (!oneTime) {
+    if (!oneTime && !trialAlreadyUsed) {
       form["subscription_data[trial_period_days]"] = String(TRIAL_DAYS);
     }
     for (const [k, val] of Object.entries(provenance)) {

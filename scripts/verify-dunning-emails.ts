@@ -829,6 +829,42 @@ for (const lang of EMAIL_LANGS) {
     lang === "es" ? /sigue siendo tuyo/.test(text) : /stays yours/.test(text));
 }
 
+/* ── 11. One trial per account, and lifetime stays reachable ─────────────── */
+section("11. The two revenue holes the audit found");
+
+const SCHEMA_E = read("convex/schema.ts");
+
+/* CANCEL AND RESUBSCRIBE MUST NOT MINT A NEW TRIAL. The subscription row
+   survives cancellation, so it is the only durable place this fact can live. */
+check("the account remembers it already had a trial",
+  /trialStartedAt: v\.optional\(v\.number\(\)\)/.test(SCHEMA_E));
+check("it is recorded the first time a trial is seen",
+  /args\.status === "trialing" && !existing\?\.trialStartedAt/.test(SUBS));
+check("and never re-stamped, so cancelling does not give the trial back",
+  !/trialStartedAt: undefined/.test(SUBS) && !/trialStartedAt: null/.test(SUBS));
+check("checkout reads it before deciding to grant a trial",
+  /const trialAlreadyUsed = existing\?\.trialStartedAt != null/.test(BILLING_T) &&
+  /if \(!oneTime && !trialAlreadyUsed\)/.test(BILLING_T));
+/* The order matters: read from the row we already hold, before any branch can
+   return early, or a returning subscriber silently gets a second trial. */
+check("eligibility is read before the guards that can return early",
+  BILLING_T.indexOf("const trialAlreadyUsed") <
+    BILLING_T.indexOf('return { error: "already-subscribed", status: "lifetime" }'));
+
+/* A SUBSCRIBER MUST STILL BE ABLE TO BUY LIFETIME. It is a one-time payment,
+   not a second subscription, so the stacking guard should not catch it. */
+check("buying lifetime on top of a subscription is recognised as different",
+  /const buyingLifetimeOnTop = isOneTimePlan\(planKey\)/.test(BILLING_T));
+check("all three stacking refusals let a lifetime purchase through",
+  (BILLING_T.match(/!buyingLifetimeOnTop/g) || []).length === 3);
+/* But the cross-provider and sold-out guards must NOT be bypassed: those are
+   about whether the purchase is valid at all, not about stacking. */
+check("the founding-seat cap is still enforced for lifetime",
+  /if \(sold >= LIFETIME_SEATS\) return \{ error: "lifetime-sold-out" \}/.test(BILLING_T));
+check("an existing lifetime holder still cannot buy it twice",
+  /existing\.planKey === "plus_lifetime" && existing\.status === "paid"/.test(BILLING_T) &&
+  BILLING_T.indexOf('status: "lifetime"') < BILLING_T.indexOf("const buyingLifetimeOnTop"));
+
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
 if (failures.length) {

@@ -183,6 +183,16 @@ export default defineSchema({
        inert. */
     hasEverPaid: v.optional(v.boolean()),
 
+    /* When this account first started a free trial, if it ever did.
+       Set once and never cleared, because the question it answers is "have you
+       already had your trial", and cancelling does not un-have it.
+
+       Without it, cancel-and-resubscribe hands out a fresh seven days on the
+       same Stripe customer, indefinitely. The subscriptions row survives
+       cancellation (applyWebhook patches one row per user and provider rather
+       than inserting a new one), so this is the durable place for it. */
+    trialStartedAt: v.optional(v.number()),
+
     /* ── Provider-specific identifiers ────────────────────────────────────
        Stored, but NEVER returned to a client response. Withholding them means
        a compromised browser cannot even name another customer's billing. */
