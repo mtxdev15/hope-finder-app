@@ -564,6 +564,28 @@ for (const f of resumeFiles) {
   check(`${rel} sends no customer identifier`, !/cus_|stripeCustomerId/.test(t));
 }
 
+/* The two actions behind "Switch to annual" ship for the same reason
+ * resumeSubscription does, and inherit the same obligation. Both take NO
+ * arguments: the subscription, the customer and the TARGET PRICE are all
+ * resolved server-side. That last one matters most — a browser that can name a
+ * Price can name any Price, which is the exact hole createCheckoutSession's
+ * env-var lookup exists to close. Asserted per action rather than in a shared
+ * loop, so deleting one cannot silently stop proving the other. */
+for (const action of ["upgradeToAnnual", "previewAnnualUpgrade"] as const) {
+  const hits = files.filter((f) => readFileSync(f, "utf8").includes(action));
+  check(`${action} reaches production (the billing page needs it)`, hits.length > 0);
+  for (const f of hits) {
+    const t = readFileSync(f, "utf8");
+    const rel = f.slice(DIST.length + 1);
+    check(`${rel} calls ${action} with an empty payload`,
+      new RegExp(action + "\\s*,\\s*\\{\\s*\\}").test(t) ||
+      new RegExp(action + "[^)]{0,40}\\{\\}").test(t));
+    check(`${rel} sends no subscription identifier to ${action}`, !/sub_|stripeSubscriptionId/.test(t));
+    check(`${rel} names no Stripe Price for ${action}`,
+      !/\bprice_[A-Za-z0-9]{6}/.test(t) && !/STRIPE_PLUS_ANNUAL_PRICE_ID/.test(t));
+  }
+}
+
 for (const f of files) {
   const t = readFileSync(f, "utf8");
   check(`${f.slice(DIST.length + 1)} leaks no Stripe object id`,

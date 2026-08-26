@@ -220,3 +220,26 @@ export async function resumeSubscription() {
 export async function listInvoices() {
   return (await ensure()) ? runAction(apiRef.billing.listInvoices, {}) : null;
 }
+
+/* Switch an active monthly subscription to annual, in place. Sends nothing —
+ * the subscription and the target Price are both resolved server-side, so the
+ * browser cannot name a plan, a price or a subscription.
+ *
+ * Returns { ok: true }, { error } for a handled refusal (`no-subscription`,
+ * `already-annual`, `not-upgradeable`, `cancelling`, `not-applicable`,
+ * `not-authenticated`, `billing-not-configured`, `stripe-error`), or null when
+ * the client is unavailable. Callers must re-read entitlements afterwards
+ * rather than assuming the switch is reflected yet — the webhook writes the row. */
+export async function upgradeToAnnual() {
+  return (await ensure()) ? runAction(apiRef.billing.upgradeToAnnual, {}) : null;
+}
+
+/* What the annual switch would cost today.
+ *
+ * `amountDue` is null whenever Stripe did not give us a number we trust — the
+ * preview endpoint is not yet verified at our pinned API version. Callers MUST
+ * treat null as "unknown" and say so in words; printing a guessed figure on a
+ * payment screen is the one failure mode this shape exists to prevent. */
+export async function previewAnnualUpgrade() {
+  return (await ensure()) ? runAction(apiRef.billing.previewAnnualUpgrade, {}) : null;
+}

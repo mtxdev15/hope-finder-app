@@ -33,6 +33,8 @@ const ALLOWED = {
   manage_billing_selected: ['authenticated', 'displayed_tier', 'presentation', 'source'],
   view_plans_selected: ['authenticated', 'displayed_tier', 'source'],
   payment_attention_cta_selected: ['authenticated', 'displayed_tier', 'source'],
+  switch_to_annual_selected: ['authenticated', 'displayed_tier', 'source'],
+  switch_to_annual_confirmed: ['authenticated', 'displayed_tier', 'source'],
   keep_plus_selected: ['authenticated', 'displayed_tier', 'source'],
   // later passes add: word_received, verse_saved, declaration_saved,
   // prayer_saved, journey_started, journey_day_completed,

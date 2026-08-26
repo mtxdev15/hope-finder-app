@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
-import { stripeGet, stripePost } from "./stripeApi";
+import { fetchSubscription, stripeGet, stripePost } from "./stripeApi";
 import {
   PLAN_CATALOG,
   BILLING_SCHEMA_VERSION,
@@ -500,5 +500,196 @@ export const listInvoices = action({
     }));
 
     return { invoices };
+  },
+});
+
+/* Stripe returns a related object as either a bare id string or an expanded
+ * object, depending on what was requested. Same shape as convex/http.ts:asId —
+ * duplicated rather than shared because http.ts is the webhook runtime and this
+ * is the action runtime, and a helper that spans both invites one caller's
+ * change to alter the other's behaviour. */
+function asStripeId(x: any): string | null {
+  if (typeof x === "string" && x) return x;
+  if (x && typeof x === "object" && typeof x.id === "string") return x.id;
+  return null;
+}
+
+/* Monthly → annual, in place, with Stripe's own proration.
+ *
+ * WHY IT IS NOT A CHECKOUT
+ * An active subscriber's status is in BLOCKS_NEW_CHECKOUT, so createCheckoutSession
+ * refuses them before any Stripe call — correctly, since a second Checkout would
+ * create a second subscription and bill twice. And if one were somehow created,
+ * subscriptionGuard would refuse to repoint the row ("active" is not a replaceable
+ * status), leaving Stripe billing twice while our row tracked one. The only sound
+ * shape is an update to the subscription that already exists.
+ *
+ * WHY THE PRICE AND THE METADATA MOVE IN THE SAME REQUEST
+ * classifyPlusSubscription's E2 compares the subscription's `metadata.plan`
+ * against the plan derived from its Price. Change the Price alone and the next
+ * webhook rejects with `plan-price-mismatch` — which http.ts logs and ACKs 200,
+ * so it fails SILENTLY: Stripe bills annually forever while our row still says
+ * monthly. Two requests would leave that window open between them. One request
+ * closes it.
+ *
+ * WHY items[0][id] IS MANDATORY
+ * Omit it and Stripe ADDS the annual price as a second item instead of replacing
+ * the monthly one. A two-item subscription is permanently unclassifiable
+ * (`unexpected-multiple-items`), so every future event for that subscriber —
+ * renewal, failure, cancellation — is dropped and their row freezes. We do not
+ * store the item id, so it is read back from Stripe first.
+ *
+ * Metadata is merged per key by Stripe, so sending only `metadata[plan]` keeps
+ * source, billing_schema_version, environment and userId intact. Sending a whole
+ * metadata object would wipe them and the next event would reject on provenance. */
+const UPGRADE_FROM: ReadonlySet<string> = new Set(["active", "trialing"]);
+
+export const upgradeToAnnual = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok?: true; error?: string }> => {
+    let user: AuthedUser;
+    try {
+      user = await requireUser(ctx);
+    } catch {
+      return { error: "not-authenticated" };
+    }
+
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (!secret) return { error: "billing-not-configured" };
+
+    const annualPriceId = process.env[PLAN_CATALOG.plus_annual.envVar];
+    if (!annualPriceId) return { error: "billing-not-configured" };
+
+    const existing = await ctx.runQuery(
+      internal.subscriptions.getByUserProviderInternal,
+      { userId: user._id, provider: "stripe" as const },
+    );
+    if (!existing?.stripeSubscriptionId) return { error: "no-subscription" };
+
+    /* Eligibility, stated rather than inferred. Each of these would be a
+     * different kind of wrong, so each gets its own answer the UI can render. */
+    if (existing.planKey === "plus_lifetime") return { error: "not-applicable" };
+    if (existing.planKey === "plus_annual") return { error: "already-annual" };
+    if (existing.planKey !== "plus_monthly") return { error: "not-applicable" };
+    if (!UPGRADE_FROM.has(existing.status)) return { error: "not-upgradeable" };
+    /* A subscription already scheduled to end must resume first. Upgrading one
+     * that is cancelling would charge a year to somebody who has said they are
+     * leaving — and the cancellation would still be pending afterwards. */
+    if (existing.cancelAtPeriodEnd) return { error: "cancelling" };
+
+    /* The item id is not ours to guess — read the live subscription. */
+    const sub = await fetchSubscription(existing.stripeSubscriptionId, secret);
+    if (!sub.ok) return { error: "stripe-error" };
+    const itemId = sub.data?.items?.data?.[0]?.id;
+    if (typeof itemId !== "string" || !itemId) return { error: "stripe-error" };
+    /* If Stripe already shows more than one item, this subscription is not one
+     * we built and an upgrade would make it worse, not better. */
+    if ((sub.data?.items?.data?.length || 0) !== 1) return { error: "not-applicable" };
+
+    /* Idempotency: unlike resumeSubscription — which sets one field to one value
+     * and is naturally idempotent — a proration can mint extra invoice line items
+     * if replayed. Bucketed like the Checkout key so a double-click collapses but
+     * a deliberate retry minutes later is allowed to be a real request. */
+    const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
+    const idem = `up:${user._id}:plus_annual:${bucket}`;
+
+    const res = await stripePost(
+      "/subscriptions/" + existing.stripeSubscriptionId,
+      secret,
+      {
+        "items[0][id]": itemId,
+        "items[0][price]": annualPriceId,
+        /* Credit the unused remainder of the current period and charge the
+         * difference now. This is the industry-standard reading of "credit what
+         * they have paid": the consumed months are consumed. */
+        proration_behavior: "create_prorations",
+        /* Bill the proration immediately rather than parking it on the next
+         * invoice, so the charge matches what the confirm screen said. */
+        payment_behavior: "allow_incomplete",
+        "metadata[plan]": "plus_annual",
+      },
+      idem,
+    );
+    if (!res.ok) return { error: "stripe-error" };
+
+    /* No local write. The customer.subscription.updated webhook carries the new
+     * Price and the corrected metadata through the same classification and guard
+     * path as everything else — the row has one author. */
+    return { ok: true };
+  },
+});
+
+/* What switching to annual would cost today, asked of Stripe before committing.
+ *
+ * THIS ENDPOINT IS UNVERIFIED AT OUR PINNED API VERSION.
+ * Stripe renamed the upcoming-invoice preview, and nothing in this repo has ever
+ * called either name at `2026-06-24.dahlia`. Rather than guess and risk printing
+ * a wrong figure on a payment screen — the single worst place to be confidently
+ * wrong — this returns `amountDue: null` on ANY failure and the caller renders
+ * honest prose instead of a number.
+ *
+ * So the design degrades to correct, never to fabricated:
+ *   Stripe answers  -> the exact amount due today
+ *   Stripe does not -> "you will pay less than the full price today", which is
+ *                      true under create_prorations regardless
+ *
+ * When a real upgrade confirms the shape, narrow this the way http.ts narrowed
+ * its field readers, and delete the fallback path only then. */
+export const previewAnnualUpgrade = action({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<{
+    amountDue: number | null;
+    currency: string | null;
+    error?: string;
+  }> => {
+    let user: AuthedUser;
+    try {
+      user = await requireUser(ctx);
+    } catch {
+      return { amountDue: null, currency: null, error: "not-authenticated" };
+    }
+
+    const secret = process.env.STRIPE_SECRET_KEY;
+    const annualPriceId = process.env[PLAN_CATALOG.plus_annual.envVar];
+    if (!secret || !annualPriceId) {
+      return { amountDue: null, currency: null, error: "billing-not-configured" };
+    }
+
+    const existing = await ctx.runQuery(
+      internal.subscriptions.getByUserProviderInternal,
+      { userId: user._id, provider: "stripe" as const },
+    );
+    if (!existing?.stripeSubscriptionId || existing.planKey !== "plus_monthly") {
+      return { amountDue: null, currency: null, error: "not-applicable" };
+    }
+
+    const sub = await fetchSubscription(existing.stripeSubscriptionId, secret);
+    if (!sub.ok) return { amountDue: null, currency: null };
+    const itemId = sub.data?.items?.data?.[0]?.id;
+    const customerId = asStripeId(sub.data?.customer);
+    if (typeof itemId !== "string" || !customerId) {
+      return { amountDue: null, currency: null };
+    }
+
+    const res = await stripePost("/invoices/create_preview", secret, {
+      customer: customerId,
+      subscription: existing.stripeSubscriptionId,
+      "subscription_details[items][0][id]": itemId,
+      "subscription_details[items][0][price]": annualPriceId,
+      "subscription_details[proration_behavior]": "create_prorations",
+    });
+    /* Every failure lands here — wrong endpoint name, wrong parameter shape,
+     * an API version that moved the field. All of them mean the same thing to
+     * the caller: we do not know the number, so do not print one. */
+    if (!res.ok) return { amountDue: null, currency: null };
+
+    const due = res.data?.amount_due;
+    const cur = res.data?.currency;
+    if (typeof due !== "number" || typeof cur !== "string") {
+      return { amountDue: null, currency: null };
+    }
+    return { amountDue: due, currency: cur };
   },
 });
