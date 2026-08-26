@@ -319,18 +319,34 @@ involuntary churn near 40%, a good trade.
 Stripe's retry window**, and that the schedule holds at 2, 3, 7, 14, 16 and 28
 days — so changing it later stays one number.
 
-### 2. Smart Retry's final action (TODO B3)
+### 2. ~~Smart Retry's final action~~ — DECIDED AND APPLIED: leave `past_due`
 
-**Confirmed in the live Dashboard on 2026-08-26** as the untouched default of
-**cancel** — this was previously an assumption, now a screenshot.
+**Changed in the live Dashboard on 2026-08-26**, from the default of `cancel` to
+**leave the subscription past-due**, and verified after saving. The reasoning
+below is kept as the record of why.
 
 - **Cancel** — the subscription ends. Clean, but recovery means buying again
   from scratch.
 - **Leave `past_due`** — the subscription survives, so the Customer Portal can
   still repair it. Pairs with the `lapsed` state, which keeps that door open.
 
-**Recommendation: leave `past_due`,** so a returning subscriber fixes a card
-rather than re-purchasing.
+**Chosen: leave `past_due`,** so a returning subscriber fixes a card rather than
+re-purchasing.
 
-Both settings are Dashboard-only — a restricted key is refused for them — so
-both require the owner in the live Stripe Dashboard.
+Both settings were Dashboard-only — a restricted key is refused for them — so both
+required the owner in the live Stripe Dashboard. Both are now done.
+
+### A trap directly beside it
+
+*Manage payments that require confirmation* carries a **Subscription status**
+dropdown whose wording is nearly identical to the one above, and it was changed
+in the same sitting before being caught and reverted.
+
+It governs `incomplete` — a first payment where 3D Secure was never confirmed, so
+**nothing was ever paid**. Setting it to `leave past_due` would have handed that
+person `tier: "plus"` for the full 16-day grace window (`entitlements.ts:119`,
+with the clock running from `updatedAt` since there is no period end), *and*
+tripped the four-email sequence telling them their Plus stays on until a date.
+
+It must read **`cancel the subscription`**. An initial payment that was never
+confirmed should expire, not become a debt.
