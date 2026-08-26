@@ -41,6 +41,10 @@ const BILLING = read("convex/billing.ts");
 const PRICING = read("src/pages/pricing.astro");
 
 import { planKeyForAlias, PLAN_CATALOG } from "../convex/plusPlans.ts";
+/* The purchasing switch, executed rather than grepped: the guarantee that
+   production ships unbuyable now rests on this value, so it is read from the
+   module the page reads. */
+import { PRICING_ENABLED } from "../src/app/declare/plan-display.js";
 
 let passed = 0;
 const failures: string[] = [];
@@ -310,7 +314,13 @@ check("the purchase control defers to the shared activation flag",
  * surface and no provider identifier lives in this page's code, and that is
  * asserted directly below. */
 const PRICING_SCRIPT = (stripComments(PRICING).match(/<script>[\s\S]*?<\/script>/g) || []).join("\n").toLowerCase();
-for (const leak of ["createCheckoutSession", "plus-monthly", "api.billing", "billing.create",
+/* `plus-monthly` delisted 2026-08-26: the wired CTA names the plan ALIAS, which
+   is the one thing the browser is allowed to name. `createCheckoutSession` is
+   delisted too, but it is asserted separately below that the page reaches it
+   only through the guarded dynamic import.
+   Everything else here stays, and those are the ones that matter: no Stripe API
+   surface, no secret key, no Price, customer or subscription identifier. */
+for (const leak of ["api.billing", "billing.create",
                     "convex/browser", "stripe", "sk_", "price_", "cus_", "sub_"]) {
   check(`pricing.astro code contains no "${leak}"`, !PRICING_SCRIPT.includes(leak.toLowerCase()));
 }
@@ -324,10 +334,29 @@ check("pricing.astro contains no provider identifier",
  * asserted instead: no way to CREATE a session, and every occurrence of the
  * word belongs to the guard. */
 const checkoutHits = (stripComments(PRICING).match(/[A-Za-z]*[Cc]heckout[A-Za-z]*/g) || []);
-check("pricing.astro can create no Checkout Session",
+/* The page still names no Stripe API surface of its own: it calls a helper.
+   `checkout/sessions` is Stripe's REST path and must never appear here. */
+check("pricing.astro calls no Stripe endpoint directly",
   !/createCheckoutSession|checkout\/sessions/.test(stripComments(PRICING)));
-check("every 'checkout' in pricing.astro is the guard, not a call",
-  checkoutHits.length > 0 && checkoutHits.every((h) => h === "mayStartCheckout"));
+/* THE REPLACEMENT for "every 'checkout' is the guard".
+   That held while the page could not transact at all. Now it can, so the
+   property worth asserting is HOW: through a dynamic import gated on the flag,
+   never a static one, and never a Convex client of its own. */
+const ALLOWED_CHECKOUT_WORDS = new Set([
+  "mayStartCheckout",   // the state guard, as before
+  "beginCheckout",      // the wired handler
+  "checkingOut",        // its single-flight latch
+  "startCheckout",      // the helper it imports
+  "checkout",           // the module path, and Stripe's own word in copy
+]);
+check("every 'checkout' in pricing.astro is the guard, the handler or the helper",
+  checkoutHits.length > 0 && checkoutHits.every((h) => ALLOWED_CHECKOUT_WORDS.has(h)));
+check("the checkout helper is reached only by dynamic import",
+  !/^\s*import[^\n]*checkout-start/m.test(stripComments(PRICING)) &&
+  /await import\([^)]*checkout-start/.test(stripComments(PRICING)));
+check("and only after the purchasing flag is checked",
+  stripComments(PRICING).indexOf("if (!PRICING_ENABLED) return fail") <
+    stripComments(PRICING).indexOf("await import('../app/declare/checkout-start.js')"));
 /* UPDATED, deliberately. This used to assert that pricing loads NO script.
  * That was a proxy for "pricing cannot transact", and it held only while the
  * page was entirely static. Pricing now performs ONE authenticated read —
@@ -340,8 +369,18 @@ check("every 'checkout' in pricing.astro is the guard, not a call",
  * already proves no Stripe/checkout/billing reference survives in its code. */
 check("pricing.astro imports NO billing action",
   !/createCheckoutSession|createPortalSession|api\.billing/.test(stripComments(PRICING)));
-check("pricing.astro never enables the purchase control",
-  !/disabled = false/.test(stripComments(PRICING)));
+/* `disabled = false` now appears legitimately: the checkout handler re-enables
+   its OWN button after a failure, so somebody who hits an error can try again
+   rather than being left with a dead control.
+   The property that matters is unchanged and is asserted directly: the purchase
+   button is never enabled while purchasing is off. */
+/* The built-markup half of this is asserted further down, once DIST is in
+   scope. Here it is the switch and the branch that reads it. */
+check("purchasing ships off", PRICING_ENABLED === false);
+check("the launches-soon branch is the one that disables the control",
+  /if \(intent === 'launches-soon'\) \{[\s\S]{0,80}b\.disabled = true;/.test(stripComments(PRICING)));
+check("nothing enables the purchase control itself",
+  !/plPlusBtn[^\n]*disabled = false/.test(stripComments(PRICING)));
 check("pricing.astro's only import surface is the entitlement read",
   !/convex\/browser|ConvexHttpClient/.test(stripComments(PRICING)));
 
@@ -381,7 +420,19 @@ check("dist/ contains files to inspect", files.length > 0);
    (`plan:"plus-monthly"`), which is what this page's action call compiles to
    and what the allowlist can never produce. */
 const FORBIDDEN = [
-  "createCheckoutSession",
+  /* `createCheckoutSession` WAS ON THIS LIST, and its removal is a deliberate,
+     owner-authorised downgrade rather than a slip.
+
+     The old property was that the string appeared nowhere in dist/, which made
+     "production cannot sell" checkable by grep rather than by reasoning. That
+     cannot survive a wired CTA: isolating the call in its own module behind
+     `if (!PRICING_ENABLED)` and a dynamic import does NOT drop it, because
+     Rollup will not fold a cross-module const to prove the import unreachable.
+     Verified against a real build, not assumed.
+
+     Replaced by the purchasing-ships-off block at the end of this file, which
+     asserts what actually stops somebody buying. The DEV CONTROLS below stay
+     banned; keeping them out of production is what this list is really for. */
   'plan:"plus-monthly"',
   "plan:'plus-monthly'",
   "billing-sandbox",

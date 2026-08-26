@@ -74,10 +74,23 @@ Stripe and Apple are billing *providers*, never the authority on who has access.
 - **Failed-payment emails are ours, not Stripe's** — four over a 16-day grace window
   (Apple's model), in English and Spanish, derived from `PAST_DUE_GRACE_DAYS` so the
   cadence follows if that number ever changes. `docs/operations/dunning-plan.md`.
-- **Purchasing is off.** `PRICING_ENABLED` in `src/app/declare/plan-display.js` is
-  `false`, and production is *structurally* incapable of starting a Checkout — four
-  suites scan `dist/` to keep it that way. Turning it on is a commit, not a
-  dashboard setting.
+- **Purchasing is off**, and the shape of that promise changed on 2026-08-26.
+  `PRICING_ENABLED` in `src/app/declare/plan-display.js` is still `false`, and turning
+  it on is still a commit rather than a dashboard setting.
+  What is **no longer true**: production used to be *structurally* incapable of
+  starting a Checkout, meaning `createCheckoutSession` appeared nowhere in `dist/` and
+  suites proved it by grep. That could not survive wiring the pricing CTA. Putting the
+  call in its own module behind `if (!PRICING_ENABLED)` and a dynamic import does not
+  drop it, because Rollup will not fold a cross-module const to prove the import
+  unreachable. Tried and verified against a real build, not assumed.
+  **The replacement, all asserted:** the flag ships `false`; the served CTA carries
+  `disabled`; the trial panel ships `hidden`; `checkout-start.js` is never imported
+  statically, so it is not in any page's initial bundle; the flag is checked before
+  the import, so no network work happens; and the browser may name a plan **alias**
+  and nothing else — no Price, amount or trial length.
+  Six properties replacing one, but verified by reasoning about reachability rather
+  than by looking. **Treat "production cannot sell" as a claim to re-check, not a
+  fact.**
 - **Only our own Checkout can grant Plus.** Classification requires provenance
   metadata that a hand-made Dashboard subscription or Payment Link never carries.
 

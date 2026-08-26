@@ -329,7 +329,10 @@ check("the account page ships the mobile-app row", YOU_HTML.includes('id="yMobil
 check("the shipped badge markup carries no gold", !/ybadge[^>]*gold/i.test(YOU_HTML));
 /* Development billing controls remain excluded. */
 check("dist/dev does not exist", !existsSync(join(DIST, "dev")));
-for (const needle of ["createCheckoutSession", "Stripe sandbox", "dbGoAnnual", "dbPortal", "dbInspect"]) {
+/* `createCheckoutSession` delisted 2026-08-26, owner-authorised: the pricing CTA
+   is wired, so the string ships. This list exists to keep the DEV CONTROLS out
+   of production, and those are all still here. */
+for (const needle of ["Stripe sandbox", "dbGoAnnual", "dbPortal", "dbInspect"]) {
   check(`production contains no "${needle}"`,
     files.filter((f) => readFileSync(f, "utf8").includes(needle)).length === 0);
 }

@@ -144,6 +144,7 @@ import LegalFooter from '../components/LegalFooter.astro';
               </li>
             </ol>
             <p class="pl-trial-sub" id="plTrialSub"></p>
+            <p class="pl-trial-err" id="plTrialErr" role="alert" hidden></p>
             <div class="pl-cta">
               <button type="button" class="btn btn-primary" id="plTrialGo" data-i18n="plans.startTrial">Start my 7 days free</button>
             </div>
@@ -298,6 +299,10 @@ import LegalFooter from '../components/LegalFooter.astro';
     'plans.trialS2d': 'A reminder that your trial is ending, with the date and the amount. Cancelling takes under a minute.',
     'plans.trialS3': 'Day 7: your plan begins',
     'plans.trialCharge': 'Your card is charged {price} in 7 days, on {date}.',
+    'plans.opening': 'Opening secure checkout…',
+    'plans.errUnavailable': 'We could not open checkout just now. Please try again.',
+    'plans.errAlready': 'You already have Plus on this account. Open Billing to manage it.',
+    'plans.errSoldOut': 'The founding-member round is full.',
     'plans.trialSub': '7 days free, then {price}. Cancel anytime.',
     'plans.upgrade': 'Upgrade to Plus',
     'plans.perMonth': '/ month',
@@ -443,8 +448,121 @@ import LegalFooter from '../components/LegalFooter.astro';
       }
       panel.hidden = false;
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      const go = el('plTrialGo');
-      if (go) (go as HTMLButtonElement).focus();
+      const go = el('plTrialGo') as HTMLButtonElement | null;
+      if (go) {
+        go.focus();
+        /* Bound once. showTrialPanel can run again when the reader switches
+           between monthly and annual, and a second listener would open two
+           Checkout Sessions from one click. */
+        if (go.dataset.bound !== '1') {
+          go.dataset.bound = '1';
+          go.addEventListener('click', () => beginCheckout(go));
+        }
+      }
+    }
+
+    /* ── Actually buying ────────────────────────────────────────────────
+     * The browser names a PLAN ALIAS and nothing else. Not a Price, not an
+     * amount, not a trial length: all three are decided server-side from
+     * trusted environment and this account's own eligibility, so a tampered
+     * request cannot buy at the wrong price or mint a second trial.
+     *
+     * Every refusal the action can return is handled by name. A generic "try
+     * again" on `already-subscribed` would tell somebody who is already paying
+     * that something went wrong, and send them to buy a second subscription. */
+    let checkingOut = false;
+    async function beginCheckout(btn: HTMLButtonElement): Promise<void> {
+      if (checkingOut) return;
+      checkingOut = true;
+      const original = btn.textContent || '';
+      btn.disabled = true;
+      btn.textContent = tx('plans.opening', 'Opening secure checkout…');
+      const note = el('plTrialErr');
+      if (note) note.hidden = true;
+
+      const fail = (key: string, fallback: string): void => {
+        if (note) { note.textContent = tx(key, fallback); note.hidden = false; }
+        btn.disabled = false;
+        btn.textContent = original;
+        checkingOut = false;
+      };
+
+      try {
+        /* IMPORTED ONLY IF PURCHASING IS ON, and the shape is deliberate.
+         *
+         * PRICING_ENABLED is a module-level const, so this branch folds away at
+         * build time and the dynamic import goes with it. That is what keeps
+         * the original guarantee intact: while the flag is false the shipped
+         * JavaScript cannot even NAME createCheckoutSession, which is a far
+         * stronger property than a disabled button and is checkable by grepping
+         * dist/ rather than by reasoning about reachability.
+         *
+         * Flipping the flag changes the BUILD, not just a runtime branch. The
+         * suites assert the absence today and must be rewritten to assert the
+         * presence on the day it flips. */
+        /* WIRED, and the guarantee this replaced is worth stating.
+         *
+         * CLAUDE.md used to promise production was *structurally* incapable of
+         * starting a Checkout: the shipped JavaScript could not even NAME
+         * createCheckoutSession, and the suites proved it by grepping dist/.
+         * That is a guarantee you verify by looking rather than by reasoning.
+         *
+         * It cannot survive a wired button. Isolating the call in its own
+         * module behind `if (!PRICING_ENABLED)` and a dynamic import does not
+         * drop it: Rollup will not fold a cross-module const to prove the
+         * import unreachable, so the chunk ships either way. Verified, not
+         * assumed.
+         *
+         * OVERRIDDEN BY THE OWNER, 2026-08-26, and replaced with properties
+         * that are still checkable rather than with nothing:
+         *   1. PRICING_ENABLED ships false
+         *   2. the CTA ships `disabled` in the built markup
+         *   3. the trial panel ships `hidden`
+         *   4. checkout-start.js is NEVER imported statically, so it is not in
+         *      any page's initial bundle
+         *   5. this early return makes the call unreachable while the flag is
+         *      false, before any network work happens
+         *   6. the browser may name a plan ALIAS and nothing else: no Price, no
+         *      amount, no trial length
+         * All six are asserted. CLAUDE.md is updated to say this rather than
+         * the thing that is no longer true. */
+        if (!PRICING_ENABLED) return fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
+        const { startCheckout } = await import('../app/declare/checkout-start.js');
+        const alias = interval === 'year' ? 'plus-annual' : 'plus-monthly';
+        const res = await startCheckout(alias, lang === 'es' ? 'es' : undefined);
+
+        /* NULL IS UNKNOWN, NEVER SUCCESS. Treating it as success sends somebody
+           to a blank page believing they bought something. */
+        if (!res) return fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
+
+        if (res.error) {
+          if (res.error === 'already-subscribed') {
+            return fail('plans.errAlready', 'You already have Plus on this account. Open Billing to manage it.');
+          }
+          if (res.error === 'lifetime-sold-out') {
+            return fail('plans.errSoldOut', 'The founding-member round is full.');
+          }
+          if (res.error === 'not-authenticated') {
+            /* Not an error to explain, a step to take. */
+            window.location.href = '/create-account';
+            return;
+          }
+          return fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
+        }
+
+        if (!res.url) return fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
+
+        track('checkout_opened', {
+          authenticated: true,
+          selected_interval: interval,
+          displayed_tier: currentPlanId(state) || 'none',
+        });
+        /* assign, not replace: leaving /pricing in history means backing out of
+           Stripe returns here rather than to whatever preceded it. */
+        window.location.assign(res.url);
+      } catch (e) {
+        fail('plans.errUnavailable', 'We could not open checkout just now. Please try again.');
+      }
     }
 
     /* Free card action. A person already on Free is not sold Free again. */
@@ -662,6 +780,8 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-trial-steps li { display: grid; gap: 2px; }
     .plans .pl-trial-steps strong { font-size: 13.5px; font-weight: 600; color: var(--text); }
     .plans .pl-trial-steps span { font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+    .plans .pl-trial-err { margin: 0 0 12px; font-size: 12.5px; line-height: 1.5;
+      color: var(--text); border-left: 2px solid var(--line2); padding-left: 10px; }
     .plans .pl-trial-sub { margin: 15px 0 13px; font-size: 12.5px;
       line-height: 1.5; color: var(--muted); }
 

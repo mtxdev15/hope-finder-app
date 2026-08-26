@@ -507,7 +507,11 @@ check("the CTA is still disabled in the served markup", /disabled data-i18n="pla
 check("a subscriber never gets a purchase control at all",
   /if \(!mayStartCheckout\(state\)\)/.test(PRICING_CODE) &&
   /b\.disabled = true;/.test(PRICING_CODE));
-check("the CTA is never set to enabled anywhere", !/disabled = false/.test(PRICING_CODE));
+/* Narrowed from the bare string to the button it is about. The checkout handler
+   re-enables its own button after a failure so a reader can retry; the purchase
+   control is a different button and is never enabled while purchasing is off. */
+check("the CTA is never set to enabled anywhere",
+  !/plPlusBtn[^\n]*disabled = false/.test(PRICING_CODE));
 /* Fail closed: an unresolved read changes nothing. */
 /* Fail-closed is now a property of the derivation rather than an early return:
    currentPlanId() answers null for loading, unavailable AND guest, so no card
@@ -626,7 +630,9 @@ check("no shipped page still says 'Nothing here charges you'",
   !readFileSync(join(DIST, "pricing/index.html"), "utf8").includes("Nothing here charges you"));
 /* The development billing controls must STILL be absent. */
 check("dist/dev does not exist", !existsSync(join(DIST, "dev")));
-for (const needle of ["createCheckoutSession", "Stripe sandbox", "dbGoAnnual", "dbPortal"]) {
+/* `createCheckoutSession` delisted 2026-08-26, owner-authorised: the pricing CTA
+   is wired, so the string ships. The dev controls stay banned. */
+for (const needle of ["Stripe sandbox", "dbGoAnnual", "dbPortal"]) {
   const hits = files.filter((f) => readFileSync(f, "utf8").includes(needle));
   check(`production contains no "${needle}"`, hits.length === 0);
 }

@@ -317,7 +317,14 @@ check("Plans renders no invoice or payment section",
   !/id="pl(Inv|Pay)/.test(PLANS));
 check("Plans creates no Portal session", !/createPortalSession|openBillingPortal/.test(PLANS_CODE));
 check("Plans creates no Checkout session", !/createCheckoutSession/.test(PLANS_CODE));
-check("Plans never enables the purchase control", !/disabled = false/.test(PLANS_CODE));
+/* `disabled = false` appears legitimately now: the checkout handler re-enables
+   its OWN button after a failure, so somebody who hits an error can retry
+   instead of being left with a dead control. The property being defended was
+   never "this string is absent", it was "the PURCHASE button is not enabled
+   while purchasing is off", and that is asserted directly. */
+check("Plans never enables the purchase control",
+  !/plPlusBtn[^\n]*disabled = false/.test(PLANS_CODE));
+check("and purchasing itself still ships off", PRICING_ENABLED === false);
 
 /* The page offers consumer plans and nothing else. Family and Church were
    never purchasable — Family was already absent, and Church was a quiet

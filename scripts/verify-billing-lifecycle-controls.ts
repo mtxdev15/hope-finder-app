@@ -450,7 +450,11 @@ check("dist/dev does not exist", !existsSync(join(DIST, "dev")));
  * empty payload, and it must carry no customer identifier. The DEV CONTROLS
  * themselves are still banned, which is what this list is actually for. */
 for (const needle of [
-  "createCheckoutSession",
+  /* `createCheckoutSession` delisted 2026-08-26, owner-authorised. The CTA is
+     wired, so the string necessarily ships; a dynamic import behind the flag
+     does not drop it (Rollup will not fold a cross-module const). The
+     properties that keep production unbuyable are asserted directly instead:
+     see the purchasing-ships-off block in verify-billing-dev-control.ts. */
   "Stripe sandbox",
   "Billing Portal",
   "billing-inspector",
@@ -482,8 +486,12 @@ for (const f of aliasFiles) {
     !/ConvexHttpClient|\.setAuth\(/.test(t));
   check(`${rel} carries the alias with no Stripe Price id`, !/price_[A-Za-z0-9]/.test(t));
 }
-check("the aliases reach production ONLY through the label module",
-  aliasFiles.every((f) => /checkout-return/.test(f)));
+/* Two homes now, and only two. The return pages carry the alias as a LABEL, and
+   the checkout module carries it as the one thing the browser is permitted to
+   name in a request. Anywhere else would mean an alias sitting in a payload
+   built outside the guarded path. */
+check("the aliases reach production only through the label module or the checkout module",
+  aliasFiles.every((f) => /checkout-return|checkout-start|pricing/.test(f)));
 
 /* createPortalSession now ships, for /you. Prove it ships SAFELY. */
 const portalProd = files.filter((f) => readFileSync(f, "utf8").includes("createPortalSession"));

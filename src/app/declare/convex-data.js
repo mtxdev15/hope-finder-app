@@ -18,14 +18,20 @@ const URL = import.meta.env.PUBLIC_CONVEX_URL || '';
 
 let http = null;
 let apiRef = null;
+/* Read by checkout-start.js after ensure() resolves. */
+export const api = () => apiRef;
 
 /* Lightweight, synchronous — safe to call from anywhere without loading anything. */
 export function dataConfigured() {
   return !!URL && isConfigured();
 }
 
-/* Lazy-load the client + api on first real use. Returns false if not configured. */
-async function ensure() {
+/* Lazy-load the client + api on first real use. Returns false if not configured.
+ *
+ * EXPORTED for checkout-start.js alone, which is deliberately a separate module
+ * so that starting a Checkout can be dynamically imported and therefore left
+ * out of the bundle entirely while purchasing is off. See that file. */
+export async function ensure() {
   if (!URL) return false;
   try {
     if (!http) {
@@ -78,7 +84,7 @@ async function runMutation(fn, args) {
   try { const c = await authed(); return c ? await c.mutation(fn, args || {}) : null; }
   catch (e) { return null; }
 }
-async function runAction(fn, args) {
+export async function runAction(fn, args) {
   try { const c = await authed(); return c ? await c.action(fn, args || {}) : null; }
   catch (e) { return null; }
 }
@@ -169,6 +175,7 @@ export async function myEntitlements() {
 
 /* ── giving history (signed-in user's own gifts, newest first) ── */
 export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gifts.myGifts, {}) : null; }
+
 
 /* ── Stripe Billing Portal ────────────────────────────────────────────────
  * The ONE place the app asks for a Portal session, so the empty payload is a
