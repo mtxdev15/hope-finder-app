@@ -72,13 +72,55 @@ export function dunningSchedule(graceMs: number): DunningStage[] {
  *   - no red, no capitals, no countdown, no "FAILED", "suspended", "terminated"
  *   - in a faith app, "your access has been withdrawn" can land as a verdict on
  *     the person rather than a billing status. It never appears.
- *   - one action, stated twice: the button, and the way to do it without one */
-type Copy = { subject: string; heading: string; body: string[]; cta: string | null };
+ *   - one action, stated twice: the button, and the way to do it without one
+ *
+ * THE SPANISH IS A TRANSLATION OF THE INTENT, NOT OF THE WORDS. "We couldn't
+ * reach your card" has no natural Spanish equivalent that stays that gentle, so
+ * the Spanish says "no pudimos procesar tu tarjeta" and carries the same
+ * meaning: the card did not answer, and nothing is wrong with you. It uses TÚ
+ * throughout, matching auth-modal.js and the rest of the app — a billing email
+ * that suddenly switched to usted would read as a letter from a collections
+ * department, which is precisely the register this whole file exists to avoid.
+ *
+ * The banned-word list is enforced against the RENDERED text in BOTH
+ * languages, because translating a ban list is exactly the kind of thing that
+ * gets skipped. The Spanish list is not a translation of the English one: it
+ * bans what Spanish billing letters actually say — "suspendido", "moroso",
+ * "en mora", "inmediatamente", "aviso final", "dado de baja". Note that
+ * "tarjeta vencida" is NOT banned and appears on purpose: applied to a card it
+ * is the ordinary, blameless word for expired, and it is the single most
+ * common real cause. Applied to a person it would be a different word. */
+type Copy = {
+  subject: string;
+  heading: string;
+  body: string[];
+  cta: string | null;
+  footer: string;
+};
 
-export function money(cents: number | null, currency: string | null): string | null {
+export type EmailLang = "en" | "es";
+
+/* Which language a stored value means. Absent, unknown, or a language we no
+ * longer ship all mean English — the same default a row sold before the
+ * `locale` column existed gets. */
+export function emailLang(x: unknown): EmailLang {
+  return x === "es" ? "es" : "en";
+}
+
+/* Intl locale tags. es-US rather than es-ES deliberately: our Spanish readers
+ * are overwhelmingly in the United States, are billed in dollars, and read
+ * "$8.99" as naturally as an English reader does. es-ES would render the same
+ * amount as "8,99 US$", which is correct in Spain and wrong for them. */
+const INTL_LOCALE: Record<EmailLang, string> = { en: "en-US", es: "es-US" };
+
+export function money(
+  cents: number | null,
+  currency: string | null,
+  lang: EmailLang = "en",
+): string | null {
   if (typeof cents !== "number") return null;
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(INTL_LOCALE[lang], {
       style: "currency",
       currency: (currency || "usd").toUpperCase(),
     }).format(cents / 100);
@@ -87,8 +129,8 @@ export function money(cents: number | null, currency: string | null): string | n
   }
 }
 
-export function longDate(ms: number): string {
-  return new Date(ms).toLocaleDateString("en-US", {
+export function longDate(ms: number, lang: EmailLang = "en"): string {
+  return new Date(ms).toLocaleDateString(INTL_LOCALE[lang], {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -96,16 +138,105 @@ export function longDate(ms: number): string {
   });
 }
 
+const FOOTER: Record<EmailLang, string> = {
+  en:
+    "You're receiving this because you have a Declare Plus subscription. " +
+    "This is a one-off message about your billing, not a newsletter.",
+  es:
+    "Recibes esto porque tienes una suscripción a Declare Plus. " +
+    "Es un mensaje puntual sobre tu pago, no un boletín.",
+};
+
+function copyEs(
+  stage: DunningStage,
+  card: string,
+  amount: string,
+  pausesOn: string,
+): Copy {
+  const footer = FOOTER.es;
+
+  if (stage === "failed") {
+    return {
+      subject: "No pudimos procesar tu tarjeta",
+      heading: "No pudimos procesar tu tarjeta",
+      body: [
+        `Tu pago${amount} de Declare Plus no se completó${card}. ` +
+          `Casi siempre es una tarjeta vencida o reemplazada, no algo que hayas hecho tú.`,
+        `No has perdido nada. Tu Plus sigue activo hasta el <strong>${pausesOn}</strong> mientras lo intentamos de nuevo.`,
+        `Puedes actualizar tu tarjeta con el botón de abajo — o, si prefieres no abrir un enlace de un correo, ` +
+          `entra a Declare y ve a Facturación. Los dos llevan al mismo lugar.`,
+        `Y si el motivo es el dinero, respóndenos a este correo y dínoslo. ` +
+          `Lo resolvemos. No tendrás que explicarlo dos veces.`,
+      ],
+      cta: "Actualizar mi tarjeta",
+      footer,
+    };
+  }
+
+  if (stage === "reminder") {
+    return {
+      subject: "Tu tarjeta todavía no responde",
+      heading: "Tu tarjeta todavía no responde",
+      body: [
+        `Seguimos sin poder procesar tu pago${amount} de Declare Plus${card}. ` +
+          `Lo vamos a seguir intentando, y mientras tanto tu Plus sigue activo.`,
+        `Si es una tarjeta vencida, actualizarla toma como un minuto. ` +
+          `Puedes usar el botón, o entrar a Declare e ir a Facturación — lo que prefieras.`,
+        `Tu Plus sigue activo hasta el <strong>${pausesOn}</strong>.`,
+      ],
+      cta: "Actualizar mi tarjeta",
+      footer,
+    };
+  }
+
+  if (stage === "ending") {
+    return {
+      subject: "Tu Plus se pausa mañana",
+      heading: "Solo para avisarte",
+      body: [
+        `Todavía no hemos podido procesar tu tarjeta${card}, así que Declare Plus se pausa el <strong>${pausesOn}</strong>.`,
+        `Actualizar tu tarjeta toma como un minuto y todo vuelve enseguida — no se borra nada, ` +
+          `y nada de lo que has guardado se va a ningún lado.`,
+        `Como antes, puedes usar el botón o entrar a Declare e ir a Facturación.`,
+      ],
+      cta: "Actualizar mi tarjeta",
+      footer,
+    };
+  }
+
+  return {
+    subject: "Tu Plus está en pausa",
+    heading: "Tu Plus está en pausa por ahora",
+    body: [
+      `No pudimos procesar tu tarjeta${card}, así que Declare Plus está en pausa.`,
+      `Sigues teniendo Declare. La Palabra de cada día, las Escrituras y todo lo que has guardado siguen aquí, ` +
+        `tal como lo dejaste — pausar Plus no te quita nada de eso.`,
+      `Cuando quieras, actualizar tu tarjeta vuelve a activar Plus al instante. No hay prisa y no hay penalización.`,
+    ],
+    cta: "Activar Plus de nuevo",
+    footer,
+  };
+}
+
 export function copyFor(
   stage: DunningStage,
   facts: { card: string | null; amount: string | null; pausesOn: string },
+  lang: EmailLang = "en",
 ): Copy {
   /* Named so the sentences below read as sentences. A missing card or amount
      degrades the wording rather than printing an empty gap — Stripe may not
      hand either back, and an email that says "we could not charge your  " is
      worse than one that simply says less. */
   const card = facts.card ? ` (${facts.card})` : "";
+
+  if (lang === "es") {
+    /* "de $8.99", not "for $8.99". The preposition belongs to the language, so
+       it is built here rather than passed in already glued to the number. */
+    return copyEs(stage, card, facts.amount ? ` de ${facts.amount}` : "", facts.pausesOn);
+  }
+
   const amount = facts.amount ? ` for ${facts.amount}` : "";
+  const footer = FOOTER.en;
 
   if (stage === "failed") {
     return {
@@ -121,6 +252,7 @@ export function copyFor(
           `We'll sort something out. You will not be asked to explain yourself twice.`,
       ],
       cta: "Update your card",
+      footer,
     };
   }
 
@@ -136,6 +268,7 @@ export function copyFor(
         `Plus stays on until <strong>${facts.pausesOn}</strong>.`,
       ],
       cta: "Update your card",
+      footer,
     };
   }
 
@@ -150,6 +283,7 @@ export function copyFor(
         `As before, you can use the button or open Declare and go to Billing.`,
       ],
       cta: "Update your card",
+      footer,
     };
   }
 
@@ -163,7 +297,25 @@ export function copyFor(
       `Whenever you're ready, updating your card turns Plus back on right away. There's no rush and no penalty.`,
     ],
     cta: "Turn Plus back on",
+    footer,
   };
+}
+
+/* Where the one button points.
+ *
+ * ALWAYS OUR OWN DOMAIN, never a Stripe-hosted URL — that is one of the three
+ * anti-phishing properties this file exists to hold, and the only one a reader
+ * can check before clicking.
+ *
+ * `?lang=es` is carried so the page opens in the language the email was
+ * written in even on a device that has never chosen Spanish — somebody
+ * reading on a work laptop should not land on an English billing page. i18n.js
+ * honours the parameter, writes the choice, and then STRIPS it from the URL, so
+ * it cannot pin them to Spanish afterwards. English is the default and carries
+ * no parameter at all. */
+export function billingUrl(site: string, lang: EmailLang = "en"): string {
+  const base = site.replace(/\/+$/, "") + "/billing";
+  return lang === "es" ? base + "?lang=es" : base;
 }
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
@@ -195,10 +347,7 @@ export function render(copy: Copy, url: string): string {
       ${paras}
       ${button}
       <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #E8E0D0;
-         font-size:12.5px;line-height:1.6;color:#8A9490;">
-        You're receiving this because you have a Declare Plus subscription.
-        This is a one-off message about your billing, not a newsletter.
-      </p>
+         font-size:12.5px;line-height:1.6;color:#8A9490;">${copy.footer}</p>
     </div>
   </div>`;
 }

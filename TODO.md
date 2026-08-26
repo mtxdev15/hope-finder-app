@@ -146,6 +146,36 @@ real charges instead of two.
       Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
       suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
 
+- [ ] **The dashboard steps for the billing-page + dunning work.** All the code is
+      merged and deployed by then; these four cannot be done from a terminal, and the
+      sequence below is deliberate — each one is safe only once the one above it has landed.
+
+      1. **`npx convex deploy`** — ships the emails, the `locale` and `dunningSends`
+         schema additions, and the `lapsed` billing state. Both schema changes are
+         additive and need no backfill.
+      2. **Stripe → Settings → Billing → *Subscriptions and emails*: turn OFF
+         "Send emails when card payments fail"** and "Send emails when bank debit
+         payments fail". **Only after step 1.** Off with nothing deployed is not
+         "fewer emails", it is none. Confirmed **ON** in a screenshot on 2026-08-26 —
+         `dunning-plan.md` had assumed otherwise and has been corrected.
+      3. **Stripe → same page → *Manage failed payments* → Subscription status:
+         change "cancel the subscription" to "leave the subscription past-due"** (B3).
+         Confirmed as `cancel` in the same screenshot. This is what lets a returning
+         subscriber repair a card in the Portal instead of buying again, and it is what
+         the `lapsed` state on `/billing` exists to serve.
+      4. **Resend → Webhooks → add `https://<convex-site>/resend/email-event`**, then
+         set its signing secret as `RESEND_WEBHOOK_SECRET` in Convex production. Until
+         this exists, delivery events fail closed and are simply not recorded — the
+         suppression-on-bounce logic has nothing to read.
+
+      Also confirm **`RESEND_API_KEY`** is set in Convex production. Without it every
+      send throws and the whole sequence is silent.
+
+      Deliberately **not** changed: *"if a recurring payment is incomplete for 15 days,
+      cancel"* governs `incomplete` — a first payment where 3D Secure was never
+      confirmed — which is a different state from `past_due` and is right as it is.
+      *"Send finalized invoices and credit notes"* stays **on**; those are receipts.
+
 ## 💳 Path to the first paying subscriber
 
 *Senior-dev audit, 2026-08-25. Ordered by what blocks revenue, then by what
@@ -181,15 +211,29 @@ has paid you money.
       "your payment failed, update your details" is among the most common phishing templates that
       exists. Hardship help is offered in the FIRST email, not the last.
       92 checks in `scripts/verify-dunning-emails.ts`, executing the real copy.~~
-- [ ] **B2a. Email language — English only, and visibly so.** Nothing records a user's locale:
-      `accountSettings` has a timezone and no language, and the webhook has no request to read one
-      from. The fix is small and additive — stamp `createCheckoutSession`'s `lang` into
-      `subscription_data[metadata][lang]`, persist it in `applyWebhook`, read it in `dunning.ts`.
-      Extra metadata keys do not affect classification. A real gap for a bilingual app.
-- [ ] **B2b. No email delivery tracking.** The Resend component is instantiated without
-      `onEmailEvent` and no Resend webhook route is registered, so a bounced or rejected dunning
-      email is indistinguishable from a delivered one. That is the difference between "we told
-      them" and "we tried to tell them". Close before volume grows.
+- [x] ~~**B2a. Email language — DONE 2026-08-26. English and Spanish.**
+      `createCheckoutSession`'s `lang` is now stamped into `subscription_data[metadata][lang]`
+      (or `payment_intent_data[metadata][lang]` for lifetime — the same asymmetry provenance
+      uses), read back by `plusPlans.stampedLang`, persisted on the subscriptions row as
+      `locale`, and read by `dunning.ts` weeks later.
+      **Carried metadata, never provenance.** `classifyPlusSubscription` does not read it and
+      must not start — a sixth checked key would reject every subscription sold before the stamp
+      existed. `verify-plus-classification.ts` asserts both directions.
+      **Absence means English**, so nothing needed backfilling. `normalizeLang` accepts regional
+      tags (`es-MX`, `es_419`) and returns `null` for anything else — null rather than a throw,
+      because this runs in a webhook mutation and Stripe answers a throw with infinite retries.
+      The Spanish is `tú` (matching the app), its ban list is written for Spanish rather than
+      translated from English, and money and dates format as `es-US`. The link carries `?lang=es`
+      so the page opens in the email's language; `i18n.js` honours it and strips it.~~
+- [x] ~~**B2b. Email delivery tracking — DONE 2026-08-26.** `onEmailEvent` is registered and
+      `/resend/email-event` routed; the component verifies the svix signature itself, so this
+      route does not go through the Worker (rule C5 is about the *Stripe* credential — adding a
+      hop and a second copy of a secret here would buy nothing).
+      Each send writes a `dunningSends` row joining the message id to the user and stage.
+      **Delivery tracking, not analytics:** no opens, no clicks, no pixel, no duplicated address.
+      **The part that matters:** a bounce, hard failure or spam complaint suppresses the
+      remaining stages, checked at send time before the address is even resolved.
+      *Needs one dashboard step — see Next up.*~~
 - [x] ~~**B2c. DECIDED 2026-08-26 — the grace window is 16 days, Apple's model.**
       Was 3, carrying its own note that it was "awaiting approval, not a silently chosen default".
       Three days was shorter than the retries it covered: Stripe retries for **two weeks**, so
@@ -202,10 +246,13 @@ has paid you money.
       (0, 2, 3) but became 0, 15, 16 at sixteen — one email, two weeks of silence, then two inside
       a day. A midpoint `reminder` stage was added, so the sequence is now 0, 8, 15, 16. Four
       emails, against Stripe's eight.
-- [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
-      unpaid" are very different outcomes for a real subscriber, and the sandbox
-      default is cancel. *Harm if skipped: subscriptions ending without anyone
-      choosing that.*
+- [ ] **B3. Smart Retry's final action — CONFIRMED as `cancel`, still to change.**
+      No longer an assumption: a screenshot of the live Dashboard on 2026-08-26 shows
+      *"If all retries for a payment fail, cancel the subscription"*. Recommendation is
+      **leave the subscription past-due**, so a returning subscriber repairs a card through the
+      Portal rather than buying again from scratch — which is what the `lapsed` state on
+      `/billing` exists to keep open. Dashboard-only; a restricted key is refused for it.
+      *Harm if skipped: subscriptions ending without anyone choosing that.*
 - [ ] **B4. Monitoring on `invoice.payment_failed`**, and a check that every
       failure reaches a terminal outcome (`invoice.paid`, `unpaid`, or
       cancellation). *An alert with no resolution check is how a silently

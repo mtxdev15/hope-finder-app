@@ -175,6 +175,20 @@ export default defineSchema({
     appleOriginalTransactionId: v.optional(v.string()),
     appleAppAccountToken: v.optional(v.string()),
 
+    /* The language to write to this person in, stamped by their own Checkout
+       and carried through Stripe metadata (see plusPlans.stampedLang).
+
+       ABSENT MEANS ENGLISH. Every row sold before this column existed is
+       therefore already correct and nothing needs backfilling.
+
+       A plain string rather than a v.union of the languages we ship, and that
+       is deliberate: the value originates in a Stripe payload read inside a
+       webhook mutation, and a union that rejects an unexpected value would
+       throw there — which Stripe answers by retrying the same event forever.
+       plusPlans.normalizeLang is the guard instead, and it returns only a
+       language we ship or null, so nothing else can reach this column. */
+    locale: v.optional(v.string()),
+
     // Ordering guards: providers deliver out of order, so an older event must
     // never overwrite newer state. See subscriptions.applyWebhook.
     lastProviderEventId: v.optional(v.string()),
@@ -276,6 +290,44 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  /* Did the failed-payment email actually arrive?
+   *
+   * WHY THIS EXISTS
+   * Without it, a dunning email that silently fails to deliver is
+   * indistinguishable from one that worked — and the difference between "we
+   * told them" and "we tried to tell them" is the whole point of sending it.
+   * Somebody loses Plus having genuinely never been warned, and nothing in the
+   * system knows.
+   *
+   * IT IS NOT ANALYTICS. Opens and clicks are deliberately not recorded and
+   * cannot be: open tracking needs a tracking pixel, and dunning.ts renders
+   * none — a suite asserts there is no <img in these emails at all. Watching
+   * whether somebody opened a message about their money is surveillance this
+   * product has no use for. Only whether it was DELIVERABLE is kept.
+   *
+   * NO EMAIL ADDRESS IS STORED HERE. The Resend component already holds the
+   * message, keyed by this emailId; duplicating the address would put a second
+   * copy of somebody's contact details in a table that exists to hold
+   * timestamps. userId and emailId are enough to find everything else. */
+  dunningSends: defineTable({
+    // The Resend component's id for the message. The join key to the message
+    // itself, and to every later event about it.
+    emailId: v.string(),
+    userId: v.string(),
+    // Which of the sequence's stages this was. Stored as a string rather than a
+    // union for the same reason `status` is: this table records what happened,
+    // it does not constrain it.
+    stage: v.string(),
+    sentAt: v.number(),
+    /* The last thing Resend told us. Absent means nothing has come back yet —
+       which for a few seconds after a send is the normal state, and hours later
+       is itself the signal. */
+    lastEvent: v.optional(v.string()),
+    lastEventAt: v.optional(v.number()),
+  })
+    .index("by_email", ["emailId"])
+    .index("by_user", ["userId"]),
 
   /* Webhook idempotency for SUBSCRIPTION events. Deliberately not giftEvents:
      that table is keyed by Checkout session and belongs to the donation

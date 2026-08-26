@@ -37,11 +37,45 @@ four, numbering them in the subject line.
 
 Turning Stripe's on *as well* would mean eleven.
 
+### Confirmed in the Dashboard, 2026-08-26
+
+The research note above flagged two Stripe behaviours as "confirm before launch".
+Screenshots of the live account settled them, and one of them was **not** what
+this document assumed.
+
+| Setting | Found | Wanted |
+|---|---|---|
+| Send emails when card payments fail | **ON** | **off** |
+| Send emails when bank debit payments fail | **ON** | off |
+| Smart Retry final action (*if all retries fail*) | **cancel the subscription** | leave `past_due` |
+| Send finalized invoices and credit notes | ON | **ON — leave it** |
+| Send reminders if a recurring invoice hasn't been paid | off | off |
+| Reminder 7 days before a trial ends / upcoming renewals / expiring cards | off | off |
+
+**This document said "Stripe's toggle stays off". It was on.** Nothing had gone
+wrong — no card has ever failed on this account, so it had never fired — but the
+sentence was an assumption written as a fact, which is exactly the failure mode
+`billing-production-activation-readiness.md` is distrusted for. Recorded here
+rather than quietly corrected.
+
+Turn it off **when the Convex deploy carrying our sequence lands**, not before.
+Off with nothing deployed is worse than eight emails: it is none.
+
+The bank-debit toggle is moot — Checkout is card-only — but off is the honest
+setting for something we do not accept.
+
+One setting nearby is deliberately **left alone**: *Manage payments that require
+confirmation → if a recurring payment is incomplete for 15 days, cancel*. That
+governs `incomplete` — a first payment where 3D Secure was never confirmed, so
+the subscription never started. Cancelling that is right, and it is a different
+state from `past_due`, which is what the grace window and this sequence cover.
+
 ### What we would give up
 
 Stripe's emails are free, already localised, and maintained by somebody else.
-Ours are English-only (see below) and are our problem when they break. That is
-the trade, made deliberately.
+Ours are our problem when they break — and localising them was work Stripe would
+have done for us. They now ship in English and Spanish (below), which closes most
+of that gap; a third language is our cost to bear, not Stripe's.
 
 ### When to reconsider
 
@@ -166,27 +200,84 @@ research as an active harm, not merely friction.
 
 ## Known gaps, recorded rather than hidden
 
-### English only
+### ~~English only~~ — CLOSED
 
-Nothing in the codebase records a user's language. `accountSettings` holds a
-timezone and no locale, and the webhook that triggers this has no request to
-read one from. Guessing from a Stripe billing address would be worse than the
-honest default.
+**Shipped 2026-08-26.** English and Spanish, chosen per subscriber rather than
+guessed.
 
-**The fix, when wanted:** `createCheckoutSession` already accepts `lang`. Stamp
-it into `subscription_data[metadata][lang]`, persist it on the subscriptions row
-in `applyWebhook`, and read it here. Extra metadata keys do not affect
-classification — only the five provenance keys are checked — so this is additive
-and safe. It is a real gap for a bilingual app and should not ship unnoticed
-much past launch.
+`createCheckoutSession` already accepted `lang`, so the fix was to make it
+survive the Checkout Session: it is stamped into `subscription_data[metadata]`
+for a subscription and `payment_intent_data[metadata]` for a lifetime purchase —
+the same asymmetry the provenance keys use, and for the same reason. The webhook
+reads it back through `plusPlans.stampedLang` and persists it on the
+subscriptions row as `locale`; `dunning.ts` reads it there weeks later.
 
-### No delivery tracking
+**It is carried metadata, not provenance, and must never become provenance.**
+`classifyPlusSubscription` does not read `lang` and adding it as a sixth checked
+key would reject every subscription sold before the stamp existed.
+`verify-plus-classification.ts` asserts both directions: an extra `lang` key
+does not disturb classification, and a missing one does not either.
 
-The Resend component is instantiated without `onEmailEvent` and no Resend webhook
-route is registered, so nothing observes a bounce, a complaint or a hard failure.
-A dunning email that silently fails to deliver is indistinguishable from one that
-worked. **This should be closed before volume grows** — it is the difference
-between "we told them" and "we tried to tell them".
+**Absence means English**, which is why nothing needed backfilling — a row sold
+before the column existed reads identically to one stamped by an English
+checkout. `plusPlans.normalizeLang` is the only writer, it accepts regional tags
+(`es-MX`, `es_419`, `ES`) and returns `null` for anything else, so the column
+cannot hold a value the send does not understand. It returns `null` rather than
+throwing on purpose: this runs inside a webhook mutation, and Stripe answers a
+throw by retrying the same event forever.
+
+Three things the suite proves beyond "Spanish exists":
+
+- **The register matches the app.** `tú`, never `usted` — `auth-modal.js` and the
+  rest of the product use `tú`, and a billing email that switched to `usted`
+  reads as a letter from a collections department.
+- **The ban list is not translated.** The Spanish list bans what Spanish billing
+  letters actually say (`moroso`, `en mora`, `dado de baja`, `aviso final`).
+  Word-for-word translation would have banned `vencida`, which is the ordinary
+  blameless word for an expired *card* and the single most common real cause.
+- **The formatting is the reader's.** `es-US`, not `es-ES`: our Spanish readers
+  are in the United States and are billed in dollars, so `$8.99`, not `8,99 US$`.
+  The date reads *26 de septiembre de 2026*.
+
+The link carries `?lang=es` so the billing page opens in the language the email
+was written in even on a device that has never chosen Spanish. `i18n.js` honours
+the parameter and then strips it from the URL, so it cannot pin anyone to
+Spanish afterwards — the suite asserts both halves of that, because the link
+would fail silently if either stopped being true.
+
+### ~~No delivery tracking~~ — CLOSED
+
+**Shipped 2026-08-26.** `onEmailEvent` is registered on the Resend client and
+`/resend/email-event` is routed in `http.ts`, so every event on a message we
+sent comes back to us.
+
+**Why this route does not go through the Worker, and why that is not a breach of
+rule C5.** C5 is about the *Stripe* credential — one key, one runtime, verified
+at the public edge in front of a money path. Resend signs with svix and the
+component verifies that signature itself using `RESEND_WEBHOOK_SECRET`. Routing
+it through the Worker would add a hop and a second copy of a secret to buy
+nothing.
+
+Each send writes a `dunningSends` row joining the message id to the user and the
+stage; each event patches it. **It is delivery tracking, not analytics** — opens
+and clicks are deliberately not recorded, and could not be: open tracking needs a
+pixel and these emails render no `<img` at all, which a suite asserts. No email
+address is duplicated into the table; the Resend component already holds the
+message, keyed by the same id.
+
+**The property that makes it more than a log line:** a bounce, a hard failure or
+a spam complaint suppresses the remaining stages. Somebody who marked the first
+email as spam has told us to stop, and three more would be both rude and a
+deliverability problem for every other email this domain sends. The check runs at
+send time, before the address is even resolved, alongside every other pre-send
+check — the suite asserts that ordering, because a suppression that ran after the
+send would be a suppression that did nothing.
+
+**This needs one thing done in a dashboard:** the Resend webhook pointing at
+`/resend/email-event`, and its signing secret set as `RESEND_WEBHOOK_SECRET` in
+Convex production. Until then deliveries fail closed — events are simply not
+recorded, which is the state this replaced and is strictly better than accepting
+forged ones.
 
 ### Grace expiry is unobserved
 
@@ -230,7 +321,8 @@ days — so changing it later stays one number.
 
 ### 2. Smart Retry's final action (TODO B3)
 
-Still the untouched sandbox default of **cancel**.
+**Confirmed in the live Dashboard on 2026-08-26** as the untouched default of
+**cancel** — this was previously an assumption, now a screenshot.
 
 - **Cancel** — the subscription ends. Clean, but recovery means buying again
   from scratch.

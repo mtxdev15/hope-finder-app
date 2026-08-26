@@ -66,10 +66,14 @@ Stripe and Apple are billing *providers*, never the authority on who has access.
 - **The Worker verifies and relays. Convex talks to Stripe.** The Worker holds **no
   Stripe credential** (rule C5) — it checks the signature and forwards the verbatim
   bytes. One credential, one runtime, one pinned API version.
-- **Four secrets, three of which look alike.** `BILLING_WEBHOOK_SECRET` is *not* a
-  Stripe secret — it is a shared password between our Worker and our Convex, and it
-  must be identical in both. Read
-  `docs/operations/billing-secret-topology.md` before touching any of them.
+- **Four billing secrets, three of which look alike** — plus two Resend secrets, one
+  of which looks like a third. `BILLING_WEBHOOK_SECRET` is *not* a Stripe secret — it
+  is a shared password between our Worker and our Convex, and it must be identical in
+  both. `RESEND_WEBHOOK_SECRET` starts with `whsec_` and has nothing to do with
+  Stripe. Read `docs/operations/billing-secret-topology.md` before touching any of them.
+- **Failed-payment emails are ours, not Stripe's** — four over a 16-day grace window
+  (Apple's model), in English and Spanish, derived from `PAST_DUE_GRACE_DAYS` so the
+  cadence follows if that number ever changes. `docs/operations/dunning-plan.md`.
 - **Purchasing is off.** `PRICING_ENABLED` in `src/app/declare/plan-display.js` is
   `false`, and production is *structurally* incapable of starting a Checkout — four
   suites scan `dist/` to keep it that way. Turning it on is a commit, not a

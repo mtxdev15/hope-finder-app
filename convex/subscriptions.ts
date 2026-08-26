@@ -249,6 +249,9 @@ export const applyWebhook = internalMutation({
     // Only ever the metadata WE set at Checkout, after classification verified
     // its provenance. Never a browser-supplied id.
     metadataUserId: v.optional(v.string()),
+    /* The reader's language, already normalised by plusPlans.normalizeLang to
+       one we actually ship. Absent means English — see the schema comment. */
+    locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // 1. Replay: already processed?
@@ -437,6 +440,10 @@ export const applyWebhook = internalMutation({
       ...(args.appleAppAccountToken
         ? { appleAppAccountToken: args.appleAppAccountToken }
         : {}),
+      /* Spread-omitted when absent, never written as undefined. An event whose
+         metadata we could not read must leave a previously-stamped language
+         alone rather than quietly resetting somebody to English. */
+      ...(args.locale ? { locale: args.locale } : {}),
     };
 
     if (existing) {

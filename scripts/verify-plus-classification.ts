@@ -515,6 +515,46 @@ const realVerdict = classifyPlusSubscription({
   environment: "sandbox",
 });
 check("the real dahlia subscription classifies as Plus", realVerdict.ok === true);
+
+/* THE SAFETY PROPERTY BEHIND CARRYING THE READER'S LANGUAGE IN METADATA.
+ *
+ * `lang` is stamped alongside the five provenance keys but is deliberately not
+ * one of them: classification must ignore it entirely. That cuts both ways and
+ * both directions are asserted, because getting either wrong is silent.
+ *
+ * If an extra key made classification FAIL, every subscription sold after the
+ * stamp shipped would stop being recognised. If a MISSING one made it fail,
+ * every subscription sold before it would. Neither can happen. */
+const withLang = classifyPlusSubscription({
+  subscription: {
+    ...DAHLIA_SUB,
+    metadata: { ...(DAHLIA_SUB as any).metadata, lang: "es" },
+  },
+  session: null,
+  approvedPrices: approvedPricesFromEnv(REAL_ENV),
+  environment: "sandbox",
+});
+check("an extra `lang` key does not disturb classification",
+  withLang.ok === true && withLang.ok === realVerdict.ok);
+check("and resolves to the same plan it did without it",
+  withLang.ok === true && realVerdict.ok === true &&
+  withLang.planKey === realVerdict.planKey);
+
+/* A garbage value must be just as inert. It is not trusted, so it cannot be a
+   way to influence a decision it is not part of. */
+const withJunkLang = classifyPlusSubscription({
+  subscription: {
+    ...DAHLIA_SUB,
+    metadata: { ...(DAHLIA_SUB as any).metadata, lang: "'; DROP--", locale: "es" },
+  },
+  session: null,
+  approvedPrices: approvedPricesFromEnv(REAL_ENV),
+  environment: "sandbox",
+});
+check("an unrecognised `lang` value is inert, not a rejection",
+  withJunkLang.ok === true);
+check("a subscription sold BEFORE the stamp existed still classifies",
+  realVerdict.ok === true && !("lang" in ((DAHLIA_SUB as any).metadata || {})));
 check("and resolves to plus_monthly",
   realVerdict.ok === true && realVerdict.planKey === "plus_monthly");
 

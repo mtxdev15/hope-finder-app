@@ -9,10 +9,12 @@ import {
   approvedPricesFromEnv,
   environmentForSecret,
   stampedUserId,
+  stampedLang,
   isPlanKey,
   CHECKOUT_SOURCE,
 } from "./plusPlans";
 import { deriveCancelAtPeriodEnd } from "./stripeCancellation";
+import { resendClient } from "./dunning";
 
 const http = httpRouter();
 
@@ -234,6 +236,9 @@ http.route({
         ...(customerId ? { stripeCustomerId: customerId } : {}),
         ...(typeof priceId === "string" ? { stripePriceId: priceId } : {}),
         ...(buyerId ? { metadataUserId: buyerId } : {}),
+        /* Read from the SESSION, because a one-off purchase has no
+           subscription to have carried it. */
+        ...(stampedLang(null, obj) ? { locale: stampedLang(null, obj) as string } : {}),
         /* No subscription id, no interval, no period, no cancellation. Absent
          * rather than filled with plausible values — a lifetime purchase
          * genuinely has none of them, and entitlements.ts reads that absence. */
@@ -427,12 +432,41 @@ http.route({
       ...(stampedUserId(sub, session)
         ? { metadataUserId: stampedUserId(sub, session) as string }
         : {}),
+      /* NOT provenance and never checked as such — carried so the
+         failed-payment emails weeks from now are in the language this person
+         actually bought in. An unstamped subscription yields null and gets
+         English, which is what every row sold before this shipped does. */
+      ...(stampedLang(sub, session) ? { locale: stampedLang(sub, session) as string } : {}),
     });
 
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+  }),
+});
+
+/* ── Resend delivery events ───────────────────────────────────────────────
+ *
+ * WHY THIS ONE DOES NOT GO THROUGH THE WORKER, and why that is not a breach of
+ * rule C5. C5 is about the STRIPE credential: the Worker verifies Stripe's
+ * signature because it is the public edge in front of a money path, and it
+ * holds no Stripe key so there is only ever one Stripe credential in one
+ * runtime. None of that applies here. Resend signs with svix, the component
+ * verifies that signature itself using RESEND_WEBHOOK_SECRET, and routing it
+ * through the Worker would add a second hop and a second copy of a secret to
+ * buy nothing.
+ *
+ * The verification is NOT optional and is not ours to skip: handleResendEventWebhook
+ * rejects an unsigned or wrongly-signed request before any handler runs. If
+ * RESEND_WEBHOOK_SECRET is unset in this deployment, deliveries fail closed —
+ * the events are simply not recorded, which is the state this route existed to
+ * fix but is strictly better than accepting forged ones. */
+http.route({
+  path: "/resend/email-event",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    return await resendClient.handleResendEventWebhook(ctx, req);
   }),
 });
 
