@@ -108,6 +108,46 @@ import LegalFooter from '../components/LegalFooter.astro';
             <button type="button" class="btn btn-primary" id="plPlusBtn" disabled data-i18n="plans.launchSoon">Plus launches soon</button>
           </div>
           <p class="pl-life" id="plPlusLife" role="status" hidden></p>
+
+          {/* ── HOW YOUR FREE TRIAL WORKS ────────────────────────────────
+              The screen three unrelated apps put in front of a trial: stoic.,
+              Pillow and Ahead all show this exact timeline, which is a strong
+              signal it is doing real work rather than decorating.
+
+              WHAT IT IS FOR. A card-up-front trial converts several times
+              better than one where the reader has to come back and choose to
+              pay, and it is also the version people resent, for one reason: a
+              charge nobody saw coming. This removes the surprise BEFORE they
+              commit by naming the day we will email them and the day the money
+              moves. The promise made here is kept by convex/dunning.ts.
+
+              Revealed by the CTA rather than shown always, so the plans stay
+              comparable at a glance. Inert until purchasing opens: the button
+              above ships disabled and this panel is never reached. */}
+          <div class="pl-trial" id="plTrial" hidden>
+            <h3 class="pl-trial-h" data-i18n="plans.trialH">How your free trial works</h3>
+            <ol class="pl-trial-steps">
+              <li>
+                <strong data-i18n="plans.trialS1">Today: everything unlocks</strong>
+                <span data-i18n="plans.trialS1d">Unlimited Gentle Guidance, unlimited Journeys, all of it. Nothing is held back.</span>
+              </li>
+              <li>
+                <strong data-i18n="plans.trialS2">Day 4: we email you</strong>
+                <span data-i18n="plans.trialS2d">A reminder that your trial is ending, with the date and the amount. Cancelling takes under a minute.</span>
+              </li>
+              <li>
+                <strong data-i18n="plans.trialS3">Day 7: your plan begins</strong>
+                {/* The date is filled in by script. It is OUR arithmetic until
+                    Stripe creates the subscription, so it is phrased alongside
+                    "in 7 days" rather than presented as a certainty. */}
+                <span id="plTrialCharge"></span>
+              </li>
+            </ol>
+            <p class="pl-trial-sub" id="plTrialSub"></p>
+            <div class="pl-cta">
+              <button type="button" class="btn btn-primary" id="plTrialGo" data-i18n="plans.startTrial">Start my 7 days free</button>
+            </div>
+          </div>
         </article>
       </div>
 
@@ -182,6 +222,10 @@ import LegalFooter from '../components/LegalFooter.astro';
       <section class="pl-faq rise d4" aria-labelledby="plFaqH">
         <h2 class="pl-cmp-h" id="plFaqH" data-i18n="plans.faqH">Questions people ask</h2>
         <details class="pl-q">
+          <summary data-i18n="plans.q0">How does the free trial work?</summary>
+          <p data-i18n="plans.a0">You get 7 days of everything Plus has, unlocked from the moment you start. We email you on day 4 to say the trial is ending, with the date and the amount, so nothing arrives as a surprise. If you cancel before day 7 you are not charged. One trial per account.</p>
+        </details>
+        <details class="pl-q">
           <summary data-i18n="plans.q1">Does paying change what God gives me?</summary>
           <p data-i18n="plans.a1">No. Plus changes what the app allows, not what God gives. Scripture, your Journey and your Vault are the same on every plan.</p>
         </details>
@@ -215,7 +259,7 @@ import LegalFooter from '../components/LegalFooter.astro';
   import {
     planState, mayStartCheckout, currentPlanId, isCurrentPlan, planStatusKey,
     plusCtaIntent, freeCtaIntent, initialInterval, formatPeriodEnd,
-    PRICING_ENABLED, PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS,
+    PRICING_ENABLED, PLUS_MONTHLY_CENTS, PLUS_ANNUAL_CENTS, TRIAL_DAYS,
   } from '../app/declare/plan-display.js';
   import { track } from '../app/declare/analytics.js';
 
@@ -246,6 +290,15 @@ import LegalFooter from '../components/LegalFooter.astro';
     'plan.ambiguousMsg': 'This account looks like it is being billed in more than one place.',
     'plans.freeCreate': 'Create a free account',
     'plans.launchSoon': 'Plus launches soon',
+    'plans.startTrial': 'Start my 7 days free',
+    'plans.trialH': 'How your free trial works',
+    'plans.trialS1': 'Today: everything unlocks',
+    'plans.trialS1d': 'Unlimited Gentle Guidance, unlimited Journeys, all of it. Nothing is held back.',
+    'plans.trialS2': 'Day 4: we email you',
+    'plans.trialS2d': 'A reminder that your trial is ending, with the date and the amount. Cancelling takes under a minute.',
+    'plans.trialS3': 'Day 7: your plan begins',
+    'plans.trialCharge': 'Your card is charged {price} in 7 days, on {date}.',
+    'plans.trialSub': '7 days free, then {price}. Cancel anytime.',
     'plans.upgrade': 'Upgrade to Plus',
     'plans.perMonth': '/ month',
     'plans.perYear': '/ year',
@@ -267,6 +320,7 @@ import LegalFooter from '../components/LegalFooter.astro';
   const MONTHLY_CENTS = PLUS_MONTHLY_CENTS;
   const ANNUAL_CENTS = PLUS_ANNUAL_CENTS;
   const money = (cents: number) => '$' + (cents / 100).toFixed(2);
+
 
   let interval: 'month' | 'year' = 'month';
   let planStateNow = 'loading';
@@ -355,6 +409,44 @@ import LegalFooter from '../components/LegalFooter.astro';
       }
     }
 
+    /* ── The trial timeline ─────────────────────────────────────────────
+       Dates are computed here because the subscription does not exist yet:
+       there is nothing to read them from until Stripe creates it. That makes
+       this OUR arithmetic rather than Stripe's, which is why the sentence says
+       "in 7 days, on <date>" instead of presenting the date alone as fact. The
+       authoritative date appears on /billing the moment the trial exists. */
+    function showTrialPanel(): void {
+      const panel = el('plTrial');
+      if (!panel) return;
+      const annual = interval === 'year';
+      const cents = annual ? PLUS_ANNUAL_CENTS : PLUS_MONTHLY_CENTS;
+      const price = money(cents) + ' ' +
+        (annual ? tx('plans.perYear', '/ year') : tx('plans.perMonth', '/ month'));
+
+      const charge = el('plTrialCharge');
+      if (charge) {
+        const d = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        let when = '';
+        try {
+          when = d.toLocaleDateString(lang, { month: 'long', day: 'numeric' });
+        } catch (e) { when = ''; }
+        charge.textContent = when
+          ? tx('plans.trialCharge', 'Your card is charged {price} in 7 days, on {date}.')
+              .replace('{price}', money(cents)).replace('{date}', when)
+          : tx('plans.trialCharge', 'Your card is charged {price} in 7 days, on {date}.')
+              .replace('{price}', money(cents)).replace(', on {date}', '');
+      }
+      const sub = el('plTrialSub');
+      if (sub) {
+        sub.textContent = tx('plans.trialSub', '7 days free, then {price}. Cancel anytime.')
+          .replace('{price}', price);
+      }
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const go = el('plTrialGo');
+      if (go) (go as HTMLButtonElement).focus();
+    }
+
     /* Free card action. A person already on Free is not sold Free again. */
     const fCta = el('plFreeCta');
     if (fCta) {
@@ -386,7 +478,9 @@ import LegalFooter from '../components/LegalFooter.astro';
           b.disabled = true;
           b.textContent = tx('plans.launchSoon', 'Plus launches soon');
         } else {
-          b.textContent = tx('plans.upgrade', 'Upgrade to Plus');
+          /* THE TRIAL IS THE OFFER, so the button says so. "Upgrade to Plus"
+             asks for money; this asks for seven days. */
+          b.textContent = tx('plans.startTrial', 'Start my 7 days free');
           b.addEventListener('click', () => {
             track('upgrade_cta_selected', {
               authenticated: state !== 'guest',
@@ -394,6 +488,10 @@ import LegalFooter from '../components/LegalFooter.astro';
               selected_interval: interval,
               pricing_enabled: PRICING_ENABLED,
             });
+            /* Reveal the timeline rather than going straight to Stripe. One
+               extra tap, and it is the tap that tells them the date they will
+               be charged and the day we will write to them. */
+            showTrialPanel();
           });
         }
         pCta.appendChild(b);
@@ -552,6 +650,21 @@ import LegalFooter from '../components/LegalFooter.astro';
     /* Crisis help. Quiet by design: this is a signpost for somebody who needs
        it, not a promotion. It must not compete with the plans above it, and it
        must not look like a third tier. */
+    /* The trial timeline. Quiet and structural: this is a statement of what
+       will happen to the reader, not a sales panel. The numbers carry the
+       hierarchy, so nothing else needs to shout. */
+    .plans .pl-trial { margin: 16px 0 0; padding: 18px 18px 16px;
+      border: 1px solid var(--line2); border-radius: 12px; text-align: left; }
+    .plans .pl-trial-h { font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px; font-weight: 600; margin: 0 0 14px; color: var(--text); }
+    .plans .pl-trial-steps { list-style: none; margin: 0; padding: 0;
+      display: grid; gap: 13px; counter-reset: none; }
+    .plans .pl-trial-steps li { display: grid; gap: 2px; }
+    .plans .pl-trial-steps strong { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .plans .pl-trial-steps span { font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+    .plans .pl-trial-sub { margin: 15px 0 13px; font-size: 12.5px;
+      line-height: 1.5; color: var(--muted); }
+
     .plans .pl-help { margin: 38px auto 0; padding: 20px 22px; max-width: 46ch;
       border: 1px solid var(--line2); border-radius: 12px; text-align: center; }
     .plans .pl-help-h { font-family: 'Cormorant Garamond', Georgia, serif;

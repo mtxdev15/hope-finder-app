@@ -637,6 +637,45 @@ if (existsSync(DIST)) {
     !/'plans\.rCrisis':/.test(I18N) && !/'plans\.freeF5':/.test(I18N) &&
     !/plans\.rCrisis/.test(PLANS) && !/plans\.freeF5/.test(PLANS));
 
+  /* ── The trial timeline ────────────────────────────────────────────────
+   * Three unrelated apps put this screen in front of a trial, and it is the
+   * one thing that makes taking a card up front defensible: it names the day
+   * we will write and the day money moves, BEFORE the reader commits.
+   * Asserted against the built page, because a panel that fails to render
+   * leaves the source looking perfect. */
+  const priced = readFileSync(join(DIST, "pricing/index.html"), "utf8");
+  check("the timeline ships", /How your free trial works/.test(priced));
+  for (const step of [
+    "Today: everything unlocks",
+    "Day 4: we email you",
+    "Day 7: your plan begins",
+  ]) {
+    check(`the timeline names "${step}"`, priced.includes(step));
+  }
+  /* The reminder is the promise. If this step ever goes, the trial becomes the
+     version people resent and nothing else on the page would notice. */
+  check("the timeline promises the reminder before the charge",
+    priced.indexOf("Day 4: we email you") < priced.indexOf("Day 7: your plan begins"));
+  check("and says cancelling is quick, with a number rather than a vibe",
+    /under a minute/.test(priced));
+
+  /* IT MUST NOT BE REACHABLE WHILE PURCHASING IS OFF. The panel ships hidden
+     and the button that reveals it ships disabled; neither alone is enough. */
+  check("the timeline ships hidden", /id="plTrial" hidden/.test(priced));
+  check("and the control that reveals it ships disabled",
+    /id="plPlusBtn" disabled/.test(priced));
+
+  /* The Spanish reader gets the same screen, not an English one. */
+  check("the timeline is translated, not half-translated",
+    /'plans\.trialH':/.test(I18N) && /'plans\.trialS1':/.test(I18N) &&
+    /'plans\.trialS2':/.test(I18N) && /'plans\.trialS3':/.test(I18N) &&
+    /'plans\.trialCharge':/.test(I18N) && /'plans\.startTrial':/.test(I18N));
+  check("the trial FAQ answers the question in both languages",
+    /How does the free trial work/.test(priced) && /'plans\.a0':/.test(I18N));
+  /* One trial per account is stated out loud rather than discovered. */
+  check("the FAQ says the trial is once per account",
+    /One trial per account/.test(priced));
+
   check("the Spanish seller line exists, so the footer is not half-translated",
     /'legal\.seller':/.test(I18N));
   /* The documents themselves, in both languages. A link to a 404 is worse than

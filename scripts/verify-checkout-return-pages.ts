@@ -181,8 +181,16 @@ check("the page schedules with the backoff, not the flat interval",
 
 check("a single-flight guard prevents concurrent reads",
   /inFlight/.test(SUCCESS_JS) && /if \(stopped \|\| inFlight\) return;/.test(SUCCESS_JS));
+/* Sliced rather than matched as one line. The confirmed branch grew a trial
+   variant and the two calls are no longer adjacent; the claim is that this
+   branch stops the poll, not that it does so in a single statement. */
+const CONFIRMED_BRANCH = SUCCESS_JS.slice(
+  SUCCESS_JS.indexOf("state === 'confirmed'"),
+  SUCCESS_JS.indexOf("state === 'attention'"),
+);
+check("the confirmed branch can be located", CONFIRMED_BRANCH.length > 0);
 check("polling stops once Plus is confirmed",
-  /show\('stConfirmed'\); stop\(\);/.test(SUCCESS_JS));
+  /show\('stConfirmed'\)/.test(CONFIRMED_BRANCH) && /stop\(\)/.test(CONFIRMED_BRANCH));
 check("polling stops on the attention state too",
   /show\('stAttention'\); stop\(\);/.test(SUCCESS_JS));
 check("polling stops when the tab is hidden", /visibilitychange/.test(SUCCESS_JS));

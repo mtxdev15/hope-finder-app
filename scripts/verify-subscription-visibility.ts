@@ -321,8 +321,22 @@ check("it links to the Billing page", /href="\/billing"/.test(SUCCESS));
 check("the continue action is present", /data-i18n="checkout\.continueToDeclare"/.test(SUCCESS));
 check("the view-my-plan action is present", /data-i18n="checkout\.viewMyPlan"/.test(SUCCESS));
 check("the cadence line exists", /id="corCadence"/.test(SUCCESS));
+const CONFIRMED = SUCCESS.slice(
+  SUCCESS.indexOf("state === 'confirmed'"),
+  SUCCESS.indexOf("state === 'attention'"),
+);
 check("cadence renders only in the confirmed branch",
-  /state === 'confirmed'[\s\S]{0,60}renderCadence\(ent\)/.test(SUCCESS));
+  CONFIRMED.length > 0 && /renderCadence\(ent\)/.test(CONFIRMED) &&
+  (SUCCESS.match(/renderCadence\(ent\)/g) || []).length === 1);
+/* A trial reaches 'confirmed' like any paid subscription, so the words are
+   chosen here rather than by the state. "Your subscription is active" is false
+   for somebody who has not been charged. */
+check("a trial gets its own confirmation wording",
+  /renderTrialOrPaid\(ent\)/.test(CONFIRMED) &&
+  /checkout\.trialStartedT/.test(SUCCESS));
+check("and it is decided from the entitlement, never from the URL",
+  /ent && ent\.trialEndsAt/.test(SUCCESS) &&
+  !/session_id[\s\S]{0,80}trial/i.test(SUCCESS));
 
 /* Welcome must be reachable ONLY through Convex confirmation. */
 check("welcome copy lives inside the confirmed section",

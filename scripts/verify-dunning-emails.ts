@@ -29,6 +29,9 @@ import {
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
 import { normalizeLang, stampedLang, EMAIL_LANGS } from "../convex/plusPlans.ts";
+/* The browser declares the trial length separately, because entitlementCatalog
+   is server-side. Imported here so the two cannot drift. */
+import { TRIAL_DAYS as BROWSER_TRIAL_DAYS } from "../src/app/declare/plan-display.js";
 /* entitlementCatalog imports nothing either, so the grace arithmetic the whole
    system shares can be RUN here rather than pattern-matched. */
 import {
@@ -715,6 +718,12 @@ const SCHEMA_T = read("convex/schema.ts");
 const ENT_T = read("convex/entitlements.ts");
 
 check("the approved trial length is seven days", TRIAL_DAYS === 7);
+/* THE SCREEN AND THE CHECKOUT MUST PROMISE THE SAME WEEK. The pricing page
+   says "7 days free" and names a charge date it computes itself; Checkout sends
+   the real number to Stripe. Two declarations, pinned equal here, because the
+   failure is a page promising a week while Stripe grants ten days. */
+check("the browser and the server agree how long a trial is",
+  BROWSER_TRIAL_DAYS === TRIAL_DAYS);
 check("the length is set from the shared constant, never typed at Stripe",
   /trial_period_days\]"\] = String\(TRIAL_DAYS\)/.test(BILLING_T));
 

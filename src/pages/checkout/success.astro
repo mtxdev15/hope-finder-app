@@ -61,8 +61,14 @@ import LegalFooter from '../../components/LegalFooter.astro';
           <span class="cor-tick" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
           </span>
-          <h2 class="cor-t" data-i18n="checkout.welcomePlusT">Welcome to Declare Plus</h2>
-          <p class="cor-d" data-i18n="checkout.welcomePlusD">
+          {/* TWO HEADINGS, ONE PANEL. A trial and a paid subscription both
+              land here confirmed, but "Your subscription is active" is false
+              for a trialist: nothing has been charged, and the next thing that
+              happens to them is a charge. Saying it anyway is how the surprise
+              gets built. The panel swaps its own words rather than duplicating
+              the whole confirmed state. */}
+          <h2 class="cor-t" id="corTitle" data-i18n="checkout.welcomePlusT">Welcome to Declare Plus</h2>
+          <p class="cor-d" id="corBody" data-i18n="checkout.welcomePlusD">
             Your subscription is active. You now have unlimited Gentle Guidance and unlimited Journeys.
           </p>
           {/* Cadence and renewal date, filled only when the entitlement response
@@ -137,6 +143,30 @@ import LegalFooter from '../../components/LegalFooter.astro';
     STATES.forEach((s) => { const el = $(s); if (el) el.hidden = s !== id; });
   }
 
+  /* Which of the two confirmations this is.
+   *
+   * Reads the entitlement rather than anything the URL says: the session id in
+   * the query string is a correlation hint and never proof of anything, which
+   * is the rule this whole page is built on. A trial carries trialEndsAt and
+   * nothing else does. */
+  function renderTrialOrPaid(ent: any): void {
+    const isTrial = !!(ent && ent.trialEndsAt);
+    const t = document.getElementById('corTitle');
+    const b = document.getElementById('corBody');
+    if (!t || !b) return;
+    if (!isTrial) return; // leave the paid wording exactly as it was
+    const tx = (k: string, fallback: string): string =>
+      window.I18N ? window.I18N.t(k, fallback) : fallback;
+    const lang: string = window.I18N ? window.I18N.lang() : 'en';
+    t.textContent = tx('checkout.trialStartedT', 'Your trial has started');
+    const when = formatPeriodEnd(ent.trialEndsAt, lang);
+    b.textContent = when
+      ? tx('checkout.trialStartedD', 'Everything is unlocked for the next 7 days. We will email you on {date} before anything is charged.')
+          .replace('{date}', when)
+      /* No date, no promise about one. */
+      : tx('checkout.trialStartedNoDate', 'Everything is unlocked for the next 7 days. We will email you before anything is charged.');
+  }
+
   /* Cadence and renewal date, from the SAME response that confirmed Plus.
      Rendered only when present — a missing date shows no date rather than a
      placeholder that looks real. The word in front of the date comes from the
@@ -180,7 +210,15 @@ import LegalFooter from '../../components/LegalFooter.astro';
     if (stopped) return;
 
     const state = stateForEntitlement(ent);
-    if (state === 'confirmed') { renderCadence(ent); show('stConfirmed'); stop(); return; }
+    if (state === 'confirmed') {
+      /* A trial reaches 'confirmed' like any other healthy subscription, so the
+         words have to be chosen here rather than by the state alone. */
+      renderTrialOrPaid(ent);
+      renderCadence(ent);
+      show('stConfirmed');
+      stop();
+      return;
+    }
     if (state === 'attention') { show('stAttention'); stop(); return; }
 
     attempts += 1;

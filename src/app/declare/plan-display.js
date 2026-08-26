@@ -371,6 +371,20 @@ export function freeCtaIntent(state) {
   return 'none';
 }
 
+/* ── THE FREE TRIAL ──────────────────────────────────────────────────────── */
+
+/* How many days the trial runs, for anything the BROWSER renders.
+ *
+ * The authority is TRIAL_DAYS in convex/entitlementCatalog.ts, which is what
+ * Checkout actually sends to Stripe. This is a second declaration rather than
+ * an import because that module is server-side, and the alternative is worse:
+ * the pricing page hardcoding a 7 in three sentences, which is how a screen
+ * ends up promising a week while Checkout grants ten days.
+ *
+ * The two are pinned equal by scripts/verify-dunning-emails.ts, which imports
+ * both. If they ever diverge, that fails by name. */
+export const TRIAL_DAYS = 7;
+
 /* ── PLUS PRICING, IN CENTS ──────────────────────────────────────────────── */
 
 /* The two recurring prices, in minor units, in ONE place.
