@@ -840,6 +840,14 @@ export const settleSupersededSubscription = internalAction({
           refundCents: 0,
           reason: "gave-up-after-" + args.attempt + "-attempts:" + why,
         });
+        /* Out of retries, and the subscription may still be live. That is the
+           one thing a person most needs to know, so it does not stay in a log. */
+        await ctx.scheduler.runAfter(0, internal.dunning.notifyOperator, {
+          kind: "lifetime-upgrade-needs-human",
+          userId: args.userId,
+          eventId: args.eventId,
+          detail: "gave up after " + args.attempt + " attempts: " + why,
+        });
         return;
       }
       /* 1, 5, 25 minutes. Long enough for a Stripe incident to pass, short
@@ -938,6 +946,15 @@ export const settleSupersededSubscription = internalAction({
         outcome: "lifetime-upgrade-needs-human" as const,
         refundCents: plan.refundCents,
         reason: plan.reason,
+      });
+      /* Money is owed. The log line above is for whoever is already looking;
+         this is what reaches somebody who is not. */
+      await ctx.scheduler.runAfter(0, internal.dunning.notifyOperator, {
+        kind: "lifetime-upgrade-needs-human",
+        userId: args.userId,
+        eventId: args.eventId,
+        amountCents: plan.refundCents,
+        detail: plan.reason,
       });
       return;
     }

@@ -193,6 +193,17 @@ export default defineSchema({
        than inserting a new one), so this is the durable place for it. */
     trialStartedAt: v.optional(v.number()),
 
+    /* When we sent this account its welcome, and the reason it is stored on the
+       row rather than inferred.
+       
+       ONE-WAY, like trialStartedAt. A trial that converts to paid crosses into
+       Plus twice by any transition test worth writing, and a second "welcome to
+       Plus" a week after the first reads as a system talking to itself. Absent
+       means never welcomed, which is correct for every row sold before this
+       column existed: they subscribed before there was a welcome to send, and
+       emailing them now would be stranger than not. */
+    welcomedAt: v.optional(v.number()),
+
     /* ── Provider-specific identifiers ────────────────────────────────────
        Stored, but NEVER returned to a client response. Withholding them means
        a compromised browser cannot even name another customer's billing. */

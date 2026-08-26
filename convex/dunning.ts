@@ -70,6 +70,8 @@ import {
   money,
   render,
   trialEndingCopy,
+  welcomeCopy,
+  type WelcomeKind,
 } from "./dunningSchedule";
 
 const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
@@ -384,6 +386,212 @@ export const sendTrialEndingEmail = internalAction({
       stage: "trial-ending",
     });
 
+    return { sent: true };
+  },
+});
+
+/* ── THE WELCOME ────────────────────────────────────────────────────────────
+ *
+ * Scheduled by subscriptions.applyWebhook at the moment an account first
+ * becomes Plus, and exactly once per account: the row carries `welcomedAt`,
+ * written one-way like `trialStartedAt`, so a trial that converts to paid does
+ * not produce a second one.
+ *
+ * WHY THIS DID NOT EXIST, and why that mattered. Billing had four emails for a
+ * failed payment and one before a trial charges. It had nothing for the moment
+ * somebody decides to trust us with money, which meant the first message a new
+ * subscriber ever got from Declare was either a dunning notice or silence.
+ *
+ * FAILS SOFT, ALWAYS. Every early return is a reason, never a throw. This runs
+ * in a scheduled job downstream of a webhook that has already been
+ * acknowledged; making it able to fail would put a retry loop behind an email,
+ * and the grant is not in question either way.
+ */
+export const sendWelcomeEmail = internalAction({
+  args: { userId: v.string() },
+  handler: async (ctx, args): Promise<{ sent: boolean; reason?: string }> => {
+    const sub = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {
+      userId: args.userId,
+      provider: "stripe" as const,
+    });
+    /* Re-checked at the moment of sending, like every other email in this file.
+       A purchase that was refunded or a trial cancelled within seconds must not
+       produce a welcome for something the reader no longer has. */
+    if (!sub) return { sent: false, reason: "no-subscription" };
+    if (sub.tier !== "plus") return { sent: false, reason: "not-plus" };
+
+    const user = await authComponent.getAnyUserById(ctx, args.userId);
+    const to = user && typeof user.email === "string" ? user.email : null;
+    if (!to) return { sent: false, reason: "no-address" };
+
+    const lang = emailLang(sub.locale);
+
+    /* WHICH OF THE THREE. Read from the row rather than passed in by the
+       caller, so the email cannot describe a plan the database disagrees with:
+       "nothing renews" reaching a monthly subscriber would be a promise we
+       break in 30 days. */
+    const kind: WelcomeKind =
+      sub.planKey === "plus_lifetime" ? "lifetime" : sub.status === "trialing" ? "trial" : "paid";
+
+    /* The amount is a trust signal, not the message. Worth a Stripe call,
+       never worth losing the email over. Lifetime skips it: there is no
+       subscription to read, and the price is not a fact about the future. */
+    let amount: string | null = null;
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (kind !== "lifetime" && secret && sub.stripeSubscriptionId) {
+      try {
+        const live = await fetchSubscription(sub.stripeSubscriptionId, secret);
+        if (live.ok) {
+          const price = live.data?.items?.data?.[0]?.price;
+          amount = money(price?.unit_amount ?? null, price?.currency ?? null, lang);
+        }
+      } catch {
+        /* Deliberately swallowed. See the same decision in sendDunningEmail. */
+      }
+    }
+
+    /* The trial's end and a paid plan's renewal are the SAME stored field, and
+       naming them apart here is what stops the copy calling a trial end a
+       renewal. Absent rather than guessed: the copy has a sentence for each. */
+    const when = typeof sub.currentPeriodEnd === "number" ? sub.currentPeriodEnd * 1000 : null;
+    const trialEnd = typeof sub.trialEnd === "number" ? sub.trialEnd * 1000 : null;
+    const copy = welcomeCopy(
+      kind,
+      {
+        amount,
+        chargesOn: kind === "trial" ? longDate(trialEnd ?? when ?? Date.now(), lang) : null,
+        renewsOn: kind === "paid" && when ? longDate(when, lang) : null,
+      },
+      lang,
+    );
+
+    const site = (process.env.SITE_URL || "https://declareandbelieve.com").replace(/\/+$/, "");
+    /* Lifetime has no plan to manage, so its button opens the app rather than
+       a billing page with nothing on it. */
+    const target = kind === "lifetime" ? homeUrl(site, lang) : billingUrl(site, lang);
+
+    const emailId = await resendClient.sendEmail(ctx, {
+      from: FROM_EMAIL,
+      to,
+      subject: copy.subject,
+      html: render(copy, target, homeUrl(site, lang)),
+    });
+    await ctx.runMutation(internal.dunning.recordSendInternal, {
+      emailId,
+      userId: args.userId,
+      stage: "welcome" as const,
+    });
+    return { sent: true };
+  },
+});
+
+/* ── TELLING A HUMAN ────────────────────────────────────────────────────────
+ *
+ * WHAT WAS WRONG. Eight `console.log("[billing] ...")` lines marked the eight
+ * situations where billing needs a person: a payment that matched no account,
+ * a duplicate subscription, a lifetime purchase colliding with a subscription,
+ * a refund we owed and could not send. Every one of them wrote to the Convex
+ * log and stopped there. Nobody watches a log, and none of these are things you
+ * find by looking; they are things you find because a customer emails you
+ * weeks later asking where their money went.
+ *
+ * SO THESE ARE THE ONES THAT REACH A PERSON, and deliberately only these:
+ * every one is a case where money moved and the database and Stripe disagree
+ * about what it bought. Ordinary lifecycle, dunning, cancellations and grace
+ * expiry stay in the log, because they are normal and an alert that fires
+ * during normal operation is an alert nobody reads by week three.
+ *
+ * ONE EMAIL PER STRIPE EVENT, and that bound is structural rather than a rate
+ * limiter: each caller schedules this from the same transaction that writes its
+ * single billingEvents row, and that row is written once per (provider,
+ * eventId) because applyWebhook returns on the replay check before reaching it.
+ * A Stripe redelivery storm therefore cannot become an inbox storm.
+ *
+ * SILENT WHEN UNCONFIGURED, and that is a real gap rather than a safe default:
+ * without OPERATOR_EMAIL set in the Convex deployment these situations are back
+ * to being invisible. It is documented in docs/operations/billing-secret-topology.md
+ * and asserted by scripts/verify-operator-alerts.ts, which is the closest a
+ * suite can get to checking a dashboard.
+ *
+ * CARRIES NO CUSTOMER DATA BEYOND AN ACCOUNT ID. No email address, no card, no
+ * Stripe customer, no amount that is not already the point of the alert. An
+ * operator alert is still an email leaving our system. */
+const OPERATOR_ALERTS: Record<string, { what: string; why: string }> = {
+  "unmatched-payment": {
+    what: "A completed payment could not be attached to any account",
+    why:
+      "Somebody paid and holds no entitlement. They will not know why. " +
+      "Find the Stripe event below, read its metadata.userId, and reconcile by hand.",
+  },
+  "duplicate-subscription": {
+    what: "Two live Stripe subscriptions for one account",
+    why:
+      "The second was refused so our data stayed correct, but Stripe is billing " +
+      "twice and will keep doing so. Cancel one and refund what it took.",
+  },
+  "lifetime-not-replaceable": {
+    what: "A subscription arrived for an account that already bought Lifetime",
+    why:
+      "The lifetime purchase was left intact. Decide which one they keep: " +
+      "cancelling the subscription and refunding it is usually the answer.",
+  },
+  "lifetime-upgrade-needs-human": {
+    what: "A Lifetime upgrade owes a refund we could not send",
+    why:
+      "The old subscription IS cancelled, so nobody is being billed. The unused " +
+      "portion of what they already paid is the amount below. Refund it in Stripe.",
+  },
+};
+
+export const notifyOperator = internalAction({
+  args: {
+    kind: v.string(),
+    /* Our own account id, and the Stripe event that caused this. Enough to find
+       everything else in either system, and nothing that is worth leaking. */
+    userId: v.optional(v.string()),
+    eventId: v.optional(v.string()),
+    amountCents: v.optional(v.number()),
+    detail: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ sent: boolean; reason?: string }> => {
+    const to = process.env.OPERATOR_EMAIL;
+    if (!to) return { sent: false, reason: "no-operator-email" };
+    const spec = OPERATOR_ALERTS[args.kind];
+    /* An unknown kind is a programming mistake, and sending a blank alert would
+       hide it behind an email nobody can act on. */
+    if (!spec) return { sent: false, reason: "unknown-kind" };
+
+    const site = (process.env.SITE_URL || "https://declareandbelieve.com").replace(/\/+$/, "");
+    const rows: string[] = [];
+    const row = (k: string, val: string) =>
+      `<tr><td style="padding:6px 14px 6px 0;color:#8A9490;font-size:13px;white-space:nowrap;">${k}</td>` +
+      `<td style="padding:6px 0;color:#22382E;font-size:13px;font-family:ui-monospace,Menlo,monospace;">${val}</td></tr>`;
+    if (args.eventId) rows.push(row("Stripe event", args.eventId));
+    if (args.userId) rows.push(row("Declare account", args.userId));
+    if (typeof args.amountCents === "number") {
+      rows.push(row("Amount owed", "$" + (args.amountCents / 100).toFixed(2)));
+    }
+    if (args.detail) rows.push(row("Detail", args.detail));
+
+    /* Plain and unbranded on purpose. This is not a customer email and should
+       never be mistaken for one, in an inbox or in a screenshot. */
+    const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        max-width:560px;padding:24px;">
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9A7A24;">
+        Declare billing needs a person</p>
+      <h1 style="margin:0 0 14px;font-size:19px;line-height:1.3;color:#22382E;">${spec.what}</h1>
+      <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#3D4A44;">${spec.why}</p>
+      <table style="border-collapse:collapse;margin:0 0 20px;">${rows.join("")}</table>
+      <p style="margin:0;font-size:12.5px;color:#8A9490;">
+        Sent by convex/dunning.ts notifyOperator. Site: ${site}</p>
+    </div>`;
+
+    await resendClient.sendEmail(ctx, {
+      from: FROM_EMAIL,
+      to,
+      subject: "[Declare billing] " + spec.what,
+      html,
+    });
     return { sent: true };
   },
 });

@@ -63,6 +63,16 @@ const PLUS_STATUSES = new Set(["active", "trialing", "past_due"]);
  * Plus, and a lifetime row that somehow arrived with `active` is not either. */
 const LIFETIME_PLUS_STATUSES = new Set(["paid"]);
 
+/* Events that can only exist because money moved or was about to. An unmatched
+ * one of these means somebody paid and holds nothing, which is what
+ * notifyOperator exists for. An unmatched `customer.subscription.updated` is
+ * ordinary noise from another product on the same Stripe account. */
+const PAYMENT_BEARING_EVENTS: ReadonlySet<string> = new Set([
+  "checkout.session.completed",
+  "invoice.paid",
+  "charge.refunded",
+]);
+
 function tierForStatus(status: string, planKey: string): "free" | "plus" {
   const set = planKey === "plus_lifetime" ? LIFETIME_PLUS_STATUSES : PLUS_STATUSES;
   return set.has(status) ? "plus" : "free";
@@ -421,6 +431,18 @@ export const applyWebhook = internalMutation({
       // retrying, but do not invent an owner — guessing here is how one
       // account's subscription lands on another's.
       await recordEvent("unmatched");
+      /* AND TELL SOMEBODY. This is the worst outcome in the whole webhook:
+         money moved and no account holds anything for it. The customer will not
+         know why, and until 2026-08-26 the only trace was a row nobody queries.
+         Only alerts for events that could carry a payment; an unmatched
+         subscription lifecycle event is noise. */
+      if (PAYMENT_BEARING_EVENTS.has(args.eventType)) {
+        await ctx.scheduler.runAfter(0, internal.dunning.notifyOperator, {
+          kind: "unmatched-payment",
+          eventId: args.eventId,
+          detail: args.eventType,
+        });
+      }
       return { ok: true, unmatched: true };
     }
 
@@ -496,6 +518,17 @@ export const applyWebhook = internalMutation({
           : {}),
         userId,
       });
+      /* Both remaining reasons mean Stripe and Convex disagree about what
+         somebody bought, and both need a person: one is a double charge that
+         keeps recurring, the other is a subscription landing on an account that
+         already paid $149 for the same thing. The quiet `lifetime-superseded`
+         branch above returns before reaching this. */
+      await ctx.scheduler.runAfter(0, internal.dunning.notifyOperator, {
+        kind: verdict.reason,
+        userId,
+        eventId: args.eventId,
+        detail: args.eventType + " on a " + verdict.existingStatus + " row",
+      });
       /* Acknowledged, not applied. Returning 200 stops Stripe retrying an
        * event we will never apply; the conflict is durable on the event row
        * and in the log rather than in a retry queue. */
@@ -532,6 +565,19 @@ export const applyWebhook = internalMutation({
        the row stores, whether the failed-payment sequence is scheduled, and how
        long grace runs. Computing it three times is how they drift apart. */
     const everPaid = args.paymentSucceeded === true || existing?.hasEverPaid === true;
+
+    /* ── The moment somebody becomes Plus, which had no email attached ─────
+     *
+     * Read from tierForStatus rather than from the event name, for the same
+     * reason everything else here is: `checkout.session.completed` also fires
+     * for a session that produced an incomplete subscription, and
+     * `invoice.paid` fires for a zero-amount trial invoice. The TIER is the
+     * fact, and it is the one entitlements.ts will resolve from.
+     *
+     * `welcomedAt` is the guard rather than "was free before", because a trial
+     * that converts is Plus both times and would otherwise be welcomed twice. */
+    const becomesPlus =
+      tierForStatus(args.status, args.planKey) === "plus" && !existing?.welcomedAt;
 
     const fields = {
       userId,
@@ -576,6 +622,12 @@ export const applyWebhook = internalMutation({
       ...(args.status === "trialing" && !existing?.trialStartedAt
         ? { trialStartedAt: now }
         : {}),
+      /* Stamped in the SAME patch that grants Plus, not by the email job.
+         Doing it in the job would leave a window where two events could both
+         see an unwelcomed row and both schedule a send. This mutation is
+         serialised per document, so stamping it here makes "exactly once" a
+         property of the write rather than of the timing. */
+      ...(becomesPlus ? { welcomedAt: now } : {}),
       ...(args.latestInvoiceId ? { latestInvoiceId: args.latestInvoiceId } : {}),
       ...(args.appleOriginalTransactionId
         ? { appleOriginalTransactionId: args.appleOriginalTransactionId }
@@ -688,6 +740,21 @@ export const applyWebhook = internalMutation({
           attempt: 1,
         },
       );
+    }
+
+    /* ── Say hello ────────────────────────────────────────────────────────
+     *
+     * Scheduled from inside this mutation so it can only run if the grant
+     * committed, exactly like the dunning sequence and the lifetime settlement.
+     * An email welcoming somebody to a purchase we failed to record is worse
+     * than no email at all.
+     *
+     * NOT AWAITED FOR ITS RESULT and never able to fail this mutation: the send
+     * is a scheduled action, and every branch inside it returns a reason rather
+     * than throwing. A webhook must not be retried by Stripe because an inbox
+     * was full. */
+    if (becomesPlus) {
+      await ctx.scheduler.runAfter(0, internal.dunning.sendWelcomeEmail, { userId });
     }
 
     /* ── Tell them their card failed ──────────────────────────────────────

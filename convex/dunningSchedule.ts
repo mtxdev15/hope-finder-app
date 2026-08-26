@@ -443,3 +443,129 @@ export function render(copy: Copy, url: string, home: string): string {
   </div>`;
 }
 
+
+/* ── THE WELCOME ────────────────────────────────────────────────────────────
+ *
+ * MISSING UNTIL 2026-08-26, and its absence was the most one-sided thing in the
+ * whole billing system: four emails when a payment fails, one before a trial
+ * charges, and nothing at all at the single moment somebody decides to trust us
+ * with money. The first message a new subscriber received from Declare was a
+ * dunning notice, or nothing.
+ *
+ * THREE KINDS, because three genuinely different things just happened and the
+ * facts a reader needs differ:
+ *
+ *   trial     nothing has been charged yet, and the date one WILL be is the
+ *             thing they most need in writing. This is the promise /pricing
+ *             makes, arriving where they can find it later.
+ *   paid      a card has been charged and it renews. Where to manage it, and
+ *             that cancelling is one screen, not an email to support.
+ *   lifetime  nothing renews and no card is kept. Saying so is the point:
+ *             the reassurance IS the absence of a next charge.
+ *
+ * These are not a newsletter and the footer says so, exactly as the dunning
+ * footer does. Nobody has to opt out of being told what they bought.
+ *
+ * NOT A RECEIPT. Stripe emails those, itemised, and duplicating it here would
+ * mean maintaining a second version of a legal document. */
+export type WelcomeKind = "trial" | "paid" | "lifetime";
+
+export function welcomeCopy(
+  kind: WelcomeKind,
+  facts: { amount: string | null; chargesOn: string | null; renewsOn: string | null },
+  lang: EmailLang = "en",
+): Copy {
+  if (lang === "es") {
+    if (kind === "trial") {
+      return {
+        subject: "Tus 7 días de Plus empiezan ahora",
+        heading: "Todo está abierto",
+        body: [
+          "Ya tienes Declare Plus. Guía Suave sin límite diario y todos los Caminos que necesites, al mismo tiempo. No se guarda nada.",
+          facts.chargesOn
+            ? `Tu prueba gratis termina el <strong>${facts.chargesOn}</strong>` +
+              `${facts.amount ? `, y ese día se cobra ${facts.amount}` : ""}. Te escribimos 3 días antes, como prometimos.`
+            : "Te escribimos antes de que termine tu prueba, con la fecha y el monto, como prometimos.",
+          "Si decides que no es para ti, cancela desde Facturación y no se te cobra nada. Toma menos de un minuto.",
+          "Y algo que no cambia con ningún plan: la Palabra es la misma para todos.",
+        ],
+        cta: "Ver mi plan",
+        footer: FOOTER.es,
+      };
+    }
+    if (kind === "lifetime") {
+      return {
+        subject: "Eres miembro fundador de Declare",
+        heading: "Gracias por creer en esto",
+        body: [
+          "Declare Plus es tuyo. Una sola vez, sin renovación, y no guardamos tu tarjeta.",
+          "Guía Suave sin límite diario, todos los Caminos que necesites al mismo tiempo, y todo lo que Plus reciba en el futuro, incluido.",
+          "No hay nada que administrar y nada que cancelar. Si alguna vez necesitas algo, responde a este correo.",
+          "Ayudaste a construir esto en su primera ronda. Gracias.",
+        ],
+        cta: "Empezar",
+        footer: FOOTER.es,
+      };
+    }
+    return {
+      subject: "Bienvenido a Declare Plus",
+      heading: "Bienvenido a Plus",
+      body: [
+        "Ya está activo. Guía Suave sin límite diario y todos los Caminos que necesites, al mismo tiempo.",
+        facts.renewsOn
+          ? `Tu plan se renueva el <strong>${facts.renewsOn}</strong>${facts.amount ? ` por ${facts.amount}` : ""}.`
+          : "Tu plan se renueva automáticamente.",
+        "Puedes ver o cancelar tu plan cuando quieras desde Facturación. No hace falta escribirnos ni esperar respuesta.",
+        "Y algo que no cambia con ningún plan: la Palabra es la misma para todos.",
+      ],
+      cta: "Ver mi plan",
+      footer: FOOTER.es,
+    };
+  }
+
+  if (kind === "trial") {
+    return {
+      subject: "Your 7 days of Plus start now",
+      heading: "Everything is open",
+      body: [
+        "You have Declare Plus. Gentle Guidance with no daily limit, and as many Journeys as you need at the same time. Nothing is held back.",
+        facts.chargesOn
+          ? `Your free trial ends on <strong>${facts.chargesOn}</strong>` +
+            `${facts.amount ? `, and that is the day the card is charged ${facts.amount}` : ""}. We write to you 3 days before, as promised.`
+          : "We write to you before your trial ends, with the date and the amount, as promised.",
+        "If you decide it is not for you, cancel from Billing and nothing is charged. It takes under a minute.",
+        "And one thing no plan changes: Scripture is the same for everyone.",
+      ],
+      cta: "See my plan",
+      footer: FOOTER.en,
+    };
+  }
+  if (kind === "lifetime") {
+    return {
+      subject: "You are a founding member of Declare",
+      heading: "Thank you for believing in this",
+      body: [
+        "Declare Plus is yours. Bought once, nothing renews, and we keep no card on file.",
+        "Gentle Guidance with no daily limit, as many Journeys as you need at the same time, and every future Plus feature included.",
+        "There is nothing to manage and nothing to cancel. If you ever need anything, reply to this email.",
+        "You helped build this in its first round. Thank you.",
+      ],
+      cta: "Get started",
+      footer: FOOTER.en,
+    };
+  }
+  return {
+    subject: "Welcome to Declare Plus",
+    heading: "Welcome to Plus",
+    body: [
+      "It is on. Gentle Guidance with no daily limit, and as many Journeys as you need at the same time.",
+      facts.renewsOn
+        ? `Your plan renews on <strong>${facts.renewsOn}</strong>${facts.amount ? ` for ${facts.amount}` : ""}.`
+        : "Your plan renews automatically.",
+      "You can see or cancel your plan any time from Billing. No email to us, no waiting for a reply.",
+      "And one thing no plan changes: Scripture is the same for everyone.",
+    ],
+    cta: "See my plan",
+    footer: FOOTER.en,
+  };
+}
