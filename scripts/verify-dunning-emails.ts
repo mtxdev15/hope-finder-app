@@ -74,8 +74,8 @@ check("stages are strictly ordered in time", (() => {
 if (PAST_DUE_GRACE_DAYS >= 3) {
   check("a final warning is sent 24h before access stops",
     dunningDelayMs("ending", PAST_DUE_GRACE_MS) === PAST_DUE_GRACE_MS - DAY);
-  check("the sequence is three emails at this grace setting",
-    dunningSchedule(PAST_DUE_GRACE_MS).length === 3);
+  check("the sequence is three or four emails at this grace setting",
+    [3, 4].includes(dunningSchedule(PAST_DUE_GRACE_MS).length));
 } else {
   check("no warning email is squeezed into a short grace window",
     dunningDelayMs("ending", PAST_DUE_GRACE_MS) === null);
@@ -90,14 +90,38 @@ check("something always arrives before access stops",
     const d = dunningDelayMs(s, PAST_DUE_GRACE_MS);
     return d !== null && d < PAST_DUE_GRACE_MS;
   }));
-check("the sequence ends — there is no fourth email",
-  dunningSchedule(PAST_DUE_GRACE_MS).length <= 3);
+check("the sequence ends — never more than four, against Stripe's eight",
+  dunningSchedule(PAST_DUE_GRACE_MS).length <= 4);
+check("no single silence swallows the window", (() => {
+  const d = dunningSchedule(PAST_DUE_GRACE_MS).map((s) => dunningDelayMs(s, PAST_DUE_GRACE_MS) ?? 0);
+  const cap = Math.max(Math.ceil(PAST_DUE_GRACE_MS / 2), 2 * DAY);
+  return d.every((v, i) => i === 0 || v - d[i - 1] <= cap);
+})());
+
+/* The approved window, asserted so a silent revert is a failing test rather
+   than a discovery. 16 days is Apple's default for monthly-and-longer, and it
+   must stay AHEAD of Stripe's 14-day retry window — that margin is the whole
+   reason access now ends once instead of flapping. */
+const STRIPE_RETRY_DAYS = 14;
+check("the grace window is the approved 16 days", PAST_DUE_GRACE_DAYS === 16);
+check("grace outlasts Stripe's retry window, so access ends once",
+  PAST_DUE_GRACE_DAYS > STRIPE_RETRY_DAYS);
+/* The approval must be recorded beside the number, so nobody has to go
+   looking for whether 16 was chosen or inherited. The negative half of this
+   check originally banned the words "awaiting approval" outright and failed on
+   the file's own QUOTATION of the note it replaced — the same trap as banning
+   "<table>" in a comment that explains why there is no table. What matters is
+   that the phrase no longer describes the CURRENT state. */
+check("the approval is recorded where the number lives",
+  /APPROVED 2026-08-26 AT 16 DAYS/.test(CATALOG));
+check("the setting no longer claims to be awaiting approval",
+  !/THIS IS A PRODUCT SETTING AWAITING APPROVAL/i.test(CATALOG));
 
 /* Proven at OTHER windows, not just the one currently configured. The grace
    setting is documented as awaiting approval, so the schedule has to stay
    correct at whatever it becomes — including the 14 days that would match
    Stripe's own retry window. */
-for (const days of [2, 3, 7, 14, 28]) {
+for (const days of [2, 3, 7, 14, 16, 28]) {
   const ms = days * DAY;
   const sched = dunningSchedule(ms);
   check(`at ${days}-day grace the pause email lands on the day access stops`,
@@ -106,7 +130,22 @@ for (const days of [2, 3, 7, 14, 28]) {
     sched.every((s) => (dunningDelayMs(s, ms) ?? 0) <= ms));
   check(`at ${days}-day grace something warns before access stops`,
     sched.some((s) => { const d = dunningDelayMs(s, ms); return d !== null && d < ms; }));
-  check(`at ${days}-day grace there are never more than three emails`, sched.length <= 3);
+  check(`at ${days}-day grace there are never more than four emails`, sched.length <= 4);
+  /* THE failure this stage exists to prevent: at a 16-day window the original
+     three-stage shape gave day 0, 15, 16 — one email, then over two weeks of
+     silence, then two inside a day.
+     The rule is NOT "no gap over a week": that was invented here and is
+     stricter than practice, since Recurly's own guidance of 3-4 emails across
+     28 days implies gaps of nine days and more. What must never happen is a
+     single silence swallowing the window, so no gap may exceed half of it. */
+  /* Half the window, with a two-day floor: below about four days the window is
+     shorter than this rule can constrain, since emails cannot sit closer than a
+     day apart without turning a warning into nagging. */
+  check(`at ${days}-day grace no silence exceeds half the window`, (() => {
+    const d = sched.map((s) => dunningDelayMs(s, ms) ?? 0);
+    const cap = Math.max(Math.ceil(ms / 2), 2 * DAY);
+    return d.every((v, i) => i === 0 || v - d[i - 1] <= cap);
+  })());
   check(`at ${days}-day grace the stages are strictly ordered`, (() => {
     const d = sched.map((s) => dunningDelayMs(s, ms) ?? -1);
     return d.every((v, i) => i === 0 || v > d[i - 1]);
@@ -210,8 +249,11 @@ for (const stage of dunningSchedule(PAST_DUE_GRACE_MS)) {
   check(`"${stage}" renders exactly one link`, links === 1);
   check(`"${stage}" renders no image or tracking pixel`, !/<img/i.test(html));
 }
-check("only the first two emails name the pause date — the last one has passed it",
-  copyFor("failed", FACTS).body.join(" ").includes(FACTS.pausesOn) &&
+check("every email before the pause names the date it happens",
+  dunningSchedule(PAST_DUE_GRACE_MS)
+    .filter((s) => s !== "paused")
+    .every((s) => copyFor(s, FACTS).body.join(" ").includes(FACTS.pausesOn)));
+check("the pause email does not name a date that has passed",
   !copyFor("paused", FACTS).body.join(" ").includes(FACTS.pausesOn));
 check("the amount appears in the first email", copyFor("failed", FACTS).body.join(" ").includes("$8.99"));
 

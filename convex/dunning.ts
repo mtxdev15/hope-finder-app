@@ -73,7 +73,12 @@ const STILL_FAILING: ReadonlySet<string> = new Set(["past_due", "unpaid"]);
 export const sendDunningEmail = internalAction({
   args: {
     userId: v.string(),
-    stage: v.union(v.literal("failed"), v.literal("ending"), v.literal("paused")),
+    stage: v.union(
+      v.literal("failed"),
+      v.literal("reminder"),
+      v.literal("ending"),
+      v.literal("paused"),
+    ),
   },
   handler: async (ctx, args): Promise<{ sent: boolean; reason?: string }> => {
     const sub = await ctx.runQuery(internal.subscriptions.getByUserProviderInternal, {

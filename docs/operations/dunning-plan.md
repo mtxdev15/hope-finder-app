@@ -53,13 +53,24 @@ one click. It is worse, and it is much better than silence.
 
 ## The sequence
 
-Three emails, then silence. There is no fourth.
+At the approved 16-day window: **four emails, then silence.** Never more than
+four at any window — Paddle sends four, Recurly's guidance is three to four,
+Stripe's own toggle sends eight. A longer grace buys the reader more *time*, not
+more email.
 
-| Stage | When | What it says |
+| Stage | When (16-day grace) | What it says |
 |---|---|---|
 | `failed` | immediately | the card, the amount, the date Plus pauses, one button, **and the hardship offer** |
-| `ending` | 24h before access stops | the same facts, calmer, the deadline closer |
-| `paused` | when access stops | Plus is off, everything else is still here, no penalty |
+| `reminder` | day 8 | still trying, Plus is still on, here's the date |
+| `ending` | day 15 | 24h warning — the one you must not skip |
+| `paused` | day 16 | Plus is off, everything else is still here, no penalty |
+
+The `reminder` stage exists **because** the window got longer. The first version
+had three stages and read correctly at a 3-day grace (0, 2, 3). At 16 days it
+became 0, 15, 16 — one email, then over two weeks of silence, then two inside a
+day. Somebody would reasonably conclude it had been sorted out and then lose
+Plus with a day's notice. Below a week the three-stage shape is still right and
+the reminder is dropped.
 
 **The cadence is derived from `PAST_DUE_GRACE_DAYS`, never typed twice.** If that
 number changes, every send time moves with it. This mattered immediately: grace
@@ -188,28 +199,33 @@ Stripe events will miss it entirely. This is the substance of **TODO B4**.
 
 ## Two decisions still open, both yours
 
-### 1. The grace window is 3 days, and was never approved
+### 1. ~~The grace window~~ — DECIDED: 16 days, Apple's model
 
-`entitlementCatalog.ts` says so in its own comment: *"a product setting awaiting
-approval, not a silently chosen default."*
+**Approved 2026-08-26.** `PAST_DUE_GRACE_DAYS` moved from 3 to **16**, and the
+"awaiting approval" note in `entitlementCatalog.ts` was replaced with the
+decision and its reasoning.
 
-The mismatch it creates is real: **Stripe retries for 14 days, we cut access at
-3.** So a subscriber can lose Plus on day 4 and have it silently restored on day
-10 when a retry succeeds — access flapping, while we are still attempting to
-charge them.
+Three days was shorter than the retries it was meant to cover. Stripe's Smart
+Retries run for **two weeks**, so a subscriber lost Plus on day 4 and could have
+it handed back on day 10 when an attempt succeeded — access flapping off and on
+while we were still trying to charge them, with no explanation for either
+transition.
 
-The platform norms all point the other way. Apple's billing grace period is
-selectable at 3, 16 or 28 days and keeps full access throughout. Google Play
-grants grace before any hold. Stripe's own guidance is to leave a subscription
-`past_due` for 7–14 days rather than cancelling.
+**16 is Apple's own default** for monthly-and-longer subscriptions (their
+billing grace period offers 3, 16 or 28 days and keeps full access throughout;
+Google Play works the same way). And it **exceeds Stripe's 14-day retry window
+by two days** — which is the property that matters. Access now ends exactly
+once, after the retries have genuinely finished, with margin rather than a race.
 
-**Recommendation: align grace to the retry window — 14 days.** Access then
-continues exactly while Stripe is genuinely still trying, and ends once when
-Stripe gives up, rather than twice with a gap in the middle. The schedule and
-the suite already handle it; it is a one-number change.
+Full access is retained for the whole window; that part was already true
+(`entitlements.ts` returns `tier: "plus"` until `graceEndsAt`).
 
-The cost is 14 days of Plus for a card that may never recover. Against $8.99 and
-an involuntary-churn rate near 40%, that is a good trade.
+Cost: up to 16 days of Plus for a card that may never recover. Against $8.99 and
+involuntary churn near 40%, a good trade.
+
+`verify-dunning-emails.ts` asserts the window is 16, that it stays **ahead of
+Stripe's retry window**, and that the schedule holds at 2, 3, 7, 14, 16 and 28
+days — so changing it later stays one number.
 
 ### 2. Smart Retry's final action (TODO B3)
 

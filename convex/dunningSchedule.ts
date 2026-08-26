@@ -17,7 +17,7 @@
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type DunningStage = "failed" | "ending" | "paused";
+export type DunningStage = "failed" | "reminder" | "ending" | "paused";
 
 /* WHEN EACH STAGE FIRES, as a delay from the first failure.
  *
@@ -29,6 +29,23 @@ export type DunningStage = "failed" | "ending" | "paused";
 export function dunningDelayMs(stage: DunningStage, graceMs: number): number | null {
   if (stage === "failed") return 0;
   if (stage === "paused") return graceMs;
+
+  /* THE MIDPOINT, and it exists because the window got longer.
+   *
+   * The first version of this had three stages: immediately, 24h before, and
+   * on the day. That reads correctly at a 3-day grace — day 0, 2, 3. At the
+   * 16-day window Apple uses it becomes day 0, 15, 16: one email, then over two
+   * WEEKS of silence, then two emails inside a day. Somebody would reasonably
+   * conclude it had been sorted out, and then lose Plus with a day's notice.
+   *
+   * So a reminder lands halfway, and only when halfway is far enough from both
+   * ends to be its own message rather than a third nudge. Below a week the
+   * three-stage shape was already right and this would just be noise. */
+  if (stage === "reminder") {
+    if (graceMs < 7 * DAY_MS) return null;
+    return Math.round(graceMs / 2);
+  }
+
   /* 24h before access stops. Skipped when the window is too short for the
      warning to be meaningfully distinct from the pause itself — at two days,
      "it pauses tomorrow" and "it has paused" land close enough together to read
@@ -38,9 +55,13 @@ export function dunningDelayMs(stage: DunningStage, graceMs: number): number | n
   return graceMs - DAY_MS;
 }
 
-/** The stages actually sent at a given grace window, in order. */
+/** The stages actually sent at a given grace window, in order.
+ *
+ * Never more than four, whatever the window — Paddle sends four, Recurly's own
+ * guidance is three to four, and Stripe's own toggle sends eight. A longer
+ * grace buys the reader more TIME, not more email. */
 export function dunningSchedule(graceMs: number): DunningStage[] {
-  return (["failed", "ending", "paused"] as DunningStage[])
+  return (["failed", "reminder", "ending", "paused"] as DunningStage[])
     .filter((s) => dunningDelayMs(s, graceMs) !== null);
 }
 
@@ -98,6 +119,21 @@ export function copyFor(
           `just open Declare and go to Billing. Both go to the same place.`,
         `And if money is the reason, please reply to this email and say so. ` +
           `We'll sort something out. You will not be asked to explain yourself twice.`,
+      ],
+      cta: "Update your card",
+    };
+  }
+
+  if (stage === "reminder") {
+    return {
+      subject: "Still can't reach your card",
+      heading: "Still no luck with your card",
+      body: [
+        `We're still not able to take your payment${amount} for Declare Plus${card}. ` +
+          `We'll keep trying, and Plus stays on in the meantime.`,
+        `If it's an expired card, updating it takes about a minute. ` +
+          `You can use the button, or open Declare and go to Billing — whichever you prefer.`,
+        `Plus stays on until <strong>${facts.pausesOn}</strong>.`,
       ],
       cta: "Update your card",
     };

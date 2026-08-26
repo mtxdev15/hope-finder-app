@@ -190,15 +190,18 @@ has paid you money.
       `onEmailEvent` and no Resend webhook route is registered, so a bounced or rejected dunning
       email is indistinguishable from a delivered one. That is the difference between "we told
       them" and "we tried to tell them". Close before volume grows.
-- [ ] **B2c. DECIDE — the grace window, 3 days, never approved.**
-      `entitlementCatalog.ts` says so itself: *"a product setting awaiting approval, not a silently
-      chosen default."* **Stripe retries for 14 days but we cut access at 3**, so a subscriber can
-      lose Plus on day 4 and get it back on day 10 when a retry succeeds — access flapping while we
-      are still trying to charge them. Apple's grace is selectable at 3/16/28 days with full access
-      throughout; Google grants grace before any hold; Stripe's own guidance is 7–14 days of
-      `past_due` before cancelling.
-      **Recommended: 14 days**, so access ends once, when Stripe actually gives up. One number; the
-      schedule and its suite already handle 2/3/7/14/28.
+- [x] ~~**B2c. DECIDED 2026-08-26 — the grace window is 16 days, Apple's model.**
+      Was 3, carrying its own note that it was "awaiting approval, not a silently chosen default".
+      Three days was shorter than the retries it covered: Stripe retries for **two weeks**, so
+      somebody lost Plus on day 4 and could get it back on day 10 — access flapping while we were
+      still trying to charge them.
+      **16 is Apple's own default** for monthly-and-longer subscriptions (3/16/28, full access
+      throughout), and it **exceeds Stripe's 14-day retry window by two days**, so access now ends
+      exactly once, after the retries have finished, with margin rather than a race.
+      Consequence, and it was not obvious: the three-email cadence read correctly at 3 days
+      (0, 2, 3) but became 0, 15, 16 at sixteen — one email, two weeks of silence, then two inside
+      a day. A midpoint `reminder` stage was added, so the sequence is now 0, 8, 15, 16. Four
+      emails, against Stripe's eight.
 - [ ] **B3. Decide Smart Retry's final action deliberately.** "Cancel" and "leave
       unpaid" are very different outcomes for a real subscriber, and the sandbox
       default is cancel. *Harm if skipped: subscriptions ending without anyone
