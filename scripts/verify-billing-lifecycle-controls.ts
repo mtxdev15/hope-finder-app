@@ -232,8 +232,20 @@ check("a cancel-at-period-end subscription also answers already-subscribed",
 /* Measured on comment-stripped code: the explanatory comment sits between the
  * condition and the return, and counting it would make the window meaningless. */
 const GUARD_CODE = stripComments(GUARD);
+/* Written as two properties rather than one exact-text match, because the
+   original regex pinned the precise shape of the condition and went red the
+   moment a legitimate exception was added to it. The claim is that an
+   unrecognised lifecycle refuses; it is not that the condition has exactly
+   two clauses. */
 check("an unrecognised status refuses rather than guesses",
-  /!ALLOWS_NEW_CHECKOUT\.has\(existing\.status\) &&\s*existing\.status !== "incomplete"\s*\)\s*\{\s*return \{ error: "already-subscribed", status: existing\.status \};/.test(GUARD_CODE));
+  /!ALLOWS_NEW_CHECKOUT\.has\(existing\.status\)/.test(GUARD_CODE) &&
+  /existing\.status !== "incomplete"/.test(GUARD_CODE) &&
+  /return \{ error: "already-subscribed", status: existing\.status \}/.test(GUARD_CODE));
+/* The ONE permitted escape, and it is not a status at all: a one-time purchase
+   is not a second subscription, so the stacking guards do not apply to it. */
+check("the only way past the stacking guards is a one-time purchase",
+  /const buyingLifetimeOnTop = isOneTimePlan\(planKey\)/.test(GUARD_CODE) &&
+  (GUARD_CODE.match(/!buyingLifetimeOnTop/g) || []).length === 3);
 check("only `incomplete` falls through to a fresh Checkout",
   /existing\.status !== "incomplete"/.test(GUARD_CODE));
 /* Ordering: refusal happens before the Session is created, so a blocked user

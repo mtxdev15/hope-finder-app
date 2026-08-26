@@ -273,7 +273,11 @@ check("the trial length is imported, not typed here",
 /* A one-time purchase has no subscription to carry a trial, and sending the
    field in payment mode is an API error rather than a harmless extra. */
 check("a lifetime purchase is never given a trial",
-  /if \(!oneTime\) \{[\s\S]{0,120}trial_period_days/.test(BILLING));
+  /if \(!oneTime[^)]*\) \{[\s\S]{0,120}trial_period_days/.test(BILLING));
+/* And only once per account. Pinned here as well as in the dunning suite
+   because this is the file that reads the Checkout builder end to end. */
+check("and a trial is granted only to somebody who has not had one",
+  /!trialAlreadyUsed/.test(BILLING));
 check("the approved length is seven days", TRIAL_DAYS === 7);
 check("Convex webhook classifies before applying",
   HTTP.indexOf("classifyPlusSubscription") < HTTP.indexOf("internal.subscriptions.applyWebhook"));
