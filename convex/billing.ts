@@ -339,3 +339,80 @@ export const createPortalSession = action({
     return { url: res.data.url as string };
   },
 });
+
+/* Undo a scheduled cancellation, without sending anyone to Stripe's portal.
+ *
+ * WHY THIS EXISTS
+ * "Keep Plus" on /billing used to open the Customer Portal, where the same
+ * single intention is spelled three different ways across two screens: our
+ * "Keep Plus", then Stripe's "Don't cancel subscription", then Stripe's "Renew
+ * subscription". That last one is the damaging one — it reads as though it is
+ * about to charge you again, to somebody who only wanted to undo a mistake.
+ *
+ * Cancelling should keep its friction; a confirmation step protects people from
+ * cancelling by accident. Un-cancelling should have none: that person has
+ * already decided to stay, and every extra screen is a chance to lose them for
+ * no reason. So this is one click, on our page, in our words.
+ *
+ * WHAT IT DELIBERATELY IS NOT
+ * Not a general "update my subscription" endpoint. It sets exactly one field to
+ * exactly one value. It takes no subscription id, no customer id, no price and
+ * no status from the browser — the same rule createPortalSession states about
+ * the legacy email lookup applies here: if we have no stored mapping for this
+ * authenticated user, the answer is no.
+ *
+ * IT DOES NOT WRITE OUR OWN TABLES
+ * Stripe is told; the `customer.subscription.updated` webhook is what updates
+ * the subscription row, through the same classification and guard path as every
+ * other change. Writing the row here as well would create a second, unverified
+ * way for entitlement state to change — and the whole design holds because
+ * there is only one. */
+export const resumeSubscription = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok?: true; error?: string }> => {
+    // 1. Trusted identity first — see createCheckoutSession.
+    let user: AuthedUser;
+    try {
+      user = await requireUser(ctx);
+    } catch {
+      return { error: "not-authenticated" };
+    }
+
+    const secret = process.env.STRIPE_SECRET_KEY;
+    if (!secret) return { error: "billing-not-configured" };
+
+    /* 2. The subscription comes ONLY from our stored mapping for THIS user.
+     *    No id crosses the wire, so there is nothing to point at someone else's
+     *    subscription. */
+    const existing = await ctx.runQuery(
+      internal.subscriptions.getByUserProviderInternal,
+      { userId: user._id, provider: "stripe" as const },
+    );
+    if (!existing?.stripeSubscriptionId) return { error: "no-subscription" };
+
+    /* 3. A lifetime purchase has no recurring subscription to resume. Its row
+     *    carries no `stripeSubscriptionId` at all, so the check above already
+     *    catches it — this is the explicit, readable refusal rather than an
+     *    accident of field absence. */
+    if (existing.planKey === "plus_lifetime") return { error: "not-applicable" };
+
+    /* 4. Only a subscription that is actually scheduled to cancel can be
+     *    resumed. Refusing otherwise keeps this from being a way to poke at a
+     *    subscription in any other state — a canceled one cannot be revived by
+     *    flipping a boolean, and an already-active one has nothing to undo. */
+    if (!existing.cancelAtPeriodEnd) return { error: "not-cancelling" };
+    if (existing.status === "canceled") return { error: "already-ended" };
+
+    const res = await stripePost(
+      "/subscriptions/" + existing.stripeSubscriptionId,
+      secret,
+      { cancel_at_period_end: "false" },
+    );
+    if (!res.ok) return { error: "stripe-error" };
+
+    /* Deliberately returns no subscription state. The caller re-reads
+     * getMyEntitlements, so there is exactly one description of what someone
+     * holds and it is never this function's guess about what Stripe just did. */
+    return { ok: true };
+  },
+});

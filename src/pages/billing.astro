@@ -84,7 +84,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   </main>
 
 <script>
-  import { myEntitlements, openBillingPortal } from '../app/declare/convex-data.js';
+  import { myEntitlements, openBillingPortal, resumeSubscription } from '../app/declare/convex-data.js';
   import {
     planState, planNameKey, planStatusKey, cadenceKey, periodLabelKey,
     formatPeriodEnd, showsManageBilling, currentPlanId, plusCtaIntent,
@@ -109,6 +109,7 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
     'plan.manage': 'Manage billing',
     'plan.updatePayment': 'Update payment',
     'plan.keepPlus': 'Keep Plus',
+    'plan.keepErr': 'We could not restore your plan just now. Please try again.',
     'plan.retry': 'Try again',
     'plan.monthly': 'Monthly plan',
     'plan.annual': 'Annual plan',
@@ -140,6 +141,52 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
   };
 
   let portalBusy = false;
+
+  /* KEEP PLUS — undone here, not in Stripe's portal.
+   *
+   * Cancelling keeps its confirmation step; that friction protects people from
+   * cancelling by accident. Un-cancelling gets none: that person has already
+   * decided to stay. Routing them to the portal made them read three different
+   * names for one intention — our "Keep Plus", then "Don't cancel
+   * subscription", then "Renew subscription", the last of which sounds like a
+   * fresh charge to somebody who only wanted to undo a mistake.
+   *
+   * On success this re-reads entitlements rather than patching the view. Stripe
+   * is told, the webhook updates the row, and this page shows whatever the
+   * entitlement contract then reports - so there is exactly one description of
+   * what somebody holds, and it is never this handler's guess. */
+  async function keepPlus(btn: HTMLButtonElement): Promise<void> {
+    if (portalBusy) return;
+    portalBusy = true;
+    btn.disabled = true;
+    try {
+      const res = await resumeSubscription();
+      if (res && res.ok) {
+        /* The webhook is what actually updates our row, and it is not
+           instantaneous. Re-read rather than declaring success: if the row has
+           not landed yet the page keeps saying ENDING, which is honest, instead
+           of claiming ACTIVE on the strength of a 200 from Stripe. */
+        await load();
+        portalBusy = false;
+        return;
+      }
+      /* A refusal that means the subscription is no longer in a state this can
+         act on is not an error to apologise for — it is information. Re-read so
+         the page shows the real state, and say what happened. */
+      if (res && (res.error === 'not-cancelling' || res.error === 'already-ended')) {
+        await load();
+        portalBusy = false;
+        return;
+      }
+      showMsg(res && res.error === 'no-subscription'
+        ? tx('plan.noSub', 'We could not find a subscription for this account.')
+        : tx('plan.keepErr', 'We could not restore your plan just now. Please try again.'));
+    } catch (e) {
+      showMsg(tx('plan.keepErr', 'We could not restore your plan just now. Please try again.'));
+    }
+    portalBusy = false;
+    btn.disabled = false;
+  }
 
   async function manageBilling(btn: HTMLButtonElement): Promise<void> {
     if (portalBusy) return;
@@ -285,7 +332,11 @@ import DeclareLayout from '../layouts/DeclareLayout.astro';
         acts.appendChild(button(label, () => {
           track(evt, { authenticated: true, displayed_tier: 'plus', presentation: state, source: 'billing' });
           const b = acts.querySelector('button');
-          if (b instanceof HTMLButtonElement) manageBilling(b);
+          if (b instanceof HTMLButtonElement) {
+            /* Keep Plus resolves in place; every other intent still needs the
+               portal, which is the right tool for card changes and invoices. */
+            if (intent === 'keep-plus') keepPlus(b); else manageBilling(b);
+          }
         }, 'bl-primary'));
       } else if (state === 'free' || state === 'guest') {
         acts.appendChild(link(tx('billing.viewPlans', 'View plans'), '/pricing', 'bl-ghost', () => {

@@ -178,9 +178,9 @@ const modeWord = isSandboxTarget ? 'Stripe test mode' : 'LIVE mode, real money';
         <!-- The one thing a tester must read before touching annual. -->
         <div class="db-warn" role="note">
           <strong>Do not buy annual on an account that already has an active
-          subscription.</strong> The sandbox account holding the active monthly
-          Plus subscription must not be used here. Use a separate sandbox QA
-          account, or wait until that monthly subscription is genuinely
+          subscription.</strong> Any account already holding an active monthly
+          Plus subscription must not be used here — in sandbox or in production.
+          Use a separate QA account, or wait until that monthly subscription is genuinely
           terminal. Convex refuses a second purchase and the webhook guard
           refuses to repoint the row, but Stripe would still bill twice —
           neither guard cancels or refunds anything.

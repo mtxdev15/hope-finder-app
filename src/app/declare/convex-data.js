@@ -191,3 +191,19 @@ export async function myGifts() { return (await ensure()) ? runQuery(apiRef.gift
 export async function openBillingPortal() {
   return (await ensure()) ? runAction(apiRef.billing.createPortalSession, {}) : null;
 }
+
+/* Undo a scheduled cancellation in place, with no trip to Stripe's portal.
+ *
+ * Sends nothing, for the same reason openBillingPortal sends nothing: the
+ * subscription is resolved server-side from our stored mapping for the
+ * authenticated user, so there is no id in the browser that could be pointed at
+ * somebody else's subscription.
+ *
+ * Returns { ok: true } on success, { error } for a handled refusal
+ * (`no-subscription`, `not-cancelling`, `not-applicable`, `already-ended`,
+ * `not-authenticated`, `billing-not-configured`, `stripe-error`), or null when
+ * the client is unavailable. Callers must treat null as "unknown", never as
+ * success — and must re-read entitlements rather than assuming what changed. */
+export async function resumeSubscription() {
+  return (await ensure()) ? runAction(apiRef.billing.resumeSubscription, {}) : null;
+}

@@ -524,6 +524,28 @@ for (const f of portalFiles) {
     /createPortalSession\s*,\s*\{\s*\}/.test(t) || /createPortalSession[^)]{0,40}\{\}/.test(t));
   check(`${rel} sends no customer identifier`, !/cus_|stripeCustomerId/.test(t));
 }
+/* resumeSubscription ships for the same reason createPortalSession does — the
+ * billing page's "Keep Plus" resolves in place instead of handing the user to
+ * Stripe's portal — so it inherits the same obligation. It takes NO arguments at
+ * all: the subscription is resolved server-side from the stored mapping for the
+ * authenticated user. If a subscription id ever appeared in this payload, the
+ * browser could aim the call at somebody else's subscription, which is exactly
+ * the class of bug the retired customers-by-email portal lookup was.
+ *
+ * Asserted separately from the portal rather than folded into a shared loop:
+ * these are two different actions with two different reasons to be safe, and a
+ * shared loop would let deleting one silently stop proving anything. */
+const resumeFiles = files.filter((f) => readFileSync(f, "utf8").includes("resumeSubscription"));
+check("resumeSubscription reaches production (the billing page needs it)", resumeFiles.length > 0);
+for (const f of resumeFiles) {
+  const t = readFileSync(f, "utf8");
+  const rel = f.slice(DIST.length + 1);
+  check(`${rel} calls resume with an empty payload`,
+    /resumeSubscription\s*,\s*\{\s*\}/.test(t) || /resumeSubscription[^)]{0,40}\{\}/.test(t));
+  check(`${rel} sends no subscription identifier`, !/sub_|stripeSubscriptionId/.test(t));
+  check(`${rel} sends no customer identifier`, !/cus_|stripeCustomerId/.test(t));
+}
+
 for (const f of files) {
   const t = readFileSync(f, "utf8");
   check(`${f.slice(DIST.length + 1)} leaks no Stripe object id`,
