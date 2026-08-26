@@ -102,15 +102,32 @@ real charges instead of two.
       **DONE 2026-08-26 — the live path works end to end.** One $8.99 monthly purchase, real card, real production user. Entitlement flipped to `tier: plus / plus_monthly / stripe`, the live `/billing` rendered it, cancel-at-period-end and its reversal both worked across three surfaces, then cancelled immediately with a full refund and `/billing` returned to Free.
       Provenance confirmed on the live subscription: `source=convex.billing.createCheckoutSession`, `billing_schema_version=1`, `environment=production`, `plan=plus_monthly`, plus the userId - which is exactly what a hand-made Dashboard subscription can never carry.
       **Four things had never carried a real request before this and now have:** the live Stripe signature at the Worker, the shared Worker-to-Convex secret, classification of a live Price with its provenance, and the entitlement write.~~
-- [ ] **STILL UNVERIFIED — `charge.refunded` has never fired our revocation path.**
-      *Recorded 2026-08-26 so the smoke test does not look like it covered this. It did not.*
-      `convex/http.ts:257` refuses anything whose PaymentIntent metadata is not
-      `plan === "plus_lifetime"`, deliberately: a subscription's entitlement is governed by its
-      subscription STATUS, not by refunds, so a refunded monthly charge is acknowledged and ignored.
-      The smoke test refunded a **monthly** charge, so it exercised none of that branch — Plus was
-      revoked by `customer.subscription.deleted`, not by the refund. The only way to verify it is a
-      real lifetime purchase followed by a real refund, and lifetime is not yet buyable. Until then,
-      the one path that can undo a $149 sale is untested in production.
+- [x] ~~**`charge.refunded` now covers all three plans.** *Shipped 2026-08-26.*
+      The handler only ever reached LIFETIME purchases, and not because of the plan
+      check — because of where provenance lives. `createCheckoutSession` stamps the
+      five keys on `payment_intent_data[metadata]` in payment mode but on
+      `subscription_data[metadata]` in subscription mode, so a monthly or annual
+      refund arrived with EMPTY PaymentIntent metadata and was rejected one gate
+      earlier, at `source`. Widening the plan check alone would have changed nothing.
+      It now walks charge → invoice → subscription to read the metadata that exists.~~
+- [x] ~~**DECIDED 2026-08-26 — a refund never revokes a monthly or annual subscription.**
+      Owner's decision, and deliberate. A refund and a cancellation are different
+      acts: refunding a month as goodwill to somebody still subscribed, and having
+      that cut off their access, punishes the person it was meant to look after.
+      When a refund does accompany a real ending, `customer.subscription.deleted`
+      has already revoked — so acting here is harmful or redundant, never needed.
+      **Lifetime still revokes**, because it has no subscription status to consult
+      and the refund is the only signal it will ever get.
+      Both halves are asserted in `scripts/verify-duplicate-subscription-guard.ts`
+      so neither can be flipped by someone reading the other as a bug.~~
+- [ ] **STILL UNVERIFIED IN PRODUCTION — the lifetime revocation path.**
+      The logic is covered by suites, but no real lifetime purchase has ever been
+      refunded, because lifetime is not yet buyable. The one path that can undo a
+      $149 sale has never run against live Stripe. Settle it with the first real
+      lifetime purchase after C2, not before.
+      *(Superseded the older note that read "`charge.refunded` has never fired our
+      revocation path" — that was true of all three plans; it is now true only of
+      lifetime, and only in production.)*
 - [ ] **`/checkout/success` copy, after the poll fix.** The window is now 20s fast + 100s slow
       (`checkout-return.js`), which covers a cold start. But if it still exhausts, "Still confirming"
       is shown to somebody who has paid. The copy is careful — it says not to pay again — and the

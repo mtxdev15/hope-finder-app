@@ -239,6 +239,40 @@ check("recordRefundInternal is replay-safe",
 check("a lifetime refund still revokes rather than merely being recorded",
   /md\.plan !== "plus_lifetime"[\s\S]{0,400}recordRefundInternal/.test(HTTP) &&
   /charge\.refunded[\s\S]{0,4000}status: "refunded"/.test(HTTP));
+
+/* THE INVERSE, AND IT IS A DELIBERATE PRODUCT DECISION, NOT AN OVERSIGHT.
+ *
+ * Decided by the owner on 2026-08-26: a refund on a MONTHLY or ANNUAL
+ * subscription must never revoke access. The reasoning is that a refund and a
+ * cancellation are different acts. Refunding a month as a goodwill gesture to
+ * somebody who is still subscribed and still paying, and having that silently
+ * cut off their access, would punish the person we were trying to look after.
+ * When a refund really does accompany the end of a subscription,
+ * customer.subscription.deleted has already revoked — so revoking here is
+ * either harmful or redundant, never necessary.
+ *
+ * Asserted because it is the kind of decision a later reader could mistake for
+ * an incomplete implementation and "fix". The refund IS recorded; what it must
+ * not do is touch entitlement.
+ *
+ * The REFUND_BRANCH slice is everything between the plan test and the return —
+ * i.e. exactly the code that runs for a subscription refund. */
+const REFUND_BRANCH = (() => {
+  const start = HTTP.indexOf('if (md.plan !== "plus_lifetime")');
+  if (start < 0) return "";
+  return HTTP.slice(start, HTTP.indexOf("applyWebhook", start));
+})();
+check("the subscription-refund branch can be located", REFUND_BRANCH.length > 0);
+check("a subscription refund records and returns, without applying anything",
+  /recordRefundInternal/.test(REFUND_BRANCH) && /return ACK\(\)/.test(REFUND_BRANCH));
+check("a subscription refund sets no status",
+  !/status:/.test(REFUND_BRANCH));
+check("a subscription refund never reaches applyWebhook",
+  !/applyWebhook/.test(REFUND_BRANCH));
+/* And the recording mutation itself has no way to grant or remove a tier, so
+   the property holds even if the branch above were rearranged. */
+check("recordRefundInternal cannot change a tier or a status",
+  !/\btier\b/.test(RECORD_REFUND) && !/status:/.test(RECORD_REFUND));
 check("no path writes the subscriptions table directly",
   !/ctx\.db\.(insert|patch|replace)/.test(HTTP));
 check("the Worker remains a verify-and-relay boundary — no guard added there",
