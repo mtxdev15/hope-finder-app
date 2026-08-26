@@ -4,32 +4,43 @@ A running list of work to continue on the site. **Newest first within each secti
 Open work is at the top; everything finished lives under **Done** at the bottom.
 Reordered 2026-08-25 after the live-billing activation pass.
 
-## ⏭️ Next up — after the production deploy
+## ⏭️ Next up — the remaining live-billing steps
 
-*Added 2026-08-25. Every Stripe, Convex and Cloudflare variable is now set and
-verified; what remains needs a terminal. Do these in order — each one's failure
-mode is easier to read if the one before it succeeded.*
+*Added 2026-08-25. Steps 1–4 were **executed 2026-08-26** and are struck through
+below; the deploy is done and the webhook now listens to all nine events. What
+is left is the real-money smoke test and the one open API-version risk.*
 
-- [ ] **1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
+**Ordering correction, 2026-08-26:** B1 (configure the live Customer Portal) was
+listed under Phase B, *after* step 5 — but step 5 is meant to exercise the
+portal, cancel-at-period-end and its reversal, none of which exist until B1 is
+done. B1 now runs **before** step 5, so the smoke test needs only one round of
+real charges instead of two.
+
+- [x] ~~**1. Establish what Convex production actually runs.** `npx convex function-spec --prod`,
       compared against `main` (`c44f8c0`). This is the one thing that could not be checked from
       the web session — `release-c1-monetization @ 332e611` is not in the cloud clone. The audit
       claims 51 functions and zero `testHarness` entries; `main` carries `testHarness.ts` and
       later billing fixes, so there is probably drift. **Do this before deploying anything.**
-- [ ] **2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
+      **DONE 2026-08-26.** Production ran **55** function-spec entries, not the 51 the audit claimed, including 4 `testHarness.js` entries the audit said were absent. `main`'s function surface matched production module-for-module; the deployed harness is inert (`checkGates` requires `stripeEnvironment === "sandbox"`, derived from the `rk_live_` key).~~
+- [x] ~~**2. Deploy `main` alone**, with no lifetime code merged. Closes whatever drift step 1
       found without adding billing behaviour — the harness fails closed, its two env vars were
       never set. Capture the Worker version id first (`npx wrangler deployments list`) so
       rollback has an explicit target rather than a guess.
-- [ ] **3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
+      **DONE 2026-08-26.** Dry-run showed empty `indexDiffs` on every component and `{}` for both `componentDiffs` and `definitionDiffs` — no schema, index or function change. A Node.js actions version bump only. Worker rollback target captured: `954cf794-da71-40e8-8c22-ba4bdff5c3d6`.~~
+- [x] ~~**3. Merge and deploy the lifetime backend** (`claude/convex-stripe-billing-webhook-7tnwek`).
       Run `npm run check:types`, `npm run build && ls dist/dev` (must not exist) and every
       `scripts/verify-*.ts` first — 12 suites, 2,237 checks. Schema change is additive
       (`planKey` gains `plus_lifetime`, plus a `by_plan_environment` index) and needs **no
       backfill**: production holds zero billing rows. The Worker needs redeploying too — this
       branch changed `worker/src/index.js`.
-- [ ] **4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
+      **DONE 2026-08-26.** Merged as `8f8944d` (PR #51). Typecheck clean, **16** verify suites green (not 12 — four more have been added since that count was written). Convex deployed to `keen-hamster-650`; Worker redeployed, version `27843c86-d885-4daf-a61e-26be2a35715c`. `wrangler secret list` confirmed both `BILLING_WEBHOOK_SECRET` and `STRIPE_BILLING_WEBHOOK_SECRET` present, and no stale `STRIPE_SECRET_KEY` — rule C5 holds on the deployed Worker.~~
+- [x] ~~**4. Add `charge.refunded` as the 9th Stripe webhook event**, only after step 3 deploys.
       The destination currently listens to 8. A refund is the **only** way a lifetime purchase
       can be undone — no cancellation, no lapse, no failed renewal — so without it, refunding
       $149 returns the money and leaves Plus granted forever.
-- [ ] **5. Stage 5 real-money smoke test.** The only true proof: Stripe permits no synthetic
+      **DONE 2026-08-26.** Destination now listens to 9 events.~~
+- [ ] **5. Stage 5 real-money smoke test.** *(Do **B1** first — see the ordering
+      correction above.)* The only true proof: Stripe permits no synthetic
       events in live mode, and the endpoint has 0 deliveries ever. Run
       `PUBLIC_BILLING_DEV_CONTROL=1 npm run dev` with `PUBLIC_CONVEX_SITE_URL` pointed at
       production. Monthly, annual, lifetime, portal, cancel-at-period-end and its reversal.
@@ -50,8 +61,10 @@ mode is easier to read if the one before it succeeded.*
 ## 💳 Path to the first paying subscriber
 
 *Senior-dev audit, 2026-08-25. Ordered by what blocks revenue, then by what
-protects the people who pay. Phase A is the at-home commands above; nothing in
-Phase B can start until A5 passes.*
+protects the people who pay. Phase A is the at-home commands above.*
+
+*Amended 2026-08-26: **B1 runs before step 5**, not after — step 5 cannot test a
+portal that does not exist. B2–B5 still wait on step 5 passing.*
 
 ### Phase B — required before ANY real customer can subscribe
 
