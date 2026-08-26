@@ -798,6 +798,20 @@ check("the flag is never written back to false",
 check("the tenth event is subscribed",
   /"customer\.subscription\.trial_will_end"/.test(HTTP_T));
 check("it triggers the reminder", /sendTrialEndingEmail/.test(HTTP_T));
+/* THE SILENT-FAILURE MODE. Subscription events resolve their id through one
+   prefix branch. If trial_will_end ever stopped matching it, subscriptionId
+   would stay null, the handler would never be reached, and the route would
+   ACK — a reminder that simply never sends, with nothing red anywhere. */
+check("the event resolves a subscription id rather than acknowledging silently",
+  "customer.subscription.trial_will_end".startsWith("customer.subscription.") &&
+  /eventType\.startsWith\("customer\.subscription\."\)[\s\S]{0,80}subscriptionId = asId\(obj\)/.test(HTTP_T));
+/* It must run AFTER classification, or an unrelated subscription in the same
+   Stripe account could trigger an email to one of our users. */
+check("the reminder only fires for a subscription proved to be ours",
+  HTTP_T.indexOf("if (!verdict.ok)") <
+    HTTP_T.indexOf('eventType === "customer.subscription.trial_will_end"'));
+check("and it identifies the reader from stamped provenance, not the payload",
+  /const trialUser = stampedUserId\(sub, session\)/.test(HTTP_T));
 /* It carries no news, so applying it would rewrite the row with state it
    already holds and bump the ordering guard for nothing. */
 check("it changes no state and returns early",

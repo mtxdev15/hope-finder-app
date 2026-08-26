@@ -172,6 +172,32 @@ real charges instead of two.
       payment never confirmed should expire, not become a debt.
       **If that dropdown ever reads anything but `cancel the subscription`, this is why.**~~
 
+- [ ] **STRIPE DASHBOARD — add `customer.subscription.trial_will_end` as the 10th event.**
+      Settings → Webhooks → the `Declare Production Billing` destination → add that event.
+
+      **Without it the trial is the version people resent.** The code is done and deployed-ready:
+      the event is in `BILLING_EVENTS`, the handler is in `convex/http.ts`, and
+      `sendTrialEndingEmail` is written in both languages. But Stripe only delivers events the
+      destination is subscribed to, so until this is added the handler is unreachable and
+      **nobody is warned before their card is charged** — while `/pricing` shows them a timeline
+      promising "Day 4: we email you". A promise on the page that the system cannot keep.
+
+      Nothing else in Stripe is needed for the trial. The 7 days are set per Checkout Session
+      from `TRIAL_DAYS`, which is code.
+
+      Also confirm this stays **off**, as it already is: *Send a reminder email 7 days before a
+      trial ends* under Customer emails. Same reasoning as the failed-payment emails.
+
+      *Harm if skipped: silent. No error, no red check, no failed delivery. Just a charge nobody
+      saw coming, which is the one outcome the whole trial design exists to prevent.*
+
+- [ ] **After the trial goes live: decide what happens to a subscription when somebody buys
+      lifetime on top of it.** A trialing or paying subscriber can now reach the $149 one-time
+      purchase (they could not before, and that was a revenue hole). The lifetime webhook grants
+      Plus outright, but their existing subscription is NOT cancelled: that is a visible act
+      rather than a side effect of a purchase. Today they would hold both and keep being billed.
+      Low urgency while nobody can buy anything; a real problem the day both are purchasable.
+
 - [ ] **SECURITY — rotate `RESEND_API_KEY`.** The live key was pasted into a chat transcript on
       2026-08-26 (`re_AnQGhWaD…`) and should be treated as compromised. Deliberately deferred at
       the time, recorded here so it is not lost. Nothing is at risk while no subscriber has a
