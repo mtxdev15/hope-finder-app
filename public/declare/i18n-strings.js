@@ -311,7 +311,6 @@ window.__I18N_STRINGS = {
     'plans.freeF2': '3 respuestas de Guía Suave al día',
     'plans.freeF3': '2 Caminos activos a la vez',
     'plans.freeF4': 'Tus declaraciones, reflexiones y Bóveda, guardadas',
-    'plans.freeF5': 'Recursos de crisis y apoyo, siempre gratis',
     'plans.plusF1': 'Todo lo de Gratis',
     'plans.plusF2': 'Guía Suave ilimitada',
     'plans.plusF3': 'Caminos ilimitados, activos a la vez',
@@ -325,7 +324,6 @@ window.__I18N_STRINGS = {
     'plans.feature': 'Función',
     'plans.included': 'Incluido',
     'plans.unlimited': 'Ilimitado',
-    'plans.alwaysFree': 'Siempre gratis',
     'plans.rScripture': 'La Palabra y el apoyo esencial',
     'plans.rGuidance': 'Guía Suave',
     'plans.rGuidanceFree': '3 al día',
@@ -333,10 +331,16 @@ window.__I18N_STRINGS = {
     'plans.rActiveFree': '2',
     'plans.rNew': 'Comenzar Caminos nuevos',
     'plans.rVault': 'Bóveda, reflexiones y declaraciones',
-    'plans.rCrisis': 'Recursos de crisis',
+    /* Crisis help is a signpost to other people's services, never a plan
+       benefit. It was a row in the plan comparison table and a bullet in the
+       Free card; both framed help for somebody in danger as something a
+       subscription governs. */
+    'plans.helpH': 'Si estás en crisis ahora mismo',
+    'plans.helpD': 'Por favor llama a una línea de crisis. Son personas capacitadas para esto, es gratis, y no tiene nada que ver con Declare ni con ningún plan.',
+    'plans.helpCta': 'Encuentra ayuda',
     'plans.trust1': 'Pagos seguros con Stripe.',
     'plans.trust2': 'Cancela cuando quieras.',
-    'plans.trust3': 'Tu plan cambia los límites de la app, no el acceso a la Palabra ni al apoyo en crisis.',
+    'plans.trust3': 'Tu plan cambia los límites de la app, nunca tu acceso a la Palabra.',
     'plans.faqH': 'Preguntas frecuentes',
     'plans.q1': '¿Pagar cambia lo que Dios me da?',
     'plans.a1': 'No. Plus cambia lo que la app permite, no lo que Dios da. La Palabra, tu Camino, tu Bóveda y el apoyo en crisis son iguales en todos los planes.',

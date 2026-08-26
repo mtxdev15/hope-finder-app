@@ -246,8 +246,17 @@ check("a monthly / annual selector exists", /data-interval="month"/.test(PLANS) 
 check("a comparison table exists", /<table class="pl-table">/.test(PLANS));
 check("purchase reassurance is present",
   /Secure billing through Stripe/.test(PLANS) && /Cancel anytime/.test(PLANS));
+/* The property, not the sentence. This pinned the exact words "not access to
+   Scripture or crisis support", which is the framing that had to go: it made
+   crisis help something a plan governs. Scripture staying free IS a plan claim
+   and belongs here; crisis help never was one. */
 check("the reassurance says what a plan does NOT change",
-  /not access to Scripture or crisis support/.test(PLANS));
+  /never your access to Scripture/.test(PLANS));
+check("and it no longer speaks for crisis help at all",
+  !/crisis/i.test(PLANS.slice(
+    PLANS.indexOf('class="pl-trust'),
+    PLANS.indexOf("</ul>", PLANS.indexOf('class="pl-trust')),
+  )));
 check("an FAQ is present", (PLANS.match(/<details class="pl-q">/g) || []).length >= 4);
 
 /* It must NOT drift into Billing's job. */
@@ -541,6 +550,51 @@ if (existsSync(DIST)) {
        is one of the most common causes of a chargeback. */
     check(`${rel} names the seller`, /JC Kingdom Ventures, LLC/.test(page));
   }
+  /* ── Crisis help is not a plan benefit ─────────────────────────────────
+   *
+   * It used to be a ROW in the plan comparison table ("Crisis resources |
+   * Always free | Always free") and a bullet in the Free card's feature list.
+   * Both framed help for somebody in danger as something a subscription tier
+   * governs. It is a signpost to other people's services: Declare does not
+   * provide it, does not gate it, and must not count it as a benefit.
+   *
+   * Asserted against the BUILT page, because the framing is what a reader
+   * meets and a component that fails to render leaves the source looking right. */
+  const pricingBuilt = readFileSync(join(DIST, "pricing/index.html"), "utf8");
+  const comparison = pricingBuilt.slice(
+    pricingBuilt.indexOf("<table"),
+    pricingBuilt.indexOf("</table>") + 8,
+  );
+  check("the plan comparison table does not rank crisis help",
+    comparison.length > 0 && !/crisis/i.test(comparison));
+  const freeCard = pricingBuilt.slice(
+    pricingBuilt.indexOf('id="plFree'),
+    pricingBuilt.indexOf('id="plPlus'),
+  );
+  check("the Free plan does not list it as a feature",
+    freeCard.length > 0 && !/crisis/i.test(freeCard));
+  /* Nor may any surface describe it as something a PLAN leaves untouched,
+     which is the same claim wearing a friendlier sentence. */
+  check("no copy frames it as something the plan governs",
+    !/not access to Scripture or crisis/i.test(pricingBuilt) &&
+    !/crisis support are the same on every plan/i.test(pricingBuilt));
+
+  /* REACHABILITY IS NOT ALLOWED TO DROP. The whole point is that it stops being
+     a product feature WITHOUT becoming harder to find. */
+  check("a route to help is still on the page where money is decided",
+    /href="\/crisis"/.test(pricingBuilt));
+  check("and it names itself plainly rather than in marketing language",
+    /in crisis right now/i.test(pricingBuilt));
+  check("it says the help is not ours and not tied to a plan",
+    /nothing to do with Declare/i.test(pricingBuilt));
+  check("the Spanish reader gets the same signpost",
+    /'plans\.helpH':/.test(I18N) && /'plans\.helpD':/.test(I18N) &&
+    /nada que ver con Declare/.test(I18N));
+  /* Strings removed with their markup, so nothing dangles. */
+  check("the retired plan-benefit strings are gone from both languages",
+    !/'plans\.rCrisis':/.test(I18N) && !/'plans\.freeF5':/.test(I18N) &&
+    !/plans\.rCrisis/.test(PLANS) && !/plans\.freeF5/.test(PLANS));
+
   check("the Spanish seller line exists, so the footer is not half-translated",
     /'legal\.seller':/.test(I18N));
   /* The documents themselves, in both languages. A link to a 404 is worse than

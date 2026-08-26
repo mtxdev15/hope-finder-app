@@ -33,7 +33,7 @@ import LegalFooter from '../components/LegalFooter.astro';
 ---
 <DeclareLayout
   title="Declare — Plans"
-  description="Compare Free and Plus. Scripture, crisis support and the core Declare experience stay free on every plan."
+  description="Compare Free and Plus. Scripture and the core Declare experience stay free on every plan."
   activeTab=""
 >
   <main class="plans">
@@ -80,7 +80,6 @@ import LegalFooter from '../components/LegalFooter.astro';
             <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day</li>
             <li data-i18n="plans.freeF3">2 Journeys active at once</li>
             <li data-i18n="plans.freeF4">Your declarations, reflections and Vault, kept</li>
-            <li data-i18n="plans.freeF5">Crisis resources and support, always free</li>
           </ul>
           <div class="pl-cta" id="plFreeCta">
             <a class="btn btn-ghost" href="/create-account" data-i18n="plans.freeCreate">Create a free account</a>
@@ -150,11 +149,6 @@ import LegalFooter from '../components/LegalFooter.astro';
               <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
             </tr>
-            <tr>
-              <th scope="row" data-i18n="plans.rCrisis">Crisis resources</th>
-              <td data-lbl="Free" data-i18n="plans.alwaysFree">Always free</td>
-              <td data-lbl="Plus" data-i18n="plans.alwaysFree">Always free</td>
-            </tr>
           </tbody>
         </table>
       </section>
@@ -163,15 +157,33 @@ import LegalFooter from '../components/LegalFooter.astro';
       <ul class="pl-trust rise d4">
         <li data-i18n="plans.trust1">Secure billing through Stripe.</li>
         <li data-i18n="plans.trust2">Cancel anytime.</li>
-        <li data-i18n="plans.trust3">Your plan changes app limits, not access to Scripture or crisis support.</li>
+        <li data-i18n="plans.trust3">Your plan changes app limits, never your access to Scripture.</li>
       </ul>
+
+      {/* ── Crisis help ─────────────────────────────────────────────────
+          NOT A PLAN FEATURE, and deliberately not in the comparison table or
+          the Free card any more. It used to appear in both, which framed help
+          for somebody in danger as something a subscription tier governs.
+
+          It is a signpost to other people's services. Declare does not provide
+          it, does not gate it, and has no business counting it as a benefit.
+          Kept here, below the plans and above the questions, because somebody
+          who scrolled this far while struggling should not have to hunt. */}
+      <aside class="pl-help rise d4" aria-labelledby="plHelpH">
+        <h2 class="pl-help-h" id="plHelpH" data-i18n="plans.helpH">If you are in crisis right now</h2>
+        <p class="pl-help-d" data-i18n="plans.helpD">
+          Please reach out to a crisis line. They are staffed by people trained for this,
+          they are free, and they have nothing to do with Declare or with any plan.
+        </p>
+        <a class="pl-help-a" href="/crisis" data-i18n="plans.helpCta">Find help now</a>
+      </aside>
 
       {/* ── FAQ ────────────────────────────────────────────────────────── */}
       <section class="pl-faq rise d4" aria-labelledby="plFaqH">
         <h2 class="pl-cmp-h" id="plFaqH" data-i18n="plans.faqH">Questions people ask</h2>
         <details class="pl-q">
           <summary data-i18n="plans.q1">Does paying change what God gives me?</summary>
-          <p data-i18n="plans.a1">No. Plus changes what the app allows, not what God gives. Scripture, your Journey, your Vault and crisis support are the same on every plan.</p>
+          <p data-i18n="plans.a1">No. Plus changes what the app allows, not what God gives. Scripture, your Journey and your Vault are the same on every plan.</p>
         </details>
         <details class="pl-q">
           <summary data-i18n="plans.q2">What happens if I cancel?</summary>
@@ -536,6 +548,19 @@ import LegalFooter from '../components/LegalFooter.astro';
 
     .plans .pl-trust { list-style: none; margin: 30px auto 0; padding: 0; display: grid; gap: 8px; max-width: 46ch; text-align: center; }
     .plans .pl-trust li { font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+
+    /* Crisis help. Quiet by design: this is a signpost for somebody who needs
+       it, not a promotion. It must not compete with the plans above it, and it
+       must not look like a third tier. */
+    .plans .pl-help { margin: 38px auto 0; padding: 20px 22px; max-width: 46ch;
+      border: 1px solid var(--line2); border-radius: 12px; text-align: center; }
+    .plans .pl-help-h { font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 19px; font-weight: 600; margin: 0 0 8px; color: var(--text); }
+    .plans .pl-help-d { font-size: 13.5px; line-height: 1.65; margin: 0 0 14px;
+      color: var(--muted); }
+    .plans .pl-help-a { display: inline-block; font-size: 14px; font-weight: 600;
+      color: var(--text); border-bottom: 1px solid currentColor; padding-bottom: 2px; }
+    .plans .pl-help-a:focus-visible { outline: 2px solid var(--text2); outline-offset: 4px; }
 
     .plans .pl-faq { margin-top: 44px; }
     .plans .pl-q { border-bottom: 1px solid var(--line); }
