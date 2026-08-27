@@ -221,6 +221,45 @@ real charges instead of two.
       Clearing the old subscription id from the row is the load-bearing half: left in place, the
       very cancellation we perform comes back and overwrites the $149 purchase.~~
 
+- [ ] **TOMORROW, FIRST — walk the Journey cap on a real account, before the flag.**
+      *Owner's call 2026-08-27: this is a gate on **C2**, not a nice-to-have.*
+
+      **Why it needs a person.** The screen is asserted by 29 checks and was rendered in a
+      real browser in both themes and both languages, but always with an **empty list** —
+      there was no signed-in session, so `myOpenJourneys` returned null every time. Nobody
+      has yet seen their own three Journeys listed in it. This is new code on the path
+      somebody takes when they are already struggling, and its only real-world test so far
+      was synthetic.
+
+      **It does not need the flag.** The cap fires whether or not purchasing is on, so this
+      can and should happen first.
+
+      **The walk, on the live site, signed in:**
+      1. Start a Journey. Then start a second, then a third. Each one sets the previous
+         aside; that is the app working as it always has.
+      2. Try to start a **fourth**. The sheet should appear instead of the Journey.
+      3. Check the heading counts correctly: *"You have three Journeys still open"*.
+      4. Check all three are listed **by name**, as `From → To`, with their own line.
+         An empty list here means `myOpenJourneys` is not resolving and the whole screen
+         is useless. That is the single most likely failure.
+      5. If one of them is on day 5, the hint above the list should offer to finish it
+         rather than set anything down.
+      6. Press **Continue this one** on any of them. It should take you into that Journey.
+      7. Come back and hit the cap again. This time press **Let this one go**. The slot
+         frees and the fourth Journey should begin without another refusal.
+      8. Confirm the Plus line reads *"$8.99 a month, and the first 7 days are free"* and
+         that **See Plus** opens `/pricing`.
+      9. Switch to Spanish and re-open the sheet. The heading, both buttons and the Plus
+         line should all be Spanish.
+
+      **Afterwards, clean up your own account.** You will be holding three or four open
+      slots. Either finish them, use *Let this one go* on each, or set `status` to
+      `archived` on the rows in Convex → Data → `journeySlots`. Leaving them means your own
+      account sits at the cap.
+
+      *If anything here is wrong, fix it before C2. A broken refusal screen in front of the
+      3am user cannot be taken back, and the flag can wait a day.*
+
 - [ ] **DEPLOY the operator-alert send fix.** `notifyOperator` now writes a `dunningSends` row
       so a bounced alert is visible; that change is committed and pushed but **not deployed**.
       ```bash
@@ -373,6 +412,11 @@ has paid you money.
 - [ ] **C2. Flip `PRICING_ENABLED` to `true`** in `src/app/declare/plan-display.js`,
       update the one guard assertion, deploy. **This is the moment money can
       move.** Everything above must be done first.
+
+      **ALSO BLOCKED on walking the Journey cap** — see *TOMORROW, FIRST* at the top
+      of **Next up**. Added 2026-08-27 at the owner's direction. That screen has never
+      been seen with real data, and it sits on the path of somebody who is already
+      struggling.
 
       **BLOCKED until `EXTRA_TRUSTED_ORIGIN` is gone from production.** Run this
       first, every time, and read the output rather than assuming:
