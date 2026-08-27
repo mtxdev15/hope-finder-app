@@ -55,7 +55,19 @@ const FREE: TierDefinition = {
   tier: "free",
   limits: {
     gentleGuidanceDaily: 3,
-    activeJourneys: 2,
+    /* THREE, raised from two on 2026-08-27.
+     *
+     * The cap exists because a Journey day is a Sonnet call and costs roughly
+     * 2.2x a Gentle Guidance response, so concurrency is the real cost lever
+     * on this feature. Two was doing that job and also putting the
+     * set-one-down screen in front of people constantly, and a good screen
+     * somebody meets every week is still friction. Three keeps the ceiling
+     * meaningful while making that moment rare enough to mean something.
+     *
+     * EIGHT PLACES STATE THIS NUMBER to a reader, in two languages, and none
+     * of them may be edited without this line. scripts/verify-guidance-quota.ts
+     * pins every one of them to this value. */
+    activeJourneys: 3,
     collections: null, // uncapped at launch
     imageCards: null, // uncapped at launch
     monthlyNewJourneys: null, // no monthly limit at launch

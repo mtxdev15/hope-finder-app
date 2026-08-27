@@ -86,10 +86,19 @@ for (const lang of LANGS) {
      and the first thing a new account hears should not be a price. */
   check(`signup/${lang} names no price`, !/\$|USD/.test(join.body.join(" ")));
   check(`signup/${lang} does not sell Plus`, !/\bPlus\b/.test(join.body.join(" ")));
-  /* It DOES state what they have, because "3 a day" is now a real limit and
-     the first time it stops them should not be the first time they hear it. */
-  check(`signup/${lang} states the free limits`,
-    /3/.test(join.body.join(" ")) && /2/.test(join.body.join(" ")));
+  /* It DOES state what they have, because both limits are now real and the
+     first time one stops somebody should not be the first time they hear it.
+     
+     Asserted as SHAPE, not as digits. The first version tested for a literal
+     "3" and a literal "2", which passed only while the two limits happened to
+     differ, and broke the moment the Journey cap was raised from 2 to 3.
+     scripts/verify-guidance-quota.ts pins the actual numbers to
+     entitlementCatalog.ts; this one only cares that both are stated. */
+  const said = join.body.join(" ");
+  check(`signup/${lang} states the guidance limit`,
+    /\d+ (?:Gentle Guidance|respuestas de Guía Suave)/.test(said));
+  check(`signup/${lang} states the journey limit`,
+    /\d+ (?:Journeys at a time|Caminos a la vez)/.test(said));
   check(`signup/${lang} sends them into the app, not to billing`,
     !/billing|facturaci/i.test(String(join.cta)));
 }

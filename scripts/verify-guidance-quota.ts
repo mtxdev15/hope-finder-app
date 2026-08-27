@@ -201,6 +201,73 @@ check("so a signed-out reader is never refused",
 check("the feature name is the one usage.ts meters",
   GUIDANCE_FEATURE === "gentle_guidance");
 
+/* ── 7b. Every stated limit matches the catalog ──────────────────────────
+ *
+ * WHY THIS EXISTS. The Journey cap moved from 2 to 3 on 2026-08-27, and the
+ * number is written out in EIGHT places across two languages: the Free card,
+ * the comparison table, the sign-up welcome, and two preview fixtures. Nothing
+ * tied any of them to convex/entitlementCatalog.ts, so the page could have gone
+ * on promising two while the product allowed three, and no test would have
+ * noticed. A limit that is enforced and a limit that is advertised drifting
+ * apart is the exact failure this whole workstream started from.
+ *
+ * Read from the catalog rather than typed here, so raising it again is one
+ * edit and this fails until every reader is updated. */
+section("7b. The advertised limits match the enforced ones");
+
+const FREE_BLOCK = (CATALOG.match(/const FREE: TierDefinition = \{[\s\S]*?\n\};/) || [""])[0];
+const guidanceLimit = Number((FREE_BLOCK.match(/gentleGuidanceDaily: (\d+)/) || [])[1]);
+const journeyLimit = Number((FREE_BLOCK.match(/activeJourneys: (\d+)/) || [])[1]);
+check("the catalog states a guidance limit", Number.isInteger(guidanceLimit) && guidanceLimit > 0);
+check("the catalog states a journey limit", Number.isInteger(journeyLimit) && journeyLimit > 0);
+
+const PRICING = read("src/pages/pricing.astro");
+const BILLING_PAGE = read("src/pages/billing.astro");
+const SCHEDULE = read("convex/dunningSchedule.ts");
+
+/* The Free card, both languages. */
+check("the Free card advertises the enforced guidance limit",
+  new RegExp('plans\\.freeF2">' + guidanceLimit + ' Gentle Guidance').test(PRICING));
+check("the Free card advertises the enforced journey limit",
+  new RegExp('plans\\.freeF3">' + journeyLimit + ' Journeys at a time').test(PRICING));
+check("and in Spanish", new RegExp("'plans\\.freeF3': '" + journeyLimit + " Caminos a la vez").test(I18N));
+check("Spanish guidance matches too",
+  new RegExp("'plans\\.freeF2': '" + guidanceLimit + " respuestas").test(I18N));
+
+/* The comparison table. */
+check("the comparison table states the enforced journey limit",
+  new RegExp('plans\\.rActiveFree">' + journeyLimit + '<').test(PRICING));
+check("and in Spanish", new RegExp("'plans\\.rActiveFree': '" + journeyLimit + "'").test(I18N));
+check("the comparison table states the enforced guidance limit",
+  new RegExp('plans\\.rGuidanceFree">' + guidanceLimit + ' a day').test(PRICING));
+
+/* The sign-up welcome, which is the first place a new account hears either
+   number and therefore the worst place for a stale one. */
+check("the sign-up welcome states both enforced limits",
+  new RegExp('You have ' + guidanceLimit + ' Gentle Guidance responses a day and ' +
+    journeyLimit + ' Journeys at a time').test(SCHEDULE));
+check("and in Spanish",
+  new RegExp('Tienes ' + guidanceLimit + ' respuestas de Guía Suave al día y ' +
+    journeyLimit + ' Caminos a la vez').test(SCHEDULE));
+
+/* The development preview fixtures. A fixture showing a limit the product no
+   longer has is how a stale screenshot becomes a stale decision. */
+for (const [name, src] of [["pricing", PRICING], ["billing", BILLING_PAGE]] as const) {
+  check(`the ${name} preview fixture matches the catalog`,
+    new RegExp('gentleGuidanceToday: ' + guidanceLimit +
+      ', activeJourneySlots: ' + journeyLimit).test(src));
+}
+
+/* And nothing anywhere still advertises the OLD number. Written as a scan for
+   any journey count that is not the enforced one, so this keeps working the
+   next time it moves rather than only catching the 2 it was written for. */
+for (const [name, src] of [["pricing.astro", PRICING], ["i18n-strings.js", I18N],
+                            ["dunningSchedule.ts", SCHEDULE]] as const) {
+  const stale = (src.match(/(\d+) (?:Journeys at a time|Caminos a la vez)/g) || [])
+    .filter((m) => Number(m.match(/\d+/)![0]) !== journeyLimit);
+  check(`${name} advertises no other journey count`, stale.length === 0);
+}
+
 /* ── 8. The policy stays executable ──────────────────────────────────────── */
 section("8. The policy stays testable");
 

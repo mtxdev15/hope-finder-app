@@ -503,7 +503,7 @@ export function welcomeCopy(
         body: [
           "Declare existe para una cosa: poner la Palabra de Dios donde más la necesitas, en el momento en que la necesitas.",
           "Cuando algo te esté pesando, escríbelo tal como es. Recibes la Escritura que habla a eso, con declaraciones para decir en voz alta y una oración para orar. Sin filtrar. Sin arreglar la manera de decirlo primero.",
-          "Tienes 3 respuestas de Guía Suave al día y 2 Caminos a la vez, de 5 días cada uno. Todo lo que guardes queda en tu Bóveda y es tuyo.",
+          "Tienes 3 respuestas de Guía Suave al día y 3 Caminos a la vez, de 5 días cada uno. Todo lo que guardes queda en tu Bóveda y es tuyo.",
           "Si estás pasando por algo ahora mismo, empieza ahí. No hace falta prepararse.",
         ],
         cta: "Empezar",
@@ -564,7 +564,7 @@ export function welcomeCopy(
       body: [
         "Declare exists for one thing: to put God's Word where you need it most, at the moment you need it.",
         "When something is weighing on you, write it down as it actually is. You get Scripture that speaks to that, declarations to say out loud, and a prayer to pray. Unfiltered. No tidying up the wording first.",
-        "You have 3 Gentle Guidance responses a day and 2 Journeys at a time, 5 days each. Everything you save goes to your Vault and stays yours.",
+        "You have 3 Gentle Guidance responses a day and 3 Journeys at a time, 5 days each. Everything you save goes to your Vault and stays yours.",
         "If you are carrying something right now, start there. There is nothing to set up.",
       ],
       cta: "Get started",

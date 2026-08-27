@@ -317,7 +317,7 @@ window.__I18N_STRINGS = {
     'plans.billedAnnual': 'Facturado cada año, unos $6.67 al mes',
     'plans.freeF1': 'La Biblia completa y toda la experiencia de Declare',
     'plans.freeF2': '3 respuestas de Guía Suave al día',
-    'plans.freeF3': '2 Caminos a la vez, de 5 días cada uno',
+    'plans.freeF3': '3 Caminos a la vez, de 5 días cada uno',
     'plans.freeF4': 'Tus declaraciones, reflexiones y Bóveda, guardadas',
     'plans.plusF1': 'Todo lo de Gratis',
     'plans.plusF2': 'Guía Suave sin límite diario',
@@ -336,7 +336,7 @@ window.__I18N_STRINGS = {
     'plans.rGuidance': 'Guía Suave',
     'plans.rGuidanceFree': '3 al día',
     'plans.rActive': 'Caminos activos a la vez',
-    'plans.rActiveFree': '2',
+    'plans.rActiveFree': '3',
     'plans.rNew': 'Comenzar Caminos nuevos',
     'plans.rVault': 'Bóveda, reflexiones y declaraciones',
     /* Crisis help is a signpost to other people's services, never a plan

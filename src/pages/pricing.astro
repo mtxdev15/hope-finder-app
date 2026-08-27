@@ -82,7 +82,7 @@ import LegalFooter from '../components/LegalFooter.astro';
           <ul class="pl-list">
             <li data-i18n="plans.freeF1">The full Bible and the whole Declare experience</li>
             <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day</li>
-            <li data-i18n="plans.freeF3">2 Journeys at a time, 5 days each</li>
+            <li data-i18n="plans.freeF3">3 Journeys at a time, 5 days each</li>
             <li data-i18n="plans.freeF4">Your declarations, reflections and Vault, kept</li>
           </ul>
           <div class="pl-cta" id="plFreeCta">
@@ -228,7 +228,7 @@ import LegalFooter from '../components/LegalFooter.astro';
             </tr>
             <tr>
               <th scope="row" data-i18n="plans.rActive">Journeys active at once</th>
-              <td data-lbl="Free" data-i18n="plans.rActiveFree">2</td>
+              <td data-lbl="Free" data-i18n="plans.rActiveFree">3</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
             </tr>
             <tr>
@@ -916,7 +916,7 @@ import LegalFooter from '../components/LegalFooter.astro';
     const F: Record<string, any> = {
       guest: { tier: 'guest' },
       free: { tier: 'free', subscriptionStatus: 'none',
-              remaining: { gentleGuidanceToday: 3, activeJourneySlots: 2 } },
+              remaining: { gentleGuidanceToday: 3, activeJourneySlots: 3 } },
       plusMonthly: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'month',
               cancelAtPeriodEnd: false, paymentNeedsAttention: false, periodEndAt: END },
       plusAnnual: { tier: 'plus', subscriptionStatus: 'active', billingInterval: 'year',
