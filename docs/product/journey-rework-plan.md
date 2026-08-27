@@ -153,6 +153,15 @@ The missing front door. One surface listing three things the system already know
 Reachable from the Journey home in every state and from the nav. Not hidden in the
 zero state, which is the one moment it matters most.
 
+**DONE 2026-08-27.** "Past journeys" is now My Journeys, with the grouping in
+`src/app/declare/journey-inventory.js` (pure, executed by
+`scripts/verify-journey-inventory.ts`). It works signed out, because the 3am user
+usually is: the device records are primary and the server's open slots only ADD to
+them, so a Journey begun on a phone is reachable on a laptop that has never held its
+records, and a null from the server means "no answer" rather than "none". Each row is
+an organic card carrying its own day ring, five fifths with the completed ones in
+gold, the unit the Vine already uses for its fruit.
+
 ### 3. A reachable way to choose, on every viewport
 
 Fix D1. Put a visible control on the active-Journey card itself rather than repairing
@@ -160,11 +169,28 @@ the hidden mast, so it does not depend on a breakpoint. Restore the switch-confi
 brief already specifies (§10.8: *Start a new journey?* / **Start the new journey** /
 **Keep my current one**), and make its copy true once resume exists.
 
+**DONE 2026-08-27.** A labelled control on the card, plus the same door at the foot of
+My Journeys, both through one funnel that only confirms when there is something to set
+aside. One tap to the confirm, two to the chooser, down from five. The confirm's copy
+now names where the Journey waits, which finishes D3. The mast control stays for
+phones and is simply no longer the only route. `scripts/browser/journey-switch-reach.mjs`
+asserts all of it at 390px **and** 1280px, and asserts the mast control is still hidden
+on desktop so the reason it may never be the only one stays written down. Dead code
+removed with it: `plantAndBegin()`, its `.plant-seed`/`.plant-bloom` styles, and the
+`.mast .mright` pointer-events rule left over from the retired top bar.
+
 ### 4. Let people see all 34
 
 The chooser exists (`#chooseSheet`) and is zero-state only. Make it reachable always.
 34 authored Journeys with no browsable front door is the single biggest piece of
 unused value in the product, and it is now advertised on `/pricing`.
+
+**DONE 2026-08-27.** It filtered to `status === 'open'`, which quietly means "the ones
+you have never touched": the Journey being walked was missing, every finished one was
+missing, and the more of the app somebody used the less of it they saw. All 34 are
+listed now, with a count drawn from the catalog, and each row says what tapping it will
+do (**Walking now** goes to it, **Day 4** resumes there, **Rooted** begins fresh) from
+the same inventory My Journeys is built from.
 
 ### 5. Gentle Guidance
 
@@ -173,6 +199,15 @@ enforced end to end (`src/app/declare/declare-api.js:20`, reserve before the mod
 call, release on failure) and `guidance-quota.js` fails open on anything but a stated
 refusal. The open task may simply be stale. What is worth verifying is whether a
 person can see what they have left **before** they hit the wall.
+
+**CHECKED, AND THE TASK WAS STALE. DONE 2026-08-27.** The limit is wired and has been
+since 2026-08-26. What was missing is the half nobody wrote down: `convex/usage.ts` has
+always returned `remaining` on a granted reservation and `interpretReserve` threw it
+away one line later, so the **only** moment the app ever mentioned the limit was the
+moment it refused somebody. The count now reaches the card that spends the next one
+("2 left today"), shows **nothing** when there is no number (Plus, a guest, an
+unreachable backend), and is reported at the finalize rather than the reservation,
+because a failed request gives its hold back.
 
 ### 6. Courtroom language sweep
 
