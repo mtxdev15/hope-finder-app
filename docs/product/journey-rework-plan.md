@@ -188,6 +188,16 @@ fine. The ban is on courtroom framing.*
 Identifiers named `verdict` in `convex/` and `src/app/declare/` are internal and not
 user-visible. Leave them.
 
+**PROPOSED, NOT APPLIED, 2026-08-27.** The full inventory with a drafted rewrite for
+every hit is at [`docs/product/courtroom-language-sweep.md`](courtroom-language-sweep.md).
+It is 24 rewrites in Journey content plus 4 on marketing pages, and it names three
+classes of false positive that a search finds and that must **not** be touched:
+"sentence" as a unit of grammar, "conviction" as firm belief (Hebrews 11:1 is quoted
+verbatim in four places, and Scripture is never rewritten), and the internal `verdict`
+identifiers. Two of the rewrites are flagged as genuine judgement calls rather than
+mechanical fixes, and `public/shame.html:677` is a whole devotional built on the
+metaphor that wants rewriting rather than word-swapping. Waiting on the owner.
+
 ---
 
 ## Verification
