@@ -340,6 +340,92 @@ const ES_SHEET = (I18N.match(/'journey\.openH'[\s\S]{0,1200}?'journey\.openPlusC
 check("the Spanish sheet copy uses no em or en dash", !/[—–]/.test(ES_SHEET));
 check("the English sheet copy uses no em or en dash", !/[—–]/.test(SHEET));
 
+/* ── 7d. Every event fired is an event that survives ─────────────────────
+ *
+ * WHAT THIS CATCHES, AND IT HAD ALREADY HAPPENED TWICE.
+ *
+ * analytics.js is an allowlist: `track()` drops any event name not in ALLOWED,
+ * silently, by design. That is the right failure mode for a privacy choke point
+ * and a terrible one for a typo. The file's own comment records the first time
+ * it bit: signin_completed was fired from auth-store.js for months and was
+ * never listed, so every one of those events went nowhere.
+ *
+ * It bit again on 2026-08-27. `guidance_limit_reached` was added to today.astro
+ * with the daily limit and never allowlisted, so the event measuring the whole
+ * point of the limit was being dropped.
+ *
+ * So this asserts the relationship rather than either side of it: every event
+ * name fired anywhere in src/ must appear in ALLOWED. Discovered by scanning,
+ * so an event added next year is covered without anybody remembering to come
+ * back here. */
+section("7d. No fired event is silently dropped");
+
+const ANALYTICS = read("src/app/declare/analytics.js");
+const ALLOWED_BLOCK = (ANALYTICS.match(/const ALLOWED = \{[\s\S]*?\n\};/) || [""])[0];
+check("the allowlist is readable", ALLOWED_BLOCK.length > 200);
+
+/* Names on the left of a `:` inside ALLOWED, ignoring anything in a comment. */
+const allowedNames = new Set(
+  (ALLOWED_BLOCK.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "")
+    .match(/^\s{2}([a-z][a-z0-9_]*):/gm) || [])
+    .map((m) => m.trim().replace(":", "")),
+);
+check("the allowlist parsed to real names", allowedNames.size >= 12);
+
+/* Every track('...') call across the app. */
+const SOURCES: [string, string][] = [
+  ["today.astro", read("src/pages/today.astro")],
+  ["journey.astro", JOURNEY],
+  ["pricing.astro", PRICING],
+  ["billing.astro", BILLING_PAGE],
+  ["auth-store.js", read("src/app/declare/auth-store.js")],
+];
+const fired = new Map<string, string>();
+for (const [name, src] of SOURCES) {
+  for (const m of src.matchAll(/\btrack\(\s*'([a-z][a-z0-9_]*)'/g)) {
+    if (!fired.has(m[1])) fired.set(m[1], name);
+  }
+}
+check("events are actually fired somewhere", fired.size >= 8);
+for (const [event, where] of fired) {
+  check(`${event} (fired in ${where}) is allowlisted`, allowedNames.has(event));
+}
+
+/* And the five that measure the limits are all present. */
+for (const e of [
+  "guidance_limit_reached",
+  "journey_limit_reached",
+  "journey_continue_selected",
+  "journey_let_go_selected",
+  "journey_upsell_selected",
+]) {
+  check(`${e} is allowlisted`, allowedNames.has(e));
+}
+/* Each one is reached, or the copy above is measuring nothing. */
+check("the guidance limit is measured where it refuses",
+  /isGuidanceLimit\(err\)[\s\S]{0,300}?track\('guidance_limit_reached'/.test(read("src/pages/today.astro")));
+check("the journey limit is measured at the refusal, not after",
+  JOURNEY.indexOf("track('journey_limit_reached'") < JOURNEY.indexOf("openSheet('openSheet')"));
+check("letting one go is measured", /track\('journey_let_go_selected'/.test(JOURNEY));
+check("continuing one is measured", /track\('journey_continue_selected'/.test(JOURNEY));
+check("and the Plus click is measured on the way out",
+  /openPlusLink[\s\S]{0,200}?track\('journey_upsell_selected'/.test(JOURNEY));
+
+/* THE PRIVACY RULE HOLDS. The event layer exists to stop free text leaving, and
+   the one new key that carries a struggle is bounded by the authored catalog. */
+/* Tested against the KEYS, not the block: the block's comments legitimately
+   mention "email" while describing that method is google or email. */
+const ALLOWED_KEYS = new Set(
+  (ALLOWED_BLOCK.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "")
+    .match(/'[a-z][a-z0-9_]*'/g) || []).map((q) => q.replace(/'/g, "")),
+);
+check("the property keys parsed", ALLOWED_KEYS.size >= 10);
+for (const banned of ["struggle_text", "raw_struggle", "reflection", "email", "user_id", "price_id"]) {
+  check(`no event may carry ${banned}`, !ALLOWED_KEYS.has(banned));
+}
+check("journey_category is sent only from a catalog id",
+  /journey_category: c\.id/.test(JOURNEY) && !/journey_category: [^c]/.test(JOURNEY));
+
 /* ── 8. The policy stays executable ──────────────────────────────────────── */
 section("8. The policy stays testable");
 

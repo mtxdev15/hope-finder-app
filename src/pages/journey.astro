@@ -377,7 +377,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         </div>
         <p class="open-plus">
           <span data-i18n="journey.openPlusNote">Plus keeps every Journey open at once. $8.99 a month, and the first 7 days are free.</span>
-          <a href="/pricing" data-i18n="journey.openPlusCta">See Plus</a>
+          <a href="/pricing" id="openPlusLink" data-i18n="journey.openPlusCta">See Plus</a>
         </p>
       </div>
 
@@ -487,6 +487,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
     import { journeyStart, journeyEnsure, journeyRelease, journeysOpen } from '../app/declare/convex-data.js';
+    import { track } from '../app/declare/analytics.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
     // so signing in/up can never pull stale account state over local progress
@@ -2678,6 +2679,14 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
 
     function openOpenJourneysSheet(wantedId, verdict) {
       pendingJourneyId = wantedId;
+      /* Counted at the moment of refusal, before the reader has done anything
+         about it, so the denominator is every time the cap actually bit. */
+      track('journey_limit_reached', {
+        authenticated: true,
+        displayed_tier: 'free',
+        open_journeys: verdict && typeof verdict.active === 'number' ? verdict.active : undefined,
+        journey_limit: verdict && typeof verdict.limit === 'number' ? verdict.limit : undefined,
+      });
       const list = $('openList');
       if (list) list.innerHTML = '';
       const h = $('openSheet').querySelector('h3');
@@ -2717,6 +2726,9 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
           cont.className = 'btn btn-ghost open-btn';
           cont.textContent = tj('journey.openContinue', 'Continue this one');
           cont.addEventListener('click', function () {
+            track('journey_continue_selected', {
+              authenticated: true, displayed_tier: 'free', source: 'journey-limit',
+            });
             closeSheets();
             beginNewJourneyFlow(c.id, 'openSheet');
           });
@@ -2726,6 +2738,11 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
           drop.className = 'btn btn-ghost open-btn open-drop';
           drop.textContent = tj('journey.openLetGo', 'Let this one go');
           drop.addEventListener('click', function () {
+            /* The id is a CATALOG key, so the closed authored set bounds this
+               by construction and no free text can reach the event layer. */
+            track('journey_let_go_selected', {
+              authenticated: true, displayed_tier: 'free', journey_category: c.id,
+            });
             drop.disabled = true;
             cont.disabled = true;
             slotArchive(c.id).then(function () {
@@ -2748,6 +2765,14 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       });
     }
     $('openBack').addEventListener('click', function () { pendingJourneyId = null; closeSheets(); });
+    /* The one that answers whether the ask earns its place. Fired on the way
+       out rather than on arrival at /pricing, so it is attributable to THIS
+       moment rather than to whatever brought them to the plans page. */
+    $('openPlusLink').addEventListener('click', function () {
+      track('journey_upsell_selected', {
+        authenticated: true, displayed_tier: 'free', source: 'journey-limit',
+      });
+    });
 
     /* Ask for the slot and normalise every failure to null. */
     function claimSlot(id) {

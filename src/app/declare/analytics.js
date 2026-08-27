@@ -36,6 +36,33 @@ const ALLOWED = {
   switch_to_annual_selected: ['authenticated', 'displayed_tier', 'source'],
   switch_to_annual_confirmed: ['authenticated', 'displayed_tier', 'source'],
   keep_plus_selected: ['authenticated', 'displayed_tier', 'source'],
+  /* THE ONE THAT MATTERS MOST, and it was being dropped. pricing.astro has
+     fired this since the CTA was wired, and it was never listed, so the single
+     event measuring somebody actually starting a purchase went nowhere.
+     `plan_alias` is one of three authored strings from plusPlans.ts and can
+     carry no amount, Price or identifier. */
+  checkout_opened: ['authenticated', 'displayed_tier', 'selected_interval', 'plan_alias'],
+  /* ── The free limits, and the moment each one is felt ──────────────────
+     Added 2026-08-27, and `guidance_limit_reached` is a correction rather than
+     an addition: today.astro has fired it since the daily limit was wired, and
+     it was never listed here, so every one of them was dropped. Exactly what
+     the note on signin_completed above describes happening before.
+     scripts/verify-guidance-quota.ts now asserts that every event fired
+     anywhere in src/ appears in this map, so the next one cannot go missing
+     quietly.
+
+     WHAT THESE ANSWER. Whether the ask at the moment of loss earns its place:
+     how often somebody reaches a limit, what they do about it, and how many go
+     on to look at Plus. Nothing here identifies anybody. */
+  guidance_limit_reached: ['authenticated', 'displayed_tier'],
+  journey_limit_reached: ['authenticated', 'displayed_tier', 'open_journeys', 'journey_limit'],
+  journey_continue_selected: ['authenticated', 'displayed_tier', 'source'],
+  /* `journey_category` is a Journey id from journey-data.js, which is a closed
+     authored set, exactly like struggle_category on struggle_submitted. It is
+     here and nowhere else because it answers something worth acting on: which
+     Journeys people give up on. No free text can reach it. */
+  journey_let_go_selected: ['authenticated', 'displayed_tier', 'journey_category'],
+  journey_upsell_selected: ['authenticated', 'displayed_tier', 'source'],
   // later passes add: word_received, verse_saved, declaration_saved,
   // prayer_saved, journey_started, journey_day_completed,
   // struggle_page_cta_clicked

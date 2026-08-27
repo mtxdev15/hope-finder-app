@@ -36,6 +36,28 @@ This app receives people's rawest struggles, which reveal religious belief and m
 | `journey_started` | `day_number` | Journey begun | no | later |
 | `journey_day_completed` | `day_number` | Journey day finished | no | later |
 | `struggle_page_cta_clicked` | `struggle`, `cta` | CTA click on a `/struggles` landing page | no | later |
+| `checkout_opened` | `authenticated`, `displayed_tier`, `selected_interval`, `plan_alias` | A Checkout Session is opened from `/pricing` | **Yes (revenue)** | **Yes** |
+| `guidance_limit_reached` | `authenticated`, `displayed_tier` | A Free reader is refused a fourth Gentle Guidance in one day | no | **Yes** |
+| `journey_limit_reached` | `authenticated`, `displayed_tier`, `open_journeys`, `journey_limit` | A Free reader is refused a new Journey because the cap is reached | no | **Yes** |
+| `journey_continue_selected` | `authenticated`, `displayed_tier`, `source` | From the still-open sheet, they choose to finish one instead | no | **Yes** |
+| `journey_let_go_selected` | `authenticated`, `displayed_tier`, `journey_category` | From the still-open sheet, they let one Journey go | no | **Yes** |
+| `journey_upsell_selected` | `authenticated`, `displayed_tier`, `source` | From the still-open sheet, they open `/pricing` | no | **Yes** |
+
+### The limit funnel, and the question it answers
+
+`journey_limit_reached` is the denominator. Every reader who meets the cap
+resolves it one of four ways, and the split is the whole point of measuring:
+they finish one (`journey_continue_selected`), they let one go
+(`journey_let_go_selected`), they look at Plus (`journey_upsell_selected`), or
+they go back and do none of those. If the Plus share is negligible, the ask at
+that moment is not earning its place and should be made quieter or removed.
+
+**Two of these were fired for a long time before being listed here, and were
+therefore dropped by `track()` the whole time.** `signin_completed` was the
+first. `checkout_opened` and `guidance_limit_reached` were the second and third,
+found on 2026-08-27. `scripts/verify-guidance-quota.ts` now scans every
+`track('...')` call in `src/` and fails if the name is missing from `ALLOWED`,
+so the next one cannot go quiet.
 
 ## Property value lists (controlled vocab)
 - `struggle_category`: a normalized slug, never free text. The vocabulary is the actual `/today` chip
