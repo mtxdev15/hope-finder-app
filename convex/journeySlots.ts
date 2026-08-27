@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, internalMutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import { definitionFor, type Tier } from "./entitlementCatalog";
 import { interpret } from "./entitlements";
@@ -37,6 +37,15 @@ async function requireUserId(ctx: MutationCtx): Promise<string> {
   const user = await authComponent.safeGetAuthUser(ctx);
   if (!user) throw new Error("not-authenticated");
   return user._id as string;
+}
+
+/* The same resolution for a READ, and deliberately not the same function.
+ * requireUserId throws, which is right for a mutation: refusing to write is
+ * the safe outcome. A query that throws for a signed-out reader turns an empty
+ * list into an error the page has to handle, so this returns null instead. */
+async function readUserId(ctx: QueryCtx): Promise<string | null> {
+  const user = await authComponent.safeGetAuthUser(ctx);
+  return user ? (user._id as string) : null;
 }
 
 const VALID_END = new Set(["completed", "archived"]);
@@ -252,6 +261,115 @@ async function recordBlock(
  * UI is wired: it records pre-existing Journeys as active slots and marks them
  * grandfathered, without ever refusing to record one. internalMutation, so no
  * browser can mint itself slots. */
+/* The Journeys this reader has open and has not finished.
+ *
+ * WHAT THE SCREEN NEEDS. When somebody is refused a new Journey, telling them
+ * "you have three open" without saying WHICH three is not an answer they can
+ * act on. This returns the ids; the browser already holds the names, the
+ * from-and-to pairs and the descriptive lines in journey-data.js, so nothing
+ * here needs to carry copy.
+ *
+ * IDS AND TIMES ONLY. No reflections, no day, no generated content. A slot row
+ * has never held any of that, and this is not the place to start.
+ *
+ * Bounded by the cap plus a small margin: a reader can hold at most `limit`
+ * of these, and the margin only exists so a grandfathered account over the cap
+ * still sees all of them rather than a truncated list it cannot act on. */
+export const myOpenJourneys = query({
+  args: {},
+  handler: async (ctx): Promise<{ journeyId: string; startedAt: number }[]> => {
+    const userId = await readUserId(ctx);
+    if (!userId) return [];
+    const rows = await ctx.db
+      .query("journeySlots")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .take(24);
+    return rows
+      .map((r) => ({ journeyId: r.journeyId, startedAt: r.startedAt }))
+      .sort((a, b) => a.startedAt - b.startedAt);
+  },
+});
+
+/* ── COLLAPSING THE SEEDED SLOT IDS ─────────────────────────────────────────
+ *
+ * WHAT WENT WRONG. journey.astro sent `journeyId` as `<id>:<seed>`, and
+ * beginJourney() re-rolls the seed on every start. doStart is idempotent per
+ * journeyId, which was exactly right, but a restart of the SAME Journey arrived
+ * under a different journeyId and claimed a SECOND slot. Nothing ever released
+ * the first one: the only release call fires on completion, under the new seed.
+ *
+ * So the cap counted RESTARTS, not Journeys. Somebody who began Anxiety three
+ * times held three slots for one Journey, and the fourth attempt at anything
+ * would have been refused.
+ *
+ * The client now sends the bare journey id. This collapses what the old client
+ * already wrote, and without it those rows count against the cap forever and
+ * can never be released, because release resolves by the id the client now
+ * sends.
+ *
+ * KEEPS THE MOST ALIVE STATUS AND THE EARLIEST START. Two rows for one Journey
+ * mean one attempt was abandoned and another may still be running; the survivor
+ * has to be the one that still grants something. Completed outranks archived,
+ * because finishing is the fact worth keeping.
+ *
+ * BOUNDED AND RESUMABLE. Takes a page at a time and returns a cursor, so this
+ * cannot exceed a mutation's limits on an account with many rows. Idempotent:
+ * running it twice collapses nothing the second time. */
+const STATUS_RANK: Record<string, number> = { active: 3, completed: 2, archived: 1 };
+
+function baseJourneyId(id: string): string {
+  const cut = id.indexOf(":");
+  return cut === -1 ? id : id.slice(0, cut);
+}
+
+export const normalizeSlotIdsInternal = internalMutation({
+  args: { cursor: v.optional(v.string()), pageSize: v.optional(v.number()) },
+  handler: async (ctx, args): Promise<{ scanned: number; collapsed: number; cursor: string | null; done: boolean }> => {
+    const size = Math.min(Math.max(args.pageSize ?? 200, 1), 500);
+    const page = await ctx.db
+      .query("journeySlots")
+      .paginate({ cursor: args.cursor ?? null, numItems: size });
+
+    let collapsed = 0;
+    for (const row of page.page) {
+      const base = baseJourneyId(row.journeyId);
+      if (base === row.journeyId) continue; // already bare
+
+      const target = await ctx.db
+        .query("journeySlots")
+        .withIndex("by_user_journey", (q) => q.eq("userId", row.userId).eq("journeyId", base))
+        .first();
+
+      if (!target) {
+        /* No bare row yet: rename this one in place rather than insert and
+           delete, so nothing is lost if this run is interrupted here. */
+        await ctx.db.patch(row._id, { journeyId: base });
+        collapsed++;
+        continue;
+      }
+      /* A bare row already exists. Merge into it and drop this one. */
+      const keepStatus =
+        (STATUS_RANK[row.status] ?? 0) > (STATUS_RANK[target.status] ?? 0)
+          ? row.status
+          : target.status;
+      const keepStarted = Math.min(target.startedAt, row.startedAt);
+      await ctx.db.patch(target._id, {
+        status: keepStatus,
+        startedAt: keepStarted,
+        ...(keepStatus === "active" ? { endedAt: undefined } : {}),
+      });
+      await ctx.db.delete(row._id);
+      collapsed++;
+    }
+    return {
+      scanned: page.page.length,
+      collapsed,
+      cursor: page.isDone ? null : page.continueCursor,
+      done: page.isDone,
+    };
+  },
+});
+
 export const backfillSlotInternal = internalMutation({
   args: { userId: v.string(), journeyId: v.string(), startedAt: v.optional(v.number()) },
   handler: async (ctx, args) => {

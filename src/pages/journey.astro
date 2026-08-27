@@ -354,6 +354,33 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
           <button class="btn btn-ghost" id="resetKeep" data-i18n="journey.stayWithThis">Stay with this one</button>
         </div>
       </div>
+      {/* ── STILL OPEN ──────────────────────────────────────────────────
+          Shown when somebody is refused a new Journey because they already
+          have the most a Free account may hold.
+
+          THE CAP IS ON UNFINISHED JOURNEYS, not on Journeys running side by
+          side, because that is what a slot has always counted: one you began
+          and did not finish. Saying "at once" would describe an experience the
+          app has never given anybody, since only one Journey is ever on screen.
+
+          The way out that costs nothing comes first, and it is the same thing
+          that is best for them: finish one. Letting one go is second. Plus is
+          last, is not a button, and never appears before both of those. */}
+      <div class="sheet" id="openSheet" aria-hidden="true">
+        <div class="grabber"></div>
+        <h3 data-i18n="journey.openH">You have three Journeys still open</h3>
+        <p data-i18n="journey.openD">Each one is five days. Finishing the one closest to done makes room on its own, and nothing is set aside.</p>
+        <div class="menu-list" id="openList"></div>
+        <p class="open-note" data-i18n="journey.openKeep">Letting one go keeps every reflection you wrote in your Vault. Starting it again later begins it fresh, at day one.</p>
+        <div class="sactions">
+          <button class="btn btn-ghost" id="openBack" data-i18n="journey.openBack">Go back</button>
+        </div>
+        <p class="open-plus">
+          <span data-i18n="journey.openPlusNote">Plus keeps every Journey open at once. $8.99 a month, and the first 7 days are free.</span>
+          <a href="/pricing" data-i18n="journey.openPlusCta">See Plus</a>
+        </p>
+      </div>
+
       <!-- choose-struggle sheet -->
       <div class="sheet" id="chooseSheet" aria-hidden="true">
         <div class="grabber"></div>
@@ -459,7 +486,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     import { resolveReviewViewState, ENGLISH_CONTENT_SELECTORS, classifyDayLocale } from '../app/declare/journey-review-state.ts';
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
-    import { journeyStart, journeyEnsure, journeyRelease } from '../app/declare/convex-data.js';
+    import { journeyStart, journeyEnsure, journeyRelease, journeysOpen } from '../app/declare/convex-data.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
     // so signing in/up can never pull stale account state over local progress
@@ -2289,7 +2316,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     // ---- sheets ----
     const scrim = $('scrim');
     function openSheet(id) { $(id).classList.add('open'); $(id).setAttribute('aria-hidden', 'false'); scrim.classList.add('open'); }
-    function closeSheets() { ['menuSheet', 'resetSheet', 'chooseSheet', 'shareSheet', 'careSheet'].forEach(function (s) { $(s).classList.remove('open'); $(s).setAttribute('aria-hidden', 'true'); }); scrim.classList.remove('open'); }
+    function closeSheets() { ['menuSheet', 'resetSheet', 'chooseSheet', 'shareSheet', 'careSheet', 'openSheet'].forEach(function (s) { $(s).classList.remove('open'); $(s).setAttribute('aria-hidden', 'true'); }); scrim.classList.remove('open'); }
     scrim.addEventListener('click', function () { closeSheets(); closeSupportSheet(); });
     $('overflowBtn').addEventListener('click', function () { openSheet('menuSheet'); });
 
@@ -2385,13 +2412,43 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        user's real work; a sync failure must never block or lose it. The visible
        limit sheet stays off until this integration is verified end to end, so a
        refusal is recorded but not yet enforced in the UI. */
+    /* THE BARE JOURNEY ID, and the seed's absence is the whole fix.
+     *
+     * This used to send `<id>:<seed>`, and beginJourney() re-rolls the seed on
+     * every start. convex/journeySlots.doStart is idempotent per journeyId,
+     * which was right, but a restart of the SAME Journey arrived under a new
+     * journeyId and claimed a SECOND slot. Nothing released the first: the only
+     * release fires on completion, under the newest seed.
+     *
+     * So the cap counted RESTARTS, not Journeys. Somebody who began Anxiety
+     * three times held three slots for one Journey.
+     *
+     * With the bare id, a slot means one thing a reader would recognise: a
+     * Journey they have open and have not finished. Rows the old client already
+     * wrote are collapsed by journeySlots.normalizeSlotIdsInternal. */
     function slotId() {
       if (!active) return null;
-      return active.id + ':' + (active._seed || 0);
+      return active.id;
     }
-    function slotStart() { const id = slotId(); if (id) { try { journeyStart(id); } catch (e) {} } }
+    /* Returns the server's answer so a caller can act on a refusal. Every other
+       call site still ignores it, which is correct: only the commit point may
+       be blocked, and blocking a restore would lock somebody out of a Journey
+       they are already walking. */
+    function slotStart() {
+      const id = slotId();
+      if (!id) return Promise.resolve(null);
+      try { return Promise.resolve(journeyStart(id)).catch(function () { return null; }); }
+      catch (e) { return Promise.resolve(null); }
+    }
     function slotEnsure() { const id = slotId(); if (id) { try { journeyEnsure(id); } catch (e) {} } }
     function slotRelease(status) { const id = slotId(); if (id) { try { journeyRelease(id, status); } catch (e) {} } }
+    /* Let a Journey go without finishing it. `archived` was already a valid end
+       status server-side and nothing had ever sent it. Takes an explicit id
+       because this is called ABOUT a Journey the reader is not currently in. */
+    function slotArchive(journeyId) {
+      try { return Promise.resolve(journeyRelease(journeyId, 'archived')).catch(function () { return null; }); }
+      catch (e) { return Promise.resolve(null); }
+    }
 
     function beginJourney(id, openDay, silent, seed) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
@@ -2580,6 +2637,125 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       const id = previewState.id, seed = previewState.seed;
       const c = CATALOG.find(function (x) { return x.id === id; });
       if (!c) { previewCommitting = false; $('jpBegin').disabled = false; toast(esL() ? 'Algo salió mal — intenta de nuevo.' : 'Something went wrong — please try again.'); return; }
+
+      /* ── THE CAP, CHECKED BEFORE ANYTHING LOCAL MOVES ──────────────────
+       * The slot is claimed here rather than inside beginJourney, because
+       * beginJourney sets the old Journey aside, re-rolls the plan and clears
+       * the lock before it ever calls slotStart. Refusing after that has
+       * already destroyed what it was refusing to replace.
+       *
+       * beginJourney still calls slotStart, and that is not a double claim:
+       * doStart is idempotent per journeyId, and the id is now the bare
+       * journey id rather than one carrying a fresh seed.
+       *
+       * FAILS OPEN. A null answer means a signed-out reader or a backend we
+       * could not reach, and neither is a reason to stop somebody planting a
+       * Journey. Only a stated refusal stops anything. */
+      claimSlot(id).then(function (verdict) {
+        if (verdict && verdict.ok === false && verdict.reason === 'active-journey-limit') {
+          previewCommitting = false;
+          $('jpBegin').disabled = false;
+          openOpenJourneysSheet(id, verdict);
+          return;
+        }
+        commitPreview(id, seed);
+      });
+    });
+
+    /* ── THE STILL-OPEN SHEET ────────────────────────────────────────────
+     *
+     * Builds the list from the reader's OWN open slots, resolved against
+     * CATALOG so every name, from-and-to pair and line is the real one rather
+     * than an id. A row the catalog does not recognise is skipped: a slot for a
+     * Journey we no longer ship is our data problem, not something to show
+     * somebody as a choice.
+     *
+     * Two actions per row, and their order is the argument. Continue comes
+     * first everywhere it is possible, because finishing is both the free way
+     * out and the thing that was good for them anyway. Let go is second, and
+     * says plainly what it costs. */
+    let pendingJourneyId = null;
+
+    function openOpenJourneysSheet(wantedId, verdict) {
+      pendingJourneyId = wantedId;
+      const list = $('openList');
+      if (list) list.innerHTML = '';
+      const h = $('openSheet').querySelector('h3');
+      const n = verdict && typeof verdict.active === 'number' ? verdict.active : null;
+      if (h && n !== null) {
+        h.textContent = esL()
+          ? 'Tienes ' + n + (n === 1 ? ' Camino abierto' : ' Caminos abiertos')
+          : 'You have ' + n + (n === 1 ? ' Journey still open' : ' Journeys still open');
+      }
+      openSheet('openSheet');
+
+      Promise.resolve(journeysOpen()).then(function (rows) {
+        if (!list) return;
+        const open = Array.isArray(rows) ? rows : [];
+        if (!open.length) {
+          /* We were refused but cannot say by what. Better to send them back
+             than to show an empty list under a heading that counted them. */
+          list.innerHTML = '';
+          return;
+        }
+        open.forEach(function (row) {
+          const c = CATALOG.find(function (x) { return x.id === row.journeyId; });
+          if (!c) return;
+          const item = document.createElement('div');
+          item.className = 'open-row';
+          const name = document.createElement('p');
+          name.className = 'open-nm';
+          name.textContent = cFrom(c) + ' → ' + cTo(c);
+          const line = document.createElement('p');
+          line.className = 'open-line';
+          line.textContent = (esL() && JES[c.id] ? JES[c.id].line : c.line) || '';
+          const acts = document.createElement('div');
+          acts.className = 'open-acts';
+
+          const cont = document.createElement('button');
+          cont.type = 'button';
+          cont.className = 'btn btn-ghost open-btn';
+          cont.textContent = tj('journey.openContinue', 'Continue this one');
+          cont.addEventListener('click', function () {
+            closeSheets();
+            beginNewJourneyFlow(c.id, 'openSheet');
+          });
+
+          const drop = document.createElement('button');
+          drop.type = 'button';
+          drop.className = 'btn btn-ghost open-btn open-drop';
+          drop.textContent = tj('journey.openLetGo', 'Let this one go');
+          drop.addEventListener('click', function () {
+            drop.disabled = true;
+            cont.disabled = true;
+            slotArchive(c.id).then(function () {
+              /* The slot is freed. Take them straight where they were going
+                 rather than back to a list that no longer refuses them. */
+              closeSheets();
+              const want = pendingJourneyId;
+              pendingJourneyId = null;
+              if (want) beginNewJourneyFlow(want, 'openSheet');
+            });
+          });
+
+          acts.appendChild(cont);
+          acts.appendChild(drop);
+          item.appendChild(name);
+          if (line.textContent) item.appendChild(line);
+          item.appendChild(acts);
+          list.appendChild(item);
+        });
+      });
+    }
+    $('openBack').addEventListener('click', function () { pendingJourneyId = null; closeSheets(); });
+
+    /* Ask for the slot and normalise every failure to null. */
+    function claimSlot(id) {
+      try { return Promise.resolve(journeyStart(id)).catch(function () { return null; }); }
+      catch (e) { return Promise.resolve(null); }
+    }
+
+    function commitPreview(id, seed) {
       beginJourney(id, false, true, seed);   // exactly-once commit, same plan Preview showed, no toast (the transition below replaces it)
       previewState = null;
       $('journeyPreview').classList.remove('open');
@@ -2587,7 +2763,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       $('homeScroll').style.display = '';    // beginJourney() already called showActiveUI()/renderHome() into it
       playPlantedTransition();
       setTimeout(function () { openDayOpening(); }, 380);   // B2.2 Day-Opening gate; sensitivity already resolved before Preview — never show the care gate again
-    });
+    }
 
     // Restrained, local, non-viewport-crossing acknowledgment that the
     // journey now exists — reuses the same small scale-pulse already used at
@@ -3486,6 +3662,22 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        every sheet closed (pre-existing bug, found during Release B / B2.2
        QA — unrelated to the Day-Opening screen itself). */
     .journey .sheet.open { transform: translateY(0); box-shadow: 0 -24px 60px -18px rgba(0, 0, 0, .7); }
+    /* The still-open sheet. Rows are quiet; the actions carry the weight. */
+    .journey .open-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .journey .open-row:last-child { border-bottom: 0; }
+    .journey .open-nm { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600;
+      color: var(--text); margin: 0; line-height: 1.25; }
+    .journey .open-line { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 5px 0 0; }
+    .journey .open-acts { display: flex; gap: 8px; margin: 11px 0 0; flex-wrap: wrap; }
+    .journey .open-btn { flex: 1 1 auto; min-width: 132px; min-height: 42px; font-size: 13.5px; border-radius: 12px; }
+    .journey .open-drop { color: var(--muted); }
+    .journey .open-note { font-size: 12px; line-height: 1.6; color: var(--muted); margin: 14px 0 0; }
+    /* Last, quiet, and never a button. Same treatment as the Gentle Guidance
+       limit: both free ways forward come first. */
+    .journey .open-plus { font-size: 12px; line-height: 1.6; color: var(--muted); margin: 14px 0 0;
+      padding-top: 13px; border-top: 1px solid var(--line); text-align: center; }
+    .journey .open-plus a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; margin-left: 5px; }
+    .journey .open-plus a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     .journey .grabber { width: 40px; height: 5px; border-radius: 100px; background: var(--line2); margin: 12px auto 8px; }
     .journey .sheet h3 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text); margin-top: 8px; }
     .journey .sheet p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 9px; }

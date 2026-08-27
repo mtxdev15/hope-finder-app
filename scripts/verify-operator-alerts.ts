@@ -98,7 +98,7 @@ for (const lang of LANGS) {
   check(`signup/${lang} states the guidance limit`,
     /\d+ (?:Gentle Guidance|respuestas de Guía Suave)/.test(said));
   check(`signup/${lang} states the journey limit`,
-    /\d+ (?:Journeys at a time|Caminos a la vez)/.test(said));
+    /\d+ (?:Journeys open at a time|Caminos abiertos a la vez)/.test(said));
   check(`signup/${lang} sends them into the app, not to billing`,
     !/billing|facturaci/i.test(String(join.cta)));
 }

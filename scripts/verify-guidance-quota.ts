@@ -229,8 +229,8 @@ const SCHEDULE = read("convex/dunningSchedule.ts");
 check("the Free card advertises the enforced guidance limit",
   new RegExp('plans\\.freeF2">' + guidanceLimit + ' Gentle Guidance').test(PRICING));
 check("the Free card advertises the enforced journey limit",
-  new RegExp('plans\\.freeF3">' + journeyLimit + ' Journeys at a time').test(PRICING));
-check("and in Spanish", new RegExp("'plans\\.freeF3': '" + journeyLimit + " Caminos a la vez").test(I18N));
+  new RegExp('plans\\.freeF3">' + journeyLimit + ' Journeys open at a time').test(PRICING));
+check("and in Spanish", new RegExp("'plans\\.freeF3': '" + journeyLimit + " Caminos abiertos a la vez").test(I18N));
 check("Spanish guidance matches too",
   new RegExp("'plans\\.freeF2': '" + guidanceLimit + " respuestas").test(I18N));
 
@@ -245,10 +245,10 @@ check("the comparison table states the enforced guidance limit",
    number and therefore the worst place for a stale one. */
 check("the sign-up welcome states both enforced limits",
   new RegExp('You have ' + guidanceLimit + ' Gentle Guidance responses a day and ' +
-    journeyLimit + ' Journeys at a time').test(SCHEDULE));
+    journeyLimit + ' Journeys open at a time').test(SCHEDULE));
 check("and in Spanish",
   new RegExp('Tienes ' + guidanceLimit + ' respuestas de Guía Suave al día y ' +
-    journeyLimit + ' Caminos a la vez').test(SCHEDULE));
+    journeyLimit + ' Caminos abiertos a la vez').test(SCHEDULE));
 
 /* The development preview fixtures. A fixture showing a limit the product no
    longer has is how a stale screenshot becomes a stale decision. */
@@ -263,10 +263,82 @@ for (const [name, src] of [["pricing", PRICING], ["billing", BILLING_PAGE]] as c
    next time it moves rather than only catching the 2 it was written for. */
 for (const [name, src] of [["pricing.astro", PRICING], ["i18n-strings.js", I18N],
                             ["dunningSchedule.ts", SCHEDULE]] as const) {
-  const stale = (src.match(/(\d+) (?:Journeys at a time|Caminos a la vez)/g) || [])
+  const stale = (src.match(/(\d+) (?:Journeys open at a time|Caminos abiertos a la vez)/g) || [])
     .filter((m) => Number(m.match(/\d+/)![0]) !== journeyLimit);
   check(`${name} advertises no other journey count`, stale.length === 0);
 }
+
+/* ── 7c. The Journey cap means what a slot counts ────────────────────────
+ *
+ * THE BUG THIS CLOSES. journey.astro sent `<id>:<seed>` as the slot id, and
+ * beginJourney() re-rolls the seed on every start. doStart is idempotent per
+ * journeyId, so a restart of the SAME Journey arrived under a new id and
+ * claimed a SECOND slot, which nothing ever released. The cap counted RESTARTS.
+ *
+ * And the client has only ever shown ONE Journey at a time: beginJourney sets
+ * the previous one aside. So "Journeys active at once" described an experience
+ * nobody has had. A slot counts a Journey somebody began and did not finish,
+ * and the copy now says exactly that. */
+section("7c. The Journey cap counts open Journeys, not restarts");
+
+const JOURNEY = read("src/pages/journey.astro");
+const SLOTS = read("convex/journeySlots.ts");
+
+check("the slot id carries no seed", /function slotId\(\) \{[\s\S]{0,400}?return active\.id;/.test(JOURNEY));
+check("and the seeded form is gone", !/return active\.id \+ ':' \+ \(active\._seed/.test(JOURNEY));
+/* Rows the old client wrote must be collapsed, or they count forever and can
+   never be released, because release resolves by the id the client now sends. */
+check("old seeded rows have a migration",
+  /export const normalizeSlotIdsInternal = internalMutation/.test(SLOTS));
+check("the migration is bounded and resumable",
+  /\.paginate\(\{ cursor:/.test(SLOTS) && /continueCursor/.test(SLOTS));
+check("it keeps the most alive status", /STATUS_RANK/.test(SLOTS));
+
+/* THE ORDER THAT MAKES THE REFUSAL SAFE. beginJourney sets the old Journey
+   aside, re-rolls the plan and clears the lock before it would ever reach
+   slotStart. Refusing after that has destroyed what it refused to replace. */
+check("the slot is claimed before anything local moves",
+  JOURNEY.indexOf("claimSlot(id).then(") < JOURNEY.indexOf("function commitPreview("));
+check("and beginJourney is only reached on success",
+  /commitPreview\(id, seed\);[\s\S]{0,80}?\}\);/.test(JOURNEY));
+/* Only a stated refusal stops anybody: a signed-out reader or an unreachable
+   backend must not block somebody planting a Journey. */
+check("the refusal is named, not inferred",
+  /verdict\.reason === 'active-journey-limit'/.test(JOURNEY));
+check("a null verdict proceeds",
+  /verdict && verdict\.ok === false && verdict\.reason === 'active-journey-limit'/.test(JOURNEY));
+
+/* The sheet. Free ways out first, Plus last and never a button. */
+const SHEET = (JOURNEY.match(/<div class="sheet" id="openSheet"[\s\S]*?<\/div>\s*<!-- choose-struggle sheet -->/) || [""])[0];
+check("the still-open sheet exists", SHEET.length > 200);
+check("it offers to continue one", /journey\.openContinue/.test(JOURNEY));
+check("and to let one go", /journey\.openLetGo/.test(JOURNEY));
+check("letting go archives the slot rather than deleting anything",
+  /slotArchive\(c\.id\)/.test(JOURNEY) && /journeyRelease\(journeyId, 'archived'\)/.test(JOURNEY));
+check("Plus comes after both free ways out",
+  SHEET.indexOf('journey.openContinue') === -1 || // built in script, not markup
+    SHEET.indexOf('journey.openPlusNote') > SHEET.indexOf('journey.openKeep'));
+check("the Plus line is not a button", !/class="btn[^"]*"[^>]*href="\/pricing"/.test(SHEET));
+/* Hopkins: specifics are believed, generalities roll off. The offer names the
+   price and the trial rather than sending somebody away to find out. */
+check("the Plus line names the price and the trial",
+  /\$8\.99 a month, and the first 7 days are free/.test(JOURNEY));
+check("and in Spanish", /\$8\.99 al mes, y los primeros 7 días son gratis/.test(I18N));
+
+/* The promise about what survives has to match what the code does.
+   beginJourney clears the lock and the instance, so a Journey started again
+   begins at day one. Saying otherwise would be a promise we break. */
+check("it does not promise progress is resumed",
+  !/resume|where you left|día 3|day 3/i.test(SHEET));
+check("it promises only what the Vault actually keeps",
+  /journey\.openKeep/.test(SHEET) && /begins it fresh, at day one/.test(JOURNEY));
+
+for (const k of ["openH","openD","openContinue","openLetGo","openKeep","openBack","openPlusNote","openPlusCta"]) {
+  check(`journey.${k} is translated`, new RegExp("'journey\\." + k + "':").test(I18N));
+}
+const ES_SHEET = (I18N.match(/'journey\.openH'[\s\S]{0,1200}?'journey\.openPlusCta':[^\n]*/) || [""])[0];
+check("the Spanish sheet copy uses no em or en dash", !/[—–]/.test(ES_SHEET));
+check("the English sheet copy uses no em or en dash", !/[—–]/.test(SHEET));
 
 /* ── 8. The policy stays executable ──────────────────────────────────────── */
 section("8. The policy stays testable");

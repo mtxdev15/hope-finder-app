@@ -131,6 +131,12 @@ export async function journeyStart(journeyId) {
 export async function journeyEnsure(journeyId) {
   return (await ensure()) ? runMutation((await slotApi()).ensureJourneySlot, { journeyId }) : null;
 }
+/* The Journeys this reader has open and has not finished. Ids and start times
+   only; every name and line the screen needs is already in journey-data.js.
+   Null for a signed-out reader, like every other authenticated helper here. */
+export async function journeysOpen() {
+  return (await ensure()) ? runQuery((await slotApi()).myOpenJourneys, {}) : null;
+}
 export async function journeyRelease(journeyId, status) {
   return (await ensure()) ? runMutation((await slotApi()).releaseJourneySlot, { journeyId, status }) : null;
 }
