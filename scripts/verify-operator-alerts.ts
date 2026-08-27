@@ -252,6 +252,13 @@ check("an unknown kind sends nothing rather than a blank alert",
 check("no operator address configured means no send, not a crash",
   /if \(!to\) return \{ sent: false, reason: "no-operator-email" \}/.test(NOTIFY));
 check("it never throws", !/\bthrow\b/.test(NOTIFY));
+/* THE ONE EMAIL WHOSE SILENCE IS THE FAILURE. If an operator alert bounces and
+   leaves no row, onEmailEvent has nothing to attach the bounce to, and not
+   receiving it looks exactly like nothing having gone wrong. */
+check("an operator alert records its send, so a bounce is visible",
+  /recordSendInternal[\s\S]{0,200}?stage: "operator:" \+ args\.kind/.test(NOTIFY));
+check("and it is filed under the operator address, not the account",
+  /userId: to,/.test(NOTIFY));
 /* One email per Stripe event, structurally: each caller schedules from the
    transaction that writes its single billingEvents row, and that row is written
    once per (provider, eventId). A redelivery storm cannot become an inbox storm. */

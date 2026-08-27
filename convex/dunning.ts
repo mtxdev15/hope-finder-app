@@ -586,11 +586,27 @@ export const notifyOperator = internalAction({
         Sent by convex/dunning.ts notifyOperator. Site: ${site}</p>
     </div>`;
 
-    await resendClient.sendEmail(ctx, {
+    const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
       to,
       subject: "[Declare billing] " + spec.what,
       html,
+    });
+    /* RECORDED LIKE EVERY OTHER SEND, and this one matters most.
+     *
+     * An operator alert is the only email whose whole purpose is to be the
+     * signal. If it bounces and leaves no trace, its silence is
+     * indistinguishable from "nothing went wrong", which is exactly the
+     * failure this function exists to remove. Without this row, onEmailEvent
+     * has nothing to attach a bounce to.
+     *
+     * `userId` carries the OPERATOR address rather than an account: the alert
+     * is about somebody's billing but is not addressed to them, and putting
+     * their id here would file it under the wrong person. */
+    await ctx.runMutation(internal.dunning.recordSendInternal, {
+      emailId,
+      userId: to,
+      stage: "operator:" + args.kind,
     });
     return { sent: true };
   },
