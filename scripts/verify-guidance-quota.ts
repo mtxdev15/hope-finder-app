@@ -290,8 +290,15 @@ check("and the seeded form is gone", !/return active\.id \+ ':' \+ \(active\._se
    never be released, because release resolves by the id the client now sends. */
 check("old seeded rows have a migration",
   /export const normalizeSlotIdsInternal = internalMutation/.test(SLOTS));
-check("the migration is bounded and resumable",
-  /\.paginate\(\{ cursor:/.test(SLOTS) && /continueCursor/.test(SLOTS));
+check("the migration is bounded", /\.paginate\(\{ cursor:/.test(SLOTS));
+/* SELF-DRIVING. One call finishes the job: the person running this is not going
+   to copy a cursor between fifteen commands, and a half-run migration leaves
+   phantom slots counting against the cap. */
+check("and schedules its own continuation",
+  /await ctx\.scheduler\.runAfter\(0, internal\.journeySlots\.normalizeSlotIdsInternal/.test(SLOTS));
+check("it stops when the page says it is done",
+  /if \(!page\.isDone\) \{[\s\S]{0,200}?runAfter\(0, internal\.journeySlots/.test(SLOTS));
+check("and it says so in the log", /\[slots\] normalize scanned=/.test(SLOTS));
 check("it keeps the most alive status", /STATUS_RANK/.test(SLOTS));
 
 /* THE ORDER THAT MAKES THE REFUSAL SAFE. beginJourney sets the old Journey

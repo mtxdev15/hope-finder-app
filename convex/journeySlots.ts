@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
 import { definitionFor, type Tier } from "./entitlementCatalog";
 import { interpret } from "./entitlements";
@@ -312,9 +313,14 @@ export const myOpenJourneys = query({
  * has to be the one that still grants something. Completed outranks archived,
  * because finishing is the fact worth keeping.
  *
- * BOUNDED AND RESUMABLE. Takes a page at a time and returns a cursor, so this
- * cannot exceed a mutation's limits on an account with many rows. Idempotent:
- * running it twice collapses nothing the second time. */
+ * BOUNDED AND SELF-DRIVING. Takes a page at a time, then schedules ITSELF with
+ * the next cursor until there is nothing left. One call finishes the job, which
+ * matters because the person running this is not going to want to copy a cursor
+ * out of one command and into the next fifteen times.
+ *
+ * Idempotent at every level: running it twice collapses nothing the second
+ * time, and a page that fails midway is retried by Convex without duplicating
+ * the work already committed, because each page commits on its own. */
 const STATUS_RANK: Record<string, number> = { active: 3, completed: 2, archived: 1 };
 
 function baseJourneyId(id: string): string {
@@ -360,6 +366,20 @@ export const normalizeSlotIdsInternal = internalMutation({
       });
       await ctx.db.delete(row._id);
       collapsed++;
+    }
+    /* Progress goes to the Convex log so the operator can watch it finish
+       without holding a terminal open, and so a run that stops early leaves a
+       record of where. */
+    console.log(
+      "[slots] normalize scanned=" + page.page.length +
+        " collapsed=" + collapsed +
+        (page.isDone ? " DONE" : " continuing"),
+    );
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.journeySlots.normalizeSlotIdsInternal, {
+        cursor: page.continueCursor,
+        pageSize: size,
+      });
     }
     return {
       scanned: page.page.length,
