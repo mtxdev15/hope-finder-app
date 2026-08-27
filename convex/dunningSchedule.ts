@@ -15,6 +15,23 @@
  * The Convex parts — reading the subscription, resolving the address, calling
  * Stripe, sending — live in dunning.ts, which cannot be imported outside Convex.
  */
+/* THE FOUNDING CAP, STATED HERE AND PINNED IN THE SUITE.
+ *
+ * Not imported from plusPlans.ts, deliberately, though that was the first
+ * attempt. This module is dependency-free ON PURPOSE so that
+ * verify-dunning-emails.ts can EXECUTE it under node --experimental-strip-types
+ * rather than grep it, and an import here breaks that resolution and the stated
+ * invariant at the top of this file with it.
+ *
+ * So the number is written once here, and verify-dunning-emails.ts asserts it
+ * equals LIFETIME_SEATS in plusPlans.ts, which is what billing.ts actually
+ * enforces. Same shape as the "3 a day" limits, which verify-guidance-quota.ts
+ * pins across eight places in two languages.
+ *
+ * Why any of this matters: "limited to 200" is a promise. A promise in a faith
+ * product that quietly stops matching the code is worse than one never made. */
+const FOUNDING_SEATS = 200;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type DunningStage = "failed" | "reminder" | "ending" | "paused";
@@ -145,6 +162,42 @@ const FOOTER: Record<EmailLang, string> = {
   es:
     "Recibes esto porque tienes una suscripción a Declare Plus. " +
     "Es un mensaje puntual sobre tu pago, no un boletín.",
+};
+
+/* A LIFETIME BUYER HAS NO SUBSCRIPTION.
+ *
+ * FOOTER says "you have a Declare Plus subscription", which flatly contradicts
+ * the second line of the very email it sits under: "Bought once, nothing
+ * renews, and we keep no card on file." JOIN_FOOTER already exists to stop this
+ * exact mistake on the sign-up welcome; this is the same fix for the other end
+ * of the price list. */
+const PURCHASE_FOOTER: Record<EmailLang, string> = {
+  en:
+    "You're receiving this because you bought Declare Plus. " +
+    "It is the only message we send about it.",
+  es:
+    "Recibes esto porque compraste Declare Plus. " +
+    "Es el único mensaje que enviamos al respecto.",
+};
+
+/* THE REPLY IS REAL, which is the only reason this line exists.
+ *
+ * Kit's own template carries the caveat that you should only invite replies
+ * "if you can handle whatever volume of responses you get". In a product
+ * somebody reaches at their lowest moment, an unanswered invitation to say what
+ * you are carrying is worse than no invitation at all. Approved by the owner on
+ * 2026-08-27: he reads and answers them.
+ *
+ * Deliberately absent from the sign-up welcome, which is the highest-volume
+ * email of the four and the one where the promise is hardest to keep. It is
+ * offered to people who have given us money, whose numbers are knowable. */
+const REPLY_LINE: Record<EmailLang, string> = {
+  en:
+    "If something is not working, or you just want to tell me what brought you " +
+    "here, reply to this email. I read every one.",
+  es:
+    "Si algo no funciona, o simplemente quieres contarme qué te trajo aquí, " +
+    "responde a este correo. Los leo todos.",
 };
 
 function copyEs(
@@ -521,6 +574,7 @@ export function welcomeCopy(
               `${facts.amount ? `, y ese día se cobra ${facts.amount}` : ""}. Te escribimos 3 días antes, como prometimos.`
             : "Te escribimos antes de que termine tu prueba, con la fecha y el monto, como prometimos.",
           "Si decides que no es para ti, cancela desde Facturación y no se te cobra nada. Toma menos de un minuto.",
+          REPLY_LINE.es,
           "Y algo que no cambia con ningún plan: la Palabra es la misma para todos.",
         ],
         cta: "Ver mi plan",
@@ -533,12 +587,14 @@ export function welcomeCopy(
         heading: "Gracias por creer en esto",
         body: [
           "Declare Plus es tuyo. Una sola vez, sin renovación, y no guardamos tu tarjeta.",
-          "Guía Suave sin límite diario, todos los Caminos que necesites al mismo tiempo, y todo lo que Plus reciba en el futuro, incluido.",
-          "No hay nada que administrar y nada que cancelar. Si alguna vez necesitas algo, responde a este correo.",
+          "Guía Suave sin límite diario, todos los Caminos que necesites al mismo tiempo, y todo lo que Plus reciba en el futuro, incluido. Todo lo que guardes queda en tu Bóveda y es tuyo.",
+          `La membresía fundadora está limitada a ${FOUNDING_SEATS} personas, y una de ellas es tuya.`,
+          "No volverás a saber de nosotros por temas de pago. Sin renovación, sin recordatorios, nada que cancelar.",
+          REPLY_LINE.es,
           "Ayudaste a construir esto en su primera ronda. Gracias.",
         ],
         cta: "Empezar",
-        footer: FOOTER.es,
+        footer: PURCHASE_FOOTER.es,
       };
     }
     return {
@@ -549,7 +605,9 @@ export function welcomeCopy(
         facts.renewsOn
           ? `Tu plan se renueva el <strong>${facts.renewsOn}</strong>${facts.amount ? ` por ${facts.amount}` : ""}.`
           : "Tu plan se renueva automáticamente.",
-        "Puedes ver o cancelar tu plan cuando quieras desde Facturación. No hace falta escribirnos ni esperar respuesta.",
+        "Todo lo que guardes queda en tu Bóveda y sigue siendo tuyo, tengas el plan que tengas.",
+        "Puedes ver o cancelar tu plan cuando quieras desde Facturación. Toma menos de un minuto.",
+        REPLY_LINE.es,
         "Y algo que no cambia con ningún plan: la Palabra es la misma para todos.",
       ],
       cta: "Ver mi plan",
@@ -582,6 +640,7 @@ export function welcomeCopy(
             `${facts.amount ? `, and that is the day the card is charged ${facts.amount}` : ""}. We write to you 3 days before, as promised.`
           : "We write to you before your trial ends, with the date and the amount, as promised.",
         "If you decide it is not for you, cancel from Billing and nothing is charged. It takes under a minute.",
+        REPLY_LINE.en,
         "And one thing no plan changes: Scripture is the same for everyone.",
       ],
       cta: "See my plan",
@@ -594,12 +653,14 @@ export function welcomeCopy(
       heading: "Thank you for believing in this",
       body: [
         "Declare Plus is yours. Bought once, nothing renews, and we keep no card on file.",
-        "Gentle Guidance with no daily limit, as many Journeys as you need at the same time, and every future Plus feature included.",
-        "There is nothing to manage and nothing to cancel. If you ever need anything, reply to this email.",
+        "Gentle Guidance with no daily limit, as many Journeys as you need at the same time, and every future Plus feature included. Everything you save stays in your Vault, and it stays yours.",
+        `Founding membership is limited to ${FOUNDING_SEATS} people, and one of them is yours.`,
+        "You will not hear from us about billing again. No renewal, no reminder, nothing to cancel.",
+        REPLY_LINE.en,
         "You helped build this in its first round. Thank you.",
       ],
       cta: "Get started",
-      footer: FOOTER.en,
+      footer: PURCHASE_FOOTER.en,
     };
   }
   return {
@@ -610,7 +671,9 @@ export function welcomeCopy(
       facts.renewsOn
         ? `Your plan renews on <strong>${facts.renewsOn}</strong>${facts.amount ? ` for ${facts.amount}` : ""}.`
         : "Your plan renews automatically.",
-      "You can see or cancel your plan any time from Billing. No email to us, no waiting for a reply.",
+      "Everything you save stays in your Vault, and it stays yours, whatever plan you are on.",
+      "You can see or cancel your plan any time from Billing. It takes under a minute.",
+      REPLY_LINE.en,
       "And one thing no plan changes: Scripture is the same for everyone.",
     ],
     cta: "See my plan",

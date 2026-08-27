@@ -56,8 +56,19 @@ for (const kind of KINDS) {
     /* Not a newsletter, and the footer has to say WHY this arrived. Which
        reason differs by kind and the difference matters: telling a brand new
        free account it is receiving a message about its Plus subscription would
-       be both wrong and alarming. */
-    const reason = kind === "signup" ? /account|cuenta/i : /subscription|suscripci/i;
+       be both wrong and alarming.
+
+       THREE SHAPES, NOT TWO. This check used to read "signup means account,
+       everything else means subscription", and in doing so it encoded the bug
+       it was meant to catch: a lifetime buyer has no subscription, and the
+       footer told them they did, directly under a paragraph reading "Bought
+       once, nothing renews, and we keep no card on file." Rewritten rather
+       than relaxed, because the rule was always right and only the taxonomy
+       was wrong. */
+    const reason =
+      kind === "signup" ? /account|cuenta/i
+      : kind === "lifetime" ? /bought|compraste/i
+      : /subscription|suscripci/i;
     check(`${kind}/${lang} says plainly why it arrived`, reason.test(c.footer));
     check(`${kind}/${lang} is not framed as a newsletter`,
       /one-off|only message|puntual|único mensaje/i.test(c.footer));

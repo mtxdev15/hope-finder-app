@@ -24,11 +24,13 @@ import { fileURLToPath } from "node:url";
    are. A grep proves the file mentions a rule; running it proves the rule. */
 import {
   dunningDelayMs, dunningSchedule, copyFor, render, money, longDate,
-  billingUrl, homeUrl, emailLang, trialEndingCopy,
+  billingUrl, homeUrl, emailLang, trialEndingCopy, welcomeCopy,
 } from "../convex/dunningSchedule.ts";
 /* plusPlans.ts is dependency-free for the same reason, so the normaliser that
    decides which language a Stripe metadata value means is run rather than read. */
-import { normalizeLang, stampedLang, EMAIL_LANGS } from "../convex/plusPlans.ts";
+import {
+  normalizeLang, stampedLang, EMAIL_LANGS, LIFETIME_SEATS,
+} from "../convex/plusPlans.ts";
 /* The browser declares the trial length separately, because entitlementCatalog
    is server-side. Imported here so the two cannot drift. */
 import { TRIAL_DAYS as BROWSER_TRIAL_DAYS } from "../src/app/declare/plan-display.js";
@@ -934,6 +936,108 @@ check("the reply address is not wired to OPERATOR_EMAIL",
 check("supportReplyTo hands out a new array each call",
   /export function supportReplyTo\(\): string\[\] \{\s*\n\s*return \[REPLY_TO_ADDRESS\];/.test(DUNNING) &&
   !/export const REPLY_TO\b/.test(DUNNING));
+
+section("13. A welcome email a person can answer");
+
+/* WHY EACH OF THESE EXISTS
+ * These four emails are the only ones a paying person receives before anything
+ * goes wrong, and three of them were shorter than the floor Kit publishes for
+ * spam filters. One of them also told a lifetime buyer, in its footer, that it
+ * was writing about their subscription. They do not have one.
+ *
+ * Every check below RUNS welcomeCopy rather than reading the file, so it fails
+ * on what a reader would actually receive. */
+const WELCOME_KINDS = ["signup", "trial", "paid", "lifetime"] as const;
+const WFACTS = { amount: "$8.99", chargesOn: "September 3, 2026", renewsOn: "September 27, 2026" };
+const noFacts = { amount: null, chargesOn: null, renewsOn: null };
+const plain = (c: { body: string[] }) => c.body.map((t) => t.replace(/<[^>]+>/g, "")).join(" ");
+
+/* ── The floor ────────────────────────────────────────────────────────────
+ * Kit: "Too little text can be a red flag for spam filters. Include at least
+ * 500 characters." A ceiling on design is well known; this is the floor, and it
+ * is the one that gets forgotten while trimming toward "warm and plain". */
+for (const lang of EMAIL_LANGS) {
+  for (const kind of WELCOME_KINDS) {
+    const copy = welcomeCopy(kind, kind === "signup" ? noFacts : WFACTS, lang);
+    check(`${lang} ${kind} welcome clears the 500-character spam floor`,
+      plain(copy).length >= 500);
+    check(`${lang} ${kind} welcome has a subject, a heading and a CTA`,
+      !!copy.subject && !!copy.heading && !!copy.cta);
+  }
+}
+
+/* ── The footer must not describe a thing the reader does not have ────────
+ * The bug this replaces: lifetime used the shared billing FOOTER, which opens
+ * "You're receiving this because you have a Declare Plus subscription" directly
+ * under a paragraph reading "Bought once, nothing renews, and we keep no card
+ * on file." JOIN_FOOTER already existed to stop exactly this on sign-up. */
+for (const lang of EMAIL_LANGS) {
+  const life = welcomeCopy("lifetime", noFacts, lang);
+  check(`${lang} lifetime welcome does NOT claim the reader has a subscription`,
+    !/subscription|suscripci/i.test(life.footer));
+  check(`${lang} lifetime welcome footer says they BOUGHT it`,
+    /bought|compraste/i.test(life.footer));
+  const signup = welcomeCopy("signup", noFacts, lang);
+  check(`${lang} sign-up welcome still carries its own joining footer`,
+    !/subscription|suscripci/i.test(signup.footer));
+  /* The two paid-subscription emails SHOULD name the subscription. */
+  for (const kind of ["trial", "paid"] as const) {
+    check(`${lang} ${kind} welcome still carries the subscription footer`,
+      /subscription|suscripci/i.test(welcomeCopy(kind, WFACTS, lang).footer));
+  }
+}
+
+/* ── The reply invitation, and where it is deliberately absent ────────────
+ * Approved by the owner 2026-08-27: he reads and answers replies. Kit's own
+ * template warns to ask only "if you can handle whatever volume of responses
+ * you get" — so it is offered to people who have paid, whose numbers are
+ * knowable, and withheld from the highest-volume email of the four. */
+for (const lang of EMAIL_LANGS) {
+  for (const kind of ["trial", "paid", "lifetime"] as const) {
+    check(`${lang} ${kind} welcome invites a reply`,
+      /reply to this email|responde a este correo/i.test(plain(welcomeCopy(kind, WFACTS, lang))));
+  }
+  check(`${lang} sign-up welcome does NOT invite a reply`,
+    !/reply to this email|responde a este correo/i.test(plain(welcomeCopy("signup", noFacts, lang))));
+}
+
+/* ── The founding cap is a promise, so it is pinned to what refuses a sale ──
+ * billing.ts: `if (sold >= LIFETIME_SEATS) return { error: "lifetime-sold-out" }`.
+ * dunningSchedule.ts states the number in prose because it must stay
+ * dependency-free to be executable here. This is the join between them, and it
+ * is the only thing standing between the sentence and a quiet lie. */
+for (const lang of EMAIL_LANGS) {
+  const body = plain(welcomeCopy("lifetime", noFacts, lang));
+  check(`${lang} lifetime welcome states the real founding cap (${LIFETIME_SEATS})`,
+    body.includes(String(LIFETIME_SEATS)));
+  /* Scarcity may be stated, never dramatised. */
+  check(`${lang} lifetime welcome does not manufacture urgency`,
+    !/only \d+ left|last chance|hurry|act now|running out|quedan solo|última oportunidad|date prisa/i.test(body));
+}
+
+/* ── No plan email may agitate ────────────────────────────────────────────
+ * Kit's own welcome template says: "Talk about that pain point and how it
+ * disrupted your life." That is rapport-building through someone's wound, and
+ * these emails reach people who came here carrying one. */
+for (const lang of EMAIL_LANGS) {
+  for (const kind of WELCOME_KINDS) {
+    const body = plain(welcomeCopy(kind, kind === "signup" ? noFacts : WFACTS, lang));
+    check(`${lang} ${kind} welcome does not agitate a pain point`,
+      !/how awful|remember how bad|struggling with|imagine losing|don't lose/i.test(body));
+    check(`${lang} ${kind} welcome contains no em dash`, !body.includes("\u2014"));
+  }
+}
+
+/* ── The two emails naming money must name it exactly ─────────────────────── */
+for (const lang of EMAIL_LANGS) {
+  const trial = plain(welcomeCopy("trial", WFACTS, lang));
+  check(`${lang} trial welcome names the charge date`, trial.includes("September 3, 2026"));
+  check(`${lang} trial welcome names the amount`, trial.includes("$8.99"));
+  check(`${lang} trial welcome says how to stop it`,
+    /cancel from Billing|cancela desde Facturación/i.test(trial));
+  const paid = plain(welcomeCopy("paid", WFACTS, lang));
+  check(`${lang} paid welcome names the renewal date`, paid.includes("September 27, 2026"));
+}
 
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
