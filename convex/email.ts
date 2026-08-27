@@ -18,7 +18,7 @@ const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
  *
  * dunning.ts owns the instance because that is where the event handler and the
  * suppression logic live. */
-import { resendClient as resend } from "./dunning";
+import { resendClient as resend, supportReplyTo } from "./dunning";
 
 export const sendResetPassword = async (
   ctx: ActionCtx,
@@ -26,6 +26,7 @@ export const sendResetPassword = async (
 ) => {
   await resend.sendEmail(ctx, {
     from: FROM_EMAIL,
+    replyTo: supportReplyTo(),
     to,
     subject: "Reset your password",
     html: `
@@ -46,6 +47,7 @@ export const sendVerificationEmail = async (
 ) => {
   await resend.sendEmail(ctx, {
     from: FROM_EMAIL,
+    replyTo: supportReplyTo(),
     to,
     subject: "Confirm your email",
     html: `

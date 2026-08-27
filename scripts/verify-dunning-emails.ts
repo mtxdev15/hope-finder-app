@@ -888,6 +888,53 @@ check("an existing lifetime holder still cannot buy it twice",
   /existing\.planKey === "plus_lifetime" && existing\.status === "paid"/.test(BILLING_T) &&
   BILLING_T.indexOf('status: "lifetime"') < BILLING_T.indexOf("const buyingLifetimeOnTop"));
 
+section("12. A reply reaches a person");
+
+/* WHY THIS IS ASSERTED AND NOT TRUSTED
+ * Every email leaves from `noreply@`, and Resend has Receiving disabled on the
+ * domain, so without an explicit reply address a reply reaches nobody AND
+ * bounces to nobody. It just stops. These are the emails a person answers:
+ * their card failed, or they are about to be charged. The failure this catches
+ * is the quiet one, a send site added later that forgets the header, so the
+ * check is written to COUNT rather than to find one example. */
+const EMAILTS = read("convex/email.ts");
+const sends = (src: string) => (src.match(/from: FROM_EMAIL,/g) || []).length;
+const withReply = (src: string) =>
+  (src.match(/from: FROM_EMAIL,\s*\n\s*replyTo: supportReplyTo\(\),/g) || []).length;
+
+check("dunning.ts sends at least the five known emails",
+  sends(DUNNING) >= 5);
+check("EVERY send in dunning.ts carries a reply address",
+  sends(DUNNING) === withReply(DUNNING));
+check("EVERY send in email.ts carries a reply address",
+  sends(EMAILTS) > 0 && sends(EMAILTS) === withReply(EMAILTS));
+
+/* One definition, imported. A second hardcoded address in email.ts is how the
+   two files end up pointing at different inboxes without anybody noticing. */
+check("email.ts imports the reply address rather than declaring its own",
+  /import \{ resendClient as resend, supportReplyTo \} from "\.\/dunning";/.test(EMAILTS) &&
+  !/REPLY_TO_ADDRESS/.test(EMAILTS));
+
+/* The address has to be one somebody reads. Pointing reply-to back at the
+   no-reply sender would satisfy every check above and fix nothing. */
+check("the reply address is a real mailbox, not the no-reply sender",
+  /const REPLY_TO_ADDRESS = "support@declareandbelieve\.com";/.test(DUNNING) &&
+  !/REPLY_TO_ADDRESS = "[^"]*noreply/.test(DUNNING));
+
+/* OPERATOR_EMAIL is where BILLING ALERTS land and may be pointed at a personal
+   inbox, or moved to another provider precisely so alerts are not filtered.
+   Customers must never be routed there by a later "these are the same, let's
+   share one variable" tidy-up. */
+check("the reply address is not wired to OPERATOR_EMAIL",
+  !/REPLY_TO_ADDRESS = process\.env\.OPERATOR_EMAIL/.test(DUNNING) &&
+  !/supportReplyTo[\s\S]{0,160}OPERATOR_EMAIL/.test(DUNNING));
+
+/* A function returning a fresh array, so no call site holds a reference that
+   another call site could mutate before the component reads it. */
+check("supportReplyTo hands out a new array each call",
+  /export function supportReplyTo\(\): string\[\] \{\s*\n\s*return \[REPLY_TO_ADDRESS\];/.test(DUNNING) &&
+  !/export const REPLY_TO\b/.test(DUNNING));
+
 /* ── Result ──────────────────────────────────────────────────────────────── */
 console.log("\n" + "─".repeat(62));
 if (failures.length) {

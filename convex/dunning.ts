@@ -75,6 +75,31 @@ import {
 } from "./dunningSchedule";
 
 const FROM_EMAIL = "Declare <noreply@declareandbelieve.com>";
+
+/* WHERE A REPLY ACTUALLY GOES.
+ *
+ * Every email this app sends comes from `noreply@`, and Resend has Receiving
+ * disabled on this domain, so a reply to the From address reaches no person and
+ * does not bounce back to the sender either. It simply stops.
+ *
+ * That is the wrong arrangement for these particular messages. The dunning
+ * sequence tells somebody their card failed and names the date their access
+ * ends; the trial notice tells them they are about to be charged. Those are
+ * exactly the emails a confused person answers by hitting reply, and the reply
+ * should reach us rather than nowhere.
+ *
+ * DELIBERATELY NOT `process.env.OPERATOR_EMAIL`. That variable is where BILLING
+ * ALERTS land, and it may reasonably be pointed at a personal inbox or a
+ * different provider precisely because those alerts must not be filtered.
+ * Sending customers to the same place is an accident waiting to happen. Same
+ * value today, two different jobs, so two different names.
+ *
+ * A function rather than a shared array, so no call site can hand the component
+ * a reference that another call site could later change. */
+const REPLY_TO_ADDRESS = "support@declareandbelieve.com";
+export function supportReplyTo(): string[] {
+  return [REPLY_TO_ADDRESS];
+}
 /* onEmailEvent is what closes the loop. Without it the component sends and
  * forgets, and a bounce is indistinguishable from a delivery. */
 export const resendClient: Resend = new Resend(components.resend, {
@@ -194,6 +219,7 @@ export const sendDunningEmail = internalAction({
 
     const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
+      replyTo: supportReplyTo(),
       to,
       subject: copy.subject,
       html: render(copy, billingUrl(site, lang), homeUrl(site, lang)),
@@ -375,6 +401,7 @@ export const sendTrialEndingEmail = internalAction({
 
     const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
+      replyTo: supportReplyTo(),
       to,
       subject: copy.subject,
       html: render(copy, billingUrl(site, lang), homeUrl(site, lang)),
@@ -472,6 +499,7 @@ export const sendWelcomeEmail = internalAction({
 
     const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
+      replyTo: supportReplyTo(),
       to,
       subject: copy.subject,
       html: render(copy, target, homeUrl(site, lang)),
@@ -588,6 +616,7 @@ export const notifyOperator = internalAction({
 
     const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
+      replyTo: supportReplyTo(),
       to,
       subject: "[Declare billing] " + spec.what,
       html,
@@ -652,6 +681,7 @@ export const sendSignupWelcome = internalAction({
 
     const emailId = await resendClient.sendEmail(ctx, {
       from: FROM_EMAIL,
+      replyTo: supportReplyTo(),
       to: args.to,
       subject: copy.subject,
       html: render(copy, home, home),
