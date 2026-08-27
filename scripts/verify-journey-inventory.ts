@@ -225,6 +225,36 @@ check("and so are the styles only it used",
 check("and the pointer-events rule left over from the retired top bar",
   !/\.mast \.mright \{ pointer-events/.test(PAGE));
 
+/* ── 6c. All of them, and each one labelled ──────────────────────────────── */
+section("6c. The chooser stops hiding the app from the people using it");
+
+const CHOOSE = code(body("openChooseList"));
+check("openChooseList was found", CHOOSE.length > 0);
+/* It filtered to status === 'open', which quietly means "the ones you have
+   never touched": the Journey being walked was missing, every finished one was
+   missing, and the more of the app somebody used the less of it they saw. */
+check("it no longer filters to the untouched ones",
+  !/CATALOG\.filter\(function \(c\) \{ return c\.status === 'open'; \}\)/.test(CHOOSE));
+check("it renders the whole catalog", /CATALOG\.map\(/.test(CHOOSE));
+check("and says how many that is, from the catalog rather than a number typed in",
+  /CATALOG\.length \+ ' journeys/.test(CHOOSE));
+
+/* Every row says what tapping it will do, because a rooted Journey begins
+   fresh and a set-aside one resumes, and neither may be a surprise. */
+check("the one being walked is marked", /ch-st on/.test(CHOOSE) && /activeId/.test(CHOOSE));
+check("rooted ones are marked", /rootedSet\[c\.id\]/.test(CHOOSE));
+check("and a set-aside one carries the day it waits on", /asideDay\[c\.id\]/.test(CHOOSE));
+/* The day comes from the same inventory the rest of the surface is built from,
+   not from a second reading of storage that could disagree with it. */
+check("all three come from the shared inventory", /currentInventory\(\)/.test(CHOOSE));
+/* Tapping the Journey you are already in is not a pick, and must not open a
+   confirm about replacing it with itself. */
+check("tapping the active one goes to it rather than through the funnel",
+  /if \(id === activeId\)/.test(CHOOSE) && /activeCard'\)\.scrollIntoView/.test(CHOOSE));
+
+check("the chooser's own copy carries no em dash",
+  !/Name the false identity[^<]*&mdash;/.test(PAGE));
+
 /* ── 7. Both languages ───────────────────────────────────────────────────── */
 section("7. All of it in English and Spanish");
 

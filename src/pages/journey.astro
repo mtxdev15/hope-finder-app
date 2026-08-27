@@ -433,7 +433,12 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       <div class="sheet" id="chooseSheet" aria-hidden="true">
         <div class="grabber"></div>
         <h3 data-i18n="journey.whatLayDown">What are you ready to lay down?</h3>
-        <p data-i18n="journey.nameFalseIdentity">Name the false identity &mdash; the weight you&rsquo;ve been holding on to. We&rsquo;ll plant a fresh vine and walk it out with you for five days.</p>
+        {/* No em dash: locked brand rule, and this sentence carried one. */}
+        <p data-i18n="journey.nameFalseIdentity">Name the false identity, the weight you&rsquo;ve been holding on to. We&rsquo;ll plant a fresh vine and walk it out with you for five days.</p>
+        {/* THE WHOLE SET, and the count says so. 34 authored journeys existed
+            and this list showed only the ones the reader had never touched, so
+            the fuller their history got the smaller the app looked. */}
+        <div class="ch-count" id="chooseCount"></div>
         <div class="menu-list" id="chooseList"></div>
       </div>
 
@@ -2603,16 +2608,58 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     $('resetKeep').addEventListener('click', closeSheets);
     $('resetGo').addEventListener('click', function () { closeSheets(); setTimeout(function () { openChooseList(); }, 140); });
 
+    /* ── ALL OF THEM ─────────────────────────────────────────────────────────
+     *
+     * This list used to filter to `status === 'open'`, which quietly means
+     * "the ones you have never touched". So the Journey you were walking was
+     * missing from it, every Journey you had finished was missing from it, and
+     * the more of the app somebody used the less of it they could see. Thirty
+     * four authored Journeys, and the only way to reach any of them was to name
+     * a struggle on /today and let the app pick.
+     *
+     * Every one is listed now, each carrying what the reader's own records say
+     * about it, and the label on each row says what tapping it will actually
+     * do. A rooted Journey walked again begins fresh, which is what the
+     * still-open sheet already promises in as many words; a set-aside one with
+     * a day behind it resumes. Neither is a surprise, because neither is
+     * unlabelled. */
     function openChooseList(openDay) {
       const list = $('chooseList');
-      list.innerHTML = CATALOG.filter(function (c) { return c.status === 'open'; }).map(function (c) {
-        return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + cFrom(c) + ' &rarr; ' + cTo(c) + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + cLine(c) + '</span></span></button>';
+      const inv = currentInventory();
+      const asideDay = {};
+      inv.setAside.forEach(function (e) { if (e.dayKnown && e.day > 1) asideDay[e.id] = e.day; });
+      const rootedSet = {};
+      inv.rooted.forEach(function (e) { rootedSet[e.id] = true; });
+      const activeId = inv.walking.length ? inv.walking[0].id : null;
+
+      $('chooseCount').textContent = esL()
+        ? (CATALOG.length + ' caminos, cinco días cada uno')
+        : (CATALOG.length + ' journeys, five days each');
+
+      list.innerHTML = CATALOG.map(function (c) {
+        let chip = '';
+        if (c.id === activeId) chip = '<span class="ch-st on">' + tj('journey.mj.walking', 'Walking now') + '</span>';
+        else if (rootedSet[c.id]) chip = '<span class="ch-st">' + tj('journey.mj.rooted', 'Rooted') + '</span>';
+        else if (asideDay[c.id]) chip = '<span class="ch-st">' + ((esL() ? 'Día ' : 'Day ') + asideDay[c.id]) + '</span>';
+        return '<button data-id="' + c.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[c.icon] + '</svg><span style="flex:1"><span style="display:block;font-weight:600">' + cFrom(c) + ' &rarr; ' + cTo(c) + '</span><span style="display:block;font-size:12px;color:var(--muted)">' + cLine(c) + '</span></span>' + chip + '</button>';
       }).join('');
       // B2.1: `openDay` is no longer consulted here — every pick from this list
       // (whether reached via "See all" from the zero state, or via the
       // switch-confirmed conflict flow) now routes through the care-gate-then-
       // Preview funnel instead of committing immediately.
-      list.querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { beginNewJourneyFlow(b.dataset.id, 'chooser'); }); });
+      list.querySelectorAll('button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          const id = b.dataset.id;
+          /* Tapping the one you are already in is not a pick. Take them to it
+             rather than through a confirm about replacing it with itself. */
+          if (id === activeId) {
+            closeSheets();
+            $('activeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+          beginNewJourneyFlow(id, 'chooser');
+        });
+      });
       openSheet('chooseSheet');
     }
 
@@ -4110,6 +4157,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .menu-list button.danger { color: var(--clay); }
     .journey .menu-list svg { width: 19px; height: 19px; color: var(--goldd); flex: 0 0 auto; }
     .journey .menu-list button.danger svg { color: var(--clay); }
+    .journey .ch-count { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--goldd);
+      font-weight: 700; margin: 14px 0 2px; }
+    .journey .ch-st { flex: 0 0 auto; font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+      font-weight: 700; color: var(--muted); white-space: nowrap; padding: 4px 9px; border-radius: 999px;
+      border: 1px solid var(--line2); }
+    .journey .ch-st.on { color: var(--goldd); border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+      background: color-mix(in srgb, var(--gold) 10%, transparent); }
     .journey .scrim { position: fixed; inset: 0; z-index: 65; background: rgba(8, 14, 11, .6); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
     .journey .scrim.open { opacity: 1; visibility: visible; }
 
