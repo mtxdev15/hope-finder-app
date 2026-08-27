@@ -3,6 +3,9 @@
 A running list of work to continue on the site. **Newest first within each section.**
 Open work is at the top; everything finished lives under **Done** at the bottom.
 Reordered 2026-08-25 after the live-billing activation pass.
+Refreshed 2026-08-27: the pricing CTA, the 10th webhook event and the
+lifetime-on-top case all shipped and are struck through below. Two items added,
+the operator-alert deploy and the deferred GTM mapping.
 
 ## ⏭️ Next up — the remaining live-billing steps
 
@@ -141,10 +144,17 @@ real charges instead of two.
       reads `obj.parent.subscription_details.subscription`. If that moved between versions,
       `invoice.*` events resolve no subscription and are acknowledged-but-ignored. **Unverified** —
       settle it by capturing a real `invoice.paid` payload during step 5.
-- [ ] **Then Stage 6 — merge the pricing CTA.** Held on `claude/billing-pricing-cta-stage6`,
-      deliberately unmerged. Production is currently *structurally* incapable of starting a
-      Checkout; merging trades that guarantee for a runtime flag. Nine assertions across four
-      suites enforce it and must each be **rewritten, not relaxed**. Only after step 5 passes.
+- [x] ~~**Stage 6 — the pricing CTA. SHIPPED 2026-08-26, and the guarantee it replaced is
+      worth stating.** The old promise was that production was *structurally* incapable of
+      starting a Checkout: `createCheckoutSession` appeared nowhere in `dist/`, and four suites
+      proved it by grep. That could not survive a wired button. Isolating the call in its own
+      module behind `if (!PRICING_ENABLED)` and a dynamic import does **not** drop it, because
+      Rollup will not fold a cross-module const to prove the import unreachable. Tried against a
+      real build, not assumed.
+      Replaced by six properties, all asserted: the flag ships `false`; the served CTA carries
+      `disabled`; the trial panel ships `hidden`; `checkout-start.js` is never imported
+      statically; the flag is checked before the import, so no network work happens; and the
+      browser may name a plan **alias** and nothing else. Owner-authorised.~~
 
 - [x] ~~**The dashboard steps for the billing-page + dunning work. ALL DONE 2026-08-26.**
 
@@ -172,7 +182,14 @@ real charges instead of two.
       payment never confirmed should expire, not become a debt.
       **If that dropdown ever reads anything but `cancel the subscription`, this is why.**~~
 
-- [ ] **STRIPE DASHBOARD — add `customer.subscription.trial_will_end` as the 10th event.**
+- [x] ~~**STRIPE DASHBOARD — add `customer.subscription.trial_will_end` as the 10th event.**
+      **DONE 2026-08-26.** The destination now listens to 10 events, confirmed in the dashboard.
+      The reminder three days out is reachable, so the "Day 4: we email you" promise on
+      `/pricing` is one the system can now keep.
+
+      *Original note kept below, because the reasoning is the reason it mattered.*~~
+
+  <details><summary>Why this was not optional</summary>
       Settings → Webhooks → the `Declare Production Billing` destination → add that event.
 
       **Without it the trial is the version people resent.** The code is done and deployed-ready:
@@ -190,13 +207,56 @@ real charges instead of two.
 
       *Harm if skipped: silent. No error, no red check, no failed delivery. Just a charge nobody
       saw coming, which is the one outcome the whole trial design exists to prevent.*
+  </details>
 
-- [ ] **After the trial goes live: decide what happens to a subscription when somebody buys
-      lifetime on top of it.** A trialing or paying subscriber can now reach the $149 one-time
-      purchase (they could not before, and that was a revenue hole). The lifetime webhook grants
-      Plus outright, but their existing subscription is NOT cancelled: that is a visible act
-      rather than a side effect of a purchase. Today they would hold both and keep being billed.
-      Low urgency while nobody can buy anything; a real problem the day both are purchasable.
+- [x] ~~**Buying lifetime on top of a subscription. BUILT 2026-08-27, and the double charge was
+      the smaller half of it.** Asked to build the cancellation, found that the purchase was not
+      recorded at all: a lifetime purchase creates no Subscription object, so the incoming id is
+      null, which is neither the canonical id nor a replaceable status, and the duplicate guard
+      refused it. `createCheckoutSession` allows that purchase on purpose. **$149 charged, event
+      acknowledged, nothing granted.** Proven by running the real classifier against that input.
+      Now: the grant lands, the old subscription is cancelled immediately, and the unused part of
+      the period already paid for is refunded. Each step survives the next one failing, and a
+      refund that cannot be sent is recorded to the cent and alerted rather than quietly kept.
+      Clearing the old subscription id from the row is the load-bearing half: left in place, the
+      very cancellation we perform comes back and overwrites the $149 purchase.~~
+
+- [ ] **DEPLOY the operator-alert send fix.** `notifyOperator` now writes a `dunningSends` row
+      so a bounced alert is visible; that change is committed and pushed but **not deployed**.
+      ```bash
+      git pull && npx convex deploy
+      ```
+      *Why it matters here specifically:* `OPERATOR_EMAIL` is `support@declareandbelieve.com`,
+      which **forwards** to iCloud, and a forward is exactly the arrangement where a delivery
+      fails quietly. Without the row, `onEmailEvent` has nothing to attach a bounce to and not
+      receiving an alert looks identical to nothing having gone wrong.
+
+- [ ] **GTM → GA4 — map the six new events.** *Deliberately deferred 2026-08-27, owner's call.*
+      The code pushes to `window.dataLayer` and is verified doing so against the real minified
+      bundle. Nothing reaches a report until the container side is wired, so until then these
+      are collected by the browser and read by nobody.
+
+      | Event | Properties |
+      |---|---|
+      | `checkout_opened` | `authenticated`, `displayed_tier`, `selected_interval`, `plan_alias` |
+      | `guidance_limit_reached` | `authenticated`, `displayed_tier` |
+      | `journey_limit_reached` | `authenticated`, `displayed_tier`, `open_journeys`, `journey_limit` |
+      | `journey_continue_selected` | `authenticated`, `displayed_tier`, `source` |
+      | `journey_let_go_selected` | `authenticated`, `displayed_tier`, `journey_category` |
+      | `journey_upsell_selected` | `authenticated`, `displayed_tier`, `source` |
+
+      **`checkout_opened` is the one to do first if only one gets done.** It is the single event
+      measuring somebody actually starting a purchase, and it had been firing into nothing since
+      the CTA was wired because it was never in the `ALLOWED` map. That is now fixed in code and
+      asserted, but a GA4 report still needs the container.
+
+      The other five answer one question: **does the ask at the moment of loss earn its place?**
+      `journey_limit_reached` is the denominator; every reader who meets the cap resolves it by
+      finishing one, letting one go, looking at Plus, or none of those. If the Plus share is
+      negligible, that ask should be made quieter or removed. Full reference and the property
+      vocabulary are in `.agents/tracking-plan.md`.
+
+      *Harm if skipped: no error, no failure, just decisions made on guesses.*
 
 - [ ] **SECURITY — rotate `RESEND_API_KEY`.** The live key was pasted into a chat transcript on
       2026-08-26 (`re_AnQGhWaD…`) and should be treated as compromised. Deliberately deferred at
@@ -1027,6 +1087,62 @@ cancelling does not free an account quickly.
 
 ### Recently shipped
 *App is on **v3.20.2**. Newest first.*
+
+- **The night of 2026-08-27: the two free limits became real, and billing learned to
+  speak.** Six things, and the first one is why the rest mattered.
+
+  **Free and Plus were the same product.** `/pricing` promised Free three Gentle Guidance
+  responses a day and a Journey cap. `convex/usage.ts` held a complete meter, and
+  **nothing in the browser had ever called it** — `reserveUsage`, `finalizeUsage` and
+  `releaseUsage` had zero call sites. The counter was read, which is why `/billing` could
+  display "3 left today" forever, and never written. Turning purchasing on would have sold
+  a plan that changed nothing.
+
+  **The guidance limit is enforced**, held inside `generateContent` rather than at each
+  call site so a third caller cannot forget it. It **fails open**, which is the opposite of
+  how billing fails and deliberately so: only a counted `daily-limit-reached` stops
+  anybody, because being wrong here refuses Scripture to somebody at 3am over a network
+  blip. A slot is only spent on an answer worth showing. The refusal gets its own screen,
+  names the Word and the Vault first, and mentions the plan last.
+
+  **Guests are untouched.** `GUEST.gentleGuidanceDaily` is `0` with a comment saying
+  sign-in should come first. Nobody has taken that product decision and this did not take
+  it: a signed-out reader never reaches the meter. Recorded so the unenforced `0` reads as
+  deliberate.
+
+  **The Journey cap counted restarts, not Journeys.** The client sent `<id>:<seed>` as the
+  slot id and `beginJourney` re-rolls the seed, so restarting the same Journey claimed a
+  second slot that nothing released. Someone who began Anxiety three times held three
+  slots for one Journey. Fixed to the bare id; `normalizeSlotIdsInternal` collapsed the
+  rows the old client wrote — **7 of 7 in production carried a seed**, so nobody had a
+  clean row. Raised to **3**, and "Journeys active at once" became "Journeys open at a
+  time" because only one is ever on screen: that phrase described an experience nobody had
+  had. Eight places state that number in two languages and all eight are now pinned to
+  `entitlementCatalog.ts` by a suite.
+
+  **Billing only ever spoke to people when something went wrong.** Four emails for a failed
+  payment, one before a trial charges, nothing at the moment somebody decides to trust us
+  with money, and nothing at all when they join. The only email whose first words were
+  "Welcome to Declare & Believe" was `sendVerificationEmail`, and `requireEmailVerification`
+  is `false`, so it had never been sent to anybody. There is now a sign-up welcome and a
+  Plus welcome in three flavours, both languages, and which flavour is read from the row so
+  the email cannot describe a plan the database disagrees with.
+
+  **Eight `console.log("[billing] …")` lines reached nobody.** Four now reach an inbox:
+  an unmatched payment, a duplicate subscription, a subscription landing on an account that
+  already bought lifetime, and a refund we owe and could not send. Ordinary lifecycle stays
+  in the log, because an alert that fires during normal operation is one nobody reads by
+  week three. `OPERATOR_EMAIL` set to `support@declareandbelieve.com` on 2026-08-27.
+
+  **Two analytics events were being thrown away.** `analytics.js` drops any event not in its
+  allowlist, silently, by design. `guidance_limit_reached` and `checkout_opened` were both
+  firing and neither was listed — the second had been missing for as long as the CTA had
+  existed. A suite now scans every `track()` call in `src/` and fails if the name is not
+  allowlisted, so the next one cannot go quiet.
+
+  20 verify suites, 3,609 checks. Rendered and measured in a real browser in both themes and
+  both languages.
+
 - **Plans and Billing separated into two surfaces (2026-08-24, branch
   `feat/plans-billing-experience`).** `/pricing` became **Plans** — one job, "which plan is right
   for me?": a monthly/annual selector, two cards, a short comparison, reassurance and an FAQ.
