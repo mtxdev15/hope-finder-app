@@ -6,6 +6,42 @@ Reordered 2026-08-25 after the live-billing activation pass.
 Refreshed 2026-08-27: the pricing CTA, the 10th webhook event and the
 lifetime-on-top case all shipped and are struck through below. Two items added,
 the operator-alert deploy and the deferred GTM mapping.
+**Also 2026-08-27: the billing launch is parked behind the Journey rework** — see
+the section immediately below, and `docs/product/journey-rework-plan.md`.
+
+## 🌿 Journey rework — **billing launch is parked behind this**
+
+*Added 2026-08-27, after the owner walked `/journey` on the live site.*
+
+**The plan lives at [`docs/product/journey-rework-plan.md`](docs/product/journey-rework-plan.md).**
+It is written to be picked up cold — open it first, in a fresh session, before
+touching anything below.
+
+Three defects sit in front of the launch gate, and one gap under them:
+
+- **D1** — on desktop there is **no way to switch Journeys at all**. The `⋯` control
+  is injected into `.mast`, and `public/declare/sidebar.css:32` hides `.mast` at
+  `min-width:768px`. On mobile the same control is five taps deep.
+- **D2** — the cap sheet's **"Continue this one" restarts at Day 1**. It routes
+  through `beginJourney`, which calls `clearLock()` and `clearInstance()`. The button
+  labelled Continue destroys the progress it offers to continue.
+- **D3** — the reset sheet promises *"your progress is kept, and you can return to it
+  whenever you're ready."* **There is no return path in the app.**
+- **The gap** — `myOpenJourneys` has exactly one caller (the refusal sheet),
+  `db_journey_lock` is a per-struggle progress ledger only ever read at `[active.id]`,
+  and **34 authored Journeys have no browsable front door**.
+
+Owner decisions, already made, not to be re-litigated: **full rework first** (missing
+screens plus Gentle Guidance), and **a Journey resumes where it was left** — dropped
+on Day 3, come back to Day 3.
+
+Work order, from the plan: **(1) resume-by-id** (everything else depends on it, and it
+dissolves D2 and D3), (2) the *My Journeys* screen, (3) a reachable chooser on every
+viewport, (4) make all 34 browsable, (5) verify Gentle Guidance shows what's left
+*before* the wall, (6) the courtroom-language sweep (16 hits in `journey-data.js`).
+
+`PRICING_ENABLED` stays `false` until this is done and walked by hand on a phone
+**and** a desktop.
 
 ## ⏭️ Next up — the remaining live-billing steps
 
