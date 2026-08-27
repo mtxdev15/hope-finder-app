@@ -18,7 +18,17 @@ import { finalizeGuidance, releaseGuidance, reserveGuidance } from './convex-dat
    Endpoint, model, max_tokens, stream, and the ephemeral system-prompt cache are
    identical for both callers. */
 
-export async function generateContent(struggle, translation, excludeRefs = [], { temperature = 0.9, language = 'en' } = {}) {
+/**
+ * @param {string} struggle
+ * @param {string} translation
+ * @param {string[]} [excludeRefs]
+ * @param {{ temperature?: number, language?: string,
+ *   onQuota?: ((q: { remaining: number|null, metered: boolean }) => void) | null }} [opts]
+ *   `onQuota` is called once, and only on the path where one of the day's
+ *   Gentle Guidance responses was actually spent. See the note at the finalize
+ *   below for why it is not called at the reservation.
+ */
+export async function generateContent(struggle, translation, excludeRefs = [], { temperature = 0.9, language = 'en', onQuota = null } = {}) {
   /* ── THE DAILY LIMIT, held here and nowhere else ────────────────────────
    *
    * Inside generateContent rather than at each call site, because this is the
@@ -63,6 +73,15 @@ export async function generateContent(struggle, translation, excludeRefs = [], {
       const id = held;
       held = null;
       try { await finalizeGuidance(id); } catch (e) { /* the hold expires on its own */ }
+    }
+    /* HOW MANY ARE LEFT, told to the caller only on the path where one was
+       actually spent. Reported here rather than at the reserve, because a
+       request that fails gives its hold back and would otherwise have told the
+       reader a number that stopped being true a second later.
+       Never allowed to break the answer: a page that throws while drawing a
+       count must not turn a delivered Word into an error. */
+    if (typeof onQuota === 'function') {
+      try { onQuota({ remaining: verdict.remaining, metered: verdict.metered }); } catch (e) {}
     }
     return result;
   } catch (err) {

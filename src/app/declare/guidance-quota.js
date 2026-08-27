@@ -63,7 +63,7 @@ export function newRequestId() {
  *
  * @param {any} res  the raw mutation result, or null when it could not be made
  * @param {string} requestId  the id we asked to hold
- * @returns {{proceed: true, metered: boolean, requestId: string|null}
+ * @returns {{proceed: true, metered: boolean, requestId: string|null, remaining: number|null}
  *          |{proceed: false, reason: string, remaining: number|null}}
  */
 export function interpretReserve(res, requestId) {
@@ -71,10 +71,26 @@ export function interpretReserve(res, requestId) {
      signed-out reader and for every transport failure, and those two must
      behave the same way: proceed, unmetered. */
   if (!res || typeof res !== 'object') {
-    return { proceed: true, metered: false, requestId: null };
+    /* remaining is null, not zero: we did not ask, or nobody answered. A page
+       that renders this must show nothing at all rather than a count it made
+       up. */
+    return { proceed: true, metered: false, requestId: null, remaining: null };
   }
   if (res.ok === true) {
-    return { proceed: true, metered: true, requestId };
+    /* HOW MANY ARE LEFT, carried through rather than dropped on the floor.
+       The server has always returned it and this function always threw it away,
+       so the only moment the app ever mentioned the limit was the moment it
+       refused somebody. Telling a person they are on their last one BEFORE they
+       spend it is the difference between a limit and an ambush.
+
+       `null` means the tier has no customer-visible quota (Plus), and stays
+       null: "unlimited" is not a number and must never be rendered as one. */
+    return {
+      proceed: true,
+      metered: true,
+      requestId,
+      remaining: typeof res.remaining === 'number' ? res.remaining : null,
+    };
   }
   const reason = typeof res.reason === 'string' ? res.reason : '';
   if (REFUSING_REASONS.includes(reason)) {

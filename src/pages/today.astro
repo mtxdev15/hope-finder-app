@@ -209,7 +209,7 @@ import RateReview from '../components/RateReview.astro';
           <div class="nslist">
             <a class="nscard" id="readPassage" href="/word"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.4A1.4 1.4 0 0 1 5.4 4H11v15.2H5.4A1.4 1.4 0 0 0 4 20.6z"></path><path d="M20 5.4A1.4 1.4 0 0 0 18.6 4H13v15.2h5.6A1.4 1.4 0 0 1 20 20.6z"></path></svg></span><span class="nsm"><span class="nst" data-i18n="today.nsReadT">Read the full passage</span><span class="nsd" data-i18n="today.nsReadD">Open it in The Word and keep reading</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></a>
             <a class="nscard" href="/vault"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><path d="M8 5V3.5M16 5V3.5M12 13.2v3"></path><circle cx="12" cy="12.4" r="1.3"></circle></svg></span><span class="nsm"><span class="nst" data-i18n="today.nsReturnT">Return to it later</span><span class="nsd" data-i18n="today.nsReturnD">Everything you saved lives in your Vault</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></a>
-            <button class="nscard" id="anotherWord"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span><span class="nsm"><span class="nst" data-i18n="today.nsAnotherT">Receive another word</span><span class="nsd" data-i18n="today.nsAnotherD">For whatever else is heavy</span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
+            <button class="nscard" id="anotherWord"><span class="nsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="5"></circle><path d="M12 2v3M4.5 6.5l1.5 1.5M19.5 6.5l-1.5 1.5M2 13h3M19 13h3"></path></svg></span><span class="nsm"><span class="nst" data-i18n="today.nsAnotherT">Receive another word</span><span class="nsd" data-i18n="today.nsAnotherD">For whatever else is heavy</span>{/* HOW MANY ARE LEFT, beside the control that spends the next one, and only when we actually know. Its own element rather than a rewrite of the line above, so a language switch cannot fight it. */}<span class="nsleft" id="anotherLeft" hidden></span></span><span class="nsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
           </div>
         </div>
 
@@ -668,6 +668,9 @@ import RateReview from '../components/RateReview.astro';
     async function runGen(struggle: string): Promise<void> {
       const myReq = ++reqId;
       resultsBody.hidden = true; resultsError.hidden = true; resultsLimit.hidden = true;
+      /* Cleared with every new request. A count left over from the previous
+         Word would be one too high the moment this one lands. */
+      clearQuotaLeft();
       // the header is visible while the word streams — name the right struggle in the
       // right language from the start (the SSR placeholder is English "fear & anxiety")
       $('forLabel').textContent = tI('today.forPrefix', 'For ') + struggleLabel(struggle);
@@ -676,7 +679,7 @@ import RateReview from '../components/RateReview.astro';
       // even if the reader taps a different pill mid-stream
       responseTranslation = activeTrans();
       try {
-        const ai: DeclareContent = await generateContent(struggle, responseTranslation, usedRefs, { language: activeLang() });
+        const ai: DeclareContent = await generateContent(struggle, responseTranslation, usedRefs, { language: activeLang(), onQuota: showQuotaLeft });
         if (myReq !== reqId) return;
         if (!isCompleteResult(ai)) throw new Error('incomplete result');
         usedRefs = usedRefs.concat(ai.verses.map((v: Verse) => v.ref));
@@ -697,6 +700,37 @@ import RateReview from '../components/RateReview.astro';
         if (window.RouteLoader) window.RouteLoader.hide();
       }
     }
+    /* ── WHAT IS LEFT, BEFORE THE WALL ──────────────────────────────────────
+     *
+     * Until now the only moment the app ever mentioned the daily limit was the
+     * moment it refused somebody. The count has always come back from the
+     * reservation and was thrown away one function later, so a reader spent
+     * their last one with no idea it was their last one, and met the refusal
+     * cold.
+     *
+     * Shown ONLY when there is a real number. `null` means Plus, or a guest, or
+     * a backend we could not reach, and every one of those must show nothing at
+     * all rather than a count invented to fill the space. "Unlimited" is not a
+     * number and is never rendered as one.
+     *
+     * Placed on the card that spends the next one, because that is where the
+     * information is worth having. */
+    function showQuotaLeft(q: { remaining: number | null; metered: boolean }): void {
+      const el = $('anotherLeft');
+      if (!el) return;
+      const n = q && typeof q.remaining === 'number' ? q.remaining : null;
+      if (n === null) { el.hidden = true; el.textContent = ''; return; }
+      const es = activeLang() === 'es';
+      el.textContent = n > 0
+        ? (es ? (n + (n === 1 ? ' disponible hoy' : ' disponibles hoy')) : (n + ' left today'))
+        : (es ? 'Ese fue el \u00faltimo de hoy' : 'That was today\u2019s last one');
+      el.hidden = false;
+    }
+    function clearQuotaLeft(): void {
+      const el = $('anotherLeft');
+      if (el) { el.hidden = true; el.textContent = ''; }
+    }
+
     $('tryAgain').addEventListener('click', () => runGen(activeStruggle));
     $('errBack').addEventListener('click', () => showView(entryView));
 
@@ -1257,6 +1291,12 @@ import RateReview from '../components/RateReview.astro';
     .today .nscard .nsm { flex: 1; min-width: 0; }
     .today .nscard .nst { display: block; font-size: 15px; font-weight: 500; color: var(--text); }
     .today .nscard .nsd { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+    /* What is left of today's three, beside the control that spends the next
+       one. Quieter than the line above it: this is information, not a warning,
+       and it is shown on every Word rather than only on the last. */
+    .today .nscard .nsleft { display: block; font-size: 11px; color: var(--goldd); font-weight: 700;
+      letter-spacing: .04em; margin-top: 4px; }
+    .today .nscard .nsleft[hidden] { display: none; }
     .today .nscard .nsa { flex: 0 0 auto; color: var(--muted); display: flex; }
     .today .nscard .nsa svg { width: 16px; height: 16px; }
 

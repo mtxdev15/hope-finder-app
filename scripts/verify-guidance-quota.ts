@@ -458,6 +458,54 @@ for (const banned of ["struggle_text", "raw_struggle", "reflection", "email", "u
 check("journey_category is sent only from a catalog id",
   /journey_category: c\.id/.test(JOURNEY) && !/journey_category: [^c]/.test(JOURNEY));
 
+/* ── 7b. Told before the wall, not only at it ────────────────────────────── */
+section("7b. How many are left");
+
+/* THE ONLY MOMENT THIS APP EVER MENTIONED THE LIMIT WAS THE MOMENT IT REFUSED
+   SOMEBODY. convex/usage.ts has always returned `remaining` on a successful
+   reservation and interpretReserve threw it away one line later, so a reader
+   spent their last Word with no idea it was their last, and met the refusal
+   cold. */
+check("usage.ts still returns the count on a granted reservation",
+  /return \{ ok: true, requestId: args\.requestId, remaining, accountDay \}/.test(USAGE));
+const granted = interpretReserve({ ok: true, requestId: ID, remaining: 2, accountDay: "d" }, ID);
+check("and interpretReserve carries it through", granted.remaining === 2, granted);
+check("zero left is carried as zero, not dropped",
+  interpretReserve({ ok: true, requestId: ID, remaining: 0, accountDay: "d" }, ID).remaining === 0);
+
+/* "Unlimited" is not a number and must never be rendered as one. Plus gets a
+   null limit from the entitlement catalog, so usage.ts sends null. */
+check("Plus's absent quota stays null",
+  interpretReserve({ ok: true, requestId: ID, remaining: null, accountDay: "d" }, ID).remaining === null);
+/* And so does every case where we did not get an answer: a signed-out reader,
+   an unreachable backend, a shape we do not recognise. Each of those must show
+   nothing rather than a count invented to fill the space. */
+check("no answer means no count, not zero", interpretReserve(null, ID).remaining === null);
+check("an unrecognised shape means no count either", interpretReserve(42 as never, ID).remaining === null);
+check("and a garbage remaining is treated as unknown",
+  interpretReserve({ ok: true, requestId: ID, remaining: "two" } as never, ID).remaining === null);
+
+/* Reported on the path where one was actually SPENT. A request that fails gives
+   its hold back, so a count read at the reservation would have been wrong a
+   second later. */
+check("generateContent accepts a quota callback", /onQuota = null \} = \{\}\) \{/.test(API));
+check("and calls it after the hold is finalized, not at the reservation",
+  API.indexOf("finalizeGuidance(id)") < API.indexOf("onQuota({ remaining:"));
+check("and never lets it break a delivered Word",
+  /try \{ onQuota\(\{ remaining: verdict\.remaining, metered: verdict\.metered \}\); \} catch \(e\) \{\}/.test(API));
+
+check("/today asks for the count", /onQuota: showQuotaLeft/.test(TODAY));
+check("and shows nothing at all when there is no number",
+  /if \(n === null\) \{ el\.hidden = true; el\.textContent = ''; return; \}/.test(TODAY));
+/* A count left over from the previous Word is one too high the moment the next
+   one lands. */
+check("and clears it at the start of every request", /clearQuotaLeft\(\);/.test(TODAY));
+check("it sits on the control that spends the next one", /id="anotherLeft"/.test(TODAY));
+check("in both languages", /disponibles hoy/.test(TODAY) && /left today/.test(TODAY));
+/* No em dash: locked brand rule. */
+check("and the wording carries no em dash",
+  !/left today[^']*—/.test(TODAY) && !/disponibles hoy[^']*—/.test(TODAY));
+
 /* ── 8. The policy stays executable ──────────────────────────────────────── */
 section("8. The policy stays testable");
 
