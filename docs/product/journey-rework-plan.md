@@ -125,6 +125,21 @@ only ever called for `loadActiveSaved().id`.
 Doing this first makes D2 and D3 disappear rather than needing separate fixes, and it
 is what makes the new screen worth building.
 
+**DONE 2026-08-27.** The rules live in `src/app/declare/journey-resume.js` —
+dependency-free and pure, so `scripts/verify-journey-resume.ts` runs them rather
+than reads them (72 checks; each was broken once before being trusted).
+`journey.astro` gained `resumeJourney()` / `enterResumed()` / `parkActive()`, and
+both lying surfaces now tell the truth: the limit sheet's *Continue this one*
+resumes, and picking a set-aside struggle again returns to it instead of wiping
+it. Starting still clears, which the suite pins separately.
+
+Walking it in a browser found **a third defect nobody had reported**:
+`jpBegin`'s handler disables the Preview's commit button and only the
+cap-refusal branch ever re-enabled it, so the *second* Preview of a page session
+opened with **Begin Day 1 already dead**. Start one Journey, switch to another
+without reloading, and there was no way to commit the second. Fixed in
+`showJourneyPreview`, which now releases both halves of that guard.
+
 ### 2. The "My Journeys" screen
 
 The missing front door. One surface listing three things the system already knows:
@@ -195,10 +210,27 @@ pinning:
 - no user-facing string in `journey-data.js` or `public/*.html` contains courtroom
   framing
 
-**What only a person can confirm**, in a real browser, signed in, on a phone and on
-a desktop, because this whole plan exists because it was never done:
+### The browser walk
 
-1. Start a Journey, reach Day 2, switch to another, come back. Are you on Day 2?
+Check 1 below turned out not to need a person after all, so it no longer gets one:
+
+```bash
+npm run dev                                   # leave running in another terminal
+node scripts/browser/journey-resume-walk.mjs
+```
+
+It drives a real Chromium at 390px through a real day of the ritual, all seven
+steps, sets the Journey aside for another, comes back, and asserts the day it
+lands on. It is deliberately **not** a `verify-*.ts` suite: those run with no
+server and no network, and the whole set runs in one loop. This one needs a
+browser, because the two defects it caught can only be seen in one. Run it after
+any change to the Journey entry paths.
+
+**What still only a person can confirm**, signed in, on a phone and on a desktop,
+because this whole plan exists because it was never done:
+
+1. ~~Start a Journey, reach Day 2, switch to another, come back. Are you on Day 2?~~
+   **Automated, and passing.** `scripts/browser/journey-resume-walk.mjs`, 18 checks.
 2. With one active, can you find the way to choose another? On desktop *and* mobile.
 3. Can you see all 34?
 4. Does My Journeys show what you started, what you dropped and what you finished?

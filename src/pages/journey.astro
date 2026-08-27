@@ -487,6 +487,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     import { openAuthModal } from '../app/declare/auth-modal.js';
     import { registerSyncKey, mirror, whenSynced } from '../app/declare/account-sync.js';
     import { journeyStart, journeyEnsure, journeyRelease, journeysOpen } from '../app/declare/convex-data.js';
+    /* The rules that tell RESUMING apart from STARTING. Pure, dependency-free
+       and executed by scripts/verify-journey-resume.ts — see the header of
+       journey-resume.js for why they are not inline here. */
+    import { resumeDecision, parkRecord, isSlotRefusal } from '../app/declare/journey-resume.js';
     import { track } from '../app/declare/analytics.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
@@ -2453,6 +2457,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
 
     function beginJourney(id, openDay, silent, seed) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
+      parkActive();                                                                    // the one being left stays returnable
       CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; }); // set the old one aside
       active = c; active.status = 'active'; startPlan(seed);
       slotStart(); // new run: claims a slot (limit enforced server-side)
@@ -2464,6 +2469,110 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     function openAfterBegin() {
       if (isSensitive(active.id)) { setTimeout(function () { openCareGate(active.id, openDayFlow); }, 420); }
       else { setTimeout(openDayFlow, 380); }
+    }
+
+    /* ── RESUMING IS NOT STARTING ─────────────────────────────────────────────
+     *
+     * beginJourney() above CLEARS: a new seed, clearLock(), clearInstance(),
+     * Day 1. That is right for a Journey being planted for the first time and
+     * wrong for every other way back in — and until now it was the ONLY way
+     * back in, so "return to where you left off" did not exist anywhere in the
+     * app. The reset sheet promised it in words. The limit sheet offered it on
+     * a button labelled Continue. Both routed through beginJourney and
+     * destroyed the progress they were offering.
+     *
+     * Nothing new has to be stored to fix that. The state was always on the
+     * device, for every Journey, not just the current one:
+     *   db_journey_lock[id]     the day reached, the days returned, the pacing date
+     *   db_journey_inst:<id>    the plan, the generated days, per-step state, what was spoken
+     * restoreProgress() and restoreInstance() already read exactly those and
+     * always have. They were simply only ever called for loadActiveSaved().id.
+     * Every other Journey's progress sat there, complete, and unreachable.
+     *
+     * SLOT ACCOUNTING, and why it is a parameter rather than a guess.
+     * Re-entering a Journey whose slot is still `active` is not a new claim, so
+     * it goes through ensureJourneySlot, which deliberately does not enforce
+     * the cap — convex/journeySlots.ts:136 gives the reason: somebody over the
+     * cap must still be able to walk a Journey they are already inside.
+     * Reclaiming one that was completed or set aside IS a new claim, and
+     * registerJourneyStart re-opens the row and applies the cap again. The
+     * caller says which of the two this is, and a refusal is honoured BEFORE
+     * anything is mutated, so a refused reclaim leaves the reader exactly where
+     * they were rather than half-moved.
+     *
+     * Resolves true once the reader is standing in `id`. */
+    function resumeJourney(id, opts) {
+      const o = opts || {};
+      const c = CATALOG.find(function (x) { return x.id === id; });
+      if (!c) return Promise.resolve(false);
+      /* Already standing in it: re-render, never re-restore. Restoring over a
+         live instance would throw away in-day position that has not been
+         written out yet. */
+      if (active && active.id === id && active.status === 'active') {
+        closeSheets(); showActiveUI();
+        if (o.openDay) openAfterBegin();
+        return Promise.resolve(true);
+      }
+      const claim = o.reclaim ? claimSlot(id) : Promise.resolve(null);
+      return Promise.resolve(claim).then(function (res) {
+        /* Only an explicit server refusal stops this. A null — signed out, or
+           the call failed — must not, because Journey progress is local and the
+           reader's own; a sync failure may never lock them out of their work. */
+        if (o.reclaim && isSlotRefusal(res)) {
+          if (typeof o.onRefused === 'function') o.onRefused(res);
+          return false;
+        }
+        enterResumed(c, o);
+        return true;
+      });
+    }
+
+    /* The mutating half, kept separate so the refusal check above runs with
+       nothing yet changed. */
+    function enterResumed(c, o) {
+      parkActive();
+      CATALOG.forEach(function (x) { if (x.status === 'active') x.status = 'open'; });
+      active = c; active.status = 'active';
+      /* Reset first, restore second, and in that order for a reason.
+         restoreInstance() returns false when a Journey has no cached instance —
+         walked on another device, or cleared — and if these still held the
+         PREVIOUS Journey's values the reader would land inside somebody else's
+         day. The defaults are exactly the ones beginJourney() sets, so the
+         no-cache case degrades to a clean Day 1 of the right Journey rather
+         than to a mixture of two. */
+      state.day = 1; state.returned = 0; daySpoken = {}; dayState = {}; activeStep = 1;
+      startPlan();          // authored fallback; the cache replaces it when there is one
+      restoreInstance();    // plan, generated days, per-step state, what was spoken
+      restoreProgress();    // the day reached and the days returned, from the pacing lock
+      if (!o.reclaim) slotEnsure();   // reclaim already claimed above, and was allowed to fail
+      saveActive();
+      closeSheets(); showActiveUI();
+      if (!o.silent) {
+        /* No em dash: locked brand rule. */
+        toast(state.day > 1
+          ? ((esL() ? 'Bienvenido de vuelta. Día ' : 'Welcome back. Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL)
+          : ((esL() ? 'Bienvenido de vuelta. ' : 'Welcome back. ') + cFrom(c) + ' \u2192 ' + cTo(c)));
+      }
+      if (o.openDay) openAfterBegin();
+    }
+
+    /* Persist the Journey being LEFT, so that leaving it is not the same as
+       losing it. saveInstance() keeps its plan and its in-day position; the
+       lock row keeps the day reached.
+
+       The row's pacing date is carried across rather than restamped. Walking
+       away from a Journey is not walking a day of it, and restamping would tell
+       the reader tomorrow that they had already had today. A Journey left on
+       Day 1 before any day was completed has no row at all, which is why one is
+       written here: without it there is nothing to resume by. */
+    function parkActive() {
+      if (!active || active.status !== 'active') return;
+      try { saveInstance(); } catch (e) {}
+      try {
+        const m = loadLock();
+        m[active.id] = parkRecord(m[active.id], state.day, state.returned);
+        saveLock(m);
+      } catch (e) {}
     }
     // Tapping a transformation literally plants it: a seed flies from the card
     // into the new vine, the soil blooms, the sapling pulses, then Day 1 opens.
@@ -2520,12 +2629,52 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     function beginNewJourneyFlow(id, entrySource) {
       const c = CATALOG.find(function (x) { return x.id === id; }); if (!c) return;
       closeSheets();
+      /* D3. The reset sheet promises, in words, that setting a vine aside keeps
+         its progress and that you can return to it whenever you are ready.
+         Picking that same struggle again is the most obvious way a person takes
+         that promise up — and it used to land in Preview and then in
+         beginJourney, which cleared the lock and the instance and restarted at
+         Day 1, deleting exactly what the sheet had just promised to keep.
+
+         A Journey with a day already walked is not a new Journey. It gets no
+         Preview, because there is nothing to preview: they have read these
+         days. It gets resumed.
+
+         reclaim, because a Journey that was set aside had its slot released and
+         taking it back is a fresh claim the cap is entitled to refuse. The
+         refusal lands in the same still-open sheet as any other, with nothing
+         local yet touched. */
+      const decision = pickDecision(c.id);
+      if (decision.action === 'resume') {
+        resumeJourney(c.id, {
+          openDay: true, reclaim: decision.reclaim,
+          onRefused: function (verdict) { openOpenJourneysSheet(c.id, verdict); },
+        });
+        return;
+      }
       if (isSensitive(c.id)) { openCareGate(c.id, function () { showJourneyPreview(c, entrySource); }); }
       else { showJourneyPreview(c, entrySource); }
     }
 
+    /* Reads the two records; the rule itself lives in journey-resume.js. */
+    function pickDecision(id) {
+      try { return resumeDecision(id, loadLock(), loadDone()); }
+      catch (e) { return { action: 'preview', day: 0, reclaim: false }; }
+    }
+
     function showJourneyPreview(c, entrySource) {
+      /* BOTH HALVES OF THE DOUBLE-COMMIT GUARD ARE RELEASED HERE, and for a
+         while only one of them was.
+
+         jpBegin's handler sets previewCommitting AND disables the button.
+         commitPreview() clears previewState and closes the panel but re-enables
+         nothing, and only the cap-refusal branch ever put the button back. So
+         the second Preview of a page session opened with Begin Day 1 already
+         disabled: start one Journey, then switch to another without reloading,
+         and the commit button was dead. Found by walking it in a browser, which
+         is the only place a stale DOM attribute shows up. */
       previewCommitting = false;
+      $('jpBegin').disabled = false;
       const seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
       const plan = resolveJourneyPlan(c.id, c.from, c.to, seed);
       previewState = { id: c.id, entrySource: entrySource, seed: seed, plan: plan };
@@ -2729,8 +2878,21 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
             track('journey_continue_selected', {
               authenticated: true, displayed_tier: 'free', source: 'journey-limit',
             });
+            /* D2. This used to call beginNewJourneyFlow, which ends in
+               beginJourney, which runs clearLock() and clearInstance() and sets
+               day 1. The button labelled "Continue this one" destroyed the
+               progress it was offering to continue, in the one screen the
+               launch gate was about to put in front of people.
+
+               These rows come from myOpenJourneys, so every slot here is
+               already `active` — this is a re-entry, not a new claim, and no
+               Preview belongs in front of a Journey they have already walked.
+
+               They chose an existing Journey over the new one, so the pending
+               pick is dropped rather than left armed behind them. */
+            pendingJourneyId = null;
             closeSheets();
-            beginNewJourneyFlow(c.id, 'openSheet');
+            resumeJourney(c.id, { openDay: true });
           });
 
           const drop = document.createElement('button');
