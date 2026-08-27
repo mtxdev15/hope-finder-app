@@ -237,6 +237,32 @@ import RateReview from '../components/RateReview.astro';
           </div>
         </div>
       </div>
+
+      {/* ── TODAY'S THREE ARE USED ────────────────────────────────────────
+          NOT an error, and it does not share the error view. "Something
+          interrupted this / let's try again" would be a lie here, and a Try
+          again button that cannot work is worse than no button.
+
+          The tone is the whole design. This is the one screen in the app that
+          tells somebody no, and it is reached by a person who came here because
+          they were struggling. It says what is still open to them BEFORE it
+          mentions a plan, and the way out that costs nothing is listed first. */}
+      <div id="resultsLimit" hidden>
+        <div class="rsoon">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+          <div class="rt2" data-i18n="today.limitTitle">That is today&rsquo;s three</div>
+          <div class="rd" data-i18n="today.limitDesc">Your next one opens tomorrow. Nothing you have saved goes anywhere, and the Word is still open to you right now.</div>
+          <div class="err-actions">
+            <a class="btn btn-primary" href="/word" data-i18n="today.limitWord">Open the Word</a>
+            <a class="btn btn-ghost" href="/vault" data-i18n="today.limitVault">Go to my Vault</a>
+          </div>
+          {/* Last, quietly, and phrased as a fact rather than a pitch. */}
+          <p class="rlimit-plus">
+            <span data-i18n="today.limitPlusNote">Plus removes the daily limit.</span>
+            <a href="/pricing" data-i18n="today.limitPlusCta">See plans</a>
+          </p>
+        </div>
+      </div>
       </div><!-- /results-main -->
     </div>
 
@@ -322,6 +348,7 @@ import RateReview from '../components/RateReview.astro';
 
   <script>
     import { generateContent, isCompleteResult, translateVerses } from '../app/declare/declare-api.js';
+    import { isGuidanceLimit } from '../app/declare/guidance-quota.js';
     import { saveItem, removeItem, isSaved, wordId, listItems } from '../app/declare/vault-store.js';
     import { initAuth } from '../app/declare/auth-store.js';
     import { ensureSignedIn } from '../app/declare/auth-gate.js';
@@ -422,6 +449,7 @@ import RateReview from '../components/RateReview.astro';
 
     const entryView = $('entryView'), resultsView = $('resultsView');
     const resultsBody = $('resultsBody'), resultsError = $('resultsError');
+    const resultsLimit = $('resultsLimit');
     const chips = $('chips'), writeInput = $as('writeInput', HTMLTextAreaElement, 'a <textarea>');
     const sheet = $('sheet'), scrim = $('scrim'), sheetCta = $('sheetCta');
     const toast = $('toast'), toastMsg = $('toastMsg');
@@ -639,7 +667,7 @@ import RateReview from '../components/RateReview.astro';
     }
     async function runGen(struggle: string): Promise<void> {
       const myReq = ++reqId;
-      resultsBody.hidden = true; resultsError.hidden = true;
+      resultsBody.hidden = true; resultsError.hidden = true; resultsLimit.hidden = true;
       // the header is visible while the word streams — name the right struggle in the
       // right language from the start (the SSR placeholder is English "fear & anxiety")
       $('forLabel').textContent = tI('today.forPrefix', 'For ') + struggleLabel(struggle);
@@ -655,8 +683,16 @@ import RateReview from '../components/RateReview.astro';
         render(ai);
       } catch (err) {
         if (myReq !== reqId) return;
-        console.error('[today] generation failed:', err);
-        resultsError.hidden = false;
+        /* THE LIMIT IS NOT A FAILURE, and must not be logged or shown as one.
+           Told apart by class rather than by message, so this cannot break
+           when the wording changes. */
+        if (isGuidanceLimit(err)) {
+          resultsLimit.hidden = false;
+          track('guidance_limit_reached', { authenticated: true, displayed_tier: 'free' });
+        } else {
+          console.error('[today] generation failed:', err);
+          resultsError.hidden = false;
+        }
       } finally {
         if (window.RouteLoader) window.RouteLoader.hide();
       }
@@ -1254,6 +1290,14 @@ import RateReview from '../components/RateReview.astro';
 
     /* error panel */
     .today .rsoon { text-align: center; padding: 60px 18px; }
+    /* The plan line under the limit state. Deliberately the quietest thing on
+       a screen that has just told somebody no: smaller than the body copy, no
+       button, and below the two ways out that cost nothing. */
+    .today .rlimit-plus { margin: 22px 0 0; font-size: 12.5px; line-height: 1.6;
+      color: var(--muted); }
+    .today .rlimit-plus a { color: var(--text); text-decoration: underline;
+      text-underline-offset: 3px; margin-left: 6px; }
+    .today .rlimit-plus a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     .today .rsoon .ri { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--goldd); }
     .today .rsoon .ri svg { width: 21px; height: 21px; }
     .today .rsoon .rt2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--text); }

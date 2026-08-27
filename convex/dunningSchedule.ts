@@ -468,7 +468,27 @@ export function render(copy: Copy, url: string, home: string): string {
  *
  * NOT A RECEIPT. Stripe emails those, itemised, and duplicating it here would
  * mean maintaining a second version of a legal document. */
-export type WelcomeKind = "trial" | "paid" | "lifetime";
+/* FOUR, and `signup` is the one that is actually a welcome.
+ *
+ * The other three are Plus milestones: a trial began, a plan is running, a
+ * founding seat was taken. `signup` is the moment somebody joins Declare at
+ * all, and until 2026-08-26 nothing marked it. The only email in the codebase
+ * whose first words were "Welcome to Declare & Believe" was
+ * sendVerificationEmail in convex/email.ts, and auth.ts sets
+ * `requireEmailVerification: false`, so it has never been sent to anybody. */
+export type WelcomeKind = "signup" | "trial" | "paid" | "lifetime";
+
+/* The sign-up welcome carries no billing footer, because there is no billing.
+ * Reusing FOOTER here would tell a brand new free account that it is receiving
+ * a message about its Declare Plus subscription. */
+const JOIN_FOOTER: Record<EmailLang, string> = {
+  en:
+    "You're receiving this because you just created a Declare account. " +
+    "It is the only message we send about joining.",
+  es:
+    "Recibes esto porque acabas de crear una cuenta en Declare. " +
+    "Es el único mensaje que enviamos por unirte.",
+};
 
 export function welcomeCopy(
   kind: WelcomeKind,
@@ -476,6 +496,20 @@ export function welcomeCopy(
   lang: EmailLang = "en",
 ): Copy {
   if (lang === "es") {
+    if (kind === "signup") {
+      return {
+        subject: "Bienvenido a Declare",
+        heading: "Nos alegra que estés aquí",
+        body: [
+          "Declare existe para una cosa: poner la Palabra de Dios donde más la necesitas, en el momento en que la necesitas.",
+          "Cuando algo te esté pesando, escríbelo tal como es. Recibes la Escritura que habla a eso, con declaraciones para decir en voz alta y una oración para orar. Sin filtrar. Sin arreglar la manera de decirlo primero.",
+          "Tienes 3 respuestas de Guía Suave al día y 2 Caminos a la vez, de 5 días cada uno. Todo lo que guardes queda en tu Bóveda y es tuyo.",
+          "Si estás pasando por algo ahora mismo, empieza ahí. No hace falta prepararse.",
+        ],
+        cta: "Empezar",
+        footer: JOIN_FOOTER.es,
+      };
+    }
     if (kind === "trial") {
       return {
         subject: "Tus 7 días de Plus empiezan ahora",
@@ -523,6 +557,20 @@ export function welcomeCopy(
     };
   }
 
+  if (kind === "signup") {
+    return {
+      subject: "Welcome to Declare",
+      heading: "We are glad you are here",
+      body: [
+        "Declare exists for one thing: to put God's Word where you need it most, at the moment you need it.",
+        "When something is weighing on you, write it down as it actually is. You get Scripture that speaks to that, declarations to say out loud, and a prayer to pray. Unfiltered. No tidying up the wording first.",
+        "You have 3 Gentle Guidance responses a day and 2 Journeys at a time, 5 days each. Everything you save goes to your Vault and stays yours.",
+        "If you are carrying something right now, start there. There is nothing to set up.",
+      ],
+      cta: "Get started",
+      footer: JOIN_FOOTER.en,
+    };
+  }
   if (kind === "trial") {
     return {
       subject: "Your 7 days of Plus start now",

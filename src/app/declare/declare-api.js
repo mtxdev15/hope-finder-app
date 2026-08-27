@@ -1,3 +1,9 @@
+import {
+  GUIDANCE_FEATURE, GuidanceLimitError, RELEASE_REASONS,
+  interpretReserve, newRequestId,
+} from './guidance-quota.js';
+import { finalizeGuidance, releaseGuidance, reserveGuidance } from './convex-data.js';
+
 /* Declare & Believe — the pastoral-response "brain" (single source of truth).
    The system/user prompts, the Worker call, the SSE streaming parse, the
    defensive JSON slice, and isCompleteResult all live HERE. Both the live app
@@ -13,6 +19,62 @@
    identical for both callers. */
 
 export async function generateContent(struggle, translation, excludeRefs = [], { temperature = 0.9, language = 'en' } = {}) {
+  /* ── THE DAILY LIMIT, held here and nowhere else ────────────────────────
+   *
+   * Inside generateContent rather than at each call site, because this is the
+   * ONE door into Gentle Guidance and a limit enforced at the door cannot be
+   * forgotten by a third caller written next year. /pricing has promised Free
+   * three a day since launch; until 2026-08-26 nothing counted them, and Free
+   * and Plus were the same product.
+   *
+   * The hold is taken BEFORE the model call and settled after: finalized when a
+   * real answer came back, released when it did not. Somebody whose request
+   * failed has not used one of their three.
+   *
+   * Fails open in every case except a stated refusal. See guidance-quota.js. */
+  const requestId = newRequestId();
+  let held = null;
+  let raw = null;
+  try { raw = await reserveGuidance(GUIDANCE_FEATURE, requestId); } catch (e) { raw = null; }
+  const verdict = interpretReserve(raw, requestId);
+  if (!verdict.proceed) throw new GuidanceLimitError(verdict.reason, verdict.remaining);
+  held = verdict.requestId;
+
+  /* Give the slot back on ANY failure below, including a throw. Awaited so the
+     release lands before the error reaches the page, which is what makes the
+     retry button honest: the reader gets their slot back before they press it. */
+  const giveBack = async (why) => {
+    if (!held) return;
+    const id = held;
+    held = null;
+    try { await releaseGuidance(id, why); } catch (e) { /* the answer matters more */ }
+  };
+  try {
+    const result = await generateContentInner(struggle, translation, excludeRefs, { temperature, language });
+    /* Counted only for an answer we would actually show. A response that fails
+       isCompleteResult is rendered as an error, and charging somebody one of
+       three for an error is the kind of small unfairness nobody reports and
+       everybody remembers. */
+    if (!isCompleteResult(result)) {
+      await giveBack(RELEASE_REASONS.MALFORMED);
+      return result;
+    }
+    if (held) {
+      const id = held;
+      held = null;
+      try { await finalizeGuidance(id); } catch (e) { /* the hold expires on its own */ }
+    }
+    return result;
+  } catch (err) {
+    await giveBack(RELEASE_REASONS.FAILED);
+    throw err;
+  }
+}
+
+/* The unchanged brain. Everything above is the meter; everything below is
+   exactly what generateContent has always done, moved down one level so the
+   limit wraps it rather than being threaded through it. */
+async function generateContentInner(struggle, translation, excludeRefs = [], { temperature = 0.9, language = 'en' } = {}) {
   const es = language === 'es';
   const trans = es ? 'Reina-Valera 1909 (RVR1909, español)' : translation;
   let systemPrompt = `You are HopeFinder Companion — the pastoral voice inside Declare and Believe, a faith-based app that delivers God's Word directly to someone's specific mindset struggle. You are not a chatbot, a therapist, or a preacher. You are a trusted friend who knows their Bible deeply and speaks with warmth, confidence, and pastoral authority. You walk with people in their darkest moments and speak truth before you speak comfort.

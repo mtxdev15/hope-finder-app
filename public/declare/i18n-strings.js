@@ -116,6 +116,14 @@ window.__I18N_STRINGS = {
     'today.nsAnotherD': 'Para lo que sea que esté pesando',
     'today.errTitle': 'Algo interrumpió esto',
     'today.errDesc': 'La Palabra sigue aquí. Intentemos de nuevo.',
+    /* ---- the daily limit. Not an error: this is the one screen that tells
+   somebody no, reached by a person who came here struggling. ---- */
+'today.limitTitle': 'Esos son tus tres de hoy',
+'today.limitDesc': 'El siguiente se abre mañana. Nada de lo que guardaste se va, y la Palabra sigue abierta para ti ahora mismo.',
+'today.limitWord': 'Abrir la Palabra',
+'today.limitVault': 'Ir a mi Bóveda',
+'today.limitPlusNote': 'Plus quita el límite diario.',
+'today.limitPlusCta': 'Ver planes',
     'today.tryAgain': 'Intenta de nuevo',
     'today.goBack': 'Regresar',
     'today.forPrefix': 'Para ',

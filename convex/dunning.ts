@@ -595,3 +595,60 @@ export const notifyOperator = internalAction({
     return { sent: true };
   },
 });
+
+/* ── THE ONE THAT IS ACTUALLY A WELCOME ─────────────────────────────────────
+ *
+ * Sent when somebody creates a Declare account, free or otherwise. Called from
+ * the Better Auth `user.create.after` hook in convex/auth.ts, which is the only
+ * place that knows an account just came into existence and covers both email
+ * sign-up and Google in one path.
+ *
+ * WHY IT DID NOT EXIST. The only email in this codebase whose first words were
+ * "Welcome to Declare & Believe" was `sendVerificationEmail` in convex/email.ts,
+ * and auth.ts sets `requireEmailVerification: false`. It has never been sent to
+ * anybody. Joining produced no email at all.
+ *
+ * TAKES ITS ADDRESS AS AN ARGUMENT rather than looking the user up. The hook
+ * fires the instant the row is written, and reading it straight back is a race
+ * against the auth component's own transaction for no benefit: the caller
+ * already holds the address it just stored.
+ *
+ * NEVER THROWS. auth.ts wraps the call too, so there are two independent
+ * reasons a failure here cannot break account creation. Somebody who cannot
+ * sign up because our mail provider is down is a far worse outcome than
+ * somebody who signs up and gets no email.
+ */
+export const sendSignupWelcome = internalAction({
+  args: {
+    to: v.string(),
+    /* Absent means English, exactly as it does on a subscriptions row. A brand
+       new account has no stored locale yet, so the caller passes what the
+       browser asked for or nothing at all. */
+    locale: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ sent: boolean; reason?: string }> => {
+    if (!args.to || !args.to.includes("@")) return { sent: false, reason: "no-address" };
+    const lang = emailLang(args.locale);
+    const copy = welcomeCopy("signup", { amount: null, chargesOn: null, renewsOn: null }, lang);
+    const site = (process.env.SITE_URL || "https://declareandbelieve.com").replace(/\/+$/, "");
+    /* Straight into the app, not to billing. Nothing has been bought. */
+    const home = homeUrl(site, lang);
+
+    const emailId = await resendClient.sendEmail(ctx, {
+      from: FROM_EMAIL,
+      to: args.to,
+      subject: copy.subject,
+      html: render(copy, home, home),
+    });
+    /* Recorded under the same table as every other send, so a bounce on a
+       welcome is as visible as a bounce on a dunning notice. `userId` is the
+       address here because the account id is not resolvable yet at this point
+       in the auth flow, and an unjoined row is worse than an imprecise one. */
+    await ctx.runMutation(internal.dunning.recordSendInternal, {
+      emailId,
+      userId: args.to,
+      stage: "signup" as const,
+    });
+    return { sent: true };
+  },
+});

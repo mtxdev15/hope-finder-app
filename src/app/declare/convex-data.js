@@ -173,6 +173,28 @@ export async function myEntitlements() {
   return (await ensure()) ? runQuery(apiRef.entitlements.getMyEntitlements, {}) : null;
 }
 
+/* ── the Gentle Guidance daily meter ────────────────────────────────────────
+   The three calls convex/usage.ts has always exported and nothing ever made.
+
+   These are the ORDINARY authenticated wrappers, so a signed-out reader gets
+   null from all three and is never metered. That is not an oversight: a guest
+   has no account to count against, and refusing them would put a wall in front
+   of the person this app exists for.
+
+   Every one fails soft to null, like every other helper here. The policy that
+   decides what null MEANS lives in guidance-quota.js, and it means "proceed":
+   the only thing that may stop somebody praying is us having actually counted
+   three today. */
+export async function reserveGuidance(feature, requestId) {
+  return (await ensure()) ? runMutation(apiRef.usage.reserveUsage, { feature, requestId }) : null;
+}
+export async function finalizeGuidance(requestId) {
+  return (await ensure()) ? runMutation(apiRef.usage.finalizeUsage, { requestId }) : null;
+}
+export async function releaseGuidance(requestId, reason) {
+  return (await ensure()) ? runMutation(apiRef.usage.releaseUsage, { requestId, reason }) : null;
+}
+
 /* ── the founding round ─────────────────────────────────────────────────────
    Is Lifetime still buyable, and how many seats does the round hold.
 

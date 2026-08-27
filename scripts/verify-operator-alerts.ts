@@ -35,7 +35,10 @@ const SUBS = read("convex/subscriptions.ts");
 const BILLING = read("convex/billing.ts");
 const SCHEMA = read("convex/schema.ts");
 
-const KINDS: WelcomeKind[] = ["trial", "paid", "lifetime"];
+/* Four. `signup` is the one that is actually a welcome; the other three are
+   Plus milestones. Jeff's correction, 2026-08-26: a welcome belongs at the
+   moment somebody joins, not at the moment they pay. */
+const KINDS: WelcomeKind[] = ["signup", "trial", "paid", "lifetime"];
 const LANGS = ["en", "es"] as const;
 const FACTS = { amount: "$8.99", chargesOn: "September 2", renewsOn: "September 2" };
 
@@ -50,10 +53,14 @@ for (const kind of KINDS) {
     check(`${kind}/${lang} says something`, c.body.length >= 3);
     check(`${kind}/${lang} has one action`, typeof c.cta === "string" && c.cta.length > 2);
     check(`${kind}/${lang} says why it arrived`, c.footer.length > 20);
-    /* Not a newsletter, and the footer has to say so. Nobody should have to opt
-       out of being told what they bought. */
-    check(`${kind}/${lang} is not framed as marketing`,
-      /subscription|suscripci/i.test(c.footer));
+    /* Not a newsletter, and the footer has to say WHY this arrived. Which
+       reason differs by kind and the difference matters: telling a brand new
+       free account it is receiving a message about its Plus subscription would
+       be both wrong and alarming. */
+    const reason = kind === "signup" ? /account|cuenta/i : /subscription|suscripci/i;
+    check(`${kind}/${lang} says plainly why it arrived`, reason.test(c.footer));
+    check(`${kind}/${lang} is not framed as a newsletter`,
+      /one-off|only message|puntual|único mensaje/i.test(c.footer));
   }
 }
 /* Spanish must be TRANSLATED, not English with a Spanish subject. */
@@ -65,10 +72,46 @@ for (const kind of KINDS) {
     es.body.every((b, i) => b !== en.body[i]));
 }
 
-/* ── 2. The three say different things, because three things happened ────── */
-section("2. Each kind states the fact that kind of buyer needs");
+/* ── 1b. The sign-up welcome ─────────────────────────────────────────────── */
+section("1b. Joining Declare produces a welcome");
 
 for (const lang of LANGS) {
+  const join = welcomeCopy("signup", { amount: null, chargesOn: null, renewsOn: null }, lang);
+  /* IT IS NOT A BILLING EMAIL. Reusing the billing footer would tell a brand
+     new free account it is receiving a message about its Plus subscription. */
+  check(`signup/${lang} does not claim to be about a subscription`,
+    !/subscription|suscripci/i.test(join.footer));
+  check(`signup/${lang} says why it arrived`, /account|cuenta/i.test(join.footer));
+  /* It must not mention money, a plan, or a trial. Nobody has bought anything,
+     and the first thing a new account hears should not be a price. */
+  check(`signup/${lang} names no price`, !/\$|USD/.test(join.body.join(" ")));
+  check(`signup/${lang} does not sell Plus`, !/\bPlus\b/.test(join.body.join(" ")));
+  /* It DOES state what they have, because "3 a day" is now a real limit and
+     the first time it stops them should not be the first time they hear it. */
+  check(`signup/${lang} states the free limits`,
+    /3/.test(join.body.join(" ")) && /2/.test(join.body.join(" ")));
+  check(`signup/${lang} sends them into the app, not to billing`,
+    !/billing|facturaci/i.test(String(join.cta)));
+}
+check("the sign-up welcome is sent from the auth hook, once per account",
+  /internal\.dunning\.sendSignupWelcome/.test(read("convex/auth.ts")));
+check("and a failure there cannot break account creation",
+  /databaseHooks[\s\S]{0,900}?try \{[\s\S]{0,500}?\} catch \(e\) \{/.test(read("convex/auth.ts")));
+check("the sender never throws",
+  !/\bthrow\b/.test(DUNNING.slice(DUNNING.indexOf("export const sendSignupWelcome"))));
+
+/* ── 2. The kinds say different things, because different things happened ── */
+section("2. Each kind states the fact that kind of reader needs");
+
+for (const lang of LANGS) {
+  const join = welcomeCopy("signup", FACTS, lang);
+  /* Given every fact, it must still use none of them: joining has no date and
+     no amount, and printing one would invent a commitment nobody made. */
+  check(`signup/${lang} invents no date even when handed one`,
+    !join.body.join(" ").includes("September 2"));
+  check(`signup/${lang} invents no amount even when handed one`,
+    !join.body.join(" ").includes("8.99"));
+
   const trial = welcomeCopy("trial", FACTS, lang);
   const paid = welcomeCopy("paid", FACTS, lang);
   const life = welcomeCopy("lifetime", FACTS, lang);
