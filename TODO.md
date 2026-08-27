@@ -292,13 +292,27 @@ real charges instead of two.
       reasoning about a forwarding hop was wrong.
 
       **Still open, in order:**
-      1. **Confirm `dmarcreports@declareandbelieve.com` is a real mailbox.** `_dmarc` asks the
-         world to send reports there. If the alias does not exist, every report is bouncing and
-         nothing is being collected. This gates step 2.
+      1. **Point the DMARC reports at a mailbox that exists.** *Decided 2026-08-27: option A,
+         send them to `support@`.* The `rua=` address was `dmarcreports@declareandbelieve.com`,
+         which was never created, so every report the world sent was bouncing off nothing.
+         Mailboxes for this domain live in **iCloud**, not Cloudflare: the MX rows point at
+         `mx01`/`mx02.mail.icloud.com`, so Cloudflare holds only the records. Apple caps a
+         person at three addresses per domain, which is why a dedicated reports mailbox was
+         not worth a slot. Cloudflare → DNS → `_dmarc`, change one word:
+         ```
+         v=DMARC1; p=none; rua=mailto:support@declareandbelieve.com; fo=1
+         ```
+         Safe to do at any time: `p=none` asks receivers to take no action, so a malformed
+         record cannot cause a rejection. XML attachments beginning to arrive at `support@`
+         is the success signal. This gates step 2.
       2. **Then move `_dmarc` from `p=none` to `p=quarantine`,** after two to four weeks of clean
          reports. Both sending sources authenticate, which the headers above prove, so this is
          safe. It is also what `bimi=skipped reason="insufficient dmarc"` in those same headers
          is complaining about. Do not tighten before reading reports.
+
+         *If the XML turns out to be noise nobody reads, that is the moment to move `rua=` to a
+         free DMARC digest service instead. Do not skip step 2 for lack of a nicer report format:
+         unread reports are the same as no reports, and the policy stays at `p=none` for ever.*
       3. **Optional housekeeping:** add `include:amazonses.com` to the root SPF record. It is
          **not** the fix and SPF already passes without it, but the root currently announces that
          only iCloud sends for this domain while a third party sends from it. Costs nothing.
