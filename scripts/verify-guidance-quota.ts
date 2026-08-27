@@ -228,9 +228,34 @@ const SCHEDULE = read("convex/dunningSchedule.ts");
 /* The Free card, both languages. */
 check("the Free card advertises the enforced guidance limit",
   new RegExp('plans\\.freeF2">' + guidanceLimit + ' Gentle Guidance').test(PRICING));
+/* PINNED TO THE NUMBER, NOT TO THE SENTENCE.
+ *
+ * This used to require the bullet to read exactly "3 Journeys open at a time",
+ * which froze the copy: improving the line meant editing the test, and a test
+ * edited to match new copy proves nothing. What must actually hold is that the
+ * number the reader is told equals the number billing enforces.
+ *
+ * Matched as "<limit> open at a time" rather than a bare digit, because the
+ * bullet now also names the catalog size (34) and a loose digit search would
+ * find the 3 inside it and pass while asserting nothing. */
+const freeF3En = (PRICING.match(/plans\.freeF3">([^<]+)</) || [])[1] || "";
+const freeF3Es = (I18N.match(/'plans\.freeF3': '([^']+)'/) || [])[1] || "";
+check("the Free card bullet is readable at all", freeF3En.length > 10 && freeF3Es.length > 10);
 check("the Free card advertises the enforced journey limit",
-  new RegExp('plans\\.freeF3">' + journeyLimit + ' Journeys open at a time').test(PRICING));
-check("and in Spanish", new RegExp("'plans\\.freeF3': '" + journeyLimit + " Caminos abiertos a la vez").test(I18N));
+  freeF3En.includes(journeyLimit + " open at a time"));
+check("and in Spanish", freeF3Es.includes(journeyLimit + " abiertos a la vez"));
+
+/* THE CATALOG SIZE IS NOW A PROMISE TOO. "34 Journeys to walk" is on the
+ * pricing page and in the comparison table, so it is pinned to the file that
+ * actually holds them. Ship a 35th and the page has to say so. */
+const JOURNEY_DATA = read("public/declare/journey-data.js");
+const journeyCount = (JOURNEY_DATA.match(/from:'/g) || []).length;
+check("the Journey catalog has a countable size", journeyCount > 20);
+check("the Free card states the real number of Journeys", freeF3En.includes(String(journeyCount)));
+check("and Spanish states the same number", freeF3Es.includes(String(journeyCount)));
+check("the comparison table states it too",
+  new RegExp('plans\\.rCatalogN">' + journeyCount + '<').test(PRICING));
+check("and in Spanish", new RegExp("'plans\\.rCatalogN': '" + journeyCount + "'").test(I18N));
 check("Spanish guidance matches too",
   new RegExp("'plans\\.freeF2': '" + guidanceLimit + " respuestas").test(I18N));
 

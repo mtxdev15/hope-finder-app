@@ -80,10 +80,11 @@ import LegalFooter from '../components/LegalFooter.astro';
           <div class="pl-price"><span class="pl-amt">$0</span></div>
           <div class="pl-per" data-i18n="plans.forever">Always</div>
           <ul class="pl-list">
-            <li data-i18n="plans.freeF1">The full Bible and the whole Declare experience</li>
-            <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day</li>
-            <li data-i18n="plans.freeF3">3 Journeys open at a time, 5 days each</li>
-            <li data-i18n="plans.freeF4">Your declarations, reflections and Vault, kept</li>
+            <li data-i18n="plans.freeF2">3 Gentle Guidance responses a day, about 90 a month</li>
+            <li data-i18n="plans.freeF3">34 Journeys to walk, five days each, 3 open at a time</li>
+            <li data-i18n="plans.freeF1">The whole Bible in 8 translations, with search and highlights</li>
+            <li data-i18n="plans.freeF4">Your Vault: every verse, declaration, prayer and reflection you keep</li>
+            <li data-i18n="plans.freeLang">All of it in English and Spanish</li>
           </ul>
           <div class="pl-cta" id="plFreeCta">
             <a class="btn btn-ghost" href="/create-account" data-i18n="plans.freeCreate">Create a free account</a>
@@ -100,6 +101,7 @@ import LegalFooter from '../components/LegalFooter.astro';
             <span class="pl-cur" id="plPlusPer" data-i18n="plans.perMonth">/ month</span>
           </div>
           <div class="pl-per" id="plPlusNote" data-i18n="plans.billedMonthly">Billed monthly</div>
+          <div class="pl-per pl-reframe" data-i18n="plans.plusReframe">About $2 a week</div>
           <ul class="pl-list">
             <li data-i18n="plans.plusF1">Everything in Free</li>
             <li data-i18n="plans.plusF2">Gentle Guidance with no daily limit</li>
@@ -217,29 +219,52 @@ import LegalFooter from '../components/LegalFooter.astro';
           </thead>
           <tbody>
             <tr>
-              <th scope="row" data-i18n="plans.rScripture">Scripture and core support</th>
-              <td data-lbl="Free" data-i18n="plans.included">Included</td>
-              <td data-lbl="Plus" data-i18n="plans.included">Included</td>
-            </tr>
-            <tr>
-              <th scope="row" data-i18n="plans.rGuidance">Gentle Guidance</th>
+              <th scope="row"><span data-i18n="plans.rGuidance">Gentle Guidance</span>
+                <span class="pl-r-d" data-i18n="plans.rGuidanceD">Name what is weighing on you, in your own words. You receive Scripture that speaks to it, declarations to say out loud, and a prayer to pray.</span></th>
               <td data-lbl="Free" data-i18n="plans.rGuidanceFree">3 a day</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
             </tr>
             <tr>
-              <th scope="row" data-i18n="plans.rActive">Journeys open at a time</th>
+              <th scope="row"><span data-i18n="plans.rActive">Journeys open at a time</span>
+                <span class="pl-r-d" data-i18n="plans.rActiveD">A Journey is five days, walking from one place to another. Free keeps three open at once so you finish what you start.</span></th>
               <td data-lbl="Free" data-i18n="plans.rActiveFree">3</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
             </tr>
             <tr>
-              <th scope="row" data-i18n="plans.rNew">Starting new Journeys</th>
+              <th scope="row"><span data-i18n="plans.rCatalog">Journeys to choose from</span>
+                <span class="pl-r-d" data-i18n="plans.rCatalogD">Shame to Beloved. Anxiety to Peace. Grief to Comforted. Every one of them written out, five days each.</span></th>
+              <td data-lbl="Free" data-i18n="plans.rCatalogN">34</td>
+              <td data-lbl="Plus" data-i18n="plans.rCatalogN">34</td>
+            </tr>
+            <tr>
+              <th scope="row"><span data-i18n="plans.rNew">Starting new Journeys</span>
+                <span class="pl-r-d" data-i18n="plans.rNewD">There is no monthly cap on beginning one. The only limit is how many you keep open at the same time.</span></th>
               <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
             </tr>
             <tr>
-              <th scope="row" data-i18n="plans.rVault">Vault, reflections and declarations</th>
+              <th scope="row"><span data-i18n="plans.rBible">The Bible, 8 translations</span>
+                <span class="pl-r-d" data-i18n="plans.rBibleD">ASV, ESV, KJV, NIV, NKJV, NLT, WEB and Reina-Valera. Search it, read it by chapter, highlight what lands.</span></th>
+              <td data-lbl="Free" data-i18n="plans.included">Included</td>
+              <td data-lbl="Plus" data-i18n="plans.included">Included</td>
+            </tr>
+            <tr>
+              <th scope="row"><span data-i18n="plans.rHighlights">Highlights and saved verses</span>
+                <span class="pl-r-d" data-i18n="plans.rHighlightsD">Mark a verse while you read and it is there later, in your own colours.</span></th>
               <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
               <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row"><span data-i18n="plans.rVault">Vault, reflections and declarations</span>
+                <span class="pl-r-d" data-i18n="plans.rVaultD">Words, verses, declarations, prayers and what you wrote on a Journey. Gather them into collections you name yourself.</span></th>
+              <td data-lbl="Free" data-i18n="plans.unlimited">Unlimited</td>
+              <td data-lbl="Plus" data-i18n="plans.unlimited">Unlimited</td>
+            </tr>
+            <tr>
+              <th scope="row"><span data-i18n="plans.rLang">English and Spanish</span>
+                <span class="pl-r-d" data-i18n="plans.rLangD">Not a translation layer over an English app. Every response, every Journey and every email is written in the language you chose.</span></th>
+              <td data-lbl="Free" data-i18n="plans.included">Included</td>
+              <td data-lbl="Plus" data-i18n="plans.included">Included</td>
             </tr>
           </tbody>
         </table>
@@ -292,6 +317,38 @@ import LegalFooter from '../components/LegalFooter.astro';
         <details class="pl-q">
           <summary data-i18n="plans.q3">What if a payment fails?</summary>
           <p data-i18n="plans.a3">Nothing shuts off that day. Your Plus stays on for 16 days while we keep trying the card, and we email you along the way so nothing is a surprise. Most of the time it is simply an expired or replaced card, and updating it in Billing takes about a minute. If money is the reason, reply to any of those emails and tell us. We will work something out.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q5">Is Declare free?</summary>
+          <p data-i18n="plans.a5">Yes, and it stays free. Without paying anything you get 3 Gentle Guidance responses a day, 34 Journeys with 3 open at a time, the whole Bible in 8 translations, and a Vault that keeps everything you save. Plus takes the daily ceiling off. It does not unlock Scripture, because Scripture was never locked.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q6">What is Gentle Guidance?</summary>
+          <p data-i18n="plans.a6">You write down what is weighing on you, in your own words, exactly as it is. You get Scripture that speaks to that, declarations to say out loud, and a prayer to pray. It takes a few seconds and there is nothing to set up.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q7">What is a Journey?</summary>
+          <p data-i18n="plans.a7">Five days walking from one place to another. Shame to Beloved. Anxiety to Peace. Grief to Comforted. There are 34 of them, one day opens at a time, and what you write along the way is kept in your Vault.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q8">Do I need an account?</summary>
+          <p data-i18n="plans.a8">Not to begin. You can name a struggle and receive Scripture without signing up at all. An account is what lets you keep it: your Vault, your highlights, and Journeys past the first day.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q9">Is Declare available in Spanish?</summary>
+          <p data-i18n="plans.a9">Yes, all of it. Every response, every Journey, every email and the Bible itself, in Reina-Valera. It is not an English app with translated buttons.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q10">Is there an app for my phone?</summary>
+          <p data-i18n="plans.a10">Declare runs in your browser and is built for a phone first, so there is nothing to download. On iPhone, tap Share and then Add to Home Screen, and it opens like any other app.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q11">Is what I write private?</summary>
+          <p data-i18n="plans.a11">What you type is used to find Scripture for you and nothing else. It is never sold, never shown to anyone, and never used to train a model. What you save is yours and you can delete it.</p>
+        </details>
+        <details class="pl-q">
+          <summary data-i18n="plans.q12">Does Lifetime really never renew?</summary>
+          <p data-i18n="plans.a12">It is bought once and nothing renews. We keep no card on file, there is nothing to cancel, and every future Plus feature is included. Founding membership is limited to 200 people.</p>
         </details>
         <details class="pl-q">
           <summary data-i18n="plans.q4">Can I switch between monthly and annual?</summary>
@@ -1097,6 +1154,15 @@ import LegalFooter from '../components/LegalFooter.astro';
     .plans .pl-table tbody th { font-weight: 500; color: var(--text2); }
     .plans .pl-table td { color: var(--text2); }
     .plans .pl-table thead th:nth-child(3), .plans .pl-table td:nth-child(3) { color: var(--text); }
+
+    /* THE ROW EXPLAINS ITSELF, so the table can stay narrow on a phone.
+       PsalmLog's comparison table truncates mid-word on mobile ("Shepher",
+       "Unlimite") because it widens to fit four columns of prose. Ours keeps
+       two value columns and puts the prose under the feature name, where it
+       wraps instead of overflowing. Checked on a 390px viewport. */
+    .plans .pl-r-d { display: block; font-size: 12px; line-height: 1.5;
+      color: var(--muted); margin-top: 5px; font-weight: 400; max-width: 46ch; }
+    .plans .pl-reframe { margin-top: 2px; opacity: .85; }
 
     .plans .pl-cmp-note { font-size: 12.5px; line-height: 1.6; color: var(--muted);
       margin: 14px 0 0; text-align: center; }
