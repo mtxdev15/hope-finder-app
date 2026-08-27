@@ -87,6 +87,21 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
                 <button class="btn btn-ghost btn-view" id="viewTreeBtn"><svg class="leaf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 4-15 14-16-1 10-7 14-14 16z"/><path d="M6 20c3-4 6-7 12-13"/></svg><span data-i18n="journey.viewVine">View Vine</span></button>
               </div>
 
+              {/* ── D1: THE WAY TO CHOOSE ANOTHER ─────────────────────────
+                  On a desktop there was none at all. The only switch control
+                  was the mast's three-dot button, and sidebar.css hides the
+                  whole mast at 768px for the rail layout, so the listener
+                  attached, the sheets existed, and nothing ever painted.
+                  On a phone it was five taps deep behind an unlabeled glyph.
+
+                  So it lives on the card now, not in the chrome: a plain
+                  labelled control that cannot be hidden by a breakpoint it
+                  does not know about. */}
+              <button class="jc-switch" id="jcSwitch" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 19v-5h5"/></svg>
+                <span id="jcSwitchTxt">Choose a different journey</span>
+              </button>
+
               <div class="jc-foot">
                 <div class="dots" id="dayDots"></div>
                 <div class="remain" id="remainTxt">Just planted</div>
@@ -172,6 +187,9 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
             <div class="h"><span class="t" id="mjRootedH"></span><span class="c"><span id="doneCount">0</span> <span id="mjRootedC"></span></span></div>
             <div class="jgrid" id="jgrid"></div>
           </div>
+          {/* The same door as the one on the card, at the foot of the list
+              somebody is already reading to decide what to do next. */}
+          <button class="mj-new" id="mjNew" type="button"><span id="mjNewTxt">Choose a different journey</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         </section>
       </div>
 
@@ -373,7 +391,12 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       <div class="sheet" id="resetSheet" aria-hidden="true">
         <div class="grabber"></div>
         <h3 data-i18n="journey.beginDifferentQ">Begin a different journey?</h3>
-        <p><span data-i18n="journey.partwayPre">You&rsquo;re partway through </span><b id="resetShift"></b><span data-i18n="journey.partwayPost"> Only one journey grows at a time. Starting a new one sets this vine aside &mdash; your progress is kept, and you can return to it whenever you&rsquo;re ready.</span></p>
+        {/* D3. This sentence was false for as long as it existed: there was no
+            return path anywhere in the app, and picking that struggle again ran
+            beginJourney, which deleted the progress the sheet had just promised
+            to keep. It is true now, and it says WHERE, because a promise you
+            cannot act on is the same as no promise. */}
+        <p><span data-i18n="journey.partwayPre">You&rsquo;re partway through </span><b id="resetShift"></b><span data-i18n="journey.partwayPost"> Only one journey grows at a time. Starting a new one sets this vine aside. Your progress is kept, and it waits for you under My Journeys, on the day you left it.</span></p>
         <div class="sactions">
           <button class="btn btn-primary" id="resetGo" data-i18n="journey.chooseNewStruggle">Choose a new struggle</button>
           <button class="btn btn-ghost" id="resetKeep" data-i18n="journey.stayWithThis">Stay with this one</button>
@@ -818,6 +841,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     function renderHome() {
       $('fromW').textContent = cFrom(); $('toW').textContent = cTo();
       $('habitW').textContent = cLine();
+      $('jcSwitchTxt').textContent = tj('journey.mj.chooseAnother', 'Choose a different journey');
       $('dayPill').textContent = (esL() ? 'Día ' : 'Day ') + state.day + (esL() ? ' de ' : ' of ') + TOTAL;
       const n = completed(); $('remainTxt').textContent = n > 0 ? (n + (esL() ? (n === 1 ? ' fruto hasta ahora' : ' frutos hasta ahora') : ' fruit so far')) : (esL() ? 'Recién plantado' : 'Just planted');
       let dots = ''; for (let i = 1; i <= TOTAL; i++) { const cl = (i < state.day ? 'done' : (i === state.day ? 'cur' : '')); dots += '<i class="' + cl + (i < state.day ? ' tap' : '') + '" data-day="' + i + '"' + (i < state.day ? ' role="button" tabindex="0" aria-label="Revisit day ' + i + '"' : '') + '></i>'; } $('dayDots').innerHTML = dots;
@@ -1195,6 +1219,7 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     function renderMyJourneys() {
       const inv = currentInventory();
 
+      $('mjNewTxt').textContent = tj('journey.mj.chooseAnother', 'Choose a different journey');
       $('mjWalkH').textContent = tj('journey.mj.walking', 'Walking now');
       $('mjAsideH').textContent = tj('journey.mj.setAside', 'Set aside');
       $('mjRootedH').textContent = tj('journey.mj.rooted', 'Rooted');
@@ -2559,7 +2584,22 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       if (!ensureSignedIn(esL() ? 'Crea una cuenta gratis para guardar estos versículos en tu Bóveda.' : 'Create a free account to save these verses to your Vault.')) return;
       vaultSaveVerses(); toast(esL() ? 'Versículos guardados en la Bóveda' : 'Verses saved to Vault');
     });
-    $('mSwitch').addEventListener('click', function () { closeSheets(); setTimeout(function () { openSheet('resetSheet'); }, 140); });
+    /* ONE WAY TO REACH THE CHOOSER, from every control that offers it.
+       The switch-confirm only appears when there is actually something to set
+       aside — warning somebody about setting aside nothing is noise, and the
+       sheet's own copy would be false. */
+    function openChooseFlow(fromSheet) {
+      if (active && active.status === 'active') {
+        if (fromSheet) { closeSheets(); setTimeout(function () { openSheet('resetSheet'); }, 140); }
+        else { openSheet('resetSheet'); }
+        return;
+      }
+      closeSheets();
+      openChooseList();
+    }
+    $('mSwitch').addEventListener('click', function () { openChooseFlow(true); });
+    $('jcSwitch').addEventListener('click', function () { openChooseFlow(false); });
+    $('mjNew').addEventListener('click', function () { openChooseFlow(false); });
     $('resetKeep').addEventListener('click', closeSheets);
     $('resetGo').addEventListener('click', function () { closeSheets(); setTimeout(function () { openChooseList(); }, 140); });
 
@@ -2748,47 +2788,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
         saveLock(m);
       } catch (e) {}
     }
-    // Tapping a transformation literally plants it: a seed flies from the card
-    // into the new vine, the soil blooms, the sapling pulses, then Day 1 opens.
-    function plantAndBegin(cardEl) {
-      const id = cardEl.dataset.id;
-      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduce) { beginJourney(id, true); return; }
-      const screen = document.querySelector('.journey');
-      const icon = cardEl.querySelector('.zs-ic') || cardEl;
-      const r0 = icon.getBoundingClientRect();
-      beginJourney(id, false, true);          // render the living home (vine as a seed); hold the day flow
-      window.scrollTo(0, 0);
-      const sr = screen.getBoundingClientRect();
-      const vm = $('vineMount') || $('activeCard');
-      const rt = vm.getBoundingClientRect();
-      const startX = r0.left + r0.width / 2 - sr.left, startY = r0.top + r0.height / 2 - sr.top;
-      const endX = rt.left + rt.width / 2 - sr.left, endY = rt.top + rt.height * 0.66 - sr.top;
-      const dx = endX - startX, dy = endY - startY;
-      const seed = document.createElement('div'); seed.className = 'plant-seed';
-      seed.style.left = startX + 'px'; seed.style.top = startY + 'px'; screen.appendChild(seed);
-      const fly = seed.animate([
-        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0 },
-        { transform: 'translate(' + (dx * 0.55) + 'px,' + (dy * 0.55 - 46) + 'px) scale(.72)', opacity: 1, offset: .55 },
-        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.32)', opacity: 1, offset: 1 }
-      ], { duration: 760, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' });
-      fly.onfinish = function () {
-        const bloom = document.createElement('div'); bloom.className = 'plant-bloom';
-        bloom.style.left = endX + 'px'; bloom.style.top = endY + 'px'; screen.appendChild(bloom);
-        bloom.animate([
-          { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0 },
-          { transform: 'translate(-50%,-50%) scale(1)', opacity: .85, offset: .4 },
-          { transform: 'translate(-50%,-50%) scale(2.1)', opacity: 0 }
-        ], { duration: 680, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }).onfinish = function () { bloom.remove(); };
-        seed.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }).onfinish = function () { seed.remove(); };
-        if (vm) { try { vm.animate([{ transform: 'scale(.92)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 720, easing: 'cubic-bezier(.34,1.4,.5,1)' }); } catch (e) {} }
-        setTimeout(openAfterBegin, 360);
-      };
-    }
-    // plantAndBegin()/openAfterBegin() are kept, unmodified, for any future
-    // reuse — they are no longer called by the entry paths below (B2.1 routes
-    // every brand-new-journey pick through the Preview first instead), but
-    // deleting them isn't in scope for this pass.
+    /* plantAndBegin() lived here: a seed flew from the chosen card into the new
+       vine, the soil bloomed, then Day 1 opened. B2.1 routed every brand-new
+       pick through the Preview instead, and from that day nothing called it.
+       It was kept "for any future reuse", which is how a page grows a hundred
+       lines that no path can reach. The scale-pulse it ended on is the one
+       piece anything still wanted, and playPlantedTransition() already has it.
+       Its .plant-seed / .plant-bloom styles went with it. */
 
     // ---- B2.1: Journey Preview (side-effect-free until "Begin Day 1") ----
     // In-memory only — never written to localStorage. Discarded on cancel.
@@ -3126,11 +3132,11 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       setTimeout(function () { openDayOpening(); }, 380);   // B2.2 Day-Opening gate; sensitivity already resolved before Preview — never show the care gate again
     }
 
-    // Restrained, local, non-viewport-crossing acknowledgment that the
-    // journey now exists — reuses the same small scale-pulse already used at
-    // the end of plantAndBegin()'s flight animation (journey.astro ~line 989),
-    // without the seed-flight/bloom (which needs the now-gone chooser card's
-    // position). Respects prefers-reduced-motion by simply doing nothing.
+    // Restrained, local, non-viewport-crossing acknowledgment that the journey
+    // now exists: the same small scale-pulse the retired plant animation ended
+    // on, without the seed flight or the bloom (both needed the position of a
+    // chooser card that is no longer on screen by this point). Respects
+    // prefers-reduced-motion by simply doing nothing.
     function playPlantedTransition() {
       const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduce) return;
@@ -3417,7 +3423,6 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .mast .iconbtn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .mast .iconbtn:hover { color: var(--text); }
     .mast .iconbtn svg { width: 21px; height: 21px; }
-    @media (min-width: 481px) { .mast .mright { pointer-events: auto; } }
 
     /* header */
     .journey .jhead { padding: 8px 22px 2px 40px; }
@@ -3575,6 +3580,20 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .allj .h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 18px; }
     .journey .allj .h .t { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
     .journey .allj .h .c { font-size: 11px; color: var(--muted); }
+    /* The switch control, on the card rather than in the chrome. Quiet enough
+       not to compete with Continue, plain enough to be findable without
+       guessing what three dots mean. */
+    .journey .jc-switch { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; padding: 8px 2px;
+      background: none; border: 0; color: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: color .18s ease; }
+    .journey .jc-switch:hover { color: var(--goldd); }
+    .journey .jc-switch svg { width: 15px; height: 15px; }
+    .journey .mj-new { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      margin-top: 20px; padding: 13px; background: none; border: 1px dashed var(--line2); border-radius: 26px;
+      color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: .18s; }
+    .journey .mj-new:hover { color: var(--text); border-color: color-mix(in srgb, var(--gold) 34%, transparent); }
+    .journey .mj-new svg { width: 16px; height: 16px; }
+
     /* ---- My Journeys ----
        Organic rather than rectangular, per the Journey brief: each Journey
        reads as its own small living thing carrying its own count, not a row in
@@ -3669,13 +3688,6 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .zs-seeall { margin-top: 14px; }
 
     /* ===== plant-the-tree seed flight ===== */
-    .journey .plant-seed { position: absolute; z-index: 52; width: 16px; height: 16px; border-radius: 50%; pointer-events: none;
-      background: radial-gradient(circle at 50% 38%, #fff6dd, var(--gold) 58%, rgba(216, 184, 95, 0) 73%);
-      box-shadow: 0 0 22px 7px rgba(222, 190, 100, .55), 0 0 8px 2px rgba(255, 244, 210, .85);
-      transform: translate(-50%, -50%); will-change: transform, opacity; }
-    .journey .plant-bloom { position: absolute; z-index: 51; width: 120px; height: 120px; border-radius: 50%; pointer-events: none;
-      background: radial-gradient(circle, rgba(246, 234, 194, .55), rgba(216, 184, 95, .26) 42%, rgba(216, 184, 95, 0) 70%);
-      transform: translate(-50%, -50%); will-change: transform, opacity; }
 
     /* ============ DAY FLOW (viewport-fixed) ============ */
     /* Visually hidden but announced — carries the full "Day N of 5, Step N of

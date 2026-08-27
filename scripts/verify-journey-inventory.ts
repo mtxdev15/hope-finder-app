@@ -190,6 +190,41 @@ check("no answer stays null rather than becoming an empty list",
 check("and a thrown call stays null too",
   /catch\(function \(\) \{ openSlotIds = null;/.test(SLOTS.replace(/\s*\.\s*catch/g, ".catch").replace(/\.catch\(/g, "catch(")));
 
+/* ── 6b. D1: a way to choose another, on every viewport ──────────────────── */
+section("6b. The switch control cannot be hidden by a breakpoint");
+
+const SIDEBAR = read("public/declare/sidebar.css");
+/* This is why the old control did not exist on a desktop: it was injected into
+   the mast, and the rail layout hides the whole mast at 768px. The rule is
+   correct and stays; what was wrong was putting the only switch control inside
+   something the rule turns off. */
+check("the rail still hides the mast on desktop", /\.app-shell \.mast \{ display: none; \}/.test(SIDEBAR));
+check("so the switch control now lives on the card instead", /id="jcSwitch"/.test(PAGE));
+check("and is a labelled control, not a glyph", /id="jcSwitchTxt"/.test(PAGE));
+/* Nothing inside the mast may be the only way to reach the chooser again. */
+const injected = PAGE.slice(PAGE.indexOf("body > .mast"), PAGE.indexOf("body > .mast") + 900);
+check("the mast control is no longer the sole route",
+  /overflowBtn/.test(injected) && /id="jcSwitch"/.test(PAGE) && /id="mjNew"/.test(PAGE));
+
+const FLOW2 = code(body("openChooseFlow"));
+check("openChooseFlow was found", FLOW2.length > 0);
+check("it reaches the chooser", /openChooseList\(\)/.test(FLOW2));
+/* Warning somebody about setting aside nothing is noise, and the sheet's own
+   sentence would be false. */
+check("and only confirms when there is something to set aside",
+  /active\.status === 'active'/.test(FLOW2) && /openSheet\('resetSheet'\)/.test(FLOW2));
+for (const id of ["mSwitch", "jcSwitch", "mjNew"]) {
+  check(`${id} routes through that one funnel`,
+    new RegExp("\\$\\('" + id + "'\\)\\.addEventListener\\('click', function \\(\\) \\{ openChooseFlow\\(").test(PAGE));
+}
+
+/* Dead code that was left "for future reuse" and could not be reached. */
+check("plantAndBegin is gone", !/function plantAndBegin/.test(PAGE));
+check("and so are the styles only it used",
+  !/\.plant-seed \{/.test(PAGE) && !/\.plant-bloom \{/.test(PAGE));
+check("and the pointer-events rule left over from the retired top bar",
+  !/\.mast \.mright \{ pointer-events/.test(PAGE));
+
 /* ── 7. Both languages ───────────────────────────────────────────────────── */
 section("7. All of it in English and Spanish");
 

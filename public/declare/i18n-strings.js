@@ -624,6 +624,7 @@ window.__I18N_STRINGS = {
     'journey.mj.rooted': 'Arraigados',
     'journey.mj.open': 'Abrir',
     'journey.mj.elsewhere': 'Comenzado en otro dispositivo',
+    'journey.mj.chooseAnother': 'Elegir otro camino',
     'journey.declareAloudFinish': 'Decláralo en voz alta para terminar el día',
     /* Shown when Spanish chrome is displaying the immutable English original of
        a completed day, so the reader is never met by unexplained English. */
@@ -688,7 +689,7 @@ window.__I18N_STRINGS = {
     'journey.openPlusNote': 'Plus mantiene todos tus Caminos abiertos a la vez. $8.99 al mes, y los primeros 7 días son gratis.',
     'journey.openPlusCta': 'Ver Plus',
     'journey.partwayPre': 'Vas por la mitad de ',
-    'journey.partwayPost': ' Solo un camino crece a la vez. Comenzar uno nuevo deja esta vid a un lado; tu progreso se guarda y puedes volver a ella cuando quieras.',
+    'journey.partwayPost': ' Solo un camino crece a la vez. Comenzar uno nuevo deja esta vid a un lado. Tu progreso se guarda y te espera en Mis caminos, en el día donde lo dejaste.',
     'journey.chooseNewStruggle': 'Elige una nueva lucha',
     'journey.stayWithThis': 'Quédate con este',
     'journey.whatLayDown': '¿Qué estás listo para soltar?',

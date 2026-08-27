@@ -45,6 +45,7 @@ const read = (p: string) => readFileSync(new URL("../" + p, import.meta.url), "u
 
 const PAGE = read("src/pages/journey.astro");
 const POLICY = read("src/app/declare/journey-resume.js");
+const I18N = read("public/declare/i18n-strings.js");
 
 /* Pull one function's source out of the page so a claim about ITS body cannot
    be satisfied by an identical line somewhere else in a 3,000-line file. */
@@ -244,11 +245,19 @@ check("and re-enables the button that flag disabled",
 section("8. The reset sheet");
 
 check("the reset sheet still promises the progress is kept",
-  /your progress is kept, and you can return to it whenever/.test(PAGE));
-/* That sentence was false for as long as resumeJourney did not exist. Pinning
-   the two together means removing the mechanism fails the suite rather than
-   quietly turning the copy back into a lie. */
+  /Your progress is kept, and it waits for you under My Journeys/.test(PAGE));
+/* And it now says WHERE. A promise nobody can act on is the same as no
+   promise, and for as long as this sentence existed there was no return path
+   anywhere in the app. */
+check("and it names the surface that keeps it", /under My Journeys, on the day you left it/.test(PAGE));
+check("the Spanish says the same thing", /te espera en Mis caminos, en el día donde lo dejaste/.test(I18N));
+/* Pinning the copy to the mechanism means removing the mechanism fails the
+   suite rather than quietly turning the sentence back into a lie. */
 check("and resumeJourney exists to keep it", body("resumeJourney").length > 0);
+check("and My Journeys exists to be returned from", body("renderMyJourneys").length > 0);
+/* No em dash: locked brand rule, and this sentence used to carry one. */
+check("the promise carries no em dash",
+  !/Only one journey grows at a time[^<]*—/.test(PAGE));
 
 /* ── 9. The policy stays runnable ────────────────────────────────────────── */
 section("9. The rules stay executable");
