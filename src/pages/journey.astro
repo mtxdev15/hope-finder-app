@@ -142,11 +142,36 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
           <span><span data-i18n="journey.returnedPre">You&rsquo;ve returned </span><b id="returnDays">1 day</b><span data-i18n="journey.returnedPost">. Faithfulness is the win.</span></span>
         </div>
 
-        <button class="seeall" id="seeAll"><span class="lbl" data-i18n="journey.pastJourneys">Past journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        {/* ── MY JOURNEYS ────────────────────────────────────────────────
+            The front door that was missing. This used to be "Past journeys":
+            completions only, not reachable from the zero state, and the only
+            surface in the app that ever spoke about more than one Journey.
+
+            Meanwhile the app knew everything: db_journey_lock keeps a row per
+            struggle ever started on this device, myOpenJourneys returns the
+            reader's own open slots, and both were being read for exactly one
+            id. Somebody could reach Day 3 of Shame, switch, and have nothing
+            anywhere tell them Shame was still waiting.
+
+            Three groups now, all from records that already existed. The label
+            is set from JS rather than data-i18n because the toggle's text
+            changes as it opens, and two sources for one string is how a
+            heading ends up disagreeing with itself. */}
+        <button class="seeall" id="seeAll" aria-expanded="false" aria-controls="alljSection"><span class="lbl">My Journeys</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
 
         <section class="allj rise d4" id="alljSection" style="display:none">
-          <div class="h"><span class="t" data-i18n="journey.pastJourneys">Past journeys</span><span class="c"><span id="doneCount">0</span> rooted</span></div>
-          <div class="jgrid" id="jgrid"></div>
+          <div class="mj-grp" id="mjWalkGrp" style="display:none">
+            <div class="h"><span class="t" id="mjWalkH"></span></div>
+            <div class="mj-list" id="mjWalkList"></div>
+          </div>
+          <div class="mj-grp" id="mjAsideGrp" style="display:none">
+            <div class="h"><span class="t" id="mjAsideH"></span><span class="c" id="mjAsideC"></span></div>
+            <div class="mj-list" id="mjAsideList"></div>
+          </div>
+          <div class="mj-grp" id="mjRootedGrp">
+            <div class="h"><span class="t" id="mjRootedH"></span><span class="c"><span id="doneCount">0</span> <span id="mjRootedC"></span></span></div>
+            <div class="jgrid" id="jgrid"></div>
+          </div>
         </section>
       </div>
 
@@ -491,6 +516,10 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
        and executed by scripts/verify-journey-resume.ts — see the header of
        journey-resume.js for why they are not inline here. */
     import { resumeDecision, parkRecord, isSlotRefusal } from '../app/declare/journey-resume.js';
+    /* The three groups My Journeys shows, derived from records that already
+       existed. Pure and dependency-free like the rules above, and executed by
+       scripts/verify-journey-inventory.ts. */
+    import { buildInventory, inventoryHasAnything } from '../app/declare/journey-inventory.js';
     import { track } from '../app/declare/analytics.js';
     import { mergeActiveJourney, mergeDoneList, mergeLockMap } from '../app/declare/journey-merge.js';
     // journey progress follows the account when signed in — with merge policies,
@@ -809,14 +838,17 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       }
       $('returnDays').textContent = state.returned + (esL() ? (state.returned === 1 ? ' día' : ' días') : (' day' + (state.returned === 1 ? '' : 's')));
       $('resetShift').innerHTML = '&ldquo;' + cFrom() + ' &rarr; ' + cTo() + '.&rdquo;';
-      $('doneCount').textContent = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
+      /* The rooted count is renderMyJourneys()'s to write, and only its. It used
+         to be set here too, from CATALOG statuses rather than from the same
+         inventory the list below it is built from — two sources for one number,
+         which is how a heading ends up disagreeing with the rows under it. */
       buildVine();
       renderFruitPreview();
       renderFruitLog();
       /* Cache inspection only — never a translation. A Fruit Log whose days were
          all prepared earlier can be Spanish immediately and for free. */
       try { refreshFruitLogEs(); } catch (e) {}
-      renderGrid();
+      syncMyJourneys();
       // Hybrid: quietly upgrade today's card with a freshly generated plan.
       const todayEl = document.querySelector('.today');
       const generating = window.JourneyEngine && !active._ai[state.day - 1];
@@ -1092,11 +1124,126 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       } catch (e) { return null; }
     }
 
+    /* ── MY JOURNEYS ─────────────────────────────────────────────────────────
+     *
+     * The reader's own open slots as the SERVER counts them. Null until we have
+     * asked, and null forever for a signed-out reader — which is not the same
+     * as an empty list and must never be flattened into one. buildInventory()
+     * takes the device records as primary for exactly that reason: the 3am user
+     * is usually not signed in, and their Journeys are no less real for it.
+     *
+     * Asked once per page load. This list changes when the reader starts, ends
+     * or reclaims a Journey, and every one of those goes through this page, so
+     * a second round trip would tell us nothing the local records do not
+     * already say. */
+    let openSlotIds = null;
+    let openSlotsAsked = false;
+    function refreshOpenSlots() {
+      if (openSlotsAsked) return Promise.resolve(openSlotIds);
+      openSlotsAsked = true;
+      try {
+        return Promise.resolve(journeysOpen())
+          .then(function (rows) {
+            openSlotIds = Array.isArray(rows) ? rows.map(function (r) { return r && r.journeyId; }).filter(Boolean) : null;
+            return openSlotIds;
+          })
+          .catch(function () { openSlotIds = null; return null; });
+      } catch (e) { return Promise.resolve(null); }
+    }
+
+    function currentInventory() {
+      return buildInventory({
+        knownIds: CATALOG.map(function (c) { return c.id; }),
+        activeId: (active && active.status === 'active') ? active.id : null,
+        lockMap: loadLock(),
+        doneList: loadDone(),
+        openIds: openSlotIds,
+      });
+    }
+
+    /* ONE JOURNEY, CARRYING ITS OWN STATE — the card language the brief asks
+       for: not a row in a table, a small living thing holding its own count.
+       The ring is the day count made visible rather than a number next to a
+       bar. Five fifths, the COMPLETED ones filled in gold, which is the same
+       thing the Vine says with its fruit. */
+    function mjCard(entry, kind) {
+      const c = CATALOG.find(function (x) { return x.id === entry.id; });
+      if (!c) return '';
+      const done = Math.max(0, (entry.day | 0) - 1);
+      const known = entry.dayKnown !== false;
+      const sub = known
+        ? (esL() ? ('Día ' + entry.day + ' de ' + TOTAL) : ('Day ' + entry.day + ' of ' + TOTAL))
+        : tj('journey.mj.elsewhere', 'Started on another device');
+      let action;
+      if (kind === 'walking') action = tj('journey.mj.open', 'Open');
+      else if (!known || entry.day <= 1) action = esL() ? 'Comenzar el Día 1' : 'Begin Day 1';
+      else action = (esL() ? 'Retomar el Día ' : 'Resume Day ') + entry.day;
+      return '<button type="button" class="mj-card' + (kind === 'walking' ? ' on' : '') + '" data-id="' + c.id + '">'
+        + '<span class="mj-ring" style="--d:' + (known ? done : 0) + '" aria-hidden="true">'
+        +   '<span class="mj-ring-n">' + (known ? entry.day : '&middot;') + '</span></span>'
+        + '<span class="mj-body">'
+        +   '<span class="mj-nm">' + cFrom(c) + ' <span class="a2">&rarr;&nbsp;' + cTo(c) + '</span></span>'
+        +   '<span class="mj-sub">' + sub + '</span>'
+        + '</span>'
+        + '<span class="mj-go">' + action + '</span>'
+        + '</button>';
+    }
+
+    /* Renders all three groups. Every heading is written from here rather than
+       from data-i18n, because two of them change with their counts and a
+       heading with two sources is how one ends up disagreeing with itself. */
+    function renderMyJourneys() {
+      const inv = currentInventory();
+
+      $('mjWalkH').textContent = tj('journey.mj.walking', 'Walking now');
+      $('mjAsideH').textContent = tj('journey.mj.setAside', 'Set aside');
+      $('mjRootedH').textContent = tj('journey.mj.rooted', 'Rooted');
+      /* The count is silent at zero: the empty state already says, in a whole
+         sentence, that nothing has rooted yet. "0 journeys" beside it is the
+         same fact twice, and the second time it reads as a score. */
+      const rn = inv.rooted.length;
+      $('mjRootedC').textContent = rn ? (esL() ? (rn === 1 ? 'camino' : 'caminos') : (rn === 1 ? 'journey' : 'journeys')) : '';
+      $('doneCount').textContent = rn ? String(rn) : '';
+
+      $('mjWalkGrp').style.display = inv.walking.length ? 'block' : 'none';
+      $('mjWalkList').innerHTML = inv.walking.map(function (e) { return mjCard(e, 'walking'); }).join('');
+
+      $('mjAsideGrp').style.display = inv.setAside.length ? 'block' : 'none';
+      $('mjAsideList').innerHTML = inv.setAside.map(function (e) { return mjCard(e, 'aside'); }).join('');
+      const n = inv.setAside.length;
+      $('mjAsideC').textContent = esL()
+        ? (n + (n === 1 ? ' esperando' : ' esperando'))
+        : (n + (n === 1 ? ' waiting' : ' waiting'));
+
+      /* Every card is a way back in, and the rule for what "back in" means is
+         the same one every other entry point uses. A Journey left on Day 1 has
+         nothing to restore, so it goes to Preview and the label above says so. */
+      $('alljSection').querySelectorAll('.mj-card').forEach(function (el) {
+        el.addEventListener('click', function () {
+          const id = el.dataset.id;
+          if (active && active.status === 'active' && active.id === id) {
+            closeSheets();
+            $('activeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+          beginNewJourneyFlow(id, 'myJourneys');
+        });
+      });
+
+      renderGrid();
+    }
+
+    /* Shown only when there is something to show. Three empty groups are not a
+       front door, they are noise in front of somebody who has not started. */
+    function myJourneysHasContent() {
+      try { return inventoryHasAnything(currentInventory()); } catch (e) { return false; }
+    }
+
     function renderGrid() {
       const box = $('jgrid');
       const done = CATALOG.filter(function (c) { return c.status === 'done'; });
       if (!done.length) {
-        box.innerHTML = '<div class="jgrid-empty">' + (esL() ? 'Aún no hay caminos arraigados. Termina este y quedará guardado aquí.' : 'No rooted journeys yet. Finish this one and it will be kept here.') + '</div>';
+        box.innerHTML = '<div class="jgrid-empty">' + (esL() ? 'Aún no hay caminos arraigados. Termina uno y quedará guardado aquí, con su fruto.' : 'Nothing rooted yet. Finish a journey and it is kept here, with its fruit.') + '</div>';
         return;
       }
       box.innerHTML = done.map(function (c) {
@@ -2310,13 +2457,40 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
 
     // ---- see all journeys (focused by default; user chooses to reveal the rest) ----
     let seenAll = false;
+    function mjToggleLabel() {
+      $('seeAll').querySelector('.lbl').textContent = seenAll
+        ? tj('journey.mj.hide', 'Hide my journeys')
+        : tj('journey.mj.title', 'My Journeys');
+    }
     $('seeAll').addEventListener('click', function () {
       seenAll = !seenAll;
       $('alljSection').style.display = seenAll ? 'block' : 'none';
       this.classList.toggle('open', seenAll);
-      this.querySelector('.lbl').textContent = seenAll ? (esL() ? 'Ocultar caminos anteriores' : 'Hide past journeys') : (esL() ? 'Caminos anteriores' : 'Past journeys');
-      if (seenAll) { renderGrid(); setTimeout(function () { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 60); }
+      this.setAttribute('aria-expanded', seenAll ? 'true' : 'false');
+      mjToggleLabel();
+      if (seenAll) {
+        renderMyJourneys();
+        /* The server's answer only ever ADDS rows — a Journey begun on another
+           device. Rendering from the device first means the list is never
+           waiting on a network call, and the second render is a quiet fill-in
+           rather than a flash of nothing. */
+        refreshOpenSlots().then(function () { if (seenAll) renderMyJourneys(); });
+        setTimeout(function () { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 60);
+      }
     });
+
+    /* My Journeys is reachable in EVERY state that has anything in it,
+       including the zero state — which is the one moment somebody is deciding
+       what to do next, and the exact moment the old "Past journeys" section
+       was hidden. */
+    function syncMyJourneys() {
+      const has = myJourneysHasContent();
+      $('seeAll').style.display = has ? '' : 'none';
+      if (!has) { seenAll = false; $('alljSection').style.display = 'none'; $('seeAll').setAttribute('aria-expanded', 'false'); }
+      $('alljSection').style.display = (has && seenAll) ? 'block' : 'none';
+      mjToggleLabel();
+      if (has && seenAll) renderMyJourneys();
+    }
 
     // ---- sheets ----
     const scrim = $('scrim');
@@ -3008,14 +3182,13 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     // ---- home mode: the active-journey card vs. the zero state ----
     function showActiveUI() {
       $('activeCard').style.display = ''; const rl = document.querySelector('.returnline'); if (rl) rl.style.display = '';
-      $('seeAll').style.display = ''; $('alljSection').style.display = seenAll ? 'block' : 'none';
-      $('zeroState').style.display = 'none'; renderHome();
+      $('zeroState').style.display = 'none'; renderHome();   // renderHome() ends in syncMyJourneys()
     }
     function showZeroUI() {
       $('activeCard').style.display = 'none'; $('fruitLog').style.display = 'none';
       const rl = document.querySelector('.returnline'); if (rl) rl.style.display = 'none';
-      $('seeAll').style.display = 'none'; $('alljSection').style.display = 'none';
       $('zeroState').style.display = 'block';
+      syncMyJourneys();   // the zero state is exactly when this matters most
     }
     function renderZero(withNod) {
       const done = CATALOG.filter(function (c) { return c.status === 'done'; }).length;
@@ -3208,8 +3381,18 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
       // Brand-new visitor — no journey ever planted. Open the honest zero state.
       showZeroUI(); renderZero(loadDone().length > 0);
     }
+
+    /* Ask the server what it has open, once, after the page has already drawn
+       itself from the device. A signed-in reader on a NEW device has no local
+       records at all, so without this My Journeys would tell them they have
+       never started anything — which is worse than saying nothing. */
+    function primeOpenSlots() {
+      refreshOpenSlots().then(function (ids) {
+        if (ids && ids.length) syncMyJourneys();
+      });
+    }
     // Build from synced state once the account's data has come down (instant for guests).
-    whenSynced().then(init);
+    whenSynced().then(init).then(primeOpenSlots);
   </script>
 
   <style is:global>
@@ -3392,6 +3575,44 @@ const JOURNEY_ES_CONTENT = import.meta.env.DEV && import.meta.env.PUBLIC_JOURNEY
     .journey .allj .h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 18px; }
     .journey .allj .h .t { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--goldd); font-weight: 700; }
     .journey .allj .h .c { font-size: 11px; color: var(--muted); }
+    /* ---- My Journeys ----
+       Organic rather than rectangular, per the Journey brief: each Journey
+       reads as its own small living thing carrying its own count, not a row in
+       a table. The ring is the day count made visible — five fifths, the
+       COMPLETED ones filled in gold, which is the same thing the Vine says with
+       its fruit. One shared unit, so a card and the vine never disagree. */
+    .journey .mj-grp + .mj-grp { margin-top: 26px; }
+    .journey .mj-list { display: flex; flex-direction: column; gap: 10px; }
+    .journey .mj-card { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+      padding: 12px 15px; border: 1px solid var(--line); border-radius: 26px; background: var(--surface);
+      box-shadow: var(--chip-shadow); cursor: pointer; font-family: inherit;
+      transition: border-color .2s ease, transform .15s ease, background .2s ease; }
+    .journey .mj-card:hover { border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+    .journey .mj-card:active { transform: scale(.99); }
+    /* The one being walked right now, so the list never makes somebody hunt for
+       where they already are. */
+    .journey .mj-card.on { border-color: color-mix(in srgb, var(--gold) 46%, transparent);
+      background: color-mix(in srgb, var(--gold) 7%, var(--surface)); }
+    .journey .mj-ring { position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: conic-gradient(from -90deg, var(--gold) calc(var(--d, 0) * 72deg),
+        color-mix(in srgb, var(--gold) 15%, transparent) 0); }
+    .journey .mj-ring::after { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--surface); }
+    .journey .mj-card.on .mj-ring::after { background: color-mix(in srgb, var(--gold) 7%, var(--surface)); }
+    .journey .mj-ring-n { position: relative; z-index: 1; font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-weight: 600; color: var(--text); line-height: 1; }
+    .journey .mj-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .journey .mj-nm { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--text);
+      font-weight: 600; line-height: 1.15; }
+    .journey .mj-nm .a2 { color: var(--muted); }
+    .journey .mj-sub { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+    .journey .mj-go { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--goldd);
+      letter-spacing: .04em; white-space: nowrap; }
+    /* Narrow phones: the action moves under the name rather than squeezing it. */
+    @media (max-width: 359px) {
+      .journey .mj-card { flex-wrap: wrap; }
+      .journey .mj-go { width: 100%; padding-left: 57px; }
+    }
     .journey .jgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
     .journey .cell { position: relative; border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: var(--surface);
       box-shadow: var(--chip-shadow); display: flex; align-items: flex-start; gap: 11px; cursor: pointer; transition: border-color .2s ease, transform .15s ease; }

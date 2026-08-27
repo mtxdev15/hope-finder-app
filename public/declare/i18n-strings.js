@@ -615,6 +615,15 @@ window.__I18N_STRINGS = {
     'journey.returnedPre': 'Has vuelto ',
     'journey.returnedPost': '. La fidelidad es la victoria.',
     'journey.pastJourneys': 'Caminos anteriores',
+    /* My Journeys — the surface that replaced "Past journeys". Three groups:
+       what is being walked, what was set aside, what has rooted. */
+    'journey.mj.title': 'Mis caminos',
+    'journey.mj.hide': 'Ocultar mis caminos',
+    'journey.mj.walking': 'Caminando ahora',
+    'journey.mj.setAside': 'Apartados',
+    'journey.mj.rooted': 'Arraigados',
+    'journey.mj.open': 'Abrir',
+    'journey.mj.elsewhere': 'Comenzado en otro dispositivo',
     'journey.declareAloudFinish': 'Decláralo en voz alta para terminar el día',
     /* Shown when Spanish chrome is displaying the immutable English original of
        a completed day, so the reader is never met by unexplained English. */
