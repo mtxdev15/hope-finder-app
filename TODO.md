@@ -260,15 +260,50 @@ real charges instead of two.
       *If anything here is wrong, fix it before C2. A broken refusal screen in front of the
       3am user cannot be taken back, and the flag can wait a day.*
 
-- [ ] **DEPLOY the operator-alert send fix.** `notifyOperator` now writes a `dunningSends` row
-      so a bounced alert is visible; that change is committed and pushed but **not deployed**.
-      ```bash
-      git pull && npx convex deploy
+- [x] ~~**DEPLOY the operator-alert send fix.**~~ **Done 2026-08-27, deployed and seen working.**
+      `notifyOperator` records its send, and every email now carries
+      `Reply-To: support@declareandbelieve.com`. Both confirmed by running the real function
+      against production and reading the delivered message, not by reasoning about the code.
+
+- [ ] **EMAIL DELIVERABILITY — what was actually found, and what is left.**
+      *Investigated 2026-08-27 after the first operator alert landed in Junk at iCloud.*
+
+      **Authentication is not the problem, and this is measured rather than assumed.** The
+      `Authentication-Results` headers on a real delivered message read:
       ```
-      *Why it matters here specifically:* `OPERATOR_EMAIL` is `support@declareandbelieve.com`,
-      which **forwards** to iCloud, and a forward is exactly the arrangement where a delivery
-      fails quietly. Without the row, `onEmailEvent` has nothing to attach a bounce to and not
-      receiving an alert looks identical to nothing having gone wrong.
+      dmarc=pass  header.from=declareandbelieve.com
+      dkim=pass   header.d=declareandbelieve.com     (ours, aligned with From)
+      dkim=pass   header.d=amazonses.com
+      spf=pass
+      ```
+      Two valid DKIM signatures, SPF pass, DMARC pass. **Do not go looking for a DNS fault.**
+      The 12 Cloudflare records are correct as they stand: root SPF authorises iCloud, the
+      `send.` subdomain authorises Amazon and is what Resend actually authenticates against,
+      `resend._domainkey` and `sig1._domainkey` are both live, and `_dmarc` is published.
+
+      Junk placement is therefore a REPUTATION and CONTENT decision made after authentication
+      cleared. Three things stacked: the domain had sent one email in its entire life; Apple
+      hosts this domain's mailboxes and received mail from it via a third party; and a payment
+      email from a no-reply address carrying a link is phishing-shaped whatever its contents.
+
+      **Corrections to earlier notes in this file and elsewhere:** `support@declareandbelieve.com`
+      does **not** forward. The MX records are `mx01`/`mx02.mail.icloud.com`, so it is an iCloud
+      Custom Email Domain with direct delivery, and SPF never breaks in transit. Any note here
+      reasoning about a forwarding hop was wrong.
+
+      **Still open, in order:**
+      1. **Confirm `dmarcreports@declareandbelieve.com` is a real mailbox.** `_dmarc` asks the
+         world to send reports there. If the alias does not exist, every report is bouncing and
+         nothing is being collected. This gates step 2.
+      2. **Then move `_dmarc` from `p=none` to `p=quarantine`,** after two to four weeks of clean
+         reports. Both sending sources authenticate, which the headers above prove, so this is
+         safe. It is also what `bimi=skipped reason="insufficient dmarc"` in those same headers
+         is complaining about. Do not tighten before reading reports.
+      3. **Optional housekeeping:** add `include:amazonses.com` to the root SPF record. It is
+         **not** the fix and SPF already passes without it, but the root currently announces that
+         only iCloud sends for this domain while a third party sends from it. Costs nothing.
+
+      *Nothing here blocks launch. Recorded so the next person does not re-derive it.*
 
 - [ ] **GTM → GA4 — map the six new events.** *Deliberately deferred 2026-08-27, owner's call.*
       The code pushes to `window.dataLayer` and is verified doing so against the real minified
