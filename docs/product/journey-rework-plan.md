@@ -112,6 +112,97 @@ Animate `transform` and `opacity` only, with a reduced-motion fade.
 
 ---
 
+## Modernizing the experience — what the research found
+
+*Added 2026-08-27, after the owner asked to "research the best way we can modernize
+this experience, better than what's out there... an ahh ha moment, a spiritual
+moment, an uplifting moment."*
+
+### The finding, stated plainly
+
+**The aha moment was already designed, already paid for, and was built at about
+sixty percent.** The gap between `/journey` today and something nobody else in the
+category has is not imagination. It is finish.
+
+The competitive scan is short because it points the same way. Glorify is the
+best-designed app in the Christian devotional category, and its own stated
+differentiator is *no streak shame, no badge counter* — which is already this
+brief's §5 position (*"No percentage meter... You've returned 4 days. Faithfulness
+is the win"*). Open, the reference the brief names for atmosphere, sells on
+design-forward calm and one signature interaction, the breath ring. **Neither has
+anything like the Vine.** A growing, pruning, fruiting picture of John 15 that is
+*yours* and changes as you abide is not something a competitor can copy, because it
+is theology rather than a widget.
+
+So the work is not to out-design Open. It is to ship the thing already specified
+that Open cannot have.
+
+### Four gaps between the brief and the build
+
+**1. The Vine is a photo crossfade, not a vine.** `public/declare/the-vine.js` is 167
+lines that cross-fade three JPGs (`tree-dead.jpg` → `tree-budding.jpg` →
+`tree-alive.jpg`) and position glowing gold dots over the result. Brief §5 specified
+something structurally different: **one constant central vine** (Jesus, John 15:5),
+**one muted branch carrying the lie that dims and recedes** as days complete, and
+**one branch of truth that thickens and brightens**. The current build cannot dim a
+lie-branch because there is no lie-branch; the entire picture swaps. The named,
+tappable fruit *is* built and works.
+
+This is the largest gap between "a nice wellness app" and the thing only this app
+has, and the most expensive item here: it needs an illustrator or a generative SVG,
+not a code change.
+
+**2. The ritual ends on a chore instead of a blessing.** Brief §6 specifies nine
+movements ending **Reflect → Pray (seal) → Action (optional)**. The build has seven,
+and **Pray was moved to position two**: Receive → Pray → Cast off → Repent → Declare
+→ Reflect → *Take it into your day*. The day now finishes on homework. The last beat
+is the one a person carries. Missing entirely: **Arrive** (one breath before
+anything, §6.1) and **Confess** (name the lie in your own words, §6.3).
+
+Cheapest fix on this list, largest felt effect: reorder, and add one breath screen at
+the top.
+
+**3. `/journey` is the least atmospheric page in the app.** `public/declare/
+atmosphere.js` and `public/declare/smoothscroll.js` (vendored Lenis) both exist,
+respect reduced motion, and ship on the marketing pages. **Neither loads on
+`/journey`** — confirmed by reading the script tags. The cinematic field brief §4
+asked for is on the pages that *sell* the ritual and not on the ritual itself. Two
+script tags.
+
+**4. The self-check does not exist.** Brief §9: after Pray, *Does this feel true
+yet?* with **Not yet · Getting there · Yes**, and completion defined by the truth
+landing rather than the calendar ending. Nothing in the codebase implements it
+(`public/declare/rate.js` is the unrelated app-rating prompt). This is what turns a
+five-day content drip into a Journey that answers you, and it is the honest basis
+for offering an extra day as invitation rather than as an upsell.
+
+### Beyond the brief: three ideas worth having
+
+- **Make the Vine the object that travels.** It appears on exactly one screen. The
+  same vine, at each Journey's own stage, belongs on the My Journeys cards, in the
+  chooser preview, and cut into the share card at Journey complete. That is what
+  turns it from a progress graphic into the app's continuity object, the thing a
+  person recognises as theirs.
+- **The Fruit Log is the collectible that is not a collectible.** It exists and holds
+  real authored fruit names and truths. Make it revisitable, and cut the share card
+  from it. A record of grace, never a trophy case.
+- **The 34 as a garden.** The chooser now lists all 34 with their state; the natural
+  next step is arrangement rather than a list. What has rooted, what is growing, what
+  is still seed.
+
+### If only three things get done
+
+1. **Reorder the ritual so the day ends on the prayer**, and add the Arrive breath.
+2. **Load `atmosphere.js` and `smoothscroll.js` on `/journey`.**
+3. **Build the real Vine.** Expensive, needs a designer, and it is the actual answer
+   to the question that was asked.
+
+The self-check and the three "beyond" ideas wait behind those. **None of this blocks
+billing**, and none of it should start before the courtroom pass and the manual walk,
+or this becomes another drift.
+
+---
+
 ## The work
 
 ### 1. Make a Journey resumable by id  ← everything else depends on this
