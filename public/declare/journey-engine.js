@@ -378,7 +378,7 @@
         'Out of hiding \u2014 confessed, cleansed, and unashamed',
         'Self-contempt is not humility \u2014 He lifts your head',
         'Mercy remembers your sin no more \u2014 as far as east from west',
-        'Adopted, not on trial \u2014 you cry \u201cAbba, Father\u201d',
+        'Adopted, not proving yourself. You cry \u201cAbba, Father\u201d',
         'The blame ends \u2014 you stop hiding and stop accusing'
       ]
     },
