@@ -338,7 +338,12 @@ npm run build && ls dist/dev          # must NOT exist
 for f in scripts/verify-*.ts; do node --experimental-strip-types "$f"; done
 ```
 
-Baseline at the time of writing: 20 suites, 3,684 checks, all green.
+Baseline when this plan was written: 20 suites, 3,684 checks.
+**After the rework: 23 suites, 3,882 checks, all green**, plus two browser walks
+(`scripts/browser/journey-resume-walk.mjs`, 18 checks; `journey-switch-reach.mjs`,
+21 checks at two viewports). 71 deliberate breaks across the new assertions, all
+71 caught; five were too loose on the first pass and were tightened until the
+mutation failed them.
 
 **Add executable assertions for the new behaviour, and break each one before trusting
 it.** That is the house standard and it has caught two real bugs. Specifically worth
