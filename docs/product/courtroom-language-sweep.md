@@ -164,9 +164,8 @@ truth."*
 **:1496 declare.** *"My drought is a season, not a sentence."*
 → *"My drought is a season. It is not the rest of my life."*
 
-*This is the one place where the original is genuinely better as a phrase. "A
-season, not a sentence" has a rhythm the replacement does not. If the rule can
-bend anywhere, it is here, and again that is your call.*
+**DECIDED: KEPT, both places, as a rule-level exception.** See the top. "Sentence"
+here means a length of time, not a ruling, and no replacement matched the rhythm.
 
 ### The generated-day fallback (`journey-engine.js:381`)
 

@@ -456,7 +456,7 @@
       {title:'Not Mine to Repay', fruit:'Trust', fruitTruth:'Vengeance belongs to God, not you.',
        ref:'Romans 12:19', ver:'ESV', verse:'Beloved, never avenge yourselves, but leave it to the wrath of God, for it is written, “Vengeance is mine, I will repay, says the Lord.”',
        insight:'Bitterness is anger that moved in and started keeping records — a ledger of what they owe you, replayed at 2am. The lie says if you let it go, they get away with it, so you have to hold the debt and someday collect. But God lifts that weight: vengeance is mine, I will repay. He isn’t saying the wrong didn’t matter — He’s saying it matters so much He’ll handle it Himself, justly, better than you ever could. You don’t have to be the judge. Hand Him the gavel and put the ledger down.',
-       prayerTitle:'You Are the Judge', pray:'Father, I’ve been holding their debt, replaying it, waiting to collect. I hand You the right to repay. You are the just Judge — I lay the ledger down.',
+       prayerTitle:'You Settle It', pray:'Father, I’ve been holding their debt, replaying it, waiting to collect. I hand You the right to repay. You are the just Judge — I lay the ledger down.',
        castOff:'If I let this go, they get away with it. I have to hold onto this and make sure they pay.',
        repent:'Lord, I repent of appointing myself judge. I turn from the ledger I’ve been keeping, and I trust You to repay justly. It’s not mine to carry.',
        declare:'Vengeance belongs to God, not me. I hand Him the right to repay. I lay the ledger down, and I am free of carrying it.',
@@ -858,7 +858,7 @@
        actionTitle:'Stand on the Victory', action:'Name the area you felt most attacked, and declare over it: “This was settled at the cross. I stand in Jesus’ finished victory.”'}
     ],
     failure:[
-      {title:'Not Your Verdict', fruit:'Honesty', fruitTruth:'A failure is an event, not your name.',
+      {title:'Not Your Name', fruit:'Honesty', fruitTruth:'A failure is an event, not your name.',
        ref:'Romans 8:1', ver:'ESV', verse:'There is therefore now no condemnation for those who are in Christ Jesus.',
        insight:'A setback has a way of changing tenses on you. “I failed” quietly becomes “I am a failure” — an event hardens into an identity, and the world agrees: you are only as good as your last result. But God reads a different verdict over you. In Christ there is no condemnation, not one. He doesn’t define you by the worst line on your record; He defines you by His Son. The failure happened. It is not your name.',
        prayerTitle:'No Condemnation', pray:'Father, I’ve let a failure become my whole identity. Thank You that in Christ there is no condemnation over me. Speak my real name louder than my worst result.',
@@ -1199,7 +1199,7 @@
       {title:'No Condemnation', fruit:'Surrender', fruitTruth:'There is no condemnation, even for this.',
        ref:'Romans 8:1', ver:'ESV', verse:'There is therefore now no condemnation for those who are in Christ Jesus.',
        insight:'Self-sabotage feeds on self-condemnation — each slip becomes proof you’re hopeless, and the shame drives the next slip in a punishing loop. The lie says you have to beat yourself up to change. But shame has never produced lasting change; it only fuels the cycle. God breaks the loop with a stunning word: no condemnation, now, even for this. He isn’t standing over you with a verdict; He’s inviting you out of the courtroom entirely. You don’t change by punishing yourself harder. You change in the safety of grace, where you’re finally free enough to stop sabotaging and start growing.',
-       prayerTitle:'Out of the Courtroom', pray:'Father, I’ve been beating myself up, thinking shame would make me change, and it only fuels the cycle. Thank You that there is no condemnation in Christ. Lead me out of the courtroom into grace.',
+       prayerTitle:'Out of That Room', pray:'Father, I’ve been beating myself up, thinking shame would make me change, and it only fuels the cycle. Thank You that there is no condemnation in Christ. Lead me out of the courtroom into grace.',
        castOff:'I have to punish myself to change. Every slip proves I’m hopeless, and I deserve the shame.',
        repent:'Lord, I repent of trusting self-condemnation to change me. I turn from the punishing loop, and I receive that there is no condemnation in Christ.',
        declare:'There is no condemnation for me in Christ — even for this. I don’t change by punishing myself. I grow in the safety of grace.',
