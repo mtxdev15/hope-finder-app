@@ -38,7 +38,11 @@ on Day 3, come back to Day 3.
 Work order, from the plan: **(1) resume-by-id** (everything else depends on it, and it
 dissolves D2 and D3), (2) the *My Journeys* screen, (3) a reachable chooser on every
 viewport, (4) make all 34 browsable, (5) verify Gentle Guidance shows what's left
-*before* the wall, (6) the courtroom-language sweep (16 hits in `journey-data.js`).
+*before* the wall, (6) the courtroom-language sweep. **All six are done as of
+2026-08-27**, along with a defect nobody had reported (the Preview's commit button
+was dead on the second Journey of a page session) and a 29th courtroom hit the
+guard found on its first run. What is left before billing is the owner's own walk
+on the live site, on a phone and on a desktop.
 
 `PRICING_ENABLED` stays `false` until this is done and walked by hand on a phone
 **and** a desktop.

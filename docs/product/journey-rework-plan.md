@@ -314,15 +314,19 @@ fine. The ban is on courtroom framing.*
 Identifiers named `verdict` in `convex/` and `src/app/declare/` are internal and not
 user-visible. Leave them.
 
-**PROPOSED, NOT APPLIED, 2026-08-27.** The full inventory with a drafted rewrite for
-every hit is at [`docs/product/courtroom-language-sweep.md`](courtroom-language-sweep.md).
-It is 24 rewrites in Journey content plus 4 on marketing pages, and it names three
-classes of false positive that a search finds and that must **not** be touched:
-"sentence" as a unit of grammar, "conviction" as firm belief (Hebrews 11:1 is quoted
-verbatim in four places, and Scripture is never rewritten), and the internal `verdict`
-identifiers. Two of the rewrites are flagged as genuine judgement calls rather than
-mechanical fixes, and `public/shame.html:677` is a whole devotional built on the
-metaphor that wants rewriting rather than word-swapping. Waiting on the owner.
+**DONE 2026-08-27.** Read through with the owner in five batches and finished the
+same day. The full record is at
+[`docs/product/courtroom-language-sweep.md`](courtroom-language-sweep.md): 29 hits,
+four approved exceptions, and a guard (`scripts/verify-courtroom-language.ts`,
+24 checks, 22 mutations caught) that keeps it swept.
+
+**Reading the drafts rather than approving a list changed six of them and turned up
+five hits the inventory had missed** — including one the guard found on its first
+run that six passes by eye had not. That is the finding worth carrying into the next
+copy pass: an inventory built by grep undercounts, and a rewrite judged out of
+context reads worse than the line it replaces. The grace day is a ledger and
+"sentence" was breaking its own metaphor; the unforgiveness day is a prison and the
+first draft deleted its lock and key.
 
 ---
 
